@@ -1,0 +1,878 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticalResult": {
+        "additionalProperties": false,
+        "properties": {
+          "apex_time": {
+            "description": "s",
+            "title": "Apex Time",
+            "type": "number"
+          },
+          "flight_time": {
+            "description": "s",
+            "title": "Flight Time",
+            "type": "number"
+          },
+          "impact_speed": {
+            "description": "m/s",
+            "title": "Impact Speed",
+            "type": "number"
+          },
+          "max_height": {
+            "description": "m",
+            "title": "Max Height",
+            "type": "number"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "range": {
+            "description": "Horizontal distance at landing, m",
+            "title": "Range",
+            "type": "number"
+          }
+        },
+        "required": [
+          "flight_time",
+          "range",
+          "max_height",
+          "apex_time",
+          "impact_speed",
+          "method_note"
+        ],
+        "title": "AnalyticalResult",
+        "type": "object"
+      },
+      "Assumption": {
+        "additionalProperties": false,
+        "description": "A modelling assumption, stated so a reader can judge when the model stops applying.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "statement"
+        ],
+        "title": "Assumption",
+        "type": "object"
+      },
+      "Comparison": {
+        "additionalProperties": false,
+        "properties": {
+          "flight_time": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "impact_speed": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "max_energy_balance_residual": {
+            "description": "max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the true solution, so this measures integration error only.",
+            "title": "Max Energy Balance Residual",
+            "type": "number"
+          },
+          "max_height": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "max_position_error": {
+            "description": "Max Euclidean distance (m) between numerical and exact positions, evaluated at the solver's accepted step nodes (no interpolation error).",
+            "title": "Max Position Error",
+            "type": "number"
+          },
+          "range": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          }
+        },
+        "required": [
+          "flight_time",
+          "range",
+          "max_height",
+          "impact_speed",
+          "max_position_error",
+          "max_energy_balance_residual"
+        ],
+        "title": "Comparison",
+        "type": "object"
+      },
+      "ErrorMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute": {
+            "title": "Absolute",
+            "type": "number"
+          },
+          "relative": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "|numerical - analytical| / |analytical|; null when the reference is 0.",
+            "title": "Relative"
+          }
+        },
+        "required": [
+          "absolute",
+          "relative"
+        ],
+        "title": "ErrorMetric",
+        "type": "object"
+      },
+      "ExperimentRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Environment",
+            "type": "object"
+          },
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "description": "Validated inputs exactly as used by the run.",
+            "title": "Inputs",
+            "type": "object"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "Headline metrics; series are not stored.",
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "run_id",
+          "model_id",
+          "model_version",
+          "created_at",
+          "input_hash",
+          "inputs",
+          "summary",
+          "environment"
+        ],
+        "title": "ExperimentRecord",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Health": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Environment",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "environment"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "ModelInfo": {
+        "additionalProperties": false,
+        "description": "Identifies exactly which model (and which version of its equations) produced a result.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable dotted identifier, e.g. 'physics.projectile'.",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "description": "Semantic version of the model's equations and outputs.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name",
+          "description"
+        ],
+        "title": "ModelInfo",
+        "type": "object"
+      },
+      "NumericalResult": {
+        "additionalProperties": false,
+        "properties": {
+          "apex_time": {
+            "description": "s",
+            "title": "Apex Time",
+            "type": "number"
+          },
+          "atol": {
+            "title": "Atol",
+            "type": "number"
+          },
+          "flight_time": {
+            "description": "s",
+            "title": "Flight Time",
+            "type": "number"
+          },
+          "impact_speed": {
+            "description": "m/s",
+            "title": "Impact Speed",
+            "type": "number"
+          },
+          "max_height": {
+            "description": "m",
+            "title": "Max Height",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "n_rhs_evaluations": {
+            "title": "N Rhs Evaluations",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "range": {
+            "description": "Horizontal distance at landing, m",
+            "title": "Range",
+            "type": "number"
+          },
+          "rtol": {
+            "title": "Rtol",
+            "type": "number"
+          }
+        },
+        "required": [
+          "flight_time",
+          "range",
+          "max_height",
+          "apex_time",
+          "impact_speed",
+          "method",
+          "rtol",
+          "atol",
+          "n_steps",
+          "n_rhs_evaluations"
+        ],
+        "title": "NumericalResult",
+        "type": "object"
+      },
+      "ProjectileParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "drag_coefficient": {
+            "default": 0.1,
+            "description": "Linear drag coefficient b in kg/s (drag force F = -b v). 0 means vacuum.",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Drag Coefficient",
+            "type": "number"
+          },
+          "gravity": {
+            "default": 9.80665,
+            "description": "Gravitational acceleration in m/s^2 (default: standard gravity).",
+            "maximum": 1000.0,
+            "minimum": 0.01,
+            "title": "Gravity",
+            "type": "number"
+          },
+          "initial_speed": {
+            "default": 20.0,
+            "description": "Launch speed |v0| in m/s.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000.0,
+            "title": "Initial Speed",
+            "type": "number"
+          },
+          "launch_angle_deg": {
+            "default": 45.0,
+            "description": "Launch angle above the horizontal, in degrees.",
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Launch Angle Deg",
+            "type": "number"
+          },
+          "launch_height": {
+            "default": 0.0,
+            "description": "Height of the launch point above the ground, in m.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Launch Height",
+            "type": "number"
+          },
+          "mass": {
+            "default": 1.0,
+            "description": "Projectile mass in kg.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
+            "title": "Mass",
+            "type": "number"
+          }
+        },
+        "title": "ProjectileParameters",
+        "type": "object"
+      },
+      "ProjectileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "n_samples": {
+            "default": 400,
+            "description": "Number of points in the resampled series.",
+            "maximum": 5000.0,
+            "minimum": 10.0,
+            "title": "N Samples",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters"
+          },
+          "save_experiment": {
+            "default": true,
+            "description": "Record inputs and summary metrics in the experiment log.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          }
+        },
+        "title": "ProjectileRequest",
+        "type": "object"
+      },
+      "ProjectileResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "analytical": {
+            "$ref": "#/components/schemas/AnalyticalResult"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/Comparison"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "numerical": {
+            "$ref": "#/components/schemas/NumericalResult"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters"
+          },
+          "series": {
+            "$ref": "#/components/schemas/ProjectileSeries"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "solver",
+          "units",
+          "assumptions",
+          "analytical",
+          "numerical",
+          "comparison",
+          "series",
+          "metadata"
+        ],
+        "title": "ProjectileResponse",
+        "type": "object"
+      },
+      "ProjectileSeries": {
+        "additionalProperties": false,
+        "description": "Uniformly resampled series for plotting. Numerical values come from the solver's\ndense-output interpolant; analytical values from the exact solution at the same times.",
+        "properties": {
+          "drag_work": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Drag Work",
+            "type": "array"
+          },
+          "kinetic_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Kinetic Energy",
+            "type": "array"
+          },
+          "potential_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Potential Energy",
+            "type": "array"
+          },
+          "speed_numerical": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Speed Numerical",
+            "type": "array"
+          },
+          "t": {
+            "items": {
+              "type": "number"
+            },
+            "title": "T",
+            "type": "array"
+          },
+          "x_analytical": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X Analytical",
+            "type": "array"
+          },
+          "x_numerical": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X Numerical",
+            "type": "array"
+          },
+          "y_analytical": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Y Analytical",
+            "type": "array"
+          },
+          "y_numerical": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Y Numerical",
+            "type": "array"
+          }
+        },
+        "required": [
+          "t",
+          "x_numerical",
+          "y_numerical",
+          "x_analytical",
+          "y_analytical",
+          "speed_numerical",
+          "kinetic_energy",
+          "potential_energy",
+          "drag_work"
+        ],
+        "title": "ProjectileSeries",
+        "type": "object"
+      },
+      "RunMetadata": {
+        "additionalProperties": false,
+        "description": "Everything needed to reproduce (or audit) a single run.",
+        "properties": {
+          "created_at": {
+            "description": "UTC timestamp, ISO 8601.",
+            "title": "Created At",
+            "type": "string"
+          },
+          "elapsed_ms": {
+            "description": "Wall-clock compute time. Not reproducible by nature.",
+            "title": "Elapsed Ms",
+            "type": "number"
+          },
+          "experiment_saved": {
+            "title": "Experiment Saved",
+            "type": "boolean"
+          },
+          "input_hash": {
+            "description": "SHA-256 of the canonical JSON of the validated inputs. Identical inputs produce identical hashes, so repeated runs can be grouped and compared.",
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "numpy_version": {
+            "title": "Numpy Version",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "python_version": {
+            "title": "Python Version",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Unique identifier for this run (UUID4).",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scipy_version": {
+            "title": "Scipy Version",
+            "type": "string"
+          },
+          "simforge_version": {
+            "title": "Simforge Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "created_at",
+          "input_hash",
+          "simforge_version",
+          "python_version",
+          "numpy_version",
+          "scipy_version",
+          "platform",
+          "elapsed_ms",
+          "experiment_saved"
+        ],
+        "title": "RunMetadata",
+        "type": "object"
+      },
+      "SolverSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "atol": {
+            "default": 1e-10,
+            "description": "Absolute tolerance (state units).",
+            "maximum": 0.1,
+            "minimum": 1e-14,
+            "title": "Atol",
+            "type": "number"
+          },
+          "method": {
+            "default": "DOP853",
+            "description": "SciPy solve_ivp method. RK45: Dormand-Prince 5(4). DOP853: 8th-order Dormand-Prince. Radau: implicit, for stiff problems (very strong drag).",
+            "enum": [
+              "RK45",
+              "DOP853",
+              "Radau"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "rtol": {
+            "default": 1e-10,
+            "description": "Relative tolerance.",
+            "maximum": 0.001,
+            "minimum": 1e-13,
+            "title": "Rtol",
+            "type": "number"
+          }
+        },
+        "title": "SolverSettings",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Validated scientific simulations with explicit assumptions and units.",
+    "title": "SimForge API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/experiments": {
+      "get": {
+        "operationId": "list_experiments_api_v1_experiments_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "model_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExperimentRecord"
+                  },
+                  "title": "Response List Experiments Api V1 Experiments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Experiments",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/experiments/{run_id}": {
+      "get": {
+        "operationId": "get_experiment_api_v1_experiments__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExperimentRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Experiment",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/info": {
+      "get": {
+        "operationId": "projectile_info_api_v1_physics_projectile_info_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Projectile Info",
+        "tags": [
+          "physics"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/simulate": {
+      "post": {
+        "operationId": "simulate_projectile_api_v1_physics_projectile_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate Projectile",
+        "tags": [
+          "physics"
+        ]
+      }
+    }
+  }
+}
