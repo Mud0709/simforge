@@ -8,8 +8,26 @@ import { formatExp, formatSig } from "@/lib/format";
 type Summary = {
   analytical?: { range?: number };
   comparison?: { max_position_error?: number };
+  methods?: Record<string, { position_order?: number | null }>;
 };
-type Inputs = { parameters?: Record<string, number>; solver?: { method?: string } };
+type Inputs = {
+  parameters?: Record<string, number>;
+  solver?: { method?: string };
+  methods?: string[];
+};
+
+/** One-line headline for a saved run; each model stores a different summary shape. */
+export function keyResult(modelId: string, summary: Summary): string {
+  if (modelId === "physics.projectile.integrators") {
+    return Object.entries(summary.methods ?? {})
+      .map(([m, s]) => `${m} p≈${s.position_order == null ? "n/a" : s.position_order.toFixed(2)}`)
+      .join(", ");
+  }
+  const range = summary.analytical?.range;
+  const err = summary.comparison?.max_position_error;
+  if (range === undefined) return "—";
+  return `range ${formatSig(range)} m, error ${formatExp(err ?? NaN)} m`;
+}
 
 export function ExperimentLog() {
   const [records, setRecords] = useState<ExperimentRecord[] | null>(null);
@@ -43,9 +61,8 @@ export function ExperimentLog() {
             <th scope="col">v₀ (m/s)</th>
             <th scope="col">θ (°)</th>
             <th scope="col">b (kg/s)</th>
-            <th scope="col">Solver</th>
-            <th scope="col">Range (m)</th>
-            <th scope="col">Max pos. error (m)</th>
+            <th scope="col">Solver(s)</th>
+            <th scope="col">Key result</th>
             <th scope="col">Input hash</th>
           </tr>
         </thead>
@@ -63,9 +80,8 @@ export function ExperimentLog() {
                 <td className="num">{formatSig(p.initial_speed ?? NaN)}</td>
                 <td className="num">{formatSig(p.launch_angle_deg ?? NaN)}</td>
                 <td className="num">{formatSig(p.drag_coefficient ?? NaN)}</td>
-                <td>{inputs.solver?.method ?? "—"}</td>
-                <td className="num">{formatSig(summary.analytical?.range ?? NaN)}</td>
-                <td className="num">{formatExp(summary.comparison?.max_position_error ?? NaN)}</td>
+                <td>{inputs.solver?.method ?? inputs.methods?.join(", ") ?? "—"}</td>
+                <td>{keyResult(r.model_id, summary)}</td>
                 <td>
                   <code title={r.input_hash}>{r.input_hash.slice(0, 10)}</code>
                 </td>

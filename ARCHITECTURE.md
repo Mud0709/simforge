@@ -23,11 +23,17 @@ simforge/
 ├── backend/                         Python 3.12, managed by uv (uv.lock pins everything)
 │   ├── src/simforge/
 │   │   ├── core/                    Shared: StrictModel base, run metadata, hashing, errors
+│   │   ├── numerics/                Model-independent methods written from scratch:
+│   │   │   ├── fixed_step.py          Euler, RK4, fixed-step driver, stability functions
+│   │   │   └── convergence.py         order fitting and local orders
 │   │   ├── physics/projectile/      One model = one package:
 │   │   │   ├── analytical.py          exact solution (pure NumPy/SciPy)
 │   │   │   ├── numerical.py           ODE integration (pure NumPy/SciPy)
 │   │   │   ├── model.py               orchestration + assumptions, units, model version
-│   │   │   └── schemas.py             validated request/response contract (Pydantic)
+│   │   │   ├── schemas.py             validated request/response contract (Pydantic)
+│   │   │   ├── integrator_study.py    convergence study engine (Verlet, stability, fit rule)
+│   │   │   ├── integrator_model.py    study orchestration + assumptions
+│   │   │   └── integrator_schemas.py  study API contract
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
 │   │   ├── api/                     FastAPI routes, dependencies, error handlers
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
@@ -35,8 +41,10 @@ simforge/
 │   ├── tests/                       pytest: physics/ (reference tests), api/, persistence
 │   └── scripts/export_openapi.py    Writes the API contract for the frontend
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
-│   ├── src/app/                     Routes: /, /physics/projectile, /experiments
-│   ├── src/components/              ProjectileLab, ProjectileResults, PlotlyChart, ExperimentLog
+│   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
+│   │                                /experiments
+│   ├── src/components/              ProjectileLab/Results, IntegratorLab/Results, NumberField,
+│   │                                PlotlyChart, ExperimentLog
 │   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client
 │   ├── src/lib/projectile/fields.ts Form fields; bounds read from openapi.json
 │   └── e2e/                         Playwright full-stack tests
@@ -104,6 +112,29 @@ instead of a dependency on `react-plotly.js`.
 | Lint / format | ruff | ESLint (next config), Prettier |
 | Types | mypy `--strict` + pydantic plugin | `tsc` strict + `noUncheckedIndexedAccess` |
 | Tests | pytest, warnings are errors | Vitest + Testing Library; Playwright E2E |
+
+### 9. Generic numerics live apart from any model
+`numerics/` holds methods that know nothing about physics (Euler, RK4, order fitting). A
+problem supplies a right-hand side `f(t, y)`. Problem-specific schemes stay with their
+problem; velocity Verlet with implicitly solved linear drag, for example, lives in
+`physics/projectile/integrator_study.py`, because its exact implicit solve depends on the
+force law. Future models, such as a harmonic oscillator or orbits, reuse `numerics/` directly.
+
+### 10. One experiment-log path for every model
+Both projectile endpoints record runs through one helper (`_record_run` in
+`api/routes/physics.py`). Each model hashes exactly the inputs that affect its numbers and
+stores a small, model-specific summary. The frontend's experiment log renders a one-line
+"key result" per model.
+
+## API endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/health` | Status and library versions |
+| GET | `/api/v1/physics/projectile/info` | Model metadata |
+| POST | `/api/v1/physics/projectile/simulate` | Exact vs adaptive SciPy solution |
+| POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
+| GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
 
 ## Adding a new model (the intended pattern)
 

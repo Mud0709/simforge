@@ -185,6 +185,40 @@
         "title": "ExperimentRecord",
         "type": "object"
       },
+      "FitRule": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "max_h_over_horizon": {
+            "title": "Max H Over Horizon",
+            "type": "number"
+          },
+          "max_kh": {
+            "title": "Max Kh",
+            "type": "number"
+          },
+          "min_points": {
+            "title": "Min Points",
+            "type": "integer"
+          },
+          "roundoff_safety_factor": {
+            "title": "Roundoff Safety Factor",
+            "type": "number"
+          }
+        },
+        "required": [
+          "max_kh",
+          "max_h_over_horizon",
+          "roundoff_safety_factor",
+          "min_points",
+          "description"
+        ],
+        "title": "FitRule",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -218,6 +252,440 @@
           "environment"
         ],
         "title": "Health",
+        "type": "object"
+      },
+      "IntegratorRun": {
+        "additionalProperties": false,
+        "properties": {
+          "amplification_factor": {
+            "description": "R(-kh), per-step velocity amplification.",
+            "title": "Amplification Factor",
+            "type": "number"
+          },
+          "diverged": {
+            "title": "Diverged",
+            "type": "boolean"
+          },
+          "dt_requested": {
+            "description": "s",
+            "title": "Dt Requested",
+            "type": "number"
+          },
+          "exclusion_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusion Reason"
+          },
+          "final_position_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m, at t = T",
+            "title": "Final Position Error"
+          },
+          "final_velocity_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m/s, at t = T",
+            "title": "Final Velocity Error"
+          },
+          "h": {
+            "description": "Effective step T/N, s. Convergence is fitted against this.",
+            "title": "H",
+            "type": "number"
+          },
+          "in_position_fit": {
+            "title": "In Position Fit",
+            "type": "boolean"
+          },
+          "in_velocity_fit": {
+            "title": "In Velocity Fit",
+            "type": "boolean"
+          },
+          "kh": {
+            "description": "Step size in units of the drag time 1/k (dimensionless).",
+            "title": "Kh",
+            "type": "number"
+          },
+          "max_position_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m; null if the run diverged",
+            "title": "Max Position Error"
+          },
+          "max_velocity_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m/s; null if the run diverged",
+            "title": "Max Velocity Error"
+          },
+          "n_completed": {
+            "title": "N Completed",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "position_roundoff_floor": {
+            "description": "m",
+            "title": "Position Roundoff Floor",
+            "type": "number"
+          },
+          "stability": {
+            "enum": [
+              "stable",
+              "marginal",
+              "unstable"
+            ],
+            "title": "Stability",
+            "type": "string"
+          },
+          "velocity_roundoff_floor": {
+            "description": "m/s",
+            "title": "Velocity Roundoff Floor",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dt_requested",
+          "h",
+          "n_steps",
+          "kh",
+          "amplification_factor",
+          "stability",
+          "diverged",
+          "n_completed",
+          "max_position_error",
+          "max_velocity_error",
+          "final_position_error",
+          "final_velocity_error",
+          "position_roundoff_floor",
+          "velocity_roundoff_floor",
+          "in_position_fit",
+          "in_velocity_fit",
+          "exclusion_reason"
+        ],
+        "title": "IntegratorRun",
+        "type": "object"
+      },
+      "IntegratorStudyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dt_values": {
+            "description": "Requested time steps (s). Each run uses h = T/N with N = ceil(T/dt), so that every run ends exactly at the horizon T.",
+            "items": {
+              "description": "Requested time step in s.",
+              "exclusiveMinimum": 0.0,
+              "maximum": 100.0,
+              "type": "number"
+            },
+            "maxItems": 12,
+            "minItems": 2,
+            "title": "Dt Values",
+            "type": "array"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "euler",
+                "rk4",
+                "verlet"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Methods",
+            "type": "array"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters"
+          },
+          "save_experiment": {
+            "default": true,
+            "title": "Save Experiment",
+            "type": "boolean"
+          }
+        },
+        "title": "IntegratorStudyRequest",
+        "type": "object"
+      },
+      "IntegratorStudyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "dt_values": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Dt Values",
+            "type": "array"
+          },
+          "exact_trajectory": {
+            "$ref": "#/components/schemas/XYSeries"
+          },
+          "fit_rule": {
+            "$ref": "#/components/schemas/FitRule"
+          },
+          "horizon": {
+            "description": "Exact flight time T (s); every run covers [0, T].",
+            "title": "Horizon",
+            "type": "number"
+          },
+          "k": {
+            "description": "Drag rate b/m, 1/s",
+            "title": "K",
+            "type": "number"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "euler",
+                "rk4",
+                "verlet"
+              ],
+              "type": "string"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters"
+          },
+          "position_scale": {
+            "description": "max |r| of the exact solution, m",
+            "title": "Position Scale",
+            "type": "number"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MethodStudyResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "velocity_scale": {
+            "description": "max |v| of the exact solution, m/s",
+            "title": "Velocity Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "dt_values",
+          "methods",
+          "units",
+          "assumptions",
+          "horizon",
+          "k",
+          "position_scale",
+          "velocity_scale",
+          "fit_rule",
+          "results",
+          "exact_trajectory",
+          "metadata"
+        ],
+        "title": "IntegratorStudyResponse",
+        "type": "object"
+      },
+      "MethodStudyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "fit_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why no order was fitted, if none was.",
+            "title": "Fit Note"
+          },
+          "method": {
+            "enum": [
+              "euler",
+              "rk4",
+              "verlet"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "position_fit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderFitResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position_local_orders": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Position Local Orders",
+            "type": "array"
+          },
+          "position_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceLine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runs": {
+            "description": "Ordered from coarsest to finest step.",
+            "items": {
+              "$ref": "#/components/schemas/IntegratorRun"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "stability_limit_kh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Largest kh for which |R(-kh)| <= 1; null if stable for every kh.",
+            "title": "Stability Limit Kh"
+          },
+          "theoretical_order": {
+            "title": "Theoretical Order",
+            "type": "integer"
+          },
+          "trajectory": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrajectorySample"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coarsest linearly stable, non-divergent run, for plotting."
+          },
+          "velocity_fit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderFitResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "velocity_local_orders": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Velocity Local Orders",
+            "type": "array"
+          },
+          "velocity_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceLine"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "name",
+          "theoretical_order",
+          "stability_limit_kh",
+          "runs",
+          "position_local_orders",
+          "velocity_local_orders",
+          "position_fit",
+          "velocity_fit",
+          "position_reference",
+          "velocity_reference",
+          "fit_note",
+          "trajectory"
+        ],
+        "title": "MethodStudyResult",
         "type": "object"
       },
       "ModelInfo": {
@@ -314,6 +782,48 @@
           "n_rhs_evaluations"
         ],
         "title": "NumericalResult",
+        "type": "object"
+      },
+      "OrderFitResult": {
+        "additionalProperties": false,
+        "properties": {
+          "h_max": {
+            "description": "s",
+            "title": "H Max",
+            "type": "number"
+          },
+          "h_min": {
+            "description": "s",
+            "title": "H Min",
+            "type": "number"
+          },
+          "n_points": {
+            "title": "N Points",
+            "type": "integer"
+          },
+          "order": {
+            "description": "Least-squares slope of log10(error) against log10(h).",
+            "title": "Order",
+            "type": "number"
+          },
+          "r_squared": {
+            "title": "R Squared",
+            "type": "number"
+          },
+          "theoretical_order": {
+            "title": "Theoretical Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order",
+          "theoretical_order",
+          "r_squared",
+          "n_points",
+          "h_min",
+          "h_max"
+        ],
+        "title": "OrderFitResult",
         "type": "object"
       },
       "ProjectileParameters": {
@@ -537,6 +1047,37 @@
         "title": "ProjectileSeries",
         "type": "object"
       },
+      "ReferenceLine": {
+        "additionalProperties": false,
+        "description": "A line of the *theoretical* slope through the finest point in the fit range.\nIt is a visual guide, not a fit.",
+        "properties": {
+          "error": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Error",
+            "type": "array"
+          },
+          "h": {
+            "items": {
+              "type": "number"
+            },
+            "title": "H",
+            "type": "array"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order",
+          "h",
+          "error"
+        ],
+        "title": "ReferenceLine",
+        "type": "object"
+      },
       "RunMetadata": {
         "additionalProperties": false,
         "description": "Everything needed to reproduce (or audit) a single run.",
@@ -635,6 +1176,37 @@
         "title": "SolverSettings",
         "type": "object"
       },
+      "TrajectorySample": {
+        "additionalProperties": false,
+        "properties": {
+          "h": {
+            "description": "Step size of the plotted run, s",
+            "title": "H",
+            "type": "number"
+          },
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "h",
+          "x",
+          "y"
+        ],
+        "title": "TrajectorySample",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -673,6 +1245,31 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "XYSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "XYSeries",
         "type": "object"
       }
     }
@@ -828,6 +1425,47 @@
           }
         },
         "summary": "Projectile Info",
+        "tags": [
+          "physics"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/integrators": {
+      "post": {
+        "operationId": "integrator_study_api_v1_physics_projectile_integrators_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegratorStudyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegratorStudyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Integrator Study",
         "tags": [
           "physics"
         ]

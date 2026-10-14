@@ -134,3 +134,184 @@ also appear in its API response under `comparison`.
 - **Results are bit-identical across repeated runs on the same machine** (this is tested).
   They are not guaranteed bit-identical across CPUs or library versions, which is why
   versions are recorded with every run.
+
+---
+
+## `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
+
+### Purpose
+
+The linear-drag projectile has an exact solution, so the error of any integrator applied to
+it can be measured exactly. This study implements three fixed-step methods **from scratch**
+(no SciPy integrators) and measures how their errors shrink as the time step `h` is reduced.
+
+Engine code: `backend/src/simforge/numerics/fixed_step.py` and `convergence.py` (generic) and
+`backend/src/simforge/physics/projectile/integrator_study.py` (problem-specific).
+
+### Equations
+
+State `s = (x, y, vx, vy)`, `k = b/m`:
+
+```
+x' = vx     y' = vy     vx' = −k vx     vy' = −g − k vy
+```
+
+| Method | Update | Theoretical global order |
+|---|---|---|
+| Forward Euler | `s_{n+1} = s_n + h f(s_n)` | 1 |
+| Classical RK4 | `s_{n+1} = s_n + h/6 (k1 + 2k2 + 2k3 + k4)` | 4 |
+| Velocity Verlet, implicit drag | `r_{n+1} = r_n + h v_n + h²/2 a_n`;  `v_{n+1} = [(1 − kh/2) v_n − g h ŷ] / (1 + kh/2)` | 2 |
+
+**Why this form of Verlet?** Standard velocity Verlet assumes the acceleration depends only on
+position. Here `a = −g ŷ − k v` depends on velocity, so its velocity update
+`v_{n+1} = v_n + h/2 (a_n + a_{n+1})` is implicit. Because drag is linear, that implicit
+equation is solved *exactly* (formula above). The result is the trapezoidal rule for velocity,
+which is second order and A-stable, plus a second-order Taylor step for position.
+
+Verlet's usual advantages, symplecticity and good long-term energy behaviour, apply to
+conservative Hamiltonian systems. This system is dissipative, so **no such claim is made**.
+Verlet is included as a second-order method whose stability differs sharply from the two
+explicit methods. Explicit "predicted-velocity" Verlet variants are not used, because they are
+ad hoc and their order depends on the predictor.
+
+### Linear stability
+
+The Jacobian has eigenvalue 0 for position and `−k` for velocity. One step multiplies a
+velocity perturbation by the method's stability function `R(z)` at `z = −kh`:
+
+| Method | `R(z)` | Stable when | Behaviour beyond the limit |
+|---|---|---|---|
+| Euler | `1 + z` | `kh ≤ 2` | grows with alternating sign (`R < −1`) |
+| RK4 | `1 + z + z²/2 + z³/6 + z⁴/24` | `kh ≤ 2.785293563…` | grows **without** alternating sign (`R > 1`) |
+| Verlet (this form) | `(1 + z/2)/(1 − z/2)` | every `kh > 0` | — (but `R → −1` as `kh → ∞`: decay becomes slow and oscillatory) |
+
+The RK4 limit is computed numerically as the nonzero real root of `R(z) = 1`, not hard-coded.
+It is tested against the published value (Hairer & Wanner, *Solving ODEs II*, §IV.2).
+An earlier draft of this work assumed the boundary was at `R = −1`, as it is for Euler. The
+computation refused to find a root there, which is how the mistake was caught.
+
+### Error metrics
+
+- **Fixed horizon.** Every run integrates over `[0, T]`, where `T` is the exact flight time,
+  using `N = ⌈T/dt⌉` equal steps of `h = T/N ≤ dt`. Convergence is fitted against `h`, not
+  the requested `dt`. Landing is *not* detected: locating it between nodes would add an
+  interpolation error (typically O(h²)) that could mask RK4's fourth order.
+- **Max position error** = `max_n |r_n − r(t_n)|` (m), and **max velocity error** =
+  `max_n |v_n − v(t_n)|` (m/s), over all nodes. Errors at `t = T` are also reported.
+- **Reference.** The existing exact solution, evaluated in float64 with relative error about
+  1e-15. That is far below every round-off floor below.
+
+### A conserved linear invariant (and why it matters for the evidence)
+
+Integrating `v' = −kv − gŷ` gives `I = v + k r + g t ŷ = constant` along the exact solution.
+Every Runge-Kutta method, Euler and RK4 included, conserves linear invariants exactly. Their
+errors therefore satisfy `δv_n = −k δr_n` at every node, so **velocity error = k × position
+error** for Euler and RK4. This was first noticed as a suspicious coincidence in the data,
+then explained by this theorem and tested to 1e-13. Consequently their fitted velocity orders
+are *not independent evidence*. The position update of Verlet does not preserve `I`, so its
+velocity order is an independent result.
+
+### Fit-range rule (fixed before inspecting results)
+
+A run contributes to the least-squares fit of `log10(error)` against `log10(h)` only if all
+of these hold:
+
+1. **Linearly stable:** `|R(−kh)| < 1`, and the run did not diverge.
+2. **Asymptotic regime:** `kh ≤ 0.2` and `h ≤ T/20`. The leading error term dominates only
+   when both expansion parameters are small. These thresholds are conventional, conservative
+   choices; they were not tuned.
+3. **Above round-off:** `error > 100 · N · ε · scale`, where `ε = 2.2e-16` and `scale` is the
+   maximum of `|r|` (or `|v|`) over the exact solution. Accumulated rounding error grows at
+   most about linearly in `N`; the factor 100 is a safety margin.
+
+An order is reported only if **at least 3** distinct step sizes qualify. Otherwise the fit is
+null and the response says why. Local orders `log(e₁/e₂)/log(h₁/h₂)` are reported for every
+consecutive pair, so you can see whether the errors have actually reached the asymptotic
+regime. The convergence plot draws a line of the *theoretical* slope from the finest fitted
+point. It is shifted down by ×0.2 for visibility, and it is a guide, not a fit. Drawing it is
+justified because the solution is infinitely differentiable, so the theoretical orders apply.
+
+The round-off criterion is conservative. For example, RK4 at `h = 0.0031 s` (case A) has
+error 8.1e-12 m against a floor of 1.9e-10 m and is excluded, even though its local order
+(4.003) is still clean. A tighter floor would add points but would rest on a less defensible
+bound.
+
+### Tests
+
+Model-independent (`backend/tests/numerics/`):
+
+| Check | Reference |
+|---|---|
+| One step on `y' = λy` equals `R(λh)·y` (Euler, RK4; 5 values of z, including unstable ones) | Stability functions, rel 1e-15 |
+| RK4 is exact for `y' = 4t³ − t` | Simpson's rule exactness for cubics |
+| Orders 1 and 4 on `y' = −y` over 8 step sizes (errors > 1e-13 only) | `e^{−t}`, tolerance ±0.05 |
+| Divergence is detected and stops early with finite values | `|R| = 9` |
+| Fitting: exact power law recovered; fewer than 3 points, duplicates or zero errors refused; poor linearity shows in R² | Synthetic data |
+
+Projectile study (`backend/tests/physics/test_projectile_integrators.py`):
+
+| Check | Reference / tolerance |
+|---|---|
+| `vx_n = vx₀ R(−kh)ⁿ` for all 3 methods at kh ∈ {0.05, 0.5, 1.9, 2.5, 3, 10} | Exact discrete solution, rel 1e-12. Tests the code inside and beyond its stability limits |
+| Euler at kh = 1.9 decays, at kh = 2.1 grows with alternating sign; RK4 at kh = 2.9 grows with constant sign; Verlet bounded at kh = 1000 | Stability theory |
+| Stability classification at, below and above each limit | Theory |
+| Fitted order within ±0.1 of theory, R² > 0.999, every in-fit local order within ±0.15, for 3 methods × 3 parameter sets | Theory, ≥ 3 points (≥ 5 in the default case) |
+| Verlet's velocity order ≈ 2 (independent evidence) | ±0.1 |
+| Linear invariant conserved by Euler/RK4 (1e-13); violated by Verlet | Theorem above |
+| Round-off floor excludes the finest RK4 points; too few points ⇒ no order claimed | Fit rule |
+| Divergent runs report null errors (strict JSON); unstable-but-finite runs are flagged and excluded | — |
+| `dt > T` ⇒ one step; `⌈T/dt⌉` is robust to rounding noise; `h ≤ dt`; `N·h = T` | — |
+| Vacuum (`b = 0`) rejected; results deterministic | — |
+
+API tests (`backend/tests/api/test_integrators_api.py`) cover validation (zero drag, ≤ 0,
+non-finite or duplicate steps, list length, unknown or duplicate methods, extra fields), the
+step-count limits, persistence, and that `/simulate` is unaffected.
+
+### Observed results
+
+Measured on 2026-10-14 with Python 3.12.3, NumPy 2.5.4 and SciPy 1.18.1, using the step sizes
+`dt = 0.2 × 2⁻ⁱ s`, i = 0…7 (0.2 s down to 0.0015625 s), and `g = 9.80665 m/s²`.
+
+| Case | Method | Fitted order (position) | Points | Fit range h (s) | R² | Local orders inside the fit (coarse → fine) |
+|---|---|---|---|---|---|---|
+| A: v₀ = 20, 45°, h₀ = 0, m = 1, b = 1 (k = 1 s⁻¹, T = 2.161 s) | Euler | 1.009 | 7 | 0.00156–0.0982 | 0.999976 | 1.031 → 1.001 |
+| | RK4 | 4.027 | 5 | 0.00624–0.0982 | 0.999994 | 4.059 → 4.008 |
+| | Verlet | 2.000 | 7 | 0.00156–0.0982 | 1.000000 | 2.000 (all) |
+| B: v₀ = 20, 30°, h₀ = 10, m = 2, b = 0.5 (k = 0.25, T = 2.752) | Euler | 1.003 | 7 | 0.00156–0.0983 | 0.999998 | 1.009 → 1.000 |
+| | RK4 | 4.011 | **3** | 0.0248–0.0983 | 1.000000 | 4.015, 4.007 |
+| | Verlet | 2.000 | 7 | 0.00156–0.0983 | 1.000000 | 2.000 (all) |
+| C: v₀ = 15, 70°, h₀ = 2, m = 1, b = 3 (k = 3, T = 2.381) | Euler | 1.016 | 6 | 0.00156–0.0496 | 0.999943 | 1.045 → 1.003 |
+| | RK4 | 4.040 | 5 | 0.00312–0.0496 | 0.999985 | 4.089 → 4.011 |
+| | Verlet | 2.000 | 6 | 0.00156–0.0496 | 1.000000 | 2.000 (all) |
+
+How to read this table:
+
+- Fitted orders sit slightly *above* theory, and the local orders fall monotonically towards
+  it. That is the signature of higher-order error terms that are still decaying at the
+  coarser steps, not of a wrong method. The finest local orders are within 0.011 of theory
+  in every case.
+- **Case B's RK4 fit has only 3 points**, the documented minimum. With weak drag
+  (k = 0.25 s⁻¹) the non-polynomial part of the solution is small, so RK4's error falls below
+  the round-off floor sooner. The order is reported, but it rests on less evidence than the
+  others.
+- **Verlet's R² of 1.000000** reflects errors that are almost exactly proportional to h² over
+  this range. That is expected for a second-order method on a smooth, linear problem.
+
+To reproduce: `cd backend && uv run pytest tests/physics/test_projectile_integrators.py -v`,
+or run the study from the UI (Physics Lab → Integrators).
+
+### Known limitations
+
+- **One problem only.** Convergence is demonstrated on a single, linear ODE system (plus the
+  scalar test equation). Nonlinear problems, such as quadratic drag, can behave differently.
+- **Fixed horizon, not landing.** The study does not measure errors in the landing time or
+  range for fixed-step methods. Those would need event location, whose interpolation error
+  would itself need analysis.
+- **Velocity orders for Euler/RK4 are not independent**, because of the linear invariant.
+- **The thresholds are heuristics.** `kh ≤ 0.2`, `h ≤ T/20` and the ×100 round-off margin are
+  conventional choices, stated in advance. Different reasonable thresholds would include
+  different points.
+- **Performance.** The integrators are plain Python loops (about 17 µs per RK4 step). Requests
+  are therefore capped at 50,000 steps per run and 150,000 per study.
+- **Not a proof.** The fits are empirical evidence consistent with theory on the cases tested.
+  They are not a proof of order and say nothing about other problems.

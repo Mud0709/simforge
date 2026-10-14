@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </Link>
           <nav aria-label="Main">
             <Link href="/physics/projectile">Physics Lab</Link>
+            <Link href="/physics/projectile/integrators">Integrators</Link>
             <Link href="/experiments">Experiments</Link>
           </nav>
         </header>

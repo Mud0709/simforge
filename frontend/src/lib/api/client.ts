@@ -7,6 +7,10 @@ export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
 export type ExperimentRecord = Schemas["ExperimentRecord"];
 export type ErrorMetric = Schemas["ErrorMetric"];
+export type IntegratorStudyRequest = Schemas["IntegratorStudyRequest"];
+export type IntegratorStudyResponse = Schemas["IntegratorStudyResponse"];
+export type MethodStudyResult = Schemas["MethodStudyResult"];
+export type IntegratorMethod = MethodStudyResult["method"];
 
 const API_BASE = "/api/v1";
 
@@ -57,6 +61,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function simulateProjectile(body: ProjectileRequest): Promise<ProjectileResponse> {
   return request("/physics/projectile/simulate", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<IntegratorStudyResponse> {
+  return request("/physics/projectile/integrators", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function listExperiments(limit = 50): Promise<ExperimentRecord[]> {

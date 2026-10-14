@@ -7,6 +7,8 @@ interface Props {
   data: Data[];
   layout: Partial<Layout>;
   title: string;
+  /** Container height in px (default 380, from CSS). */
+  height?: number;
 }
 
 const CONFIG: Partial<Config> = { responsive: true, displaylogo: false };
@@ -15,7 +17,7 @@ const CONFIG: Partial<Config> = { responsive: true, displaylogo: false };
  * Thin wrapper around Plotly. Plotly touches `window`, so it is imported lazily on the
  * client inside an effect; `Plotly.react` diffs against the previous figure for cheap updates.
  */
-export function PlotlyChart({ data, layout, title }: Props) {
+export function PlotlyChart({ data, layout, title, height }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,5 +56,13 @@ export function PlotlyChart({ data, layout, title }: Props) {
     };
   }, []);
 
-  return <div ref={ref} className="chart" role="img" aria-label={title} />;
+  return (
+    <div
+      ref={ref}
+      className="chart"
+      role="img"
+      aria-label={title}
+      style={height ? { height } : undefined}
+    />
+  );
 }

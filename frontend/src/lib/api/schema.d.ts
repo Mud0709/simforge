@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/projectile/integrators": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Integrator Study */
+    post: operations["integrator_study_api_v1_physics_projectile_integrators_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/projectile/simulate": {
     parameters: {
       query?: never;
@@ -191,6 +208,19 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** FitRule */
+    FitRule: {
+      /** Description */
+      description: string;
+      /** Max H Over Horizon */
+      max_h_over_horizon: number;
+      /** Max Kh */
+      max_kh: number;
+      /** Min Points */
+      min_points: number;
+      /** Roundoff Safety Factor */
+      roundoff_safety_factor: number;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -204,6 +234,169 @@ export interface components {
       };
       /** Status */
       status: string;
+    };
+    /** IntegratorRun */
+    IntegratorRun: {
+      /**
+       * Amplification Factor
+       * @description R(-kh), per-step velocity amplification.
+       */
+      amplification_factor: number;
+      /** Diverged */
+      diverged: boolean;
+      /**
+       * Dt Requested
+       * @description s
+       */
+      dt_requested: number;
+      /** Exclusion Reason */
+      exclusion_reason: string | null;
+      /**
+       * Final Position Error
+       * @description m, at t = T
+       */
+      final_position_error: number | null;
+      /**
+       * Final Velocity Error
+       * @description m/s, at t = T
+       */
+      final_velocity_error: number | null;
+      /**
+       * H
+       * @description Effective step T/N, s. Convergence is fitted against this.
+       */
+      h: number;
+      /** In Position Fit */
+      in_position_fit: boolean;
+      /** In Velocity Fit */
+      in_velocity_fit: boolean;
+      /**
+       * Kh
+       * @description Step size in units of the drag time 1/k (dimensionless).
+       */
+      kh: number;
+      /**
+       * Max Position Error
+       * @description m; null if the run diverged
+       */
+      max_position_error: number | null;
+      /**
+       * Max Velocity Error
+       * @description m/s; null if the run diverged
+       */
+      max_velocity_error: number | null;
+      /** N Completed */
+      n_completed: number;
+      /** N Steps */
+      n_steps: number;
+      /**
+       * Position Roundoff Floor
+       * @description m
+       */
+      position_roundoff_floor: number;
+      /**
+       * Stability
+       * @enum {string}
+       */
+      stability: "stable" | "marginal" | "unstable";
+      /**
+       * Velocity Roundoff Floor
+       * @description m/s
+       */
+      velocity_roundoff_floor: number;
+    };
+    /** IntegratorStudyRequest */
+    IntegratorStudyRequest: {
+      /**
+       * Dt Values
+       * @description Requested time steps (s). Each run uses h = T/N with N = ceil(T/dt), so that every run ends exactly at the horizon T.
+       */
+      dt_values?: number[];
+      /** Methods */
+      methods?: ("euler" | "rk4" | "verlet")[];
+      parameters?: components["schemas"]["ProjectileParameters"];
+      /**
+       * Save Experiment
+       * @default true
+       */
+      save_experiment?: boolean;
+    };
+    /** IntegratorStudyResponse */
+    IntegratorStudyResponse: {
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Dt Values */
+      dt_values: number[];
+      exact_trajectory: components["schemas"]["XYSeries"];
+      fit_rule: components["schemas"]["FitRule"];
+      /**
+       * Horizon
+       * @description Exact flight time T (s); every run covers [0, T].
+       */
+      horizon: number;
+      /**
+       * K
+       * @description Drag rate b/m, 1/s
+       */
+      k: number;
+      metadata: components["schemas"]["RunMetadata"];
+      /** Methods */
+      methods: ("euler" | "rk4" | "verlet")[];
+      model: components["schemas"]["ModelInfo"];
+      parameters: components["schemas"]["ProjectileParameters"];
+      /**
+       * Position Scale
+       * @description max |r| of the exact solution, m
+       */
+      position_scale: number;
+      /** Results */
+      results: components["schemas"]["MethodStudyResult"][];
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+      /**
+       * Velocity Scale
+       * @description max |v| of the exact solution, m/s
+       */
+      velocity_scale: number;
+    };
+    /** MethodStudyResult */
+    MethodStudyResult: {
+      /**
+       * Fit Note
+       * @description Why no order was fitted, if none was.
+       */
+      fit_note: string | null;
+      /**
+       * Method
+       * @enum {string}
+       */
+      method: "euler" | "rk4" | "verlet";
+      /** Name */
+      name: string;
+      position_fit: components["schemas"]["OrderFitResult"] | null;
+      /** Position Local Orders */
+      position_local_orders: (number | null)[];
+      position_reference: components["schemas"]["ReferenceLine"] | null;
+      /**
+       * Runs
+       * @description Ordered from coarsest to finest step.
+       */
+      runs: components["schemas"]["IntegratorRun"][];
+      /**
+       * Stability Limit Kh
+       * @description Largest kh for which |R(-kh)| <= 1; null if stable for every kh.
+       */
+      stability_limit_kh: number | null;
+      /** Theoretical Order */
+      theoretical_order: number;
+      /** @description Coarsest linearly stable, non-divergent run, for plotting. */
+      trajectory: components["schemas"]["TrajectorySample"] | null;
+      velocity_fit: components["schemas"]["OrderFitResult"] | null;
+      /** Velocity Local Orders */
+      velocity_local_orders: (number | null)[];
+      velocity_reference: components["schemas"]["ReferenceLine"] | null;
     };
     /**
      * ModelInfo
@@ -262,6 +455,30 @@ export interface components {
       range: number;
       /** Rtol */
       rtol: number;
+    };
+    /** OrderFitResult */
+    OrderFitResult: {
+      /**
+       * H Max
+       * @description s
+       */
+      h_max: number;
+      /**
+       * H Min
+       * @description s
+       */
+      h_min: number;
+      /** N Points */
+      n_points: number;
+      /**
+       * Order
+       * @description Least-squares slope of log10(error) against log10(h).
+       */
+      order: number;
+      /** R Squared */
+      r_squared: number;
+      /** Theoretical Order */
+      theoretical_order: number;
     };
     /** ProjectileParameters */
     ProjectileParameters: {
@@ -362,6 +579,19 @@ export interface components {
       y_numerical: number[];
     };
     /**
+     * ReferenceLine
+     * @description A line of the *theoretical* slope through the finest point in the fit range.
+     *     It is a visual guide, not a fit.
+     */
+    ReferenceLine: {
+      /** Error */
+      error: number[];
+      /** H */
+      h: number[];
+      /** Order */
+      order: number;
+    };
+    /**
      * RunMetadata
      * @description Everything needed to reproduce (or audit) a single run.
      */
@@ -421,6 +651,18 @@ export interface components {
        */
       rtol?: number;
     };
+    /** TrajectorySample */
+    TrajectorySample: {
+      /**
+       * H
+       * @description Step size of the plotted run, s
+       */
+      h: number;
+      /** X */
+      x: number[];
+      /** Y */
+      y: number[];
+    };
     /** ValidationError */
     ValidationError: {
       /** Context */
@@ -433,6 +675,13 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** XYSeries */
+    XYSeries: {
+      /** X */
+      x: number[];
+      /** Y */
+      y: number[];
     };
   };
   responses: never;
@@ -542,6 +791,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ModelInfo"];
+        };
+      };
+    };
+  };
+  integrator_study_api_v1_physics_projectile_integrators_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["IntegratorStudyRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IntegratorStudyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
