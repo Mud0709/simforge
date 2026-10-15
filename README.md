@@ -9,7 +9,7 @@ each run was produced, and is tested against analytical results wherever they ex
 
 | Module | Status | Scope |
 |---|---|---|
-| **Physics Lab** | Projectile model available | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
+| **Physics Lab** | Projectile model and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
 | **Economy Lab** | Planned | Interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
 | **Quant Research Lab** | Planned | CSV import, regression, hypothesis tests, uncertainty, reproducible experiments. |
 
@@ -24,8 +24,15 @@ integrator (SciPy `solve_ivp`). It then reports how far apart the two are:
 - an energy-balance residual (`KE + PE + work against drag` should be constant), an
   invariant the solver is never told about.
 
-With default settings the two agree to about 1e-11 m. Details and caveats are in
-[SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
+With default settings the two agree to about 1e-11 m.
+
+**Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
+RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed
+time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted only over step
+sizes that pass a pre-declared rule (stable, asymptotic, above round-off). Observed orders on
+the default case: 1.009, 4.027 and 2.000, against theoretical 1, 4 and 2.
+
+Details, measured results and caveats are in [SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
 
 ## Quick start (macOS or Linux)
 

@@ -54,8 +54,8 @@ from scipy.special import lambertw
 
 FloatArray = NDArray[np.float64]
 
-# Below this value of u the direct formula for phi loses more than ~1e-14 relative
-# accuracy (error ~ 2 * eps / u), so a Taylor series is used instead.
+# Conservative switch to the Taylor series: the direct phi formula's relative error grows
+# roughly like eps / u (measured ~1e-15 at u = 0.1, ~1e-14 near u = 0.01).
 _SERIES_THRESHOLD = 0.1
 # Taylor coefficients of phi(u) = sum_{n>=0} (-1)^n u^n / (n + 2)!.
 # 12 terms at u = 0.1 leave a truncation error below 1e-23.

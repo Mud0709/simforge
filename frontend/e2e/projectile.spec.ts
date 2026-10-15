@@ -15,7 +15,7 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
   await page.getByRole("button", { name: "Run simulation" }).click();
 
   const rangeRow = page.getByRole("row", { name: /Range/ });
-  const expectedRange = (10 ** 2 * Math.sin((60 * Math.PI) / 180)) / 9.80665; // 8.830885...
+  const expectedRange = (10 ** 2 * Math.sin((60 * Math.PI) / 180)) / 9.80665; // 8.83100...
   await expect(rangeRow).toContainText(expectedRange.toPrecision(8));
 
   // Error is reported in scientific notation and is tiny.
@@ -28,7 +28,14 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
 
   await page.getByRole("link", { name: "Experiments" }).click();
   await expect(page.getByRole("heading", { name: "Experiment log" })).toBeVisible();
-  await expect(page.getByRole("row").nth(1)).toContainText("physics.projectile");
+  // Other E2E tests share this database and may run in parallel, so match this run's row
+  // by its model and solver rather than assuming it is the newest.
+  const row = page
+    .getByRole("row")
+    .filter({ hasText: /physics\.projectile v1/ })
+    .first();
+  await expect(row).toContainText("DOP853");
+  await expect(row).toContainText(`range ${Number(expectedRange.toPrecision(6))} m`);
 });
 
 test("invalid input is rejected without calling the API", async ({ page }) => {
