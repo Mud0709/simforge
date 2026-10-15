@@ -11,8 +11,8 @@ const MODULES = [
   },
   {
     name: "Economy Lab",
-    href: null,
-    status: "Planned",
+    href: "/economy/solow",
+    status: "Solow growth model available",
     description:
       "Experiment with interest rates, taxes, government spending and supply shocks. Observe " +
       "their effects on inflation, output and unemployment over time.",
