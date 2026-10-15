@@ -6,6 +6,9 @@ import { ApiError, type ExperimentRecord, listExperiments } from "@/lib/api/clie
 import { formatExp, formatSig } from "@/lib/format";
 
 type Summary = {
+  baseline_steady_state_capital?: number;
+  scenario_steady_state_capital?: number;
+  half_life_years?: number;
   analytical?: { range?: number };
   comparison?: { max_position_error?: number };
   methods?: Record<string, { position_order?: number | null }>;
@@ -22,6 +25,12 @@ export function keyResult(modelId: string, summary: Summary): string {
     return Object.entries(summary.methods ?? {})
       .map(([m, s]) => `${m} p≈${s.position_order == null ? "n/a" : s.position_order.toFixed(2)}`)
       .join(", ");
+  }
+  if (modelId === "economy.solow") {
+    const k0 = summary.baseline_steady_state_capital ?? NaN;
+    const k1 = summary.scenario_steady_state_capital ?? NaN;
+    const half = summary.half_life_years ?? NaN;
+    return `k* ${formatSig(k0, 4)} → ${formatSig(k1, 4)}, half-life ${formatSig(half, 3)} y`;
   }
   const range = summary.analytical?.range;
   const err = summary.comparison?.max_position_error;

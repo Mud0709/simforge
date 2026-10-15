@@ -17,4 +17,14 @@ describe("keyResult", () => {
       }),
     ).toBe("euler p≈1.01, rk4 p≈n/a");
   });
+
+  it("summarises a Solow run", () => {
+    expect(
+      keyResult("economy.solow", {
+        baseline_steady_state_capital: 3.689237466703935,
+        scenario_steady_state_capital: 6.584086866307975,
+        half_life_years: 12.369823364170164,
+      }),
+    ).toBe("k* 3.689 → 6.584, half-life 12.4 y");
+  });
 });

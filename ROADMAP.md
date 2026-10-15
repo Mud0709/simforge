@@ -1,63 +1,112 @@
 # Roadmap
 
-Ordered by dependency and learning value. Each milestone ends with tests, an updated
-`SCIENTIFIC_VALIDATION.md` section and a working UI. Nothing is marked done until its
-checks pass in CI.
+SimForge is one scientific studio with **three labs**: Physics, Economy and Quant Research.
+The plan builds a thin, working slice of every lab early (so the shared infrastructure is
+designed against real examples from all three), then deepens each lab in turn.
 
-## ✅ Milestone 0: Foundation
-- Backend/frontend scaffolds, strict schemas, experiment log, CI, devcontainer.
-- Demonstration model: projectile motion with linear drag (exact vs numerical).
+Rules for every phase:
+- Each step is one reviewable PR that leaves the app working, with tests, an updated
+  `SCIENTIFIC_VALIDATION.md` section and an updated learning guide.
+- Scientific correctness, security and data integrity are requirements, not polish.
+- A shared abstraction is extracted only when real models from at least two labs need it.
+- Mathematical guarantees, tests and empirical evidence are labelled as such.
 
-## Milestone 1: Physics Lab
-1. **Quadratic drag projectile** (`F = −c|v|v`). There is no closed form, so validation uses
-   limits (c → 0 matches vacuum), the energy-balance invariant, terminal velocity
-   `√(mg/c)`, and a grid-convergence study. This is the first model where the numerical
-   result *is* the answer, so it needs an explicit error estimate.
-2. **Reproducibility replay.** Add `POST /experiments/{id}/replay`: re-run the stored inputs
-   and report whether the summary matches bit-for-bit, or by how much it differs if the
-   library versions have changed.
-3. **Parameter sweeps.**
-   - ✅ Range against launch angle (0–90°) with the optimal angle, for linear drag, compared
-     with the closed-form vacuum optimum (`physics.projectile.angle_sweep`).
-   - ⏳ The same sweep for quadratic drag (after 1.1).
-   - ⏳ Optimal angle as a function of drag strength.
-4. **Fixed-step integrators written from scratch.**
-   - ✅ Euler, RK4 and velocity Verlet (implicit linear drag) on the projectile, with
-     log-log convergence plots, a pre-declared fit rule and stability boundaries
-     (`physics.projectile.integrators`).
-   - ⏳ Symplectic Euler and standard velocity Verlet on a **harmonic oscillator**:
-     long-time energy drift, where symplectic methods have a real, testable advantage.
-   - ⏳ Errors in landing time and range for fixed-step methods, with an analysis of
-     event-location error.
-5. **Collisions.** 1-D elastic and inelastic collisions with a coefficient of restitution.
-   Momentum conservation is the invariant to test.
-6. **Orbital mechanics.** The two-body problem. Validate against Kepler's laws and
-   conservation of energy and angular momentum, and compare RK45 with Verlet over many orbits.
+Legend: ✅ done · 🔜 next · ⏳ planned
 
-## Milestone 2: Economy Lab
-1. **Model framework.** Discrete-time dynamic models with explicit equations shown in the
-   UI, named parameters with units (% per year, index points) and baseline-vs-shock
-   comparison.
-2. **First model: a three-equation New Keynesian model** (IS curve, Phillips curve, Taylor
-   rule) in a transparent backward-looking form. Validate the steady state analytically and
-   check stability conditions such as the Taylor principle.
-3. **Policy experiments.** Interest-rate shocks, fiscal changes and supply shocks, shown as
-   impulse responses for output gap, inflation and unemployment (via Okun's law).
-4. **Clear labelling** of every result as *illustrative model output*, not a forecast.
+---
 
-## Milestone 3: Quant Research Lab
-1. **CSV import.** Size limits, schema inference, missing-value report and type checking.
-   No network data sources that need credentials.
-2. **Regression** with statsmodels: OLS with robust standard errors, diagnostics (residual
-   plots, heteroskedasticity tests) and confidence intervals displayed with their meaning.
-3. **Hypothesis tests.** t-tests, a bootstrap with recorded seeds, and permutation tests.
-   Validate against known distributions and published worked examples.
-4. **Reproducible experiments.** Store a dataset hash, seed, code version and parameters,
-   and show that re-running reproduces the result.
+## Capability map: what each lab will eventually contain
 
-## Cross-cutting (as needed)
-- Docker Compose for one-command deployment.
-- Units handling (e.g. `pint`) if models start mixing unit systems.
-- Database migrations (Alembic) when the schema first changes.
-- Performance work only after profiling shows a need, for example vectorised sweeps.
-- Accessibility audit (axe) in the E2E suite.
+Tags: **Core** (on this roadmap), **Ext** (scheduled after the core), **Later** (only with a
+clear purpose).
+
+### Physics Lab
+| Area | Contents |
+|---|---|
+| Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · Core: quadratic drag, angle sweep for both drag laws, best angle against drag strength, drag-law comparison · Ext: wind |
+| Oscillators | Core: simple, damped and driven harmonic oscillator, resonance curve · Ext: nonlinear pendulum (elliptic-integral period) |
+| Numerical methods workbench | ✅ Euler, RK4, implicit-drag Verlet convergence study (projectile) · Core: the same workbench for any time-stepping model, symplectic Euler and Verlet, long-run energy drift, event-location error · Ext: Boris pusher |
+| Collisions | Core: 1-D elastic and inelastic (restitution), 2-D discs, momentum and energy bookkeeping, animation |
+| Kinetic theory | Ext (after collisions are validated): a gas built from the collision engine; pressure, temperature, Maxwell-Boltzmann distribution checked statistically |
+| Orbits | Core: two-body orbits with Kepler's equation as the exact reference, conservation laws, Kepler's laws, long-run integrator comparison · Ext: Hohmann transfer, figure-eight three-body orbit |
+| Charged particles | Ext: cyclotron motion and E×B drift (exact solutions) |
+| Not planned | CFD, relativity, quantum mechanics (hard to validate honestly at this stage) |
+
+### Economy Lab
+| Area | Contents |
+|---|---|
+| Growth | ✅ Solow growth model in discrete time, with a savings-rate policy experiment |
+| Short-run macro | Core: Keynesian multiplier, AD-AS (short and long run), three-equation New Keynesian model with **backward-looking** expectations (IS curve, Phillips curve, Taylor rule) and Okun's law |
+| Experiments | Core: demand, supply (cost-push), monetary and fiscal shocks; impulse responses; baseline against scenario |
+| Schools of thought | Core: the same shock under named assumption sets (Keynesian, Monetarist, New Classical), framed as "what follows if you assume this" |
+| Sensitivity and uncertainty | Core: parameter sweeps, tornado charts, random AR(1) shocks with recorded seeds, fan charts |
+| Interpretation | Core: equations shown in the UI, results labelled as illustrative model output |
+| Later | Rational-expectations models (need a dedicated solver); a micro supply-and-demand market; overlaying real data imported through the Quant Lab |
+
+### Quant Research Lab
+| Area | Contents |
+|---|---|
+| Data | Core: CSV upload with size limits, type detection, missing-value report, cleaning as a replayable recipe; bundled synthetic datasets with known answers · Later: public-domain samples with a clear purpose |
+| Exploration | Core: summary statistics, histograms, scatter matrix, time plots |
+| Statistics | Core: correlation with confidence intervals; OLS with robust standard errors, residual diagnostics (pandas for data handling, statsmodels where established implementations fit, checked against NIST certified values) |
+| Time series | Core: returns, rolling volatility, decomposition, autocorrelation, stationarity tests, forecasts with prediction intervals always compared with naive baselines |
+| Backtesting | Core: walk-forward engine that cannot look ahead, transaction costs, in- and out-of-sample splits, metrics with uncertainty |
+| Overfitting | Core: parameter heatmaps, out-of-sample degradation, number of configurations tried, random/permutation nulls · Ext: deflated Sharpe ratio |
+
+### Shared studio capabilities (built once)
+Model registry, a common workspace layout (✅ first version), schema-driven forms (✅),
+run records with model version, inputs, environment, dataset identity and seeds, replay with
+a reproducibility verdict, comparison of runs, export, and per-run validation reporting.
+
+**Reproducibility contract.** Same inputs and environment for a deterministic model:
+bit-identical results. Different library versions or platform: agreement within a tolerance
+each model declares in advance, with the largest difference reported. Random models record
+their seed and generator. Datasets are identified by the SHA-256 of their bytes plus parsing
+options (and later, the cleaning recipe).
+
+---
+
+## Phase 0: Foundation ✅
+Scaffolds, strict schemas, experiment log, CI. Physics: projectile with linear drag (exact
+vs adaptive), from-scratch integrator convergence study, range-against-angle sweep.
+
+## Phase 1: Studio core and a walking skeleton across all three labs
+| Step | Outcome | Status |
+|---|---|---|
+| 1.1 | **Economy Lab's first model: Solow growth.** `/economy/solow` in the first version of the shared workspace (Parameters, Visualisation, Results, Assumptions, Validation); lab navigation | ✅ |
+| 1.2 | **Physics moves into the workspace.** Projectile, integrator and angle-sweep pages use the same layout; exact-vs-numerical comparison shown under Validation | 🔜 |
+| 1.3 | **Quant Lab's first feature.** CSV upload and bundled synthetic datasets, stored by content hash; column types, missing values and summary statistics (adds pandas) | ⏳ |
+| 1.4 | **Run record v2, model registry and replay.** Migration of the experiment log; `POST /experiments/{id}/replay` with an identical / within tolerance / differs verdict | ⏳ |
+| 1.5 | **Generic experiment log.** Runs by lab with model-supplied headlines; reopen a run (parameters in the URL), replay, name and annotate it | ⏳ |
+| 1.6 | **Comparison and export.** Pin a baseline run and overlay another; export series as CSV and the run record as JSON | ⏳ |
+
+Done when each lab has a real, validated feature in the same workspace and every run can be
+saved, reopened, replayed, compared and exported.
+
+## Phase 2: Physics Lab, mechanics and numerical methods ⏳
+Quadratic drag (validated against the exact vertical `tanh` solution, the c → 0 limit,
+terminal speed and energy balance); angle sweeps for both drag laws; simple, damped and driven
+oscillators; the methods workbench for any time-stepping model (symplectic methods, energy
+drift, event-location error); generic sweeps; animation.
+
+## Phase 3: Economy Lab, macro policy studio ⏳
+Multiplier, AD-AS, the backward-looking three-equation NK model with Okun's law; shock
+library and impulse responses; assumption sets for schools of thought; Monte Carlo runs with
+seeds and fan charts; sensitivity analysis. Rational expectations stays a later extension.
+
+## Phase 4: Physics Lab, collisions and orbits ⏳
+1-D and 2-D collisions with bookkeeping and animation; two-body orbits with Kepler's
+equation; long-run integrator studies. **4b:** kinetic-theory gas, only after the collision
+engine is validated.
+
+## Phase 5: Quant Research Lab, data, statistics and forecasting ⏳
+Cleaning recipes, exploration, correlation, OLS and diagnostics (NIST StRD references,
+confidence-interval coverage simulations), time series and forecasting against baselines.
+
+## Phase 6: Quant Research Lab, backtesting and overfitting ⏳
+Walk-forward engine with a no-look-ahead guarantee test, costs, out-of-sample validation,
+overfitting dashboard.
+
+## Phase 7: Integration and visual polish ⏳
+Design system, named studies, report export, Docker deployment, accessibility audit.
+Performance work and a job queue only if measurement shows a need.
