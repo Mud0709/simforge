@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ProjectileLab } from "@/components/ProjectileLab";
 
@@ -14,6 +15,11 @@ export default function ProjectilePage() {
           A point mass under uniform gravity with drag force <i>F</i> = −<i>b</i>
           <b>v</b>. This case has an exact solution, so the numerical solver can be checked against
           it. Set <i>b</i> = 0 for motion in a vacuum.
+        </p>
+        <p>
+          <Link href="/physics/projectile/integrators">
+            Compare fixed-step integrators on this problem →
+          </Link>
         </p>
       </header>
       <ProjectileLab />

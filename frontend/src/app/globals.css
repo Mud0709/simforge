@@ -364,3 +364,41 @@ td.num {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.field textarea {
+  width: 100%;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  resize: vertical;
+}
+
+.field textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+
+details.card > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+details.card > summary h2 {
+  display: inline;
+}
+
+details.card[open] > summary {
+  margin-bottom: 12px;
+}

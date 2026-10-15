@@ -4,7 +4,7 @@ Ordered by dependency and learning value. Each milestone ends with tests, an upd
 `SCIENTIFIC_VALIDATION.md` section and a working UI. Nothing is marked done until its
 checks pass in CI.
 
-## ✅ Milestone 0: Foundation (this release)
+## ✅ Milestone 0: Foundation
 - Backend/frontend scaffolds, strict schemas, experiment log, CI, devcontainer.
 - Demonstration model: projectile motion with linear drag (exact vs numerical).
 
@@ -18,9 +18,14 @@ checks pass in CI.
    library versions have changed.
 3. **Parameter sweeps.** Vary one input over a range (e.g. angle 0–90°) and plot a metric,
    such as the optimal launch angle as a function of drag.
-4. **Fixed-step integrators written from scratch** (Euler, symplectic Euler, Verlet,
-   RK4). Show empirical order of convergence on log-log plots, and energy drift on a
-   harmonic oscillator, comparing symplectic and non-symplectic methods.
+4. **Fixed-step integrators written from scratch.**
+   - ✅ Euler, RK4 and velocity Verlet (implicit linear drag) on the projectile, with
+     log-log convergence plots, a pre-declared fit rule and stability boundaries
+     (`physics.projectile.integrators`).
+   - ⏳ Symplectic Euler and standard velocity Verlet on a **harmonic oscillator**:
+     long-time energy drift, where symplectic methods have a real, testable advantage.
+   - ⏳ Errors in landing time and range for fixed-step methods, with an analysis of
+     event-location error.
 5. **Collisions.** 1-D elastic and inelastic collisions with a coefficient of restitution.
    Momentum conservation is the invariant to test.
 6. **Orbital mechanics.** The two-body problem. Validate against Kepler's laws and
