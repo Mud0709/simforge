@@ -26,6 +26,11 @@ integrator (SciPy `solve_ivp`). It then reports how far apart the two are:
 
 With default settings the two agree to about 1e-11 m.
 
+**Range against launch angle.** After a simulation, sweep the launch angle from 0° to 90° and
+find the angle that throws furthest. Without drag, from ground level, that's 45°. Drag pulls it
+lower: about 30° for the default `b = 1 kg/s`. The result is compared with the closed-form
+vacuum optimum.
+
 **Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
 RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed
 time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted only over step

@@ -16,8 +16,11 @@ checks pass in CI.
 2. **Reproducibility replay.** Add `POST /experiments/{id}/replay`: re-run the stored inputs
    and report whether the summary matches bit-for-bit, or by how much it differs if the
    library versions have changed.
-3. **Parameter sweeps.** Vary one input over a range (e.g. angle 0–90°) and plot a metric,
-   such as the optimal launch angle as a function of drag.
+3. **Parameter sweeps.**
+   - ✅ Range against launch angle (0–90°) with the optimal angle, for linear drag, compared
+     with the closed-form vacuum optimum (`physics.projectile.angle_sweep`).
+   - ⏳ The same sweep for quadratic drag (after 1.1).
+   - ⏳ Optimal angle as a function of drag strength.
 4. **Fixed-step integrators written from scratch.**
    - ✅ Euler, RK4 and velocity Verlet (implicit linear drag) on the projectile, with
      log-log convergence plots, a pre-declared fit rule and stability boundaries
