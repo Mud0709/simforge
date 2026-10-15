@@ -701,12 +701,13 @@ def phi(u: FloatArray) -> FloatArray:
 | 110 | Series for small `u`, `expm1` formula for the rest. `-np.expm1(-safe_u)` is `1 − e^(−u)` computed without cancellation. |
 | 118 | Same pattern for `φ`. Its direct formula `(expm1(−u) + u)/u²` still subtracts nearly equal numbers when `u` is small, which is exactly why the series takes over below `0.1`. |
 
-**A note on the source comment at `analytical.py:57-58`.** It says the direct formula loses
-"more than ~1e-14" relative accuracy below `u = 0.1`. When I measured it against a 50-digit
-reference, the direct `φ` formula's error was `9.2 × 10⁻¹⁶` at `u = 0.1`, `1.9 × 10⁻¹⁵`
-at `u = 0.05` and `9.4 × 10⁻¹⁵` at `u = 0.01`. So the comment overstates the loss near the
-threshold. The threshold itself is still a safe choice, just more conservative than the
-comment suggests. (This is a comment-accuracy issue, not a bug.)
+**A note on the source comment at `analytical.py:57-58`.** It calls `0.1` a conservative
+switch-over and says the direct formula's relative error grows roughly like `eps/u`. Measured
+against a 50-digit reference, the direct `φ` formula's error is about `9 × 10⁻¹⁶` at
+`u = 0.1`, `1.9 × 10⁻¹⁵` at `u = 0.05` and `9.3 × 10⁻¹⁵` at `u = 0.01`. So the formula
+would still be fine well below `0.1`. The series simply takes over early, with margin to
+spare. (An earlier version of the comment claimed "more than ~1e-14" loss below `0.1`,
+which overstated it by about a factor of ten.)
 
 #### `state`: the exact solution at any times
 
@@ -2397,8 +2398,8 @@ energy behaviour genuinely matters.
 - **Clarified:** "quadratic drag has no exact solution" now reads "no general closed form
   in 2-D". (Purely vertical quadratic drag does have one.)
 - **Added:** a warning about the `h`, `y` and `k` name clashes, and a symbol table.
-- **Noted, not changed (outside a docs-only task):** the source comment at
-  `analytical.py:57-58` overstates the precision loss near `u = 0.1` (3.7). The test
-  comment at `test_projectile_integrators.py:207` claims
-  `3.0 / 0.1 = 30.000000000000004`, but Python gives exactly `30.0`. The test itself
-  still passes.
+- **Fixed (comments only, no behaviour change):** the source comment at
+  `analytical.py:57-58` overstated the precision loss near `u = 0.1` and now gives measured
+  figures (3.7). The test comment at `test_projectile_integrators.py:207` claimed
+  `3.0 / 0.1 = 30.000000000000004`, but Python gives exactly `30.0`. It now says so, and a
+  new case, `steps_for(0.27, 0.03) == 9`, genuinely exercises the rounding tolerance (5.7).

@@ -204,7 +204,8 @@ def test_step_larger_than_horizon_takes_one_step() -> None:
 
 def test_steps_for_tolerates_rounding_noise() -> None:
     assert study.steps_for(2.9, 0.1) == 29  # 2.9 / 0.1 = 28.999999999999996
-    assert study.steps_for(3.0, 0.1) == 30  # 3.0 / 0.1 = 30.000000000000004
+    assert study.steps_for(3.0, 0.1) == 30  # 3.0 / 0.1 is exactly 30.0; tolerance must not drop it
+    assert study.steps_for(0.27, 0.03) == 9  # 0.27 / 0.03 = 9.000000000000002, plain ceil gives 10
     assert study.steps_for(3.0, 0.7) == 5  # ceil(4.29) -> h = 0.6 <= dt
 
 
