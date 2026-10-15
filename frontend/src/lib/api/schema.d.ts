@@ -55,6 +55,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/projectile/angle-sweep": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Projectile Angle Sweep */
+    post: operations["projectile_angle_sweep_api_v1_physics_projectile_angle_sweep_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/projectile/info": {
     parameters: {
       query?: never;
@@ -139,6 +156,73 @@ export interface components {
        * @description Horizontal distance at landing, m
        */
       range: number;
+    };
+    /** AngleSweepRequest */
+    AngleSweepRequest: {
+      /**
+       * N Angles
+       * @description Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).
+       * @default 91
+       */
+      n_angles?: number;
+      /** @description Projectile settings. launch_angle_deg is ignored: the sweep varies it. */
+      parameters?: components["schemas"]["ProjectileParameters"];
+      /**
+       * Save Experiment
+       * @default true
+       */
+      save_experiment?: boolean;
+    };
+    /** AngleSweepResponse */
+    AngleSweepResponse: {
+      /** Angles Deg */
+      angles_deg: number[];
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /**
+       * Best Angle Deg
+       * @description Angle maximising the range, refined by a bounded Brent search (~1e-7 deg).
+       */
+      best_angle_deg: number;
+      /**
+       * Best Range
+       * @description m
+       */
+      best_range: number;
+      /**
+       * Flight Times
+       * @description s
+       */
+      flight_times: number[];
+      /**
+       * Max Heights
+       * @description m
+       */
+      max_heights: number[];
+      metadata: components["schemas"]["RunMetadata"];
+      /** Method Note */
+      method_note: string;
+      model: components["schemas"]["ModelInfo"];
+      parameters: components["schemas"]["ProjectileParameters"];
+      /**
+       * Ranges
+       * @description m
+       */
+      ranges: number[];
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+      /**
+       * Vacuum Best Angle Deg
+       * @description Closed-form best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h).
+       */
+      vacuum_best_angle_deg: number;
+      /**
+       * Vacuum Best Range
+       * @description m, closed form with no drag
+       */
+      vacuum_best_range: number;
     };
     /**
      * Assumption
@@ -771,6 +855,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Health"];
+        };
+      };
+    };
+  };
+  projectile_angle_sweep_api_v1_physics_projectile_angle_sweep_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AngleSweepRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AngleSweepResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

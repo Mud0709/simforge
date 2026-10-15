@@ -134,6 +134,7 @@ stores a small, model-specific summary. The frontend's experiment log renders a 
 | GET | `/api/v1/physics/projectile/info` | Model metadata |
 | POST | `/api/v1/physics/projectile/simulate` | Exact vs adaptive SciPy solution |
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
+| POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
 
 ## Adding a new model (the intended pattern)
