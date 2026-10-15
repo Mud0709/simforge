@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import type { ErrorMetric, ProjectileResponse } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
+import { AngleSweepPanel } from "./AngleSweepPanel";
 import { PlotlyChart } from "./PlotlyChart";
 
 const ANALYTICAL = "#2563eb";
@@ -124,6 +125,9 @@ export function ProjectileResults({ result }: { result: ProjectileResponse }) {
           }}
         />
       </section>
+
+      {/* Keyed by run, so a new simulation clears any earlier sweep. */}
+      <AngleSweepPanel key={metadata.run_id} parameters={result.parameters} />
 
       <section className="card" aria-labelledby="energy-heading">
         <h2 id="energy-heading">Energy budget</h2>

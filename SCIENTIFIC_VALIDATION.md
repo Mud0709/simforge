@@ -315,3 +315,47 @@ or run the study from the UI (Physics Lab → Integrators).
   are therefore capped at 50,000 steps per run and 150,000 per study.
 - **Not a proof.** The fits are empirical evidence consistent with theory on the cases tested.
   They are not a proof of order and say nothing about other problems.
+
+---
+
+## `physics.projectile.angle_sweep` v1.0.0: range against launch angle
+
+### What it computes
+For fixed speed, height, mass, drag and gravity, the exact linear-drag range `R(θ)` is computed
+at evenly spaced angles from 0° to 90°. The angle that maximises the range is then found by
+refining the best grid point with a bounded Brent search (`xatol = 1e-7°`) on the
+neighbouring grid interval. Engine: `backend/src/simforge/physics/projectile/angle_sweep.py`.
+
+The vacuum optimum has a closed form, reported alongside the drag result for comparison:
+`tan θ* = v₀ / √(v₀² + 2gh)` and `R* = (v₀/g)·√(v₀² + 2gh)`, which gives 45° and `v₀²/g`
+when `h = 0`.
+
+### Precision
+The range curve is flat at its peak: `R(θ* + δ) ≈ R* − ½|R''|δ²`. The maximum range is
+therefore known to near machine precision, while the best angle is only well-defined to
+about `√ε` in relative terms. Tests check the range to `1e-12` relative and the angle to
+`1e-5°` against the closed form.
+
+### Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
+| Check | Reference |
+|---|---|
+| Vacuum from the ground: best angle 45°, `R* = v²/g` | Textbook |
+| Vacuum from h = 5, 10, 50, 200 m: angle and range | Closed form above |
+| Complementary angles give equal vacuum range | Symmetry |
+| With drag: best angle < 45° and decreasing as b rises (b = 0.01…3 kg/s) | Physical property |
+| `b = 1e-6` gives 45° to within 1e-3° | Limit |
+| Exactly one peak on a 0.25° grid, for 5 drag values | Assumption behind the refinement |
+| Refined optimum ≥ every grid point, and ±0.001° does no better | Definition of a maximum |
+| Sweep values equal `analytical.state` at the landing time | Consistency |
+| Drag never increases the maximum range | Physics |
+| API: 45° and `v²/g` end to end; launch angle ignored in results and hash; validation | Contract |
+
+### Observed (2026-10-15)
+With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48°, 35.46°,
+30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
+
+### Limitations
+- Linear drag only. Quadratic drag (ROADMAP Milestone 1.1) is expected to behave differently.
+- The single-peak property is checked on the tested cases, not proven in general. If a curve
+  ever had two peaks, the refinement could miss the global maximum by up to one grid step.
+- Only the launch angle is swept. Other parameters are fixed.

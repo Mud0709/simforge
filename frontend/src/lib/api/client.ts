@@ -7,6 +7,8 @@ export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
 export type ExperimentRecord = Schemas["ExperimentRecord"];
 export type ErrorMetric = Schemas["ErrorMetric"];
+export type AngleSweepRequest = Schemas["AngleSweepRequest"];
+export type AngleSweepResponse = Schemas["AngleSweepResponse"];
 export type IntegratorStudyRequest = Schemas["IntegratorStudyRequest"];
 export type IntegratorStudyResponse = Schemas["IntegratorStudyResponse"];
 export type MethodStudyResult = Schemas["MethodStudyResult"];
@@ -61,6 +63,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function simulateProjectile(body: ProjectileRequest): Promise<ProjectileResponse> {
   return request("/physics/projectile/simulate", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function runAngleSweep(body: AngleSweepRequest): Promise<AngleSweepResponse> {
+  return request("/physics/projectile/angle-sweep", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<IntegratorStudyResponse> {

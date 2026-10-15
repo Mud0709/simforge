@@ -13,11 +13,12 @@ import numpy as np
 
 from simforge.core.errors import ModelDomainError
 from simforge.core.schemas import Assumption, ModelInfo
-from simforge.physics.projectile import analytical
+from simforge.physics.projectile import analytical, angle_sweep
 from simforge.physics.projectile.analytical import ProjectileSetup
 from simforge.physics.projectile.numerical import NumericalSolution, integrate
 from simforge.physics.projectile.schemas import (
     AnalyticalResult,
+    AngleSweepRequest,
     Comparison,
     ErrorMetric,
     NumericalResult,
@@ -220,3 +221,42 @@ def run(request: ProjectileRequest) -> ProjectileComputation:
 
     elapsed_ms = (time.perf_counter() - start) * 1e3
     return ProjectileComputation(exact, numerical, comparison, series, elapsed_ms)
+
+
+# --- Angle sweep ----------------------------------------------------------------------------
+
+ANGLE_SWEEP_INFO = ModelInfo(
+    id="physics.projectile.angle_sweep",
+    version="1.0.0",
+    name="Range versus launch angle (linear drag)",
+    description="Exact range at evenly spaced launch angles from 0 to 90 degrees, and the angle "
+    "that maximises it, compared with the closed-form vacuum optimum.",
+)
+
+ANGLE_SWEEP_UNITS: dict[str, str] = {
+    "angle": "deg",
+    "range": "m",
+    "flight_time": "s",
+    "max_height": "m",
+}
+
+ANGLE_SWEEP_NOTE = (
+    "Every range is computed from the exact linear-drag solution. The best angle is the best "
+    "grid point refined by a bounded Brent search to about 1e-7 degrees. The range curve is "
+    "flat at its peak, so the maximum range is known far more precisely than the angle that "
+    "achieves it."
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AngleSweepComputation:
+    result: angle_sweep.AngleSweep
+    angles_deg: list[float]
+    elapsed_ms: float
+
+
+def run_angle_sweep(request: AngleSweepRequest) -> AngleSweepComputation:
+    start = time.perf_counter()
+    angles = np.linspace(0.0, 90.0, request.n_angles).tolist()
+    result = angle_sweep.sweep(to_setup(request.parameters), angles)
+    return AngleSweepComputation(result, angles, (time.perf_counter() - start) * 1e3)

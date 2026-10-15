@@ -49,3 +49,20 @@ test("invalid input is rejected without calling the API", async ({ page }) => {
   await expect(page.getByText("Must be a finite number")).toBeVisible();
   expect(apiCalls).toBe(0);
 });
+
+test("angle sweep finds 45 degrees in a vacuum from the ground", async ({ page }) => {
+  await page.goto("/physics/projectile");
+  await page.getByLabel(/^Initial speed/).fill("10");
+  await page.getByLabel(/^Drag coefficient/).fill("0");
+  await page.getByRole("button", { name: "Run simulation" }).click();
+
+  await page.getByRole("button", { name: "Sweep launch angle" }).click();
+  await expect(page.getByTestId("best-angle")).toHaveText("45.00°");
+  // R = v^2 / g = 100 / 9.80665 = 10.1972 m (6 significant figures)
+  await expect(page.getByTestId("best-range")).toHaveText(
+    `${Number((100 / 9.80665).toPrecision(6))} m`,
+  );
+  const chart = page.getByRole("img", { name: "Range against launch angle" });
+  await expect(chart.locator(".main-svg").first()).toBeVisible();
+  await expect(chart).toContainText("Launch angle (°)");
+});
