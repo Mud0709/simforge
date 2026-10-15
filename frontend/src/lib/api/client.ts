@@ -13,6 +13,12 @@ export type IntegratorStudyRequest = Schemas["IntegratorStudyRequest"];
 export type IntegratorStudyResponse = Schemas["IntegratorStudyResponse"];
 export type MethodStudyResult = Schemas["MethodStudyResult"];
 export type IntegratorMethod = MethodStudyResult["method"];
+export type SolowParameters = Schemas["SolowParameters"];
+export type SavingsPolicy = Schemas["SavingsPolicy"];
+export type SolowRequest = Schemas["SolowRequest"];
+export type SolowResponse = Schemas["SolowResponse"];
+export type SolowPath = Schemas["SolowPathResponse"];
+export type ValidationCheck = Schemas["ValidationCheck"];
 
 const API_BASE = "/api/v1";
 
@@ -74,6 +80,10 @@ export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<Integr
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function simulateSolow(body: SolowRequest): Promise<SolowResponse> {
+  return request("/economy/solow/simulate", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function listExperiments(limit = 50): Promise<ExperimentRecord[]> {

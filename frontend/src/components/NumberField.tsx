@@ -1,6 +1,6 @@
 "use client";
 
-import type { NumericFieldSpec } from "@/lib/projectile/fields";
+import type { NumericFieldSpec } from "@/lib/fields";
 
 export function NumberField({
   field,

@@ -10,7 +10,7 @@ each run was produced, and is tested against analytical results wherever they ex
 | Module | Status | Scope |
 |---|---|---|
 | **Physics Lab** | Projectile model and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
-| **Economy Lab** | Planned | Interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
+| **Economy Lab** | Solow growth model with a savings-policy experiment | Growth, then interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
 | **Quant Research Lab** | Planned | CSV import, regression, hypothesis tests, uncertainty, reproducible experiments. |
 
 ## What works today
@@ -37,7 +37,21 @@ time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted on
 sizes that pass a pre-declared rule (stable, asymptotic, above round-off). Observed orders on
 the default case: 1.009, 4.027 and 2.000, against theoretical 1, 4 and 2.
 
+**Solow growth model** (`/economy/solow`, the first Economy Lab model). Capital
+accumulation in discrete annual time with Cobb-Douglas production and growing labour and
+technology. Change the savings rate in a chosen year and compare the scenario with the
+baseline: capital and consumption per effective worker, output per actual worker, steady
+states, the golden-rule savings rate (α) and the speed of convergence. The page uses the shared
+workspace layout (Parameters, Visualisation, Results, Assumptions, Validation), and each run
+reports its own numerical checks.
+
+![Solow workspace: parameters, capital and consumption paths, steady states and per-run checks](docs/images/solow-lab.png)
+
 Details, measured results and caveats are in [SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
+
+**Learning guides.** [docs/LEARNING_GUIDE.md](docs/LEARNING_GUIDE.md) covers the Physics Lab
+and the shared engineering; [docs/ECONOMY_LEARNING_GUIDE.md](docs/ECONOMY_LEARNING_GUIDE.md)
+covers the Economy Lab.
 
 ## Quick start (macOS or Linux)
 
@@ -68,7 +82,7 @@ make e2e       # also run Playwright tests (starts both servers)
 | Backend | ruff (lint + format), mypy `--strict`, pytest with coverage |
 | Contract | OpenAPI → TypeScript types regenerated and diffed |
 | Frontend | ESLint, Prettier, `tsc`, Vitest + Testing Library, `next build` |
-| End-to-end | Playwright: browser → Next.js → FastAPI → SciPy → SQLite |
+| End-to-end | Playwright: browser → Next.js → FastAPI → NumPy/SciPy → SQLite |
 
 After changing a backend schema, run `make api-types` and commit the regenerated files.
 
@@ -80,8 +94,8 @@ frontend/   Next.js + TypeScript + Plotly. API types generated from the backend 
 scripts/    setup, dev and check scripts (CI runs the same steps)
 ```
 
-Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md). The plan for the next
-milestones is in [ROADMAP.md](ROADMAP.md).
+Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md). The plan for all three
+labs is in [ROADMAP.md](ROADMAP.md).
 
 ## Engineering standards
 

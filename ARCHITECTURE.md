@@ -26,6 +26,8 @@ simforge/
 │   │   ├── numerics/                Model-independent methods written from scratch:
 │   │   │   ├── fixed_step.py          Euler, RK4, fixed-step driver, stability functions
 │   │   │   └── convergence.py         order fitting and local orders
+│   │   ├── economy/solow/           Solow growth model: simulation.py (pure engine),
+│   │   │                              schemas.py, model.py (assumptions, units, per-run checks)
 │   │   ├── physics/projectile/      One model = one package:
 │   │   │   ├── analytical.py          exact solution (pure NumPy/SciPy)
 │   │   │   ├── numerical.py           ODE integration (pure NumPy/SciPy)
@@ -35,18 +37,22 @@ simforge/
 │   │   │   ├── integrator_model.py    study orchestration + assumptions
 │   │   │   └── integrator_schemas.py  study API contract
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
-│   │   ├── api/                     FastAPI routes, dependencies, error handlers
+│   │   ├── api/                     FastAPI routes (physics, economy, experiments),
+│   │   │                              recording.py (run metadata + experiment log), errors
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
 │   │   └── main.py                  App factory
-│   ├── tests/                       pytest: physics/ (reference tests), api/, persistence
+│   ├── tests/                       pytest: physics/, economy/ (reference tests), api/, persistence
 │   └── scripts/export_openapi.py    Writes the API contract for the frontend
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
 │   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
-│   │                                /experiments
-│   ├── src/components/              ProjectileLab/Results, IntegratorLab/Results, NumberField,
+│   │                                /economy/solow, /experiments
+│   ├── src/components/              Workspace (shared layout), SolowLab/Results,
+│   │                                ProjectileLab/Results, IntegratorLab/Results, NumberField,
 │   │                                PlotlyChart, ExperimentLog
 │   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client
-│   ├── src/lib/projectile/fields.ts Form fields; bounds read from openapi.json
+│   ├── src/lib/fields.ts            Schema-driven form fields for every lab (bounds and integer
+│   │                                types read from openapi.json); lib/projectile and lib/economy
+│   │                                list each model's fields
 │   └── e2e/                         Playwright full-stack tests
 ├── scripts/                         setup.sh, dev.sh, check.sh (used locally and mirrored in CI)
 ├── .github/workflows/ci.yml         backend, frontend, api-contract, e2e jobs
@@ -121,10 +127,26 @@ problem; velocity Verlet with implicitly solved linear drag, for example, lives 
 force law. Future models, such as a harmonic oscillator or orbits, reuse `numerics/` directly.
 
 ### 10. One experiment-log path for every model
-Both projectile endpoints record runs through one helper (`_record_run` in
-`api/routes/physics.py`). Each model hashes exactly the inputs that affect its numbers and
+Every endpoint, in every lab, records runs through one helper (`record_run` in
+`api/recording.py`). It moved there from the physics routes when the Economy Lab became the
+second lab to need it. Each model hashes exactly the inputs that affect its numbers and
 stores a small, model-specific summary. The frontend's experiment log renders a one-line
-"key result" per model.
+"key result" per model (step 1.5 on the roadmap replaces the per-model branches with
+headlines supplied by a model registry).
+
+### 11. One scientific workspace for every lab
+`components/Workspace.tsx` lays out every model page the same way: **Parameters** on the
+left; **Visualisation**, **Results**, **Assumptions** and **Validation** on the right. Each
+section is a labelled region, so tests and screen readers can find it. The component only
+arranges content; each model supplies its own form, charts and tables. It was built for the
+Solow model first; roadmap step 1.2 moves the physics pages into it, and any change it needs
+for physics is made then, against a real second example.
+
+### 12. Per-run validation is data, not decoration
+A model can return `checks`: each has a value, an optional limit, a pass/fail/info status and
+a *kind* (exact identity, numerical diagnostic or informational). The Validation section
+renders them. They describe one run; proofs and grid evidence live in
+`SCIENTIFIC_VALIDATION.md` and the test suite, and the page says so.
 
 ## API endpoints
 
@@ -135,6 +157,8 @@ stores a small, model-specific summary. The frontend's experiment log renders a 
 | POST | `/api/v1/physics/projectile/simulate` | Exact vs adaptive SciPy solution |
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
+| GET | `/api/v1/economy/solow/info` | Model metadata |
+| POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
 
 ## Adding a new model (the intended pattern)
@@ -143,8 +167,10 @@ stores a small, model-specific summary. The frontend's experiment log renders a 
    (or `simulation.py`), plus `schemas.py` and `model.py` (`MODEL_INFO`, `UNITS`,
    `ASSUMPTIONS`, `run()`).
 2. Write reference tests *first*. List them in `SCIENTIFIC_VALIDATION.md`.
-3. Add a route in `api/routes/`. Persist through `ExperimentRepository`.
-4. Run `make api-types`, then build the UI in `frontend/src/components/`.
+3. Add a route in `api/routes/`. Record runs with `record_run` (`api/recording.py`).
+4. Run `make api-types`, then build the UI in `frontend/src/components/` inside `Workspace`,
+   with form fields declared through `spec()` in `lib/fields.ts`.
+5. Add a chapter to the lab's learning guide (`docs/`).
 
 ## Deliberately not included (yet)
 No authentication, no background job queue, no ORM or migrations framework, no
