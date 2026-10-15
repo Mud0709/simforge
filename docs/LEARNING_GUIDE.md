@@ -3,10 +3,11 @@
 **Who this is for:** an IBDP1 student who is building SimForge and wants to *understand* the
 code well enough to explain it and change it, not just run it.
 
-**What it covers:** the code at commit `945c8e0`. The production code has not changed since
-`acf6251`, so every line number below points at real code you can open. Every number in
-the worked examples was computed by running the code or a short script; none is from
-memory.
+**What it covers:** Parts 1-10 cover the foundation and the integrator study. Part 11
+covers the angle sweep (added in `cf3a870`). Every line number points at the code as it is
+on the branch that contains this version of the guide, and a script checks every quoted
+code excerpt against the real files. Every number in the worked examples was computed by
+running the code or a short script; none is from memory.
 
 ---
 
@@ -35,6 +36,8 @@ Don't read straight through in one sitting. Each stage depends on the one before
 5. **Judging the approximation:** Part 6 (convergence, stability, the invariant).
 6. **Evidence and plumbing:** Part 7 (tests), then Part 8 (API and frontend).
 7. **Consolidate:** Part 9 (what is proven and what is not), then the exercises in Part 10.
+8. **The angle sweep:** Part 11. It needs only Part 3 and section 1.7, so you can read it
+   any time after stage 2.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -50,6 +53,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 8 — Tracing one request through the whole application](#part-8--tracing-one-request-through-the-whole-application)
 - [Part 9 — What we have demonstrated and what is still uncertain](#part-9--what-we-have-demonstrated-and-what-is-still-uncertain)
 - [Part 10 — Exercises and learning plan](#part-10--exercises-and-learning-plan)
+- [Part 11 — The angle sweep: which launch angle throws furthest?](#part-11--the-angle-sweep-which-launch-angle-throws-furthest)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -91,8 +95,9 @@ By the end of this guide you should be able to explain every word in that table,
 the measured numbers aren't exactly 1, 4 and 2.
 
 (SimForge also has an older page, `/physics/projectile`, that compares the exact solution
-with SciPy's adaptive solvers. This guide focuses on the integrator study, because that is
-the code written from scratch.)
+with SciPy's adaptive solvers. Parts 1-10 focus on the integrator study, because that is
+the code written from scratch. That page also has a **"Range against launch angle"** panel,
+which finds the angle that throws furthest; Part 11 explains it.)
 
 ---
 
@@ -1958,9 +1963,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:45-71`
+### [2] Sending it: `frontend/src/lib/api/client.ts:47-77`
 
-<!-- src: frontend/src/lib/api/client.ts:45-60 -->
+<!-- src: frontend/src/lib/api/client.ts:47-62 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -1982,14 +1987,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 | Line | Meaning |
 |---|---|
-| 45 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
-| 48 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
-| 50 | Tells the server the body is JSON. |
-| 52-53 | If the network itself fails (server not running), throw a friendly error. |
-| 55-57 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 30-43). |
-| 59 | Success: parse the response JSON. |
+| 47 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
+| 50 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
+| 52 | Tells the server the body is JSON. |
+| 54-55 | If the network itself fails (server not running), throw a friendly error. |
+| 57-59 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 32-45). |
+| 61 | Success: parse the response JSON. |
 
-`runIntegratorStudy` (lines 66-71) calls this with `method: "POST"` and
+`runIntegratorStudy` (lines 72-77) calls this with `method: "POST"` and
 `body: JSON.stringify(body)`, which turns the request object into JSON text. The request
 and response *types* come from `schema.d.ts`, which is **generated** from the backend's
 schemas. Change a backend field without regenerating it, and CI's `api-contract` job fails.
@@ -2011,9 +2016,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:109-116`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:114-121`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:109-116 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:114-121 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2027,11 +2032,11 @@ async def integrator_study(
 
 | Line | Meaning |
 |---|---|
-| 109 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
-| 111 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 112 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 114 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
-| 115-116 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
+| 114 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 28), and `main.py` adds `/api/v1`. |
+| 116 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 117 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 119 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
+| 120-121 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2103,14 +2108,14 @@ This is everything in Parts 4-6: `run_study` → `_run` → `integrate` → `int
 → `euler_step` / `rk4_step` / the Verlet stepper, then the comparison with
 `analytical.state` and the fit with `fit_order`.
 
-### [8] Recording the run: `_record_run`, `physics.py:26-64`
+### [8] Recording the run: `_record_run`, `physics.py:31-69`
 
 | Line(s) | Meaning |
 |---|---|
-| 40 | Records the software versions (Python, NumPy, SciPy, SimForge). A result can depend on library versions. |
-| 41 | A unique random ID for this run (UUID). |
-| 43 | The **input hash**: a SHA-256 fingerprint of exactly the inputs that affect the numbers (lines 121: `parameters`, `dt_values`, `methods`). Identical inputs give an identical hash, so repeated runs can be recognised. |
-| 44-56 | If `save_experiment` is true, store inputs, summary and environment in SQLite. **Not** the full time series: the computation is deterministic, so the inputs plus the versions are enough to reproduce it. |
+| 45 | Records the software versions (Python, NumPy, SciPy, SimForge). A result can depend on library versions. |
+| 46 | A unique random ID for this run (UUID). |
+| 48 | The **input hash**: a SHA-256 fingerprint of exactly the inputs that affect the numbers (line 126: `parameters`, `dt_values`, `methods`). Identical inputs give an identical hash, so repeated runs can be recognised. |
+| 49-61 | If `save_experiment` is true, store inputs, summary and environment in SQLite. **Not** the full time series: the computation is deterministic, so the inputs plus the versions are enough to reproduce it. |
 
 ### [9]-[10] The response, and how it's drawn
 
@@ -2335,11 +2340,215 @@ values, which check the order, and which only check things like input validation
 | 2 | Parts 3-4 | Redo 4.2, 4.5 and 4.7 by hand; Exercises 2 and 4 | do one Euler and one RK4 step of any simple ODE on paper |
 | 3 | Part 5 | Read each excerpt with the file open. Add a temporary `print` inside `integrate_fixed` to watch a few steps, then remove it. Exercises 5 and 6 | explain every line of `rk4_step`, `integrate_fixed` and `_run` |
 | 4 | Parts 6-9 | Exercises 1(b), 3 and 8; Exercise 7 if you want more | explain the reported orders, the stability limits and the invariant to someone else |
+| 5 (short) | Part 11 | Exercises 9 and 10, then 11 and 12 | explain why the best angle drops below 45°, and why the angle is known less precisely than the range |
 
 **After that**, the roadmap's next numerical item, a **harmonic oscillator** with
 symplectic Euler and standard velocity Verlet, is a good first feature to write *yourself*,
 with me reviewing. It reuses `numerics/fixed_step.py` directly, and it's where Verlet's
 energy behaviour genuinely matters.
+
+## Part 11 — The angle sweep: which launch angle throws furthest?
+
+**Code:** `backend/src/simforge/physics/projectile/angle_sweep.py` (added in `cf3a870`),
+plus one endpoint and one panel. **Read after:** Part 3, because every range here comes from
+the exact solution. Part 6.4 (round-off) helps with 11.4.
+
+On the projectile page, the panel **"Range against launch angle"** computes the range at
+every angle from 0° to 90° (default: 91 angles, 1° apart), draws the curve, and reports the
+best angle to about `10⁻⁷°`.
+
+### 11.1 The vacuum answer, and why 45° is a special case **[IB core]**
+
+With no air and a launch from the ground, the range is `R = v₀² sin(2θ)/g`.
+- `sin(2θ)` is largest when `2θ = 90°`, so the best angle is **45°**, and `R* = v₀²/g`.
+  For `v₀ = 20 m/s` the code gives `40.78864851911713 m`, which equals `400/9.80665`.
+- `sin(2θ) = sin(180° − 2θ)`, so angles that add up to 90° give the **same range**. The
+  code gives `31.2459175404028 m` at both 25° and 65°.
+
+Launching from a height `h₀` changes the answer:
+
+`tan θ* = v₀/√(v₀² + 2gh₀)` and `R* = (v₀/g)·√(v₀² + 2gh₀)`
+
+For `v₀ = 20 m/s` and `h₀ = 10 m`, this gives `θ* = 39.3223°` and `R* = 49.7944 m`. The
+ball is already high up, so it has plenty of flight time anyway. A flatter throw spends
+more of the speed on going forwards. (Exercise 9 asks you to derive the formula.)
+
+So **45° needs two conditions: no drag *and* a launch from ground level.**
+
+<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:92-96 -->
+```python
+def vacuum_optimum(setup: ProjectileSetup) -> tuple[float, float]:
+    """Closed-form best angle (degrees) and maximum range (m) with no drag."""
+    v, g, h = setup.initial_speed, setup.gravity, setup.launch_height
+    root = math.sqrt(v * v + 2.0 * g * h)
+    return math.degrees(math.atan2(v, root)), v * root / g
+```
+Name-clash warning: here `h` is the **launch height**, not a time step. `atan2(v, root)` is
+`atan(v/root)`, written in a form that never divides by zero.
+
+### 11.2 With drag there is no formula, so we search **[IB core idea]**
+
+With linear drag, each *range* is still exact. `flight_time` finds the landing time with a
+root-finder, and `state` evaluates the exact position (Part 3). But nobody has a closed form
+for the *best angle*, so we have to search for it.
+
+Best angles for `v₀ = 20 m/s`, `m = 1 kg`, `h₀ = 0` (computed by the code):
+
+| `b` (kg/s) | Best angle | Maximum range (m) |
+|---|---|---|
+| 0 (vacuum) | 45.0000° | 40.7886 |
+| 0.01 | 44.7272° | 40.0192 |
+| 0.1 | 42.4827° | 34.2096 |
+| 0.5 | 35.4578° | 20.7674 |
+| 1 | 30.0774° | 13.8929 |
+| 3 | 20.0731° | 5.9291 |
+
+The stronger the drag, the lower the best angle. A high lob spends a long time in the air,
+and drag keeps eating its horizontal speed the whole time. So air time is worth less, and a
+flatter, faster flight wins.
+
+### 11.3 The method: a coarse grid, then refine **[Beyond IB]**
+
+<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:99-117 -->
+```python
+def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
+    """Range at each angle, plus the refined best angle over [0, 90] degrees."""
+    if len(angles_deg) < 3:
+        raise ValueError("need at least 3 angles to bracket a maximum")
+    points = [evaluate(setup, a) for a in angles_deg]
+
+    # Refine around the best grid point, using its neighbours as the bracket.
+    i = max(range(len(points)), key=lambda j: points[j].range)
+    lo = angles_deg[max(i - 1, 0)]
+    hi = angles_deg[min(i + 1, len(points) - 1)]
+    result = minimize_scalar(
+        lambda a: -evaluate(setup, float(a)).range,
+        bounds=(lo, hi),
+        method="bounded",
+        options={"xatol": ANGLE_XATOL},
+    )
+    best_angle, best_range = float(result.x), -float(result.fun)
+    if points[i].range > best_range:  # the optimum sits exactly on a grid point (or an edge)
+        best_angle, best_range = points[i].angle_deg, points[i].range
+```
+
+| Line(s) | Meaning |
+|---|---|
+| 101-102 | You need at least three points to trap a maximum between two neighbours. |
+| 103 | Exact range, flight time and peak height at every grid angle. |
+| 106 | `i` is the index of the best grid point. |
+| 107-108 | Its two neighbours form the **bracket** `[lo, hi]`, the interval the search is restricted to. At the edges of the grid, the bracket stops at the edge. |
+| 109-114 | `minimize_scalar` finds a *minimum*, so we minimise `−R`. `method="bounded"` is **Brent's method** on an interval. It mixes golden-section steps (safe, slow) with fitting a parabola through three points and jumping to its top (fast, and very good near a smooth peak). `xatol` is the tolerance on the angle. |
+| 115 | Read off the refined angle and range (undoing the minus sign). |
+| 116-117 | Safety net: if the search ends up worse than the grid point (for example when the best point is at an edge of the grid), keep the grid point. |
+
+**What the refinement adds** (`b = 1 kg/s`, 1° grid): the best grid point is 30°, with
+`13.892899 m`. The refined optimum is `30.0774°`, with `13.892945 m`. The grid alone is
+wrong by about 0.08°. A grid of only `[0°, 30°, 60°, 90°]` gives `30.07736738°`, against
+`30.07736732°` from the fine grid. They agree to about `5 × 10⁻⁸°`, within `xatol`.
+
+**The assumption that makes this safe:** the curve has a **single peak**. If it had two
+peaks, the best grid point could sit next to the wrong one. The tests check for exactly one
+peak on a 0.25° grid at five drag strengths. That is evidence, not a proof for every input
+the API accepts (see 11.6).
+
+### 11.4 Why the range is precise but the angle isn't: flat peaks **[IB core calculus + Beyond IB]**
+
+At a maximum the slope is zero. So near the top, Taylor's theorem gives
+
+`R(θ* + δ) ≈ R* − ½·|R″|·δ²`
+
+The drop is proportional to **δ²**, not δ. Here are measured values for `b = 1 kg/s`, from a
+short script calling the engine:
+
+| δ (degrees) | `R* − R(θ* + δ)` (m) |
+|---|---|
+| 1 | 7.5 × 10⁻³ |
+| 0.1 | 7.6 × 10⁻⁵ |
+| 0.01 | 7.6 × 10⁻⁷ |
+| 0.001 | 7.6 × 10⁻⁹ |
+| 10⁻⁴ | 7.6 × 10⁻¹¹ |
+| 10⁻⁵ | 7.7 × 10⁻¹³ |
+| 10⁻⁶ | 1.1 × 10⁻¹⁴ |
+| 10⁻⁷ | −1.8 × 10⁻¹⁵ (wrong sign: rounding noise) |
+| 10⁻⁸ | 0 |
+
+Each 10× smaller δ gives a 100× smaller drop, until the drop falls below the rounding of
+`R` itself: about `ε·R ≈ 2.2 × 10⁻¹⁶ × 13.9 ≈ 3 × 10⁻¹⁵ m` (1.7). After that point the
+computer **cannot tell which angle is better**. That happens near `δ ≈ 10⁻⁷°`, which is why
+`ANGLE_XATOL = 1e-7`.
+
+**Rule of thumb:** at a smooth maximum, the *value* is known to about ε, but its
+*location* only to about `√ε`. The tests reflect this: the range is checked to a relative
+`10⁻¹²`, the angle only to `10⁻⁵°`.
+
+(The δ = 1 row shows different drops on the two sides: `7.51 × 10⁻³` and `7.75 × 10⁻³`.
+That's the next Taylor term, and it's why the curve is lopsided. Exercise 10 asks you to
+explain the physics.)
+
+### 11.5 From request to response
+
+`run_angle_sweep` (`model.py:258-262`) builds the grid with
+`np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
+(`schemas.py:147-158`) allows `n_angles` from 10 to 361.
+
+<!-- src: backend/src/simforge/api/routes/physics.py:165-172 -->
+```python
+    computation = await run_in_threadpool(projectile.run_angle_sweep, request)
+    r = computation.result
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
+    params = request.parameters.model_dump(exclude={"launch_angle_deg"})
+    metadata = _record_run(
+        repo,
+        projectile.ANGLE_SWEEP_INFO,
+        {"parameters": params, "n_angles": request.n_angles},
+```
+
+The launch angle in the request is **ignored**, because the sweep tries every angle. So it
+is removed before hashing (line 168). Otherwise, two identical computations that differ
+only in an unused field would get different input hashes, and the experiment log would
+treat them as different experiments.
+
+### 11.6 What the tests show, and what they don't
+
+| Test (`tests/physics/test_angle_sweep.py`) | Reference | Why it matters |
+|---|---|---|
+| Vacuum from the ground | 45°, `v₀²/g` | Textbook result |
+| Vacuum from 5, 10, 50 and 200 m | Closed form in 11.1 | Range to relative `10⁻¹²`, angle to `10⁻⁵°` (11.4) |
+| Complementary angles | `sin 2θ` symmetry | Checks the exact solution itself |
+| Drag lowers the best angle, monotonically | Physics (11.2) | Checked at five drag strengths |
+| Weak drag (`b = 10⁻⁶`) gives 45° | The limit `b → 0` | Drag model joins smoothly onto the vacuum model |
+| One peak on a 0.25° grid | The method's assumption | Without it, the bracket could be wrong |
+| No grid point beats the refined point, and neither does ±0.001° | Definition of a maximum | Checks we found a real maximum |
+| Coarse grid gives the same answer | Robustness | The bracket works even at 30° spacing |
+
+**Not shown:**
+- **Single peak for every allowed input.** It's checked for `v₀ = 20 m/s`, from ground
+  level, at five drag strengths. It's very plausible physically, but not proven.
+- **Anything about quadratic drag.** Every number here uses linear drag (see Part 9).
+
+### 11.7 Exercises (no solutions printed)
+
+**Exercise 9: the vacuum best angle from a height.** Derive `tan θ* = v₀/√(v₀² + 2gh₀)`.
+*Hint:* write the landing condition as a quadratic in `tan θ` for a fixed range `R`. The
+largest reachable `R` is the one where this quadratic has exactly **one** solution, so its
+discriminant is zero.
+
+**Exercise 10: the lopsided curve.** For `b = 1 kg/s`, the code gives
+`R(θ* − 20°) = 9.36 m` but `R(θ* + 20°) = 11.56 m`. In vacuum, the curve is symmetric
+around 45° (11.1). Using what drag does to fast and slow parts of a flight, explain why the
+drag curve falls more slowly on the high-angle side. Then predict whether `h₀ = 20 m`, with
+no drag, moves the peak left or right of 45°, and check it in the app.
+
+**Exercise 11: find the precision limit yourself.** Repeat the 11.4 table for
+`b = 0.1 kg/s`, using `angle_sweep.sweep` and `angle_sweep.evaluate` in a Python shell.
+Predict, before running anything, roughly at which δ the sign should start flipping.
+Explain your prediction using `ε` and the size of `R*`.
+
+**Exercise 12 (thinking about tests):** imagine a bug that sets the bracket to
+`[angles[i], angles[i + 1]]`, forgetting the left neighbour. Which tests in 11.6 would
+catch it, and for which drag values? Reason it through first, then check with a temporary
+local edit (don't commit it).
 
 ---
 
@@ -2374,11 +2583,25 @@ energy behaviour genuinely matters.
 | `e(h)` | error at step size `h` | m or m/s | `max_position_error`, … |
 | `ε` | machine epsilon, `2.22 × 10⁻¹⁶` | — | `EPS` |
 | `I` | invariant `v + k·r + g·t·ŷ` | m/s | — |
+| `θ` | launch angle above the horizontal | degrees in the API, radians inside the engine | `launch_angle_deg`, `launch_angle_rad`, `angle_deg` |
+| `R(θ)` | range: horizontal distance at landing | m | `range` |
+| `θ*`, `R*` | best angle and maximum range | degrees, m | `best_angle_deg`, `best_range` |
+| `δ` | small change of angle near `θ*` (Part 11 only) | degrees | — |
 
 ---
 
 ## Changes from the previous version of this guide
 
+**This version (angle sweep):**
+- **Added Part 11** on the angle sweep: the vacuum results, the search method, why the angle
+  is known less precisely than the range (with measured numbers), what the tests show, and
+  Exercises 9-12. Added matching rows to the reading order, the learning plan and the symbol
+  table.
+- **Updated line numbers** in Part 8 for `client.ts` and `api/routes/physics.py`. The
+  angle-sweep commit added code above the quoted lines, so they had moved. The quoted code
+  itself is unchanged.
+
+**The previous version (rewrite for IBDP1):**
 - Rewritten for an IBDP1 starting point. It adds prerequisites (Part 1), worked numerical
   examples throughout, and line-by-line tables for `analytical.py`, `fixed_step.py`,
   `integrator_study.py`, `convergence.py`, the integrator tests, the API route and the
