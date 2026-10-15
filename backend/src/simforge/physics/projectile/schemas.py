@@ -139,3 +139,41 @@ class ProjectileResponse(StrictModel):
     comparison: Comparison
     series: ProjectileSeries
     metadata: RunMetadata
+
+
+# --- Angle sweep ---------------------------------------------------------------------------
+
+
+class AngleSweepRequest(StrictModel):
+    parameters: ProjectileParameters = Field(
+        default_factory=ProjectileParameters,
+        description="Projectile settings. launch_angle_deg is ignored: the sweep varies it.",
+    )
+    n_angles: int = Field(
+        default=91,
+        ge=10,
+        le=361,
+        description="Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).",
+    )
+    save_experiment: bool = True
+
+
+class AngleSweepResponse(StrictModel):
+    model: ModelInfo
+    parameters: ProjectileParameters
+    units: dict[str, str]
+    assumptions: list[Assumption]
+    angles_deg: list[float]
+    ranges: list[float] = Field(description="m")
+    flight_times: list[float] = Field(description="s")
+    max_heights: list[float] = Field(description="m")
+    best_angle_deg: float = Field(
+        description="Angle maximising the range, refined by a bounded Brent search (~1e-7 deg)."
+    )
+    best_range: float = Field(description="m")
+    vacuum_best_angle_deg: float = Field(
+        description="Closed-form best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h)."
+    )
+    vacuum_best_range: float = Field(description="m, closed form with no drag")
+    method_note: str
+    metadata: RunMetadata

@@ -18,7 +18,12 @@ from simforge.physics.projectile.integrator_schemas import (
     IntegratorStudyRequest,
     IntegratorStudyResponse,
 )
-from simforge.physics.projectile.schemas import ProjectileRequest, ProjectileResponse
+from simforge.physics.projectile.schemas import (
+    AngleSweepRequest,
+    AngleSweepResponse,
+    ProjectileRequest,
+    ProjectileResponse,
+)
 
 router = APIRouter(prefix="/physics", tags=["physics"])
 
@@ -149,5 +154,44 @@ async def integrator_study(
         fit_rule=integrator_model.FIT_RULE,
         results=result.results,
         exact_trajectory=result.exact_trajectory,
+        metadata=metadata,
+    )
+
+
+@router.post("/projectile/angle-sweep")
+async def projectile_angle_sweep(
+    request: AngleSweepRequest, repo: Repository
+) -> AngleSweepResponse:
+    computation = await run_in_threadpool(projectile.run_angle_sweep, request)
+    r = computation.result
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
+    params = request.parameters.model_dump(exclude={"launch_angle_deg"})
+    metadata = _record_run(
+        repo,
+        projectile.ANGLE_SWEEP_INFO,
+        {"parameters": params, "n_angles": request.n_angles},
+        {
+            "best_angle_deg": r.best_angle_deg,
+            "best_range": r.best_range,
+            "vacuum_best_angle_deg": r.vacuum_best_angle_deg,
+            "vacuum_best_range": r.vacuum_best_range,
+        },
+        save=request.save_experiment,
+        elapsed_ms=computation.elapsed_ms,
+    )
+    return AngleSweepResponse(
+        model=projectile.ANGLE_SWEEP_INFO,
+        parameters=request.parameters,
+        units=projectile.ANGLE_SWEEP_UNITS,
+        assumptions=projectile.ASSUMPTIONS,
+        angles_deg=computation.angles_deg,
+        ranges=[p.range for p in r.points],
+        flight_times=[p.flight_time for p in r.points],
+        max_heights=[p.max_height for p in r.points],
+        best_angle_deg=r.best_angle_deg,
+        best_range=r.best_range,
+        vacuum_best_angle_deg=r.vacuum_best_angle_deg,
+        vacuum_best_range=r.vacuum_best_range,
+        method_note=projectile.ANGLE_SWEEP_NOTE,
         metadata=metadata,
     )

@@ -45,6 +45,131 @@
         "title": "AnalyticalResult",
         "type": "object"
       },
+      "AngleSweepRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "n_angles": {
+            "default": 91,
+            "description": "Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).",
+            "maximum": 361.0,
+            "minimum": 10.0,
+            "title": "N Angles",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters",
+            "description": "Projectile settings. launch_angle_deg is ignored: the sweep varies it."
+          },
+          "save_experiment": {
+            "default": true,
+            "title": "Save Experiment",
+            "type": "boolean"
+          }
+        },
+        "title": "AngleSweepRequest",
+        "type": "object"
+      },
+      "AngleSweepResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "angles_deg": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Angles Deg",
+            "type": "array"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "best_angle_deg": {
+            "description": "Angle maximising the range, refined by a bounded Brent search (~1e-7 deg).",
+            "title": "Best Angle Deg",
+            "type": "number"
+          },
+          "best_range": {
+            "description": "m",
+            "title": "Best Range",
+            "type": "number"
+          },
+          "flight_times": {
+            "description": "s",
+            "items": {
+              "type": "number"
+            },
+            "title": "Flight Times",
+            "type": "array"
+          },
+          "max_heights": {
+            "description": "m",
+            "items": {
+              "type": "number"
+            },
+            "title": "Max Heights",
+            "type": "array"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ProjectileParameters"
+          },
+          "ranges": {
+            "description": "m",
+            "items": {
+              "type": "number"
+            },
+            "title": "Ranges",
+            "type": "array"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "vacuum_best_angle_deg": {
+            "description": "Closed-form best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h).",
+            "title": "Vacuum Best Angle Deg",
+            "type": "number"
+          },
+          "vacuum_best_range": {
+            "description": "m, closed form with no drag",
+            "title": "Vacuum Best Range",
+            "type": "number"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "units",
+          "assumptions",
+          "angles_deg",
+          "ranges",
+          "flight_times",
+          "max_heights",
+          "best_angle_deg",
+          "best_range",
+          "vacuum_best_angle_deg",
+          "vacuum_best_range",
+          "method_note",
+          "metadata"
+        ],
+        "title": "AngleSweepResponse",
+        "type": "object"
+      },
       "Assumption": {
         "additionalProperties": false,
         "description": "A modelling assumption, stated so a reader can judge when the model stops applying.",
@@ -1406,6 +1531,47 @@
         "summary": "Health",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/angle-sweep": {
+      "post": {
+        "operationId": "projectile_angle_sweep_api_v1_physics_projectile_angle_sweep_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AngleSweepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AngleSweepResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Projectile Angle Sweep",
+        "tags": [
+          "physics"
         ]
       }
     },
