@@ -4,7 +4,9 @@
 code well enough to explain it and change it, not just run it.
 
 **What it covers:** Parts 1-10 cover the foundation and the integrator study. Part 11
-covers the angle sweep (added in `cf3a870`). Every line number points at the code as it is
+covers the angle sweep (added in `cf3a870`). Part 12 points to the **Economy Lab guide**,
+[ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md), which covers the Solow growth model.
+This guide stays the home of the Physics Lab and of the engineering shared by every lab. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -38,6 +40,8 @@ Don't read straight through in one sitting. Each stage depends on the one before
 7. **Consolidate:** Part 9 (what is proven and what is not), then the exercises in Part 10.
 8. **The angle sweep:** Part 11. It needs only Part 3 and section 1.7, so you can read it
    any time after stage 2.
+9. **The Economy Lab:** Part 12, then the Economy Lab guide. It is independent of Parts 2-6
+   and 11, but uses 1.7 (floating point) and Part 7 (tests as evidence).
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -54,6 +58,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 9 — What we have demonstrated and what is still uncertain](#part-9--what-we-have-demonstrated-and-what-is-still-uncertain)
 - [Part 10 — Exercises and learning plan](#part-10--exercises-and-learning-plan)
 - [Part 11 — The angle sweep: which launch angle throws furthest?](#part-11--the-angle-sweep-which-launch-angle-throws-furthest)
+- [Part 12 — The Economy Lab: the Solow growth model](#part-12--the-economy-lab-the-solow-growth-model)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -1886,7 +1891,7 @@ with the default settings.
 [5] integrator_schemas.py   StrictModel rules + model_validator reject bad input with 422
 [6] integrator_model.run    step-count limits → engine → convert results to schemas
 [7] integrator_study.py     the science (Parts 4-6)
-[8] physics.py _record_run  input hash + SQLite experiment log
+[8] recording.py record_run input hash + SQLite experiment log
 [9] physics.py              response object → JSON
 [10] IntegratorResults.tsx  JSON → tables and Plotly log-log charts
 ```
@@ -1963,9 +1968,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:47-77`
+### [2] Sending it: `frontend/src/lib/api/client.ts:53-83`
 
-<!-- src: frontend/src/lib/api/client.ts:47-62 -->
+<!-- src: frontend/src/lib/api/client.ts:53-68 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -1987,14 +1992,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 | Line | Meaning |
 |---|---|
-| 47 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
-| 50 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
-| 52 | Tells the server the body is JSON. |
-| 54-55 | If the network itself fails (server not running), throw a friendly error. |
-| 57-59 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 32-45). |
-| 61 | Success: parse the response JSON. |
+| 53 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
+| 56 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
+| 58 | Tells the server the body is JSON. |
+| 60-61 | If the network itself fails (server not running), throw a friendly error. |
+| 63-65 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 38-51). |
+| 67 | Success: parse the response JSON. |
 
-`runIntegratorStudy` (lines 72-77) calls this with `method: "POST"` and
+`runIntegratorStudy` (lines 78-83) calls this with `method: "POST"` and
 `body: JSON.stringify(body)`, which turns the request object into JSON text. The request
 and response *types* come from `schema.d.ts`, which is **generated** from the backend's
 schemas. Change a backend field without regenerating it, and CI's `api-contract` job fails.
@@ -2016,9 +2021,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:114-121`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:68-75`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:114-121 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:68-75 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2032,11 +2037,11 @@ async def integrator_study(
 
 | Line | Meaning |
 |---|---|
-| 114 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 28), and `main.py` adds `/api/v1`. |
-| 116 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 117 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 119 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
-| 120-121 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
+| 68 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
+| 70 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 71 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 73 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
+| 74-75 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2108,14 +2113,18 @@ This is everything in Parts 4-6: `run_study` → `_run` → `integrate` → `int
 → `euler_step` / `rk4_step` / the Verlet stepper, then the comparison with
 `analytical.state` and the fit with `fit_order`.
 
-### [8] Recording the run: `_record_run`, `physics.py:31-69`
+### [8] Recording the run: `record_run`, `api/recording.py:14-52`
+
+Every lab records its runs through this one function. It used to live in `physics.py` as
+`_record_run`; it moved to `api/recording.py` when the Economy Lab became the second lab to
+need it (task 1.1). Nothing in it changed.
 
 | Line(s) | Meaning |
 |---|---|
-| 45 | Records the software versions (Python, NumPy, SciPy, SimForge). A result can depend on library versions. |
-| 46 | A unique random ID for this run (UUID). |
-| 48 | The **input hash**: a SHA-256 fingerprint of exactly the inputs that affect the numbers (line 126: `parameters`, `dt_values`, `methods`). Identical inputs give an identical hash, so repeated runs can be recognised. |
-| 49-61 | If `save_experiment` is true, store inputs, summary and environment in SQLite. **Not** the full time series: the computation is deterministic, so the inputs plus the versions are enough to reproduce it. |
+| 28 | Records the software versions (Python, NumPy, SciPy, SimForge). A result can depend on library versions. |
+| 29 | A unique random ID for this run (UUID). |
+| 31 | The **input hash**: a SHA-256 fingerprint of exactly the inputs that affect the numbers (`physics.py` line 80: `parameters`, `dt_values`, `methods`). Identical inputs give an identical hash, so repeated runs can be recognised. |
+| 32-44 | If `save_experiment` is true, store inputs, summary and environment in SQLite. **Not** the full time series: the computation is deterministic, so the inputs plus the versions are enough to reproduce it. |
 
 ### [9]-[10] The response, and how it's drawn
 
@@ -2185,7 +2194,7 @@ Both axes are logarithmic, so these lines are the straight lines of 1.8 and 6.2.
 - How large are the *landing-time* and *range* errors of the fixed-step methods? The study
   measures errors over a fixed time window, not at the numerically detected landing.
 - How do the methods compare on a **conservative** system (no drag), where Verlet's
-  long-term energy behaviour genuinely matters? (That's the next roadmap item.)
+  long-term energy behaviour genuinely matters? (That's planned for Phase 2 of the roadmap.)
 
 ---
 
@@ -2342,7 +2351,7 @@ values, which check the order, and which only check things like input validation
 | 4 | Parts 6-9 | Exercises 1(b), 3 and 8; Exercise 7 if you want more | explain the reported orders, the stability limits and the invariant to someone else |
 | 5 (short) | Part 11 | Exercises 9 and 10, then 11 and 12 | explain why the best angle drops below 45°, and why the angle is known less precisely than the range |
 
-**After that**, the roadmap's next numerical item, a **harmonic oscillator** with
+**After that**, a Phase 2 roadmap item, a **harmonic oscillator** with
 symplectic Euler and standard velocity Verlet, is a good first feature to write *yourself*,
 with me reviewing. It reuses `numerics/fixed_step.py` directly, and it's where Verlet's
 energy behaviour genuinely matters.
@@ -2492,20 +2501,20 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`schemas.py:147-158`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:165-172 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:119-126 -->
 ```python
     computation = await run_in_threadpool(projectile.run_angle_sweep, request)
     r = computation.result
     # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
     params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    metadata = _record_run(
+    metadata = record_run(
         repo,
         projectile.ANGLE_SWEEP_INFO,
         {"parameters": params, "n_angles": request.n_angles},
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 168). Otherwise, two identical computations that differ
+is removed before hashing (line 122). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 
@@ -2552,6 +2561,39 @@ local edit (don't commit it).
 
 ---
 
+## Part 12 — The Economy Lab: the Solow growth model
+
+The Economy Lab has its own guide, [ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md),
+because its ideas (saving, capital, growth, living standards) are different from the
+physics here. Its full Solow chapter lives there, with worked derivations, checkpoints and
+Exercises E1-E7. This part only maps the connections, so you can see the studio as one piece.
+
+### 12.1 What carries over from the Physics Lab
+| Physics Lab idea | Where it reappears in the Solow model |
+|---|---|
+| Floating-point rounding (1.7), catastrophic cancellation (3.5) | `λ = n + g + ng + δ` is computed as a sum, not as `(1+n)(1+g) − (1−δ)`, which cancels (Economy guide 7.2) |
+| Convergence order (6.1) | The discrete model approaches continuous time at **first order** in ε (Economy guide 7.5) |
+| Amplification factor `R` (6.5) | The convergence factor `ρ`: each year the gap to the steady state is multiplied by about ρ |
+| Flat peaks (11.4) | The golden-rule savings rate is found numerically only to about `√ε`, like the best launch angle |
+| Tests as evidence (Part 7) | Proofs, tests and empirical bounds are kept separate and labelled (Economy guide Part 9) |
+| The request path (Part 8) | Identical: form → `client.ts` → proxy → FastAPI route → pure engine → `record_run` → response |
+
+### 12.2 What is new, and shared by every lab from now on
+- **The workspace** (`components/Workspace.tsx`): every model page is laid out as
+  Parameters, Visualisation, Results, Assumptions and Validation. The physics pages move into
+  it in roadmap step 1.2.
+- **Schema-driven fields for every lab** (`lib/fields.ts`): bounds, defaults and whether a
+  field must be a whole number come from the backend's API description.
+- **Per-run checks**: a model can report checks of each run, labelled as an exact identity, a
+  numerical diagnostic or information.
+
+### 12.3 Checkpoint
+The physics integrators had a *discretisation* error that shrank with the step size. Why does
+the Solow model have none, even though it is also computed one step at a time? (Hint:
+Economy guide 1.4.)
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -2592,7 +2634,16 @@ local edit (don't commit it).
 
 ## Changes from the previous version of this guide
 
-**This version (angle sweep):**
+**This version (Economy Lab, task 1.1):**
+- **Added Part 12**, a short bridge to the new Economy Lab guide
+  ([ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md)), plus matching rows in the header,
+  reading order and contents.
+- **Updated Part 8** for code that moved: the run recorder is now `record_run` in
+  `api/recording.py` (it was `_record_run` in `physics.py`), and line numbers in
+  `client.ts` and `api/routes/physics.py` shifted. Part 11's route excerpt was updated to the
+  new name. The quoted code is otherwise unchanged.
+
+**The previous version (angle sweep):**
 - **Added Part 11** on the angle sweep: the vacuum results, the search method, why the angle
   is known less precisely than the range (with measured numbers), what the tests show, and
   Exercises 9-12. Added matching rows to the reading order, the learning plan and the symbol

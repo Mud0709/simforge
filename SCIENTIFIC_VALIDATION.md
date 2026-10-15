@@ -16,9 +16,14 @@ evidence goes. It is a living document: every new model adds a section.
    chosen just because it makes the test pass.
 4. **Report, don't claim.** Accuracy figures below are *observed* values from a specific
    run, with versions. They are not guarantees for other inputs.
-5. **Validation is not verification of the physics.** The tests show that the code solves its
-   stated equations correctly. They cannot show that the equations describe reality. Model
-   assumptions are documented separately and returned with every result.
+5. **Validation is not verification of the physics (or the economics).** The tests show that
+   the code solves its stated equations correctly. They cannot show that the equations
+   describe reality. Model assumptions are documented separately and returned with every
+   result.
+6. **Proofs, tests and evidence are different things.** A *mathematical guarantee* is proved
+   on paper. A *test* checks that the implementation behaves as the proof says. An
+   *empirical bound* (e.g. on rounding error) held on a stated grid of inputs and is not a
+   theorem. Each section says which is which.
 
 ---
 
@@ -355,7 +360,141 @@ With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48�
 30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
 
 ### Limitations
-- Linear drag only. Quadratic drag (ROADMAP Milestone 1.1) is expected to behave differently.
+- Linear drag only. Quadratic drag (ROADMAP Phase 2) is expected to behave differently.
 - The single-peak property is checked on the tested cases, not proven in general. If a curve
   ever had two peaks, the refinement could miss the global maximum by up to one grid step.
 - Only the launch angle is swept. Other parameters are fixed.
+
+---
+
+## `economy.solow` v1.0.0: Solow growth model in discrete time
+
+Engine: `backend/src/simforge/economy/solow/simulation.py` (pure). Orchestration and per-run
+checks: `model.py`. Tests: `backend/tests/economy/test_solow.py`,
+`backend/tests/api/test_solow_api.py`.
+
+### Model
+Production `Y_t = K_t^α (A_t L_t)^(1−α)`, with `L_{t+1} = (1+n)L_t` and `A_{t+1} = (1+g)A_t`.
+A share `s_t` of year-t output is saved and becomes capital at the start of year t+1;
+depreciation applies to `K_t`: `K_{t+1} = s_t Y_t + (1−δ)K_t`. Dividing by
+`A_{t+1}L_{t+1} = D·A_tL_t`, with `D = (1+n)(1+g)`, gives the recurrence for capital per
+effective worker `k = K/(AL)`:
+
+`k_{t+1} = f(k_t) = [s_t k_t^α + (1−δ)k_t] / D`
+
+Output per effective worker is `y = k^α`, consumption `c = (1−s)y`, investment `i = sy`.
+Output per actual worker is `Y/L = A_t·y_t`, reported as an index with year 0 = 100.
+
+**Policy experiment.** `s_t = s₀` for `t < T_c` and `s₁` for `t ≥ T_c`, with
+`0 ≤ T_c < H`. Because `s_t` is applied to year-t output, the first capital stock affected
+is `k_{T_c+1}`; consumption changes already at `t = T_c`.
+
+**Accepted inputs.** `α ∈ [0.05, 0.95]`, `s ∈ [0.01, 0.99]`, `δ ∈ [0, 1]`,
+`n ∈ [−0.05, 0.10]`, `g ∈ [0, 0.10]`, `k₀/k*(s₀) ∈ [0.01, 10]`, `H ∈ [1, 500]` years, and
+`λ = n + g + ng + δ ≥ 10⁻³` (with a 10⁻¹² relative allowance so inputs whose exact sum equals
+the bound are not rejected by rounding). Under these bounds `k*` lies between about `10⁻⁴²` and
+`10⁶⁰`, so nothing can overflow or underflow; the model still checks every path is finite.
+
+### Mathematical guarantees (proved; the tests check the implementation obeys them)
+Let `λ = D − (1−δ) = n + g + ng + δ > 0` and `φ(k) = f(k)/k = [s k^(α−1) + 1 − δ]/D`.
+
+1. **f is strictly increasing on k > 0**: `f′(k) = [αs k^(α−1) + 1 − δ]/D > 0`.
+2. **Unique positive steady state.** φ is continuous and strictly decreasing (α − 1 < 0),
+   tends to ∞ as k → 0 and to `(1−δ)/D < 1` as k → ∞ (equivalent to λ > 0). So φ = 1 at
+   exactly one point, `k* = (s/λ)^(1/(1−α))`, with `f(k) > k` below it and `f(k) < k` above.
+3. **Side-preserving monotone convergence.** If `0 < k < k*`, then `k < f(k) < f(k*) = k*`
+   (by 2 and 1). The path rises strictly and is bounded by k*, so it converges; by continuity
+   the limit is a positive fixed point, which by 2 is k*. Symmetrically from above.
+4. **Monotone growth of output per worker.**
+   `G_t = (Y/L)_{t+1}/(Y/L)_t − 1 = (1+g)·φ(k_t)^α − 1`. Below k*, `k_t` rises (3) and φ falls
+   (2), so `G_t` falls strictly, stays above g (since φ > 1), and tends to g. Above k*, it
+   rises strictly towards g from below.
+5. **Policy stretches.** 3 and 4 apply separately to each constant-savings stretch,
+   `t = 0…T_c` with `k*(s₀)` and `t = T_c…H` with `k*(s₁)`. The side of `k*(s₁)` on which the
+   second stretch starts depends on `k_{T_c}`, **not** on whether s rose or fell: both
+   sides occur for both directions. The first stretch is finite, so only "moves strictly
+   towards k*(s₀)" is claimed there, not convergence.
+6. **Convergence factor.** `ρ = f′(k*) = (αλ + 1 − δ)/D ∈ (0, 1)`, and
+   `1 − ρ = (1−α)λ/D`. ρ does not depend on s.
+7. **Golden rule.** Steady-state consumption per effective worker is
+   `c*(s) = (1−s)k*(s)^α = k*^α − λk*` (using `s k*^α = λ k*`). This is strictly concave in
+   k* with maximum at `k_gold = (α/λ)^(1/(1−α))`, and `k*(s)` is strictly increasing, so the
+   unique maximising savings rate is **`s_gold = α`**, for every n, g, δ. Since `A_t` does not
+   depend on s, the same s maximises steady-state consumption per actual worker.
+8. **Continuous-time link.** Scaling all four rates by ε (one model year represents a period
+   ε) gives `k*_ε = (ŝ/(λ̂ + ε n̂ĝ))^(1/(1−α))`, which tends to the continuous-time
+   `(ŝ/λ̂)^(1/(1−α))` with first-order error; the two agree exactly when `n̂ĝ = 0`. In
+   continuous time `z = k^(1−α)` obeys `dz/dτ = (1−α)(ŝ − λ̂z)`, so
+   `z(τ) = z* + (z₀ − z*)e^(−βτ)` with `z* = ŝ/λ̂` (the capital-output ratio, in years) and
+   `β = (1−α)λ̂` (per year), and `(1−ρ)/ε → β`.
+
+**Approximation, labelled as such:** the half-life `ln 0.5 / ln ρ` comes from linearising f
+at k*, so it describes small deviations only.
+
+### Numerical-analysis issue handled: cancellation in λ
+`λ = (1+n)(1+g) − (1−δ)` subtracts two numbers close to 1 when the rates are small. On the
+grid below this lost up to about 900 units of `u·(1/(1−α)+2)` in `k*` (516 u in λ itself for
+`n = 0, g = 0.001, δ = 0.0011`). SimForge computes `λ = n + g + ng + δ` directly (worst error
+on the grid: 1.39 u) and `1 − ρ = (1−α)λ/D` directly; the half-life uses
+`log1p(−(1−ρ))`. A test documents the cancellation so the direct form is not "simplified"
+back.
+
+### Empirical evidence (held on the grid; not theorems)
+Grid: every combination of `α ∈ {0.05, 0.3, 0.6, 0.9, 0.95}`, `s ∈ {0.01, 0.2, 0.5, 0.99}`,
+`δ ∈ {0, 0.0011, 0.05, 1}`, `n ∈ {−0.05, 0, 0.1}`, `g ∈ {0, 0.001, 0.05, 0.1}` with
+`λ ≥ 10⁻³`: 780 cases, 195 distinct economies. `u = 2⁻⁵³ ≈ 1.1e-16`.
+
+| Quantity | Bound tested | Worst observed |
+|---|---|---|
+| λ relative error vs exact rational | 4 u | 1.39 u |
+| `k*` relative error vs 60-digit `Decimal` | 8 u·(1/(1−α)+2) | 3.21 u·(1/(1−α)+2) |
+| Steady-state residual `|f(k*)−k*|/k*` | 1e-13 | 5.0 u (5.6e-16) |
+| `max_t |k_t/k* − 1|` starting at k*, 500 years | 64 u/(1−ρ) | 4.75 u/(1−ρ) |
+
+The `64 u/(1−ρ)` form comes from a heuristic: rounding of a few u per step, damped by a
+factor ρ per step, accumulates to at most about `u/(1−ρ)`. It is **a hypothesis that held
+with a wide margin on this grid**, not a proven bound. In one slow case
+(`1/(1−ρ) ≈ 9 100`), a path run for 545 455 years ended within 1.1e-12 of k*, inside the bound.
+
+Policy-change evidence: 13 248 two-stretch paths (4 α × 3 δ × 3 n × 3 g × 12 ordered
+(s₀, s₁) pairs × 4 starting ratios × 3 policy years) obeyed guarantees 3-5 in both stretches,
+with every (direction, side) combination occurring. The test suite runs a smaller version of
+this (3 economies) that also asserts all combinations occur.
+
+### What is tested
+| Check | Kind |
+|---|---|
+| `k*` matches the formula and is a fixed point; ρ equals a finite-difference `f′(k*)`; `ρ^half-life = 0.5` | Exact reference |
+| λ accurate to 4 u; subtraction form demonstrably worse | Exact reference / regression guard |
+| Strictly monotone, side-preserving paths and strictly monotone `G_t` (195 economies × 3 s × 4 starts) | Guarantees 3-4 |
+| Paths reach k* (e^−60 of the gap removed) for fast, slow and extreme cases | Guarantee 3 |
+| Two-stretch policy paths, side read from data, all combinations present | Guarantee 5 |
+| `(k_{t+1}−k*)/(k_t−k*) → ρ` with error proportional to the deviation | Guarantee 6 / Taylor |
+| Golden rule: `k*` by **Brent root-finding** (not the closed form), then a bounded maximiser gives `|s_opt − α| ≤ 1e-6` (5 economies); `c*(α)` beats a 197-point grid of s; α wins in long simulations | Guarantee 7, independently |
+| At k*: y constant, `G_t = g`, total output grows at `n + g + ng`, index `= 100(1+g)^t` | Effective vs actual worker |
+| Continuous limit: steady-state and path errors first order (fitted 0.95-1.05), exact when n̂ = 0, `(1−ρ)/ε → β`; closed-form z solution satisfies the ODE | Guarantee 8 |
+| Baseline and scenario bit-identical (`tobytes`) for `k, y` at `t ≤ T_c` and `c, i` at `t < T_c`; differ at `c_{T_c}` and `k_{T_c+1}`; `s₁ = s₀` reproduces the baseline | Policy timing |
+| API: shapes, formulas, timing, logging and hash; corners of the input box stay finite; 22 invalid payloads (bounds, λ < 10⁻³, policy year ≥ horizon, unknown fields, NaN/±Infinity) give 422 | Contract |
+
+### Per-run checks shown in the app
+Steady-state residuals for s₀ and s₁ (numerical diagnostic, limit 1e-13), baseline =
+scenario before the change (exact identity, must be 0 mismatches), distance from `k*(s₁)` in
+the final year and `|G − g|` in the final year (information only). These describe one run;
+the guarantees above are what make them meaningful.
+
+### Observed (2026-10-15, default inputs)
+`α = 0.3, s₀ = 0.2, s₁ = 0.3, δ = 0.05, n = 0.01, g = 0.02`: `k*(0.2) = 3.68924`,
+`k*(0.3) = 6.58409` (= golden rule, since s₁ = α), `ρ = 0.945506`, half-life 12.37 years,
+residuals 1.1e-16.
+
+### Limitations
+- A teaching model. Constant exogenous rates, one good, a closed economy, full employment,
+  no government or money. Its numbers are illustrative model output, not forecasts.
+- Discrete annual timing is a modelling choice; the continuous-time version differs by the
+  `ng` term in the steady state and by first-order terms along the path.
+- Only one permanent change of the savings rate. Other shocks belong to later Economy Lab
+  phases.
+- The rounding bounds are empirical (see above).
+- Numeric strings such as `"100"` are coerced to numbers by the API, as everywhere in
+  SimForge; this is deterministic and does not affect hashes.
+

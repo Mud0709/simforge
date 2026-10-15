@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+  "/api/v1/economy/solow/info": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Solow Info */
+    get: operations["solow_info_api_v1_economy_solow_info_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/economy/solow/simulate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Simulate Solow */
+    post: operations["simulate_solow_api_v1_economy_solow_simulate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/experiments": {
     parameters: {
       query?: never;
@@ -250,6 +284,34 @@ export interface components {
        */
       max_position_error: number;
       range: components["schemas"]["ErrorMetric"];
+    };
+    /** Convergence */
+    Convergence: {
+      /**
+       * Effective Depreciation
+       * @description lambda = n + g + n g + delta, per year.
+       */
+      effective_depreciation: number;
+      /**
+       * Growth Factor
+       * @description D = (1 + n)(1 + g), per year.
+       */
+      growth_factor: number;
+      /**
+       * Half Life Years
+       * @description ln 0.5 / ln rho. A linearisation: valid only close to the steady state.
+       */
+      half_life_years: number;
+      /**
+       * One Minus Rho
+       * @description (1 - alpha) lambda / D, computed directly.
+       */
+      one_minus_rho: number;
+      /**
+       * Rho
+       * @description Local convergence factor f'(k*) per year (0 < rho < 1).
+       */
+      rho: number;
     };
     /** ErrorMetric */
     ErrorMetric: {
@@ -713,6 +775,134 @@ export interface components {
       /** Simforge Version */
       simforge_version: string;
     };
+    /** SavingsPolicy */
+    SavingsPolicy: {
+      /**
+       * New Savings Rate
+       * @description Savings rate s1 from the policy year onwards. Equal to s0 means no change.
+       * @default 0.3
+       */
+      new_savings_rate?: number;
+      /**
+       * Policy Year
+       * @description First year t whose output is saved at s1. It first changes capital in year t + 1. Must be below horizon_years.
+       * @default 20
+       */
+      policy_year?: number;
+    };
+    /** SolowParameters */
+    SolowParameters: {
+      /**
+       * Capital Share
+       * @description Capital share alpha in Y = K^alpha (A L)^(1 - alpha). Dimensionless.
+       * @default 0.3
+       */
+      capital_share?: number;
+      /**
+       * Depreciation
+       * @description Depreciation rate delta, fraction per year.
+       * @default 0.05
+       */
+      depreciation?: number;
+      /**
+       * Initial Capital Ratio
+       * @description Initial capital per effective worker as a multiple of the baseline steady state k*(s0). 1 starts at the steady state.
+       * @default 0.5
+       */
+      initial_capital_ratio?: number;
+      /**
+       * Population Growth
+       * @description Labour growth rate n, fraction per year.
+       * @default 0.01
+       */
+      population_growth?: number;
+      /**
+       * Savings Rate
+       * @description Savings rate s0 before the policy change: share of output invested.
+       * @default 0.2
+       */
+      savings_rate?: number;
+      /**
+       * Technology Growth
+       * @description Technology growth rate g, fraction per year.
+       * @default 0.02
+       */
+      technology_growth?: number;
+    };
+    /**
+     * SolowPathResponse
+     * @description One scenario, t = 0..H. Per effective worker unless stated.
+     */
+    SolowPathResponse: {
+      /** Capital */
+      capital: number[];
+      /** Consumption */
+      consumption: number[];
+      /** Investment */
+      investment: number[];
+      /** Output */
+      output: number[];
+      /**
+       * Output Per Worker Growth
+       * @description G_t = (Y/L)_{t+1} / (Y/L)_t - 1 for t = 0..H-1, fraction per year.
+       */
+      output_per_worker_growth: number[];
+      /**
+       * Output Per Worker Index
+       * @description Output per actual worker, Y/L, as an index with year 0 = 100.
+       */
+      output_per_worker_index: number[];
+      /** Savings Rate */
+      savings_rate: number[];
+    };
+    /** SolowRequest */
+    SolowRequest: {
+      /**
+       * Horizon Years
+       * @description Number of years simulated (t = 0..H).
+       * @default 100
+       */
+      horizon_years?: number;
+      parameters?: components["schemas"]["SolowParameters"];
+      policy?: components["schemas"]["SavingsPolicy"];
+      /**
+       * Save Experiment
+       * @default true
+       */
+      save_experiment?: boolean;
+    };
+    /** SolowResponse */
+    SolowResponse: {
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      baseline: components["schemas"]["SolowPathResponse"];
+      baseline_steady_state: components["schemas"]["SteadyState"];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      convergence: components["schemas"]["Convergence"];
+      golden_rule: components["schemas"]["SteadyState"];
+      /** Horizon Years */
+      horizon_years: number;
+      /**
+       * Initial Capital
+       * @description k_0, per effective worker.
+       */
+      initial_capital: number;
+      metadata: components["schemas"]["RunMetadata"];
+      /** Method Note */
+      method_note: string;
+      model: components["schemas"]["ModelInfo"];
+      parameters: components["schemas"]["SolowParameters"];
+      policy: components["schemas"]["SavingsPolicy"];
+      scenario: components["schemas"]["SolowPathResponse"];
+      scenario_steady_state: components["schemas"]["SteadyState"];
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+      /** Years */
+      years: number[];
+    };
     /** SolverSettings */
     SolverSettings: {
       /**
@@ -735,6 +925,22 @@ export interface components {
        */
       rtol?: number;
     };
+    /** SteadyState */
+    SteadyState: {
+      /** Capital */
+      capital: number;
+      /**
+       * Capital Output Ratio
+       * @description k*\/y* = s/lambda, in years.
+       */
+      capital_output_ratio: number;
+      /** Consumption */
+      consumption: number;
+      /** Output */
+      output: number;
+      /** Savings Rate */
+      savings_rate: number;
+    };
     /** TrajectorySample */
     TrajectorySample: {
       /**
@@ -746,6 +952,32 @@ export interface components {
       x: number[];
       /** Y */
       y: number[];
+    };
+    /**
+     * ValidationCheck
+     * @description A diagnostic of this run. Proofs and grid evidence live in the tests and docs.
+     */
+    ValidationCheck: {
+      /** Id */
+      id: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "exact_identity" | "numerical_diagnostic" | "informational";
+      /** Label */
+      label: string;
+      /** Note */
+      note: string;
+      /** Passed */
+      passed: boolean | null;
+      /**
+       * Threshold
+       * @description Pass if value <= threshold; None = info only.
+       */
+      threshold: number | null;
+      /** Value */
+      value: number;
     };
     /** ValidationError */
     ValidationError: {
@@ -776,6 +1008,59 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  solow_info_api_v1_economy_solow_info_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ModelInfo"];
+        };
+      };
+    };
+  };
+  simulate_solow_api_v1_economy_solow_simulate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SolowRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SolowResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   list_experiments_api_v1_experiments_get: {
     parameters: {
       query?: {

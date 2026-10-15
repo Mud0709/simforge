@@ -227,6 +227,45 @@
         "title": "Comparison",
         "type": "object"
       },
+      "Convergence": {
+        "additionalProperties": false,
+        "properties": {
+          "effective_depreciation": {
+            "description": "lambda = n + g + n g + delta, per year.",
+            "title": "Effective Depreciation",
+            "type": "number"
+          },
+          "growth_factor": {
+            "description": "D = (1 + n)(1 + g), per year.",
+            "title": "Growth Factor",
+            "type": "number"
+          },
+          "half_life_years": {
+            "description": "ln 0.5 / ln rho. A linearisation: valid only close to the steady state.",
+            "title": "Half Life Years",
+            "type": "number"
+          },
+          "one_minus_rho": {
+            "description": "(1 - alpha) lambda / D, computed directly.",
+            "title": "One Minus Rho",
+            "type": "number"
+          },
+          "rho": {
+            "description": "Local convergence factor f'(k*) per year (0 < rho < 1).",
+            "title": "Rho",
+            "type": "number"
+          }
+        },
+        "required": [
+          "effective_depreciation",
+          "growth_factor",
+          "rho",
+          "one_minus_rho",
+          "half_life_years"
+        ],
+        "title": "Convergence",
+        "type": "object"
+      },
       "ErrorMetric": {
         "additionalProperties": false,
         "properties": {
@@ -1267,6 +1306,275 @@
         "title": "RunMetadata",
         "type": "object"
       },
+      "SavingsPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "new_savings_rate": {
+            "default": 0.3,
+            "description": "Savings rate s1 from the policy year onwards. Equal to s0 means no change.",
+            "maximum": 0.99,
+            "minimum": 0.01,
+            "title": "New Savings Rate",
+            "type": "number"
+          },
+          "policy_year": {
+            "default": 20,
+            "description": "First year t whose output is saved at s1. It first changes capital in year t + 1. Must be below horizon_years.",
+            "maximum": 499.0,
+            "minimum": 0.0,
+            "title": "Policy Year",
+            "type": "integer"
+          }
+        },
+        "title": "SavingsPolicy",
+        "type": "object"
+      },
+      "SolowParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "capital_share": {
+            "default": 0.3,
+            "description": "Capital share alpha in Y = K^alpha (A L)^(1 - alpha). Dimensionless.",
+            "maximum": 0.95,
+            "minimum": 0.05,
+            "title": "Capital Share",
+            "type": "number"
+          },
+          "depreciation": {
+            "default": 0.05,
+            "description": "Depreciation rate delta, fraction per year.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Depreciation",
+            "type": "number"
+          },
+          "initial_capital_ratio": {
+            "default": 0.5,
+            "description": "Initial capital per effective worker as a multiple of the baseline steady state k*(s0). 1 starts at the steady state.",
+            "maximum": 10.0,
+            "minimum": 0.01,
+            "title": "Initial Capital Ratio",
+            "type": "number"
+          },
+          "population_growth": {
+            "default": 0.01,
+            "description": "Labour growth rate n, fraction per year.",
+            "maximum": 0.1,
+            "minimum": -0.05,
+            "title": "Population Growth",
+            "type": "number"
+          },
+          "savings_rate": {
+            "default": 0.2,
+            "description": "Savings rate s0 before the policy change: share of output invested.",
+            "maximum": 0.99,
+            "minimum": 0.01,
+            "title": "Savings Rate",
+            "type": "number"
+          },
+          "technology_growth": {
+            "default": 0.02,
+            "description": "Technology growth rate g, fraction per year.",
+            "maximum": 0.1,
+            "minimum": 0.0,
+            "title": "Technology Growth",
+            "type": "number"
+          }
+        },
+        "title": "SolowParameters",
+        "type": "object"
+      },
+      "SolowPathResponse": {
+        "additionalProperties": false,
+        "description": "One scenario, t = 0..H. Per effective worker unless stated.",
+        "properties": {
+          "capital": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Capital",
+            "type": "array"
+          },
+          "consumption": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Consumption",
+            "type": "array"
+          },
+          "investment": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Investment",
+            "type": "array"
+          },
+          "output": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Output",
+            "type": "array"
+          },
+          "output_per_worker_growth": {
+            "description": "G_t = (Y/L)_{t+1} / (Y/L)_t - 1 for t = 0..H-1, fraction per year.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Output Per Worker Growth",
+            "type": "array"
+          },
+          "output_per_worker_index": {
+            "description": "Output per actual worker, Y/L, as an index with year 0 = 100.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Output Per Worker Index",
+            "type": "array"
+          },
+          "savings_rate": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Savings Rate",
+            "type": "array"
+          }
+        },
+        "required": [
+          "savings_rate",
+          "capital",
+          "output",
+          "consumption",
+          "investment",
+          "output_per_worker_index",
+          "output_per_worker_growth"
+        ],
+        "title": "SolowPathResponse",
+        "type": "object"
+      },
+      "SolowRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "horizon_years": {
+            "default": 100,
+            "description": "Number of years simulated (t = 0..H).",
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Horizon Years",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/SolowParameters"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/SavingsPolicy"
+          },
+          "save_experiment": {
+            "default": true,
+            "title": "Save Experiment",
+            "type": "boolean"
+          }
+        },
+        "title": "SolowRequest",
+        "type": "object"
+      },
+      "SolowResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/SolowPathResponse"
+          },
+          "baseline_steady_state": {
+            "$ref": "#/components/schemas/SteadyState"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "convergence": {
+            "$ref": "#/components/schemas/Convergence"
+          },
+          "golden_rule": {
+            "$ref": "#/components/schemas/SteadyState"
+          },
+          "horizon_years": {
+            "title": "Horizon Years",
+            "type": "integer"
+          },
+          "initial_capital": {
+            "description": "k_0, per effective worker.",
+            "title": "Initial Capital",
+            "type": "number"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/SolowParameters"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/SavingsPolicy"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/SolowPathResponse"
+          },
+          "scenario_steady_state": {
+            "$ref": "#/components/schemas/SteadyState"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "policy",
+          "horizon_years",
+          "units",
+          "assumptions",
+          "years",
+          "baseline",
+          "scenario",
+          "baseline_steady_state",
+          "scenario_steady_state",
+          "golden_rule",
+          "convergence",
+          "initial_capital",
+          "checks",
+          "method_note",
+          "metadata"
+        ],
+        "title": "SolowResponse",
+        "type": "object"
+      },
       "SolverSettings": {
         "additionalProperties": false,
         "properties": {
@@ -1301,6 +1609,41 @@
         "title": "SolverSettings",
         "type": "object"
       },
+      "SteadyState": {
+        "additionalProperties": false,
+        "properties": {
+          "capital": {
+            "title": "Capital",
+            "type": "number"
+          },
+          "capital_output_ratio": {
+            "description": "k*/y* = s/lambda, in years.",
+            "title": "Capital Output Ratio",
+            "type": "number"
+          },
+          "consumption": {
+            "title": "Consumption",
+            "type": "number"
+          },
+          "output": {
+            "title": "Output",
+            "type": "number"
+          },
+          "savings_rate": {
+            "title": "Savings Rate",
+            "type": "number"
+          }
+        },
+        "required": [
+          "savings_rate",
+          "capital",
+          "output",
+          "consumption",
+          "capital_output_ratio"
+        ],
+        "title": "SteadyState",
+        "type": "object"
+      },
       "TrajectorySample": {
         "additionalProperties": false,
         "properties": {
@@ -1330,6 +1673,71 @@
           "y"
         ],
         "title": "TrajectorySample",
+        "type": "object"
+      },
+      "ValidationCheck": {
+        "additionalProperties": false,
+        "description": "A diagnostic of this run. Proofs and grid evidence live in the tests and docs.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "exact_identity",
+              "numerical_diagnostic",
+              "informational"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass if value <= threshold; None = info only.",
+            "title": "Threshold"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "value",
+          "threshold",
+          "passed",
+          "kind",
+          "note"
+        ],
+        "title": "ValidationCheck",
         "type": "object"
       },
       "ValidationError": {
@@ -1406,6 +1814,68 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/economy/solow/info": {
+      "get": {
+        "operationId": "solow_info_api_v1_economy_solow_info_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Solow Info",
+        "tags": [
+          "economy"
+        ]
+      }
+    },
+    "/api/v1/economy/solow/simulate": {
+      "post": {
+        "operationId": "simulate_solow_api_v1_economy_solow_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate Solow",
+        "tags": [
+          "economy"
+        ]
+      }
+    },
     "/api/v1/experiments": {
       "get": {
         "operationId": "list_experiments_api_v1_experiments_get",

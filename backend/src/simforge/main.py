@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from simforge import __version__
 from simforge.api.errors import register_error_handlers
-from simforge.api.routes import experiments, health, physics
+from simforge.api.routes import economy, experiments, health, physics
 from simforge.config import Settings
 from simforge.persistence.experiments import ExperimentRepository, init_db
 
@@ -42,7 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Content-Type"],
     )
     register_error_handlers(app)
-    for router in (health.router, physics.router, experiments.router):
+    for router in (health.router, physics.router, economy.router, experiments.router):
         app.include_router(router, prefix=API_PREFIX)
     return app
 
