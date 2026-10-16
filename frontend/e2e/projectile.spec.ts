@@ -14,7 +14,13 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
   await page.getByLabel(/^Drag coefficient/).fill("0");
   await page.getByRole("button", { name: "Run simulation" }).click();
 
-  const rangeRow = page.getByRole("row", { name: /Range/ });
+  // The shared workspace: the comparison with the exact solution lives under Validation.
+  for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
+    await expect(page.getByRole("region", { name })).toBeVisible();
+  }
+  const rangeRow = page
+    .getByRole("region", { name: "Validation" })
+    .getByRole("row", { name: /Range/ });
   const expectedRange = (10 ** 2 * Math.sin((60 * Math.PI) / 180)) / 9.80665; // 8.83100...
   await expect(rangeRow).toContainText(expectedRange.toPrecision(8));
 

@@ -26,6 +26,11 @@ integrator (SciPy `solve_ivp`). It then reports how far apart the two are:
 
 With default settings the two agree to about 1e-11 m.
 
+Like every model page, the projectile and integrator pages use the shared workspace:
+Parameters, Visualisation, Results, Assumptions and **Validation**, where the comparison with
+the exact solution (or, for the integrator study, the pre-declared fit rule and every run's
+inclusion decision) is shown.
+
 **Range against launch angle.** After a simulation, sweep the launch angle from 0° to 90° and
 find the angle that throws furthest. Without drag, from ground level, that's 45°. Drag pulls it
 lower: about 30° for the default `b = 1 kg/s`. The result is compared with the closed-form

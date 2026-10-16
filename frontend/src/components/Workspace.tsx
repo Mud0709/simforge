@@ -30,14 +30,13 @@ export function Workspace({
         <Section id="results" title="Results">
           {results}
         </Section>
-        <div className="ws-pair">
-          <Section id="assumptions" title="Assumptions">
-            {assumptions}
-          </Section>
-          <Section id="validation" title="Validation">
-            {validation}
-          </Section>
-        </div>
+        {/* Full width: validation tables (exact vs numerical, per-run checks) need the room. */}
+        <Section id="assumptions" title="Assumptions">
+          {assumptions}
+        </Section>
+        <Section id="validation" title="Validation">
+          {validation}
+        </Section>
       </div>
     </div>
   );

@@ -1893,7 +1893,7 @@ with the default settings.
 [7] integrator_study.py     the science (Parts 4-6)
 [8] recording.py record_run input hash + SQLite experiment log
 [9] physics.py              response object → JSON
-[10] IntegratorResults.tsx  JSON → tables and Plotly log-log charts
+[10] IntegratorResults.tsx  JSON → tables and charts, placed in the workspace sections
 ```
 
 ### The layers, and the rule that keeps them separate
@@ -1922,9 +1922,9 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 `frontend/src/**/*.test.ts(x)` (UI logic, with the network faked), and `frontend/e2e/`
 (the whole stack in a real browser).
 
-### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:52-72`
+### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:58-78`
 
-<!-- src: frontend/src/components/IntegratorLab.tsx:52-72 -->
+<!-- src: frontend/src/components/IntegratorLab.tsx:58-78 -->
 ```tsx
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -1951,16 +1951,16 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 
 | Line | Meaning |
 |---|---|
-| 52 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
-| 53 | Stops the browser's default form behaviour, which would reload the page. |
-| 54 | Marks the form as "touched", so validation messages appear. |
-| 55 | **Client-side validation gate.** `hasErrors` (lines 41-50) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
-| 56-57 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
-| 59-61 | Converts the text boxes (strings) into numbers and builds an object such as `{initial_speed: 20, launch_angle_deg: 45, …}`. |
-| 63 | Keeps the methods in a fixed order (Euler, RK4, Verlet), whatever order you ticked them in. Identical choices then produce identical requests, and identical input hashes ([8]). |
-| 64-66 | Sends the request (step [2]) and stores the response in state, which makes the results appear. |
-| 67-68 | If the server refused the request, show its explanation. |
-| 69-71 | `finally` runs whether it succeeded or failed: turn off "Running…". |
+| 58 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
+| 59 | Stops the browser's default form behaviour, which would reload the page. |
+| 60 | Marks the form as "touched", so validation messages appear. |
+| 61 | **Client-side validation gate.** `hasErrors` (lines 47-56) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
+| 62-63 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
+| 65-67 | Converts the text boxes (strings) into numbers and builds an object such as `{initial_speed: 20, launch_angle_deg: 45, …}`. |
+| 69 | Keeps the methods in a fixed order (Euler, RK4, Verlet), whatever order you ticked them in. Identical choices then produce identical requests, and identical input hashes ([8]). |
+| 70-72 | Sends the request (step [2]) and stores the response in state, which makes the results appear. |
+| 73-74 | If the server refused the request, show its explanation. |
+| 75-77 | `finally` runs whether it succeeded or failed: turn off "Running…". |
 
 The time-step text is parsed by `parseSteps` (`frontend/src/lib/integrators/steps.ts:20-38`).
 It splits on commas and spaces, then rejects non-numbers, non-positive values, values over
@@ -2580,17 +2580,45 @@ Exercises E1-E7. This part only maps the connections, so you can see the studio 
 
 ### 12.2 What is new, and shared by every lab from now on
 - **The workspace** (`components/Workspace.tsx`): every model page is laid out as
-  Parameters, Visualisation, Results, Assumptions and Validation. The physics pages move into
-  it in roadmap step 1.2.
+  Parameters, Visualisation, Results, Assumptions and Validation. Since roadmap step 1.2 the
+  physics pages use it too (12.3).
 - **Schema-driven fields for every lab** (`lib/fields.ts`): bounds, defaults and whether a
   field must be a whole number come from the backend's API description.
 - **Per-run checks**: a model can report checks of each run, labelled as an exact identity, a
   numerical diagnostic or information.
 
-### 12.3 Checkpoint
+### 12.3 The physics pages in the workspace (roadmap step 1.2)
+Step 1.2 changed **where results appear**, not **what is computed**. No backend file, API field,
+equation or number changed; the same requests go to the same endpoints. It is a UI refactor.
+
+| Section | Projectile page | Integrator page |
+|---|---|---|
+| Parameters | the same form | the same form |
+| Visualisation | trajectory, energy budget | position and velocity convergence plots, trajectories |
+| Results | exact flight time, range, height and impact speed; the angle sweep | fitted convergence orders |
+| Assumptions | model name, version and assumptions | the study's assumptions |
+| Validation | **analytical vs numerical** comparison, error statistics, run record | the **pre-declared fit rule**, every run with its inclusion or exclusion reason, run record |
+
+**Why the split is useful.** "Validation" now always answers one question: *how do we know these
+numbers are right?* On the projectile page that is the comparison with the exact solution; on
+the integrator page it is the rule deciding which runs may be fitted, and the evidence for each
+run. Putting it in the same place on every page makes the evidence easy to find, without
+pretending the pages are alike: each page still supplies its own physics-specific content.
+
+**How it is built.** `Workspace.tsx` only arranges five labelled regions. Each page's results
+component is split into one piece per region (for example `ProjectileCharts`,
+`ProjectileSummary`, `ProjectileValidation`, `ProjectileAssumptions`), the same pattern as
+`SolowResults.tsx`. One shared change was needed: Assumptions and Validation now sit one above
+the other at full width, because the exact-vs-numerical table did not fit at half width. That
+is the "change it when a real second example needs it" rule in action.
+
+### 12.4 Checkpoint
 The physics integrators had a *discretisation* error that shrank with the step size. Why does
 the Solow model have none, even though it is also computed one step at a time? (Hint:
 Economy guide 1.4.)
+
+And for step 1.2: on the integrator page, why does the fit rule belong under *Validation*
+rather than *Results*? What would a reader lose if it were hidden among the results?
 
 ---
 
@@ -2634,7 +2662,13 @@ Economy guide 1.4.)
 
 ## Changes from the previous version of this guide
 
-**This version (Economy Lab, task 1.1):**
+**This version (roadmap step 1.2, physics pages in the workspace):**
+- **Added 12.3**, how the projectile and integrator pages map onto the workspace sections, and
+  why this is a UI change only.
+- **Updated** Part 8 line references for `IntegratorLab.tsx` (the submit handler moved down six
+  lines; its code is unchanged) and the description of step [10].
+
+**The previous version (Economy Lab, task 1.1):**
 - **Added Part 12**, a short bridge to the new Economy Lab guide
   ([ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md)), plus matching rows in the header,
   reading order and contents.
