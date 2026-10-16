@@ -17,7 +17,13 @@ import {
   validateField,
 } from "@/lib/projectile/fields";
 import { NumberField } from "./NumberField";
-import { ProjectileResults } from "./ProjectileResults";
+import {
+  ProjectileAssumptions,
+  ProjectileCharts,
+  ProjectileSummary,
+  ProjectileValidation,
+} from "./ProjectileResults";
+import { Workspace } from "./Workspace";
 
 type FormValues = Record<string, string>;
 
@@ -73,54 +79,80 @@ export function ProjectileLab() {
     />
   );
 
-  return (
-    <div className="lab">
-      <form className="card controls" onSubmit={onSubmit} noValidate aria-label="Simulation inputs">
-        <fieldset>
-          <legend>Physical parameters</legend>
-          {PARAMETER_FIELDS.map(field)}
-        </fieldset>
-        <fieldset>
-          <legend>Numerical solver</legend>
-          <div className="field">
-            <label htmlFor="field-method">Method</label>
-            <select
-              id="field-method"
-              value={method}
-              onChange={(e) => setMethod(e.target.value as SolverSettings["method"])}
-            >
-              {SOLVER_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-          {SOLVER_FIELDS.map(field)}
-        </fieldset>
-        <button type="submit" disabled={status === "running"}>
-          {status === "running" ? "Running…" : "Run simulation"}
-        </button>
-        {apiError && (
-          <p className="api-error" role="alert">
-            {apiError}
-          </p>
-        )}
-      </form>
+  const form = (
+    <form onSubmit={onSubmit} noValidate aria-label="Simulation inputs">
+      <fieldset>
+        <legend>Physical parameters</legend>
+        {PARAMETER_FIELDS.map(field)}
+      </fieldset>
+      <fieldset>
+        <legend>Numerical solver</legend>
+        <div className="field">
+          <label htmlFor="field-method">Method</label>
+          <select
+            id="field-method"
+            value={method}
+            onChange={(e) => setMethod(e.target.value as SolverSettings["method"])}
+          >
+            {SOLVER_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+        {SOLVER_FIELDS.map(field)}
+      </fieldset>
+      <button type="submit" disabled={status === "running"}>
+        {status === "running" ? "Running…" : "Run simulation"}
+      </button>
+      {apiError && (
+        <p className="api-error" role="alert">
+          {apiError}
+        </p>
+      )}
+    </form>
+  );
 
-      <div aria-live="polite">
-        {result ? (
-          <ProjectileResults result={result} />
+  const empty = (text: string) => <p className="empty">{text}</p>;
+
+  return (
+    <Workspace
+      parameters={form}
+      visualisation={
+        result ? (
+          <ProjectileCharts result={result} />
         ) : (
-          <div className="card empty">
-            <p>
-              Set the parameters and run the simulation. SimForge solves the motion twice: once
-              exactly, and once with an adaptive Runge–Kutta solver, and reports how far apart the
-              two are.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+          empty(
+            "Set the parameters and run the simulation. The trajectory and energy budget appear " +
+              "here.",
+          )
+        )
+      }
+      results={
+        result ? (
+          <ProjectileSummary result={result} />
+        ) : (
+          empty("Flight time, range, maximum height and impact speed from the exact solution.")
+        )
+      }
+      assumptions={
+        result ? (
+          <ProjectileAssumptions result={result} />
+        ) : (
+          empty("The model's assumptions are listed with every run.")
+        )
+      }
+      validation={
+        result ? (
+          <ProjectileValidation result={result} />
+        ) : (
+          empty(
+            "SimForge solves the motion twice, exactly and with an adaptive Runge–Kutta solver, " +
+              "and reports here how far apart the two are.",
+          )
+        )
+      }
+    />
   );
 }

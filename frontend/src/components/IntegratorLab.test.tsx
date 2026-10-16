@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -112,6 +112,26 @@ function mockFetch(status: number, body: unknown) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("IntegratorLab", () => {
+  it("puts each part of the study in its workspace section", async () => {
+    mockFetch(200, RESPONSE);
+    render(<IntegratorLab />);
+    const region = (name: string) => screen.getByRole("region", { name });
+    expect(within(region("Parameters")).getByLabelText(/^Time steps/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Run study" }));
+
+    await screen.findByTestId("order-euler");
+    expect(within(region("Results")).getByTestId("order-euler")).toBeInTheDocument();
+    expect(
+      within(region("Visualisation")).getByRole("img", {
+        name: /maximum position error against time step/,
+      }),
+    ).toBeInTheDocument();
+    const validation = within(region("Validation"));
+    expect(validation.getByText(/Rule text\./)).toBeInTheDocument();
+    expect(validation.getAllByText(/All runs:/).length).toBeGreaterThan(0);
+    expect(within(region("Assumptions")).getByText("Fixed horizon.")).toBeInTheDocument();
+  });
+
   it("sends the study request and renders orders and plots", async () => {
     const fetchMock = mockFetch(200, RESPONSE);
     render(<IntegratorLab />);

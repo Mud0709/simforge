@@ -9,6 +9,9 @@ test("integrator study shows fitted orders near theory and log-log plots", async
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Run study" }).click();
+  for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
+    await expect(page.getByRole("region", { name })).toBeVisible();
+  }
 
   for (const [method, order] of [
     ["euler", 1],
