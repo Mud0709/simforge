@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -80,6 +80,42 @@ function mockFetch(status: number, body: unknown) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("ProjectileLab", () => {
+  it("lays out the five workspace sections before any run", () => {
+    render(<ProjectileLab />);
+    for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
+      expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    }
+    const params = screen.getByRole("region", { name: "Parameters" });
+    expect(within(params).getByLabelText(/^Mass/)).toBeInTheDocument();
+    expect(within(params).getByRole("button", { name: "Run simulation" })).toBeInTheDocument();
+  });
+
+  it("puts each part of the result in its workspace section", async () => {
+    mockFetch(200, RESPONSE);
+    render(<ProjectileLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+
+    const region = (name: string) => screen.getByRole("region", { name });
+    await screen.findByText("Analytical vs numerical");
+    // Visualisation: both charts, nothing else numeric.
+    const vis = within(region("Visualisation"));
+    expect(vis.getByRole("img", { name: /Trajectory/ })).toBeInTheDocument();
+    expect(vis.getByRole("img", { name: "Energy against time" })).toBeInTheDocument();
+    // Results: the exact quantities and the angle sweep.
+    const results = within(region("Results"));
+    expect(results.getByText("Range (exact)")).toBeInTheDocument();
+    expect(results.getByRole("button", { name: "Sweep launch angle" })).toBeInTheDocument();
+    // Validation: the exact-vs-numerical comparison and the run record.
+    const validation = within(region("Validation"));
+    expect(validation.getByText("Analytical vs numerical")).toBeInTheDocument();
+    expect(validation.getByTestId("max-position-error")).toHaveTextContent("2.2e-11 m");
+    expect(validation.getByText("Reproducibility")).toBeInTheDocument();
+    // Assumptions.
+    expect(
+      within(region("Assumptions")).getByText("The projectile is a point mass."),
+    ).toBeInTheDocument();
+  });
+
   it("submits validated inputs and renders the comparison", async () => {
     const fetchMock = mockFetch(200, RESPONSE);
     render(<ProjectileLab />);
