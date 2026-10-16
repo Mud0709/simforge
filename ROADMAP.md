@@ -127,9 +127,8 @@ Track A module is an introductory precursor and the Track B item remains planned
 
 Accessible, IB-aligned simulations (Physics HL, Economics SL with HL extensions), held to the
 same standards as Track B. Syllabus mapping is verified against the official Physics guide
-(first assessment 2025) and Economics guide (first assessment 2024); whether a later Economics
-edition applies to the May 2028 session is still unverified, so the Economics mapping is
-provisional for that session. Full catalogue, syllabus mapping and sources:
+(first assessment 2025) and Economics guide (first assessment 2024), the editions the author
+confirmed for their course. Full catalogue, syllabus mapping and sources:
 `docs/IB_FOUNDATIONS.md` (status: proposed, awaiting review).
 
 | Step | Module | Possible interleaving point (optional, non-blocking) |

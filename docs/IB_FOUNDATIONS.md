@@ -33,7 +33,7 @@ labelled as such.
 | Course | Guide that applies | Confidence |
 |---|---|---|
 | Physics SL/HL | **Official IB *Physics guide, first assessment 2025*** (published February 2023, updated May 2023), read directly from a copy supplied by the author. Five themes, 24 subtopics (A.1-E.5); the syllabus roadmap (guide p. 25) marks each subtopic as all students, all students plus additional HL, or HL only. Skills: Tools 1-3 and Inquiry 1-3 (guide pp. 27-32). | **Verified against the guide** for the themes, subtopic titles, SL/HL markers, A.1-A.5 and the Tools and Inquiry skills. Subtopic *content* for B-E was checked only at the level of the roadmap; detailed lines there are marked "verify". |
-| Economics SL/HL | **Official IB *Economics guide, first assessment 2024*** (published February 2020; updated May 2020, August 2020, October 2020 and October 2022), read directly from a copy supplied by the author. Units: 1 Introduction to economics; 2 Microeconomics; 3 Macroeconomics; 4 The global economy, with subtopics 1.1-4.10 (guide pp. 20-21). | Unit and subtopic mapping **verified against this guide** (Units 1-4, including the HL-only markers and the "Diagrams and calculations" columns). **Cohort applicability: unverified** (see below). |
+| Economics SL/HL | **Official IB *Economics guide, first assessment 2024*** (published February 2020; updated May 2020, August 2020, October 2020 and October 2022), read directly from a copy supplied by the author. Units: 1 Introduction to economics; 2 Microeconomics; 3 Macroeconomics; 4 The global economy, with subtopics 1.1-4.10 (guide pp. 20-21). | Unit and subtopic mapping **verified against this guide** (Units 1-4, including the HL-only markers and the "Diagrams and calculations" columns). **Cohort applicability: confirmed by the author** (2026-10-16; see below). |
 
 **Which Economics guide applies to an IBDP1 student in October 2026 (exams May 2028)?**
 - The supplied guide says "First assessment 2024". It does not state a last assessment session.
@@ -41,10 +41,11 @@ labelled as such.
   2027"**. The only IB document with that label it surfaced was the Extended Essay guide.
   ibo.org and the Programme Resource Centre, where a newer edition would appear, could not be
   checked from the development environment.
-- **Therefore the Economics mapping below is provisional for the May 2028 session.** It is
-  verified against the first-assessment-2024 guide; if the school uses a later edition, every
-  Economics subtopic number, HL marker and calculation listed here must be re-checked. The
-  author's teacher or the Programme Resource Centre can settle this.
+- **Decision (2026-10-16):** the author confirmed that this first-assessment-2024 guide is
+  the edition to use for their course. The Economics mapping below is therefore treated as
+  the reference for Track A. If the school later announces a different edition, every
+  Economics subtopic number, HL marker and calculation listed here must be re-checked against
+  it.
 - The earlier draft cited a "first assessment 2022" guide from search excerpts. That label is
   superseded: the subtopic numbering matches, but the supplied 2024 guide is the reference.
 
