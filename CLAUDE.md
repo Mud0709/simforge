@@ -21,6 +21,8 @@ No lab is "finished"; each is at an early stage. Read these before starting work
   item. Overlapping topics stay planned in Track B in full; the Track A module is a
   precursor. Do not rewrite the roadmap around Track A, and treat any instruction that seems
   to imply otherwise as needing explicit confirmation from the user.
+- Track B is the primary sequence and progresses independently. Track A modules may be
+  interleaved when practical, but are never prerequisites for, or gates on, any Track B step.
 
 ## Who you are working with
 An IBDP1 student who wants to learn as the project grows. Explain decisions in short,
