@@ -51,8 +51,8 @@ clear purpose).
 ### Quant Research Lab
 | Area | Contents |
 |---|---|
-| Data | Core: CSV upload with size limits, type detection, missing-value report, cleaning as a replayable recipe; bundled synthetic datasets with known answers · Later: public-domain samples with a clear purpose |
-| Exploration | Core: summary statistics, histograms, scatter matrix, time plots |
+| Data | ✅ CSV upload with size limits, type detection with overrides, missing-value and duplicate report; bundled synthetic datasets with known answers · Core: cleaning as a replayable recipe · Later: public-domain samples with a clear purpose |
+| Exploration | ✅ summary statistics, histograms, category counts · Core: scatter matrix, time plots |
 | Statistics | Core: correlation with confidence intervals; OLS with robust standard errors, residual diagnostics (pandas for data handling, statsmodels where established implementations fit, checked against NIST certified values) |
 | Time series | Core: returns, rolling volatility, decomposition, autocorrelation, stationarity tests, forecasts with prediction intervals always compared with naive baselines |
 | Backtesting | Core: walk-forward engine that cannot look ahead, transaction costs, in- and out-of-sample splits, metrics with uncertainty |
@@ -80,8 +80,8 @@ vs adaptive), from-scratch integrator convergence study, range-against-angle swe
 |---|---|---|
 | 1.1 | **Economy Lab's first model: Solow growth.** `/economy/solow` in the first version of the shared workspace (Parameters, Visualisation, Results, Assumptions, Validation); lab navigation | ✅ |
 | 1.2 | **Physics moves into the workspace.** Projectile, integrator and angle-sweep pages use the same layout; exact-vs-numerical comparison shown under Validation | ✅ |
-| 1.3 | **Quant Lab's first feature.** CSV upload and bundled synthetic datasets, stored by content hash; column types, missing values and summary statistics (adds pandas) | 🔜 |
-| 1.4 | **Run record v2, model registry and replay.** Migration of the experiment log; `POST /experiments/{id}/replay` with an identical / within tolerance / differs verdict | ⏳ |
+| 1.3 | **Quant Lab's first feature.** CSV upload and bundled synthetic datasets, identified by content hash (the file itself is not stored); column types with overrides, missing values, duplicates and summary statistics. Built on the standard `csv` module and NumPy; pandas arrives in Phase 5 | ✅ |
+| 1.4 | **Run record v2, model registry and replay.** Migration of the experiment log; `POST /experiments/{id}/replay` with an identical / within tolerance / differs verdict (a dataset profile is replayed by supplying the file again; its SHA-256 must match) | 🔜 |
 | 1.5 | **Generic experiment log.** Runs by lab with model-supplied headlines; reopen a run (parameters in the URL), replay, name and annotate it | ⏳ |
 | 1.6 | **Comparison and export.** Pin a baseline run and overlay another; export series as CSV and the run record as JSON | ⏳ |
 
@@ -105,7 +105,7 @@ equation; long-run integrator studies. **4b:** kinetic-theory gas, only after th
 engine is validated.
 
 ## Phase 5: Quant Research Lab, data, statistics and forecasting ⏳
-Cleaning recipes, exploration, correlation, OLS and diagnostics (NIST StRD references,
+Adds pandas for data handling. Cleaning recipes, exploration, correlation, OLS and diagnostics (NIST StRD references,
 confidence-interval coverage simulations), time series and forecasting against baselines.
 
 ## Phase 6: Quant Research Lab, backtesting and overfitting ⏳

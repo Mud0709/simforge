@@ -190,6 +190,222 @@
         "title": "Assumption",
         "type": "object"
       },
+      "CategoricalSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "other_count": {
+            "title": "Other Count",
+            "type": "integer"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryCount"
+            },
+            "title": "Top",
+            "type": "array"
+          },
+          "unique": {
+            "title": "Unique",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "unique",
+          "top",
+          "other_count"
+        ],
+        "title": "CategoricalSummary",
+        "type": "object"
+      },
+      "CategoryCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "count"
+        ],
+        "title": "CategoryCount",
+        "type": "object"
+      },
+      "ColumnOverride": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "description": "0-based column position.",
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Column",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "numeric",
+              "date",
+              "categorical"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "column",
+          "type"
+        ],
+        "title": "ColumnOverride",
+        "type": "object"
+      },
+      "ColumnProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "categorical": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoricalSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "inference_reason": {
+            "title": "Inference Reason",
+            "type": "string"
+          },
+          "inferred_type": {
+            "enum": [
+              "numeric",
+              "date",
+              "categorical",
+              "empty"
+            ],
+            "title": "Inferred Type",
+            "type": "string"
+          },
+          "invalid_count": {
+            "title": "Invalid Count",
+            "type": "integer"
+          },
+          "invalid_examples": {
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "title": "Invalid Examples",
+            "type": "array"
+          },
+          "invalid_percent": {
+            "title": "Invalid Percent",
+            "type": "number"
+          },
+          "kind_counts": {
+            "$ref": "#/components/schemas/KindCounts"
+          },
+          "missing_count": {
+            "title": "Missing Count",
+            "type": "integer"
+          },
+          "missing_markers_found": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "How often each missing-value representation occurred; '' = empty cell.",
+            "title": "Missing Markers Found",
+            "type": "object"
+          },
+          "missing_percent": {
+            "title": "Missing Percent",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "numeric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NumericSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overridden": {
+            "title": "Overridden",
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "numeric",
+              "date",
+              "categorical",
+              "empty"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "valid_count": {
+            "title": "Valid Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "name",
+          "inferred_type",
+          "inference_reason",
+          "type",
+          "overridden",
+          "missing_count",
+          "invalid_count",
+          "valid_count",
+          "missing_percent",
+          "invalid_percent",
+          "missing_markers_found",
+          "kind_counts",
+          "invalid_examples",
+          "notes",
+          "numeric",
+          "date",
+          "categorical"
+        ],
+        "title": "ColumnProfile",
+        "type": "object"
+      },
       "Comparison": {
         "additionalProperties": false,
         "properties": {
@@ -266,6 +482,126 @@
         "title": "Convergence",
         "type": "object"
       },
+      "DatasetIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "byte_size": {
+            "title": "Byte Size",
+            "type": "integer"
+          },
+          "had_bom": {
+            "title": "Had Bom",
+            "type": "boolean"
+          },
+          "sample_id": {
+            "anyOf": [
+              {
+                "enum": [
+                  "lab_measurements",
+                  "messy_survey"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Id"
+          },
+          "sha256": {
+            "description": "SHA-256 of the exact bytes: an identity, not a quality check.",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "upload",
+              "sample"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "sample_id",
+          "sha256",
+          "byte_size",
+          "had_bom"
+        ],
+        "title": "DatasetIdentity",
+        "type": "object"
+      },
+      "DateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "max": {
+            "title": "Max",
+            "type": "string"
+          },
+          "min": {
+            "title": "Min",
+            "type": "string"
+          },
+          "span_days": {
+            "title": "Span Days",
+            "type": "number"
+          },
+          "unique": {
+            "title": "Unique",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "unique",
+          "min",
+          "max",
+          "span_days"
+        ],
+        "title": "DateSummary",
+        "type": "object"
+      },
+      "DuplicateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "distinct_rows": {
+            "title": "Distinct Rows",
+            "type": "integer"
+          },
+          "duplicate_rows": {
+            "description": "Rows identical, character for character, to an earlier row. Not removed.",
+            "title": "Duplicate Rows",
+            "type": "integer"
+          },
+          "examples": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Examples",
+            "type": "array"
+          },
+          "groups": {
+            "title": "Groups",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "duplicate_rows",
+          "distinct_rows",
+          "groups",
+          "examples"
+        ],
+        "title": "DuplicateSummary",
+        "type": "object"
+      },
       "ErrorMetric": {
         "additionalProperties": false,
         "properties": {
@@ -291,6 +627,26 @@
           "relative"
         ],
         "title": "ErrorMetric",
+        "type": "object"
+      },
+      "Example": {
+        "additionalProperties": false,
+        "properties": {
+          "row": {
+            "description": "1-based data row; the header is not counted.",
+            "title": "Row",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "value"
+        ],
+        "title": "Example",
         "type": "object"
       },
       "ExperimentRecord": {
@@ -416,6 +772,31 @@
           "environment"
         ],
         "title": "Health",
+        "type": "object"
+      },
+      "HistogramBins": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "array"
+          },
+          "edges": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Edges",
+            "type": "array"
+          }
+        },
+        "required": [
+          "edges",
+          "counts"
+        ],
+        "title": "HistogramBins",
         "type": "object"
       },
       "IntegratorRun": {
@@ -702,6 +1083,46 @@
         "title": "IntegratorStudyResponse",
         "type": "object"
       },
+      "KindCounts": {
+        "additionalProperties": false,
+        "description": "How the non-missing cells were classified, before any override.",
+        "properties": {
+          "ambiguous_date": {
+            "title": "Ambiguous Date",
+            "type": "integer"
+          },
+          "date": {
+            "title": "Date",
+            "type": "integer"
+          },
+          "leading_zero_number": {
+            "title": "Leading Zero Number",
+            "type": "integer"
+          },
+          "non_finite_number": {
+            "title": "Non Finite Number",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "number",
+          "leading_zero_number",
+          "non_finite_number",
+          "date",
+          "ambiguous_date",
+          "text"
+        ],
+        "title": "KindCounts",
+        "type": "object"
+      },
       "MethodStudyResult": {
         "additionalProperties": false,
         "properties": {
@@ -884,6 +1305,67 @@
         "title": "ModelInfo",
         "type": "object"
       },
+      "NumericSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "histogram": {
+            "$ref": "#/components/schemas/HistogramBins"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          },
+          "mean": {
+            "title": "Mean",
+            "type": "number"
+          },
+          "median": {
+            "title": "Median",
+            "type": "number"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "q1": {
+            "title": "Q1",
+            "type": "number"
+          },
+          "q3": {
+            "title": "Q3",
+            "type": "number"
+          },
+          "std": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Sample standard deviation (n - 1); None if n < 2 or not representable.",
+            "title": "Std"
+          }
+        },
+        "required": [
+          "count",
+          "mean",
+          "std",
+          "min",
+          "q1",
+          "median",
+          "q3",
+          "max",
+          "histogram"
+        ],
+        "title": "NumericSummary",
+        "type": "object"
+      },
       "NumericalResult": {
         "additionalProperties": false,
         "properties": {
@@ -988,6 +1470,195 @@
           "h_max"
         ],
         "title": "OrderFitResult",
+        "type": "object"
+      },
+      "ParseOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "column_types": {
+            "description": "Type overrides; columns not listed keep their inferred type.",
+            "items": {
+              "$ref": "#/components/schemas/ColumnOverride"
+            },
+            "maxItems": 100,
+            "title": "Column Types",
+            "type": "array"
+          },
+          "delimiter": {
+            "default": "comma",
+            "enum": [
+              "comma",
+              "semicolon",
+              "tab"
+            ],
+            "title": "Delimiter",
+            "type": "string"
+          },
+          "missing_markers": {
+            "description": "Cell values (after trimming spaces, case-sensitive) read as missing, in addition to empty cells, which are always missing.",
+            "items": {
+              "maxLength": 32,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Missing Markers",
+            "type": "array"
+          }
+        },
+        "title": "ParseOptions",
+        "type": "object"
+      },
+      "Preview": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "truncated_cells": {
+            "description": "Cells shortened for display.",
+            "title": "Truncated Cells",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "columns",
+          "rows",
+          "truncated_cells"
+        ],
+        "title": "Preview",
+        "type": "object"
+      },
+      "ProfileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "$ref": "#/components/schemas/ParseOptions"
+          },
+          "save_experiment": {
+            "default": false,
+            "description": "Opt in to logging this run. Only the file's hash and size, the options and a few counts are stored: no data, file name or column names.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          },
+          "source": {
+            "discriminator": {
+              "mapping": {
+                "sample": "#/components/schemas/SampleSource",
+                "upload": "#/components/schemas/UploadSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UploadSource"
+              },
+              {
+                "$ref": "#/components/schemas/SampleSource"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "ProfileRequest",
+        "type": "object"
+      },
+      "ProfileResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "blank_lines_skipped": {
+            "title": "Blank Lines Skipped",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnProfile"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetIdentity"
+          },
+          "duplicates": {
+            "$ref": "#/components/schemas/DuplicateSummary"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "missing_cells": {
+            "title": "Missing Cells",
+            "type": "integer"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "n_columns": {
+            "title": "N Columns",
+            "type": "integer"
+          },
+          "n_rows": {
+            "title": "N Rows",
+            "type": "integer"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ParseOptions"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/Preview"
+          }
+        },
+        "required": [
+          "model",
+          "dataset",
+          "options",
+          "n_rows",
+          "n_columns",
+          "blank_lines_skipped",
+          "missing_cells",
+          "duplicates",
+          "columns",
+          "preview",
+          "assumptions",
+          "checks",
+          "method_note",
+          "metadata"
+        ],
+        "title": "ProfileResponse",
         "type": "object"
       },
       "ProjectileParameters": {
@@ -1304,6 +1975,58 @@
           "experiment_saved"
         ],
         "title": "RunMetadata",
+        "type": "object"
+      },
+      "SampleInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "lab_measurements",
+              "messy_survey"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description"
+        ],
+        "title": "SampleInfo",
+        "type": "object"
+      },
+      "SampleSource": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "sample",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sample_id": {
+            "enum": [
+              "lab_measurements",
+              "messy_survey"
+            ],
+            "title": "Sample Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "sample_id"
+        ],
+        "title": "SampleSource",
         "type": "object"
       },
       "SavingsPolicy": {
@@ -1673,6 +2396,29 @@
           "y"
         ],
         "title": "TrajectorySample",
+        "type": "object"
+      },
+      "UploadSource": {
+        "additionalProperties": false,
+        "properties": {
+          "content_base64": {
+            "description": "The file's bytes, base64-encoded (2 MiB of file at most). The file name is not sent: the server does not need it.",
+            "maxLength": 2796204,
+            "minLength": 1,
+            "title": "Content Base64",
+            "type": "string"
+          },
+          "kind": {
+            "const": "upload",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "content_base64"
+        ],
+        "title": "UploadSource",
         "type": "object"
       },
       "ValidationCheck": {
@@ -2145,6 +2891,72 @@
         "summary": "Simulate Projectile",
         "tags": [
           "physics"
+        ]
+      }
+    },
+    "/api/v1/quant/datasets/profile": {
+      "post": {
+        "operationId": "profile_dataset_api_v1_quant_datasets_profile_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Profile Dataset",
+        "tags": [
+          "quant"
+        ]
+      }
+    },
+    "/api/v1/quant/datasets/samples": {
+      "get": {
+        "operationId": "list_samples_api_v1_quant_datasets_samples_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SampleInfo"
+                  },
+                  "title": "Response List Samples Api V1 Quant Datasets Samples Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Samples",
+        "tags": [
+          "quant"
         ]
       }
     }

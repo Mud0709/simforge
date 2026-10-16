@@ -12,6 +12,8 @@ three guarantees hold everywhere without each model re-implementing them:
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -51,3 +53,15 @@ class RunMetadata(StrictModel):
     platform: str
     elapsed_ms: float = Field(description="Wall-clock compute time. Not reproducible by nature.")
     experiment_saved: bool
+
+
+class ValidationCheck(StrictModel):
+    """A diagnostic of this run. Proofs and grid evidence live in the tests and docs."""
+
+    id: str
+    label: str
+    value: float
+    threshold: float | None = Field(description="Pass if value <= threshold; None = info only.")
+    passed: bool | None
+    kind: Literal["exact_identity", "numerical_diagnostic", "informational"]
+    note: str

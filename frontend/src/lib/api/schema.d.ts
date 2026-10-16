@@ -157,6 +157,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/quant/datasets/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Profile Dataset */
+    post: operations["profile_dataset_api_v1_quant_datasets_profile_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/quant/datasets/samples": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Samples */
+    get: operations["list_samples_api_v1_quant_datasets_samples_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -268,6 +302,83 @@ export interface components {
       /** Statement */
       statement: string;
     };
+    /** CategoricalSummary */
+    CategoricalSummary: {
+      /** Count */
+      count: number;
+      /** Other Count */
+      other_count: number;
+      /** Top */
+      top: components["schemas"]["CategoryCount"][];
+      /** Unique */
+      unique: number;
+    };
+    /** CategoryCount */
+    CategoryCount: {
+      /** Count */
+      count: number;
+      /** Value */
+      value: string;
+    };
+    /** ColumnOverride */
+    ColumnOverride: {
+      /**
+       * Column
+       * @description 0-based column position.
+       */
+      column: number;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: "numeric" | "date" | "categorical";
+    };
+    /** ColumnProfile */
+    ColumnProfile: {
+      categorical: components["schemas"]["CategoricalSummary"] | null;
+      date: components["schemas"]["DateSummary"] | null;
+      /** Index */
+      index: number;
+      /** Inference Reason */
+      inference_reason: string;
+      /**
+       * Inferred Type
+       * @enum {string}
+       */
+      inferred_type: "numeric" | "date" | "categorical" | "empty";
+      /** Invalid Count */
+      invalid_count: number;
+      /** Invalid Examples */
+      invalid_examples: components["schemas"]["Example"][];
+      /** Invalid Percent */
+      invalid_percent: number;
+      kind_counts: components["schemas"]["KindCounts"];
+      /** Missing Count */
+      missing_count: number;
+      /**
+       * Missing Markers Found
+       * @description How often each missing-value representation occurred; '' = empty cell.
+       */
+      missing_markers_found: {
+        [key: string]: number;
+      };
+      /** Missing Percent */
+      missing_percent: number;
+      /** Name */
+      name: string;
+      /** Notes */
+      notes: string[];
+      numeric: components["schemas"]["NumericSummary"] | null;
+      /** Overridden */
+      overridden: boolean;
+      /**
+       * Type
+       * @enum {string}
+       */
+      type: "numeric" | "date" | "categorical" | "empty";
+      /** Valid Count */
+      valid_count: number;
+    };
     /** Comparison */
     Comparison: {
       flight_time: components["schemas"]["ErrorMetric"];
@@ -313,6 +424,52 @@ export interface components {
        */
       rho: number;
     };
+    /** DatasetIdentity */
+    DatasetIdentity: {
+      /** Byte Size */
+      byte_size: number;
+      /** Had Bom */
+      had_bom: boolean;
+      /** Sample Id */
+      sample_id: ("lab_measurements" | "messy_survey") | null;
+      /**
+       * Sha256
+       * @description SHA-256 of the exact bytes: an identity, not a quality check.
+       */
+      sha256: string;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "upload" | "sample";
+    };
+    /** DateSummary */
+    DateSummary: {
+      /** Count */
+      count: number;
+      /** Max */
+      max: string;
+      /** Min */
+      min: string;
+      /** Span Days */
+      span_days: number;
+      /** Unique */
+      unique: number;
+    };
+    /** DuplicateSummary */
+    DuplicateSummary: {
+      /** Distinct Rows */
+      distinct_rows: number;
+      /**
+       * Duplicate Rows
+       * @description Rows identical, character for character, to an earlier row. Not removed.
+       */
+      duplicate_rows: number;
+      /** Examples */
+      examples: number[][];
+      /** Groups */
+      groups: number;
+    };
     /** ErrorMetric */
     ErrorMetric: {
       /** Absolute */
@@ -322,6 +479,16 @@ export interface components {
        * @description |numerical - analytical| / |analytical|; null when the reference is 0.
        */
       relative: number | null;
+    };
+    /** Example */
+    Example: {
+      /**
+       * Row
+       * @description 1-based data row; the header is not counted.
+       */
+      row: number;
+      /** Value */
+      value: string;
     };
     /** ExperimentRecord */
     ExperimentRecord: {
@@ -380,6 +547,13 @@ export interface components {
       };
       /** Status */
       status: string;
+    };
+    /** HistogramBins */
+    HistogramBins: {
+      /** Counts */
+      counts: number[];
+      /** Edges */
+      edges: number[];
     };
     /** IntegratorRun */
     IntegratorRun: {
@@ -507,6 +681,24 @@ export interface components {
        */
       velocity_scale: number;
     };
+    /**
+     * KindCounts
+     * @description How the non-missing cells were classified, before any override.
+     */
+    KindCounts: {
+      /** Ambiguous Date */
+      ambiguous_date: number;
+      /** Date */
+      date: number;
+      /** Leading Zero Number */
+      leading_zero_number: number;
+      /** Non Finite Number */
+      non_finite_number: number;
+      /** Number */
+      number: number;
+      /** Text */
+      text: number;
+    };
     /** MethodStudyResult */
     MethodStudyResult: {
       /**
@@ -563,6 +755,29 @@ export interface components {
        * @description Semantic version of the model's equations and outputs.
        */
       version: string;
+    };
+    /** NumericSummary */
+    NumericSummary: {
+      /** Count */
+      count: number;
+      histogram: components["schemas"]["HistogramBins"];
+      /** Max */
+      max: number;
+      /** Mean */
+      mean: number;
+      /** Median */
+      median: number;
+      /** Min */
+      min: number;
+      /** Q1 */
+      q1: number;
+      /** Q3 */
+      q3: number;
+      /**
+       * Std
+       * @description Sample standard deviation (n - 1); None if n < 2 or not representable.
+       */
+      std: number | null;
     };
     /** NumericalResult */
     NumericalResult: {
@@ -625,6 +840,74 @@ export interface components {
       r_squared: number;
       /** Theoretical Order */
       theoretical_order: number;
+    };
+    /** ParseOptions */
+    ParseOptions: {
+      /**
+       * Column Types
+       * @description Type overrides; columns not listed keep their inferred type.
+       */
+      column_types?: components["schemas"]["ColumnOverride"][];
+      /**
+       * Delimiter
+       * @default comma
+       * @enum {string}
+       */
+      delimiter?: "comma" | "semicolon" | "tab";
+      /**
+       * Missing Markers
+       * @description Cell values (after trimming spaces, case-sensitive) read as missing, in addition to empty cells, which are always missing.
+       */
+      missing_markers?: string[];
+    };
+    /** Preview */
+    Preview: {
+      /** Columns */
+      columns: string[];
+      /** Rows */
+      rows: string[][];
+      /**
+       * Truncated Cells
+       * @description Cells shortened for display.
+       */
+      truncated_cells: number;
+    };
+    /** ProfileRequest */
+    ProfileRequest: {
+      options?: components["schemas"]["ParseOptions"];
+      /**
+       * Save Experiment
+       * @description Opt in to logging this run. Only the file's hash and size, the options and a few counts are stored: no data, file name or column names.
+       * @default false
+       */
+      save_experiment?: boolean;
+      /** Source */
+      source: components["schemas"]["UploadSource"] | components["schemas"]["SampleSource"];
+    };
+    /** ProfileResponse */
+    ProfileResponse: {
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Blank Lines Skipped */
+      blank_lines_skipped: number;
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      /** Columns */
+      columns: components["schemas"]["ColumnProfile"][];
+      dataset: components["schemas"]["DatasetIdentity"];
+      duplicates: components["schemas"]["DuplicateSummary"];
+      metadata: components["schemas"]["RunMetadata"];
+      /** Method Note */
+      method_note: string;
+      /** Missing Cells */
+      missing_cells: number;
+      model: components["schemas"]["ModelInfo"];
+      /** N Columns */
+      n_columns: number;
+      /** N Rows */
+      n_rows: number;
+      options: components["schemas"]["ParseOptions"];
+      preview: components["schemas"]["Preview"];
     };
     /** ProjectileParameters */
     ProjectileParameters: {
@@ -774,6 +1057,31 @@ export interface components {
       scipy_version: string;
       /** Simforge Version */
       simforge_version: string;
+    };
+    /** SampleInfo */
+    SampleInfo: {
+      /** Description */
+      description: string;
+      /**
+       * Id
+       * @enum {string}
+       */
+      id: "lab_measurements" | "messy_survey";
+      /** Title */
+      title: string;
+    };
+    /** SampleSource */
+    SampleSource: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: "sample";
+      /**
+       * Sample Id
+       * @enum {string}
+       */
+      sample_id: "lab_measurements" | "messy_survey";
     };
     /** SavingsPolicy */
     SavingsPolicy: {
@@ -952,6 +1260,19 @@ export interface components {
       x: number[];
       /** Y */
       y: number[];
+    };
+    /** UploadSource */
+    UploadSource: {
+      /**
+       * Content Base64
+       * @description The file's bytes, base64-encoded (2 MiB of file at most). The file name is not sent: the server does not need it.
+       */
+      content_base64: string;
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: "upload";
     };
     /**
      * ValidationCheck
@@ -1259,6 +1580,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  profile_dataset_api_v1_quant_datasets_profile_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProfileRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_samples_api_v1_quant_datasets_samples_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SampleInfo"][];
         };
       };
     };

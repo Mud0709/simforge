@@ -9,9 +9,9 @@ No lab is "finished"; each is at an early stage. Read these before starting work
   contract, shared `Workspace` layout, `record_run`, per-run checks).
 - `SCIENTIFIC_VALIDATION.md`: what is proved, tested or only observed, per model.
 - `docs/IB_FOUNDATIONS.md`: the additive IB Foundations track (see "Two tracks" below).
-- `docs/LEARNING_GUIDE.md` (Physics Lab + shared engineering) and
-  `docs/ECONOMY_LEARNING_GUIDE.md` (Economy Lab). A Quant Lab guide starts with the first
-  Quant feature.
+- `docs/LEARNING_GUIDE.md` (Physics Lab + shared engineering),
+  `docs/ECONOMY_LEARNING_GUIDE.md` (Economy Lab) and `docs/QUANT_LEARNING_GUIDE.md`
+  (Quant Research Lab).
 
 ## Two tracks (non-negotiable preservation rule)
 - **Track B, the Advanced Simulation Studio**, is the roadmap's Phases 0-7 and capability map.

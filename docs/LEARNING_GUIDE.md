@@ -1968,9 +1968,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:53-83`
+### [2] Sending it: `frontend/src/lib/api/client.ts:61-91`
 
-<!-- src: frontend/src/lib/api/client.ts:53-68 -->
+<!-- src: frontend/src/lib/api/client.ts:61-76 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2662,13 +2662,18 @@ rather than *Results*? What would a reader lose if it were hidden among the resu
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap step 1.2, physics pages in the workspace):**
+**This version (roadmap step 1.3, Quant Lab dataset profile):**
+- **Updated** the Part 8 step [2] line references for `client.ts` (new type aliases moved
+  `request` down eight lines; its code is unchanged). The Quant Lab has its own guide,
+  [QUANT_LEARNING_GUIDE.md](QUANT_LEARNING_GUIDE.md).
+
+**The previous version (roadmap step 1.2, physics pages in the workspace):**
 - **Added 12.3**, how the projectile and integrator pages map onto the workspace sections, and
   why this is a UI change only.
 - **Updated** Part 8 line references for `IntegratorLab.tsx` (the submit handler moved down six
   lines; its code is unchanged) and the description of step [10].
 
-**The previous version (Economy Lab, task 1.1):**
+**An earlier version (Economy Lab, task 1.1):**
 - **Added Part 12**, a short bridge to the new Economy Lab guide
   ([ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md)), plus matching rows in the header,
   reading order and contents.

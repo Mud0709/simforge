@@ -1,0 +1,495 @@
+{
+  "model": {
+    "id": "quant.dataset_profile",
+    "version": "1.0.0",
+    "name": "Dataset profile",
+    "description": "Reads a CSV file and describes its structure and quality: column types, missing values, duplicate rows and descriptive statistics."
+  },
+  "dataset": {
+    "source": "sample",
+    "sample_id": "messy_survey",
+    "sha256": "a6e388e91d3d69462d01581e0db05cd095828d48cba09546a09283077ba4245a",
+    "byte_size": 349,
+    "had_bom": false
+  },
+  "options": {
+    "delimiter": "comma",
+    "missing_markers": ["N/A", "NA", "NaN", "None", "null"],
+    "column_types": []
+  },
+  "n_rows": 10,
+  "n_columns": 6,
+  "blank_lines_skipped": 1,
+  "missing_cells": 7,
+  "duplicates": {
+    "duplicate_rows": 1,
+    "distinct_rows": 9,
+    "groups": 1,
+    "examples": [[3, 7]]
+  },
+  "columns": [
+    {
+      "index": 0,
+      "name": "respondent_id",
+      "inferred_type": "categorical",
+      "inference_reason": "All values are numbers, but some have leading zeros (like 007), which suggests identifiers. Kept as categories so the zeros are not lost; override to numeric if they really are quantities.",
+      "type": "categorical",
+      "overridden": false,
+      "missing_count": 0,
+      "invalid_count": 0,
+      "valid_count": 10,
+      "missing_percent": 0.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {},
+      "kind_counts": {
+        "number": 0,
+        "leading_zero_number": 10,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 0,
+        "text": 0
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": null,
+      "date": null,
+      "categorical": {
+        "count": 10,
+        "unique": 9,
+        "top": [
+          {
+            "value": "003",
+            "count": 2
+          },
+          {
+            "value": "001",
+            "count": 1
+          },
+          {
+            "value": "002",
+            "count": 1
+          },
+          {
+            "value": "004",
+            "count": 1
+          },
+          {
+            "value": "005",
+            "count": 1
+          },
+          {
+            "value": "006",
+            "count": 1
+          },
+          {
+            "value": "007",
+            "count": 1
+          },
+          {
+            "value": "008",
+            "count": 1
+          },
+          {
+            "value": "009",
+            "count": 1
+          }
+        ],
+        "other_count": 0
+      }
+    },
+    {
+      "index": 1,
+      "name": "age",
+      "inferred_type": "numeric",
+      "inference_reason": "Every non-missing value is a number.",
+      "type": "numeric",
+      "overridden": false,
+      "missing_count": 3,
+      "invalid_count": 0,
+      "valid_count": 7,
+      "missing_percent": 30.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {
+        "": 1,
+        "NA": 2
+      },
+      "kind_counts": {
+        "number": 7,
+        "leading_zero_number": 0,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 0,
+        "text": 0
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": {
+        "count": 7,
+        "mean": 38.285714285714285,
+        "std": 8.28078671210825,
+        "min": 29.0,
+        "q1": 31.5,
+        "median": 38.0,
+        "q3": 43.5,
+        "max": 51.0,
+        "histogram": {
+          "edges": [29.0, 34.5, 40.0, 45.5, 51.0],
+          "counts": [3, 1, 2, 1]
+        }
+      },
+      "date": null,
+      "categorical": null
+    },
+    {
+      "index": 2,
+      "name": "country",
+      "inferred_type": "categorical",
+      "inference_reason": "Values are text.",
+      "type": "categorical",
+      "overridden": false,
+      "missing_count": 3,
+      "invalid_count": 0,
+      "valid_count": 7,
+      "missing_percent": 30.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {
+        "NA": 3
+      },
+      "kind_counts": {
+        "number": 0,
+        "leading_zero_number": 0,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 0,
+        "text": 7
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": null,
+      "date": null,
+      "categorical": {
+        "count": 7,
+        "unique": 3,
+        "top": [
+          {
+            "value": "UK",
+            "count": 4
+          },
+          {
+            "value": "FR",
+            "count": 2
+          },
+          {
+            "value": "DE",
+            "count": 1
+          }
+        ],
+        "other_count": 0
+      }
+    },
+    {
+      "index": 3,
+      "name": "income_gbp",
+      "inferred_type": "categorical",
+      "inference_reason": "Mixed: 6 numeric-looking and 0 date-looking values among 9 non-missing values; the rest are text. Nothing was converted.",
+      "type": "categorical",
+      "overridden": false,
+      "missing_count": 1,
+      "invalid_count": 0,
+      "valid_count": 9,
+      "missing_percent": 10.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {
+        "": 1
+      },
+      "kind_counts": {
+        "number": 6,
+        "leading_zero_number": 0,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 0,
+        "text": 3
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": null,
+      "date": null,
+      "categorical": {
+        "count": 9,
+        "unique": 8,
+        "top": [
+          {
+            "value": "1,200",
+            "count": 2
+          },
+          {
+            "value": "27000",
+            "count": 1
+          },
+          {
+            "value": "28000",
+            "count": 1
+          },
+          {
+            "value": "31500",
+            "count": 1
+          },
+          {
+            "value": "39000",
+            "count": 1
+          },
+          {
+            "value": "45250",
+            "count": 1
+          },
+          {
+            "value": "52000",
+            "count": 1
+          },
+          {
+            "value": "unknown",
+            "count": 1
+          }
+        ],
+        "other_count": 0
+      }
+    },
+    {
+      "index": 4,
+      "name": "visit_date",
+      "inferred_type": "categorical",
+      "inference_reason": "Values look like dates written as dd/mm/yyyy or mm/dd/yyyy. The day and month order cannot be known from the file, so they are kept as categories.",
+      "type": "categorical",
+      "overridden": false,
+      "missing_count": 0,
+      "invalid_count": 0,
+      "valid_count": 10,
+      "missing_percent": 0.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {},
+      "kind_counts": {
+        "number": 0,
+        "leading_zero_number": 0,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 10,
+        "text": 0
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": null,
+      "date": null,
+      "categorical": {
+        "count": 10,
+        "unique": 8,
+        "top": [
+          {
+            "value": "05/04/2026",
+            "count": 3
+          },
+          {
+            "value": "03/04/2026",
+            "count": 1
+          },
+          {
+            "value": "04/04/2026",
+            "count": 1
+          },
+          {
+            "value": "06/04/2026",
+            "count": 1
+          },
+          {
+            "value": "07/04/2026",
+            "count": 1
+          },
+          {
+            "value": "08/04/2026",
+            "count": 1
+          },
+          {
+            "value": "09/04/2026",
+            "count": 1
+          },
+          {
+            "value": "10/04/2026",
+            "count": 1
+          }
+        ],
+        "other_count": 0
+      }
+    },
+    {
+      "index": 5,
+      "name": "rating",
+      "inferred_type": "categorical",
+      "inference_reason": "Mixed: 9 numeric-looking and 0 date-looking values among 10 non-missing values; the rest are text. Nothing was converted.",
+      "type": "categorical",
+      "overridden": false,
+      "missing_count": 0,
+      "invalid_count": 0,
+      "valid_count": 10,
+      "missing_percent": 0.0,
+      "invalid_percent": 0.0,
+      "missing_markers_found": {},
+      "kind_counts": {
+        "number": 9,
+        "leading_zero_number": 0,
+        "non_finite_number": 0,
+        "date": 0,
+        "ambiguous_date": 0,
+        "text": 1
+      },
+      "invalid_examples": [],
+      "notes": [],
+      "numeric": null,
+      "date": null,
+      "categorical": {
+        "count": 10,
+        "unique": 6,
+        "top": [
+          {
+            "value": "4",
+            "count": 3
+          },
+          {
+            "value": "3",
+            "count": 2
+          },
+          {
+            "value": "5",
+            "count": 2
+          },
+          {
+            "value": "1",
+            "count": 1
+          },
+          {
+            "value": "2",
+            "count": 1
+          },
+          {
+            "value": "n/a",
+            "count": 1
+          }
+        ],
+        "other_count": 0
+      }
+    }
+  ],
+  "preview": {
+    "columns": ["respondent_id", "age", "country", "income_gbp", "visit_date", "rating"],
+    "rows": [
+      ["001", "34", "UK", "28000", "03/04/2026", "4"],
+      ["002", "NA", "FR", "31500", "04/04/2026", "5"],
+      ["003", "29", "NA", "1,200", "05/04/2026", "3"],
+      ["004", "", "DE", "unknown", "05/04/2026", "n/a"],
+      ["005", "51", "UK", "45250", "06/04/2026", "2"],
+      ["006", "42", "NA", "39000", "07/04/2026", "4"],
+      ["003", "29", "NA", "1,200", "05/04/2026", "3"],
+      ["007", "38", " UK ", "27000", "08/04/2026", "5"],
+      ["008", "NA", "FR", "", "09/04/2026", "4"],
+      ["009", "45", "UK", "52000", "10/04/2026", "1"]
+    ],
+    "truncated_cells": 0
+  },
+  "assumptions": [
+    {
+      "id": "descriptive_only",
+      "statement": "Every number describes the rows in this file and nothing else. No statistic here is an estimate for a wider population, a test or a prediction."
+    },
+    {
+      "id": "header_and_shape",
+      "statement": "The first non-blank row is the header. Every row must have as many fields as the header; a file where some do not is rejected rather than padded or trimmed. Blank lines are skipped and counted."
+    },
+    {
+      "id": "missing_values",
+      "statement": "A cell is missing if, after trimming spaces, it is empty or exactly equal (case-sensitive) to one of the missing-value markers. Markers can be wrong for your data: 'NA' is also the country code for Namibia, so edit the list when needed."
+    },
+    {
+      "id": "type_rules",
+      "statement": "Numbers are plain decimal or scientific notation (no thousands separators). Dates are ISO 8601 (YYYY-MM-DD, optional time) and must exist on the calendar. 01/02/2024-style dates are ambiguous and stay text. Numbers with leading zeros stay text unless you override the column. A column with any other value is categorical; nothing is converted silently."
+    },
+    {
+      "id": "overrides_and_invalid",
+      "statement": "Overriding a column's type never changes the data. Values that do not fit the chosen type are counted as invalid, shown, and left out of the statistics."
+    },
+    {
+      "id": "duplicates",
+      "statement": "A duplicate row is identical, character for character, to an earlier row (so ' UK' and 'UK' differ, and so do '1' and '1.0'). Duplicates are counted, not removed."
+    },
+    {
+      "id": "statistics_definitions",
+      "statement": "Mean; sample standard deviation with n - 1; quartiles by linear interpolation (Hyndman-Fan type 7, as in NumPy and spreadsheets' QUARTILE.INC, which can differ from the 'median of each half' method for small samples). Percentages are of all rows. Computed in double precision from the parsed values, so 0.1 is stored as the nearest binary fraction; agreement with exact arithmetic is to about 1e-15 relative, not exact."
+    }
+  ],
+  "checks": [
+    {
+      "id": "cell_accounting",
+      "label": "Missing + invalid + valid = rows",
+      "value": 0.0,
+      "threshold": 0.0,
+      "passed": true,
+      "kind": "exact_identity",
+      "note": "Number of columns where the three counts do not add up to the row count. Every cell must be accounted for exactly once."
+    },
+    {
+      "id": "histogram_totals",
+      "label": "Histogram counts = valid values",
+      "value": 0.0,
+      "threshold": 0.0,
+      "passed": true,
+      "kind": "exact_identity",
+      "note": "Number of numeric columns whose histogram does not contain every valid value exactly once."
+    },
+    {
+      "id": "category_totals",
+      "label": "Category counts = valid values",
+      "value": 0.0,
+      "threshold": 0.0,
+      "passed": true,
+      "kind": "exact_identity",
+      "note": "Number of categorical columns where the listed categories plus 'other' do not add up to the valid values."
+    },
+    {
+      "id": "duplicate_accounting",
+      "label": "Distinct + duplicate rows = rows",
+      "value": 0.0,
+      "threshold": 0.0,
+      "passed": true,
+      "kind": "exact_identity",
+      "note": "Every row is either the first of its kind or a repeat of an earlier one."
+    },
+    {
+      "id": "mixed_columns",
+      "label": "Mixed columns",
+      "value": 2.0,
+      "threshold": null,
+      "passed": null,
+      "kind": "informational",
+      "note": "Columns holding both number- or date-like values and other text. They are kept as categories; check them, and override the type if appropriate."
+    },
+    {
+      "id": "invalid_values",
+      "label": "Values invalid for an overridden type",
+      "value": 0.0,
+      "threshold": null,
+      "passed": null,
+      "kind": "informational",
+      "note": "Excluded from the statistics, never converted or deleted."
+    }
+  ],
+  "method_note": "Counts (rows, missing, invalid, duplicates, categories) are exact. Means, standard deviations and quartiles are computed in double precision and are correct to rounding. A statistic whose true value does not fit in double precision is reported as missing, never as infinity. The file's SHA-256 identifies its exact bytes; it is not evidence that the data are accurate.",
+  "metadata": {
+    "run_id": "fixture-run",
+    "created_at": "2026-10-16T12:00:00+00:00",
+    "input_hash": "cf45de1871f6094d3a13cc3a67bd402e6b0ef15eeaa05a00eafd0f0a94ebb56e",
+    "simforge_version": "fixture",
+    "python_version": "fixture",
+    "numpy_version": "fixture",
+    "scipy_version": "fixture",
+    "platform": "fixture",
+    "elapsed_ms": 1.0,
+    "experiment_saved": false
+  }
+}
