@@ -126,18 +126,23 @@ Track B also covers (collisions, oscillators, AD-AS, orbits, kinetic theory, reg
 Track A module is an introductory precursor and the Track B item remains planned unchanged.
 
 Accessible, IB-aligned simulations (Physics HL, Economics SL with HL extensions), held to the
-same standards as Track B. Full catalogue, syllabus mapping and sources:
+same standards as Track B. Syllabus mapping is verified against the official Physics guide
+(first assessment 2025) and Economics guide (first assessment 2024); whether a later Economics
+edition applies to the May 2028 session is still unverified, so the Economics mapping is
+provisional for that session. Full catalogue, syllabus mapping and sources:
 `docs/IB_FOUNDATIONS.md` (status: proposed, awaiting review).
 
-| Step | Module | Slots in after Track B step |
+| Step | Module | Possible interleaving point (optional, non-blocking) |
 |---|---|---|
-| A1 | Market equilibrium and elasticity (Econ 2.1-2.3, 2.5-2.6), plus a `/foundations` index | 1.2 |
-| A2 | Momentum, impulse and 1-D collisions (Physics A.2-A.3) | 1.3 |
-| A3 | Taxes, subsidies and price controls (Econ 2.7) | 1.4 |
-| A4 | Kinematics graphs and forces on a slope (Physics A.1-A.2) | 1.5 |
-| A5 | Measurement uncertainty and graphing (experimental programme tools) | 1.6 |
-| Later | Externalities, energy, SHM, radioactive decay, AD-AS explorer, waves, then the rest of the catalogue | alternating with Phases 2-7 |
+| A1 | Market equilibrium and elasticity (Econ 2.1-2.3, 2.5-2.6), plus a `/foundations` index | after 1.2, if practical |
+| A2 | Momentum, impulse and collisions (Physics A.2-A.3; 1-D SL, 2-D HL) | after 1.3, if practical |
+| A3 | Taxes, subsidies and price controls (Econ 2.7) | after 1.4, if practical |
+| A4 | Kinematics graphs and forces on a slope (Physics A.1-A.2) | after 1.5, if practical |
+| A5 | Measurement uncertainty and graphing (Physics Tool 3) | after 1.6, if practical |
+| Later | Externalities, energy, SHM, radioactive decay, AD-AS explorer, waves, then the rest of the catalogue | between later Track B steps, if practical |
 
-Track A never blocks Track B. Its module order may follow the school's teaching order;
-Track B's order does not change.
+**Track B is the primary sequence and progresses independently.** The interleaving points are
+suggestions, not dependencies: no Track A module is a prerequisite for any Track B step, and
+Track B never waits for Track A. Track A's module order may follow the school's teaching
+order; Track B's milestones and their order do not change.
 

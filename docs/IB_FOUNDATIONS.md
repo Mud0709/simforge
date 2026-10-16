@@ -5,7 +5,8 @@
 > in scope, content and order. No Track B item may be removed, downgraded, merged away or
 > postponed indefinitely because of this track. See "Preservation rule" below.
 
-**Status:** proposed, awaiting review (2026-10-16). Nothing in this catalogue is implemented.
+**Status:** proposed, awaiting review (revised 2026-10-16 against the official guides supplied by
+the author). Nothing in this catalogue is implemented.
 
 ## Purpose
 Track A adds simpler, interactive simulations aligned with the IB Diploma Programme courses the
@@ -21,30 +22,68 @@ labelled as such.
 2. Where a Track A module covers a topic that Track B also covers (collisions, oscillators,
    AD-AS, the multiplier, orbits, kinetic theory, regression), the Track A module is an
    **introductory precursor**. The Track B item remains planned in full.
-3. Track A modules are slotted *between* Track B steps. They never block or reorder Track B.
+3. **No dependency between the tracks.** Track B is the primary sequence and progresses on
+   its own. Track A modules are additional milestones that may be interleaved when practical.
+   No Track A module is ever a prerequisite for, or a gate on, any Track B step, and Track B
+   never waits for Track A.
 4. Shared code is extracted only when real modules from both tracks need it (the existing
    two-examples rule).
 
 ## Syllabus sources and their limits
 | Course | Guide that applies | Confidence |
 |---|---|---|
-| Physics SL/HL | *Physics guide, first assessment 2025* (first teaching 2023). Five themes: A Space, time and motion; B The particulate nature of matter; C Wave behaviour; D Fields; E Nuclear and quantum physics. 24 subtopics, no options. | Theme and subtopic titles: high (several independent sources agree). Subtopic *content* below: medium (see note). |
-| Economics SL/HL | *Economics guide, first assessment 2022* (first teaching 2020). Units: 1 Introduction to economics; 2 Microeconomics; 3 Macroeconomics; 4 The global economy. A third-party copy of the HL subject brief reports last assessment in 2029, which would cover a May 2028 exam session (verify on ibo.org). No newer Economics guide was found in searches; the next DP review waves found (first assessment 2028 and 2029) did not list Economics. | Unit and subtopic titles: high. Whether a revision affects 2028 candidates: medium. |
+| Physics SL/HL | **Official IB *Physics guide, first assessment 2025*** (published February 2023, updated May 2023), read directly from a copy supplied by the author. Five themes, 24 subtopics (A.1-E.5); the syllabus roadmap (guide p. 25) marks each subtopic as all students, all students plus additional HL, or HL only. Skills: Tools 1-3 and Inquiry 1-3 (guide pp. 27-32). | **Verified against the guide** for the themes, subtopic titles, SL/HL markers, A.1-A.5 and the Tools and Inquiry skills. Subtopic *content* for B-E was checked only at the level of the roadmap; detailed lines there are marked "verify". |
+| Economics SL/HL | **Official IB *Economics guide, first assessment 2024*** (published February 2020; updated May 2020, August 2020, October 2020 and October 2022), read directly from a copy supplied by the author. Units: 1 Introduction to economics; 2 Microeconomics; 3 Macroeconomics; 4 The global economy, with subtopics 1.1-4.10 (guide pp. 20-21). | Unit and subtopic mapping **verified against this guide** (Units 1-4, including the HL-only markers and the "Diagrams and calculations" columns). **Cohort applicability: unverified** (see below). |
 
-**What was and was not checked (2026-10-16).** The official pages
-(`ibo.org/programmes/diploma-programme/curriculum/sciences/physics/` and
-`.../individuals-and-societies/economics/`) could not be opened from the development
-environment, because its network policy blocks ibo.org. The mapping below therefore relies on
-web-search excerpts of the official guides (copies hosted by schools), IB subject briefs, and
-publisher and revision sites. The guides themselves were not read in full. **Before building
-each module, the subtopic content it claims to cover must be checked against the official
-guide or with a teacher.** Where a mapping depends on detail I could not confirm, it is marked
-"verify".
+**Which Economics guide applies to an IBDP1 student in October 2026 (exams May 2028)?**
+- The supplied guide says "First assessment 2024". It does not state a last assessment session.
+- A web search (2026-10-16) found **no Economics subject guide labelled "first assessment
+  2027"**. The only IB document with that label it surfaced was the Extended Essay guide.
+  ibo.org and the Programme Resource Centre, where a newer edition would appear, could not be
+  checked from the development environment.
+- **Therefore the Economics mapping below is provisional for the May 2028 session.** It is
+  verified against the first-assessment-2024 guide; if the school uses a later edition, every
+  Economics subtopic number, HL marker and calculation listed here must be re-checked. The
+  author's teacher or the Programme Resource Centre can settle this.
+- The earlier draft cited a "first assessment 2022" guide from search excerpts. That label is
+  superseded: the subtopic numbering matches, but the supplied 2024 guide is the reference.
 
-Subtopic codes used: Physics A.1-E.5 (2025 guide); Economics 2.1-4.10 (2022 guide). Economics
-2.5 is Elasticity of demand, 2.6 Elasticity of supply, 2.7 Role of government in
-microeconomics, 2.8 Market failure: externalities and common pool or common access resources.
-2.10-2.12 are HL only.
+**What was and was not checked (2026-10-16).** ibo.org cannot be reached from the development
+environment (its network policy blocks it). The two official guides above were read directly
+from copies supplied by the author: the syllabus outline, roadmap and skills sections, Physics
+A.1-A.5, and Economics Units 1-4 (subtopics 2.1-2.8, 3.1-3.7, 4.1-4.6 line by line). Anything
+not read line by line is marked "verify". **Before building a module, its mapping is re-checked
+against the guide that applies to the author's exam session.**
+
+**"Syllabus" vs "extension".** Each module separates what the guide requires (with its HL
+markers) from modelling choices SimForge adds, such as explicit linear equations. An extension
+is labelled in the app and never presented as examinable content.
+
+Subtopic codes: Physics A.1-E.5; Economics 1.1-4.10 (2.5 is "Elasticities of demand", 2.6
+"Elasticity of supply", 2.7 "Role of government in microeconomics", 2.8 "Market
+failure—externalities and common pool or common access resources"; 2.4 and 2.10-2.12 are HL
+only).
+
+## Model identities vs claims about the real world
+Several validation checks below are **model identities**: they hold exactly *inside* the stated
+model, so they test that the code implements the model correctly. They are not evidence that
+real markets or policies behave this way. In particular:
+- **Welfare accounting** (`CS + PS + (government revenue − government spending) + DWL =
+  initial total surplus`, where DWL is the deadweight loss) is an identity of partial-equilibrium, surplus-based welfare analysis with linear
+  curves. It assumes surplus measures welfare, gains and losses are weighted equally across
+  people, other markets are unaffected, and there are no administration, enforcement or
+  compliance costs. For a **price ceiling**, the identity also needs an assumption about who
+  gets the scarce units (the model assumes they go to the buyers who value them most); real
+  rationing by queues or black markets loses more. For a **price floor** with government
+  purchase, the cost of buying, storing or destroying the surplus enters as a cost.
+- **The Pigouvian result** (a tax equal to the marginal external cost restores the social
+  optimum) holds when the market is otherwise competitive, the external cost is known and
+  measured in money, the tax equals the marginal external cost **at the social optimum** (with
+  a constant marginal external cost, at every quantity), there are no other distortions, and
+  enforcement is costless. Real policies face measurement problems, which the guide itself
+  lists (2.8: "challenges involved in measurement of externalities").
+- Each module's app text states which results are model identities, which are approximations
+  and which come from data.
 
 ---
 
@@ -57,8 +96,11 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 ### Economics
 
 #### E1. Market equilibrium lab: demand, supply, shifts, shortages and surpluses (cost S-M)
-- **Syllabus:** Econ 2.1 Demand, 2.2 Supply, 2.3 Competitive market equilibrium. Linear demand
-  and supply functions are HL calculations (verify exact HL scope).
+- **Syllabus:** Econ 2.1 Demand, 2.2 Supply, 2.3 Competitive market equilibrium (diagrams of
+  shifts, shortages and surpluses; consumer, producer and social surplus). HL: calculating
+  consumer and producer surplus from a diagram (2.3). **Extension:** explicit linear
+  equations for demand and supply are a SimForge modelling choice, *not* required by the
+  guide; the app labels them as such.
 - **Objective:** see how shifts in demand or supply change the equilibrium, and what happens
   when the price is not at equilibrium.
 - **Controls:** intercepts and slopes of demand and supply; named shift buttons (income,
@@ -68,7 +110,7 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Equations:** `Qd = a − bP`, `Qs = c + dP` (b, d > 0). `P* = (a − c)/(b + d)`,
   `Q* = (ad + bc)/(b + d)`. Excess demand at price P: `Qd(P) − Qs(P)`.
 - **Assumptions:** perfect competition, linear curves, ceteris paribus, a single good.
-- **Validation:** closed-form equilibrium; `Qd(P*) = Qs(P*)` exactly in rational arithmetic;
+- **Validation (model identities):** closed-form equilibrium; `Qd(P*) = Qs(P*)` exactly in rational arithmetic;
   comparative-statics signs (demand up raises P* and Q*) on a grid; invalid inputs (no
   positive equilibrium) rejected.
 - **Explain afterwards:** why a rise in demand raises both price and quantity, but a rise in
@@ -79,8 +121,10 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Track B link:** none directly; becomes the engine for E3, E4, E7 and E8.
 
 #### E2. Elasticity and total revenue (cost S, built on E1)
-- **Syllabus:** Econ 2.5 Elasticity of demand (PED, YED; HL: PED varying along a linear demand
-  curve), 2.6 Elasticity of supply (PES).
+- **Syllabus:** Econ 2.5 Elasticities of demand (PED and its relationship with total revenue;
+  YED with the Engel-curve diagram; calculations of PED and YED from data; HL: changing PED
+  along a straight-line demand curve) and 2.6 Elasticity of supply (PES; calculations from
+  data).
 - **Objective:** discover why the same price rise raises revenue for some goods and lowers it
   for others.
 - **Controls:** a price slider moving along the demand curve; a price-change size; income
@@ -113,11 +157,16 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Equations (specific tax t):** `Pc = P* + t·d/(b + d)`, `Pp = Pc − t`,
   `Qt = Q* − t·bd/(b + d)`; consumer share of the tax `d/(b + d)`; revenue `t·Qt`;
   deadweight loss `½·t·(Q* − Qt)`.
-- **Assumptions:** as E1; no administration costs; for floors, the government buys the
-  surplus at the floor price (the IB convention for agricultural floors; verify wording).
-- **Validation:** welfare accounting identity `CS + PS + G + DWL = initial total surplus`
-  checked exactly; incidence formula; DWL proportional to `t²` (second order) checked by
-  fitting; the levied-on side gives identical outcomes.
+- **Assumptions:** as E1; partial equilibrium with surplus as the welfare measure; no
+  administration, enforcement or compliance costs; ceilings ration the scarce units to the
+  buyers who value them most; for floors, the government buys the surplus at the floor price
+  (the guide asks for the effects of floors on markets and stakeholders; the purchase
+  arrangement is a modelling choice, stated in the app).
+- **Validation (model identities, see "Model identities vs claims about the real world"):**
+  the welfare accounting identity checked exactly; the incidence formula; deadweight loss
+  `= ½·t²·bd/(b + d)` (exactly quadratic in t for linear curves); taxing the seller or the
+  buyer gives identical outcomes. These test the implementation of the model, not real-world
+  welfare.
 - **Explain afterwards:** why the side with the more inelastic curve bears more of the tax;
   why a price ceiling can make some consumers worse off.
 - **Inquiry:** a government wants to raise revenue with the least deadweight loss. Which
@@ -126,20 +175,27 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Track B link:** Phase 3 fiscal policy works at the macro level; this is the micro view.
 
 #### E4. Externalities and policy (cost M, built on E3)
-- **Syllabus:** Econ 2.8 Market failure: externalities and common pool or common access
-  resources (negative/positive, production/consumption; Pigouvian taxes, subsidies, tradable
-  permits; HL calculation, verify scope).
+- **Syllabus:** Econ 2.8 (negative and positive externalities of production and consumption;
+  MSB = MSC as the social optimum; responses including Pigouvian and carbon taxes, tradable
+  permits, subsidies, legislation and regulation). HL: calculating welfare loss from a
+  diagram.
 - **Objective:** see the gap between private and social optimum, and how policy closes it.
 - **Controls:** type of externality; marginal external cost or benefit; policy (tax, subsidy,
   permit cap, regulation) and its size.
 - **Visualisation:** MPC, MSC, MPB, MSB curves; market and socially optimal quantities; the
   welfare-loss triangle that shrinks as the policy approaches the right size.
 - **Equations:** `MSC = MPC + MEC` (constant MEC as the baseline); social optimum where
-  `MSB = MSC`; welfare loss `½·MEC·(Q_market − Q_social)`; a Pigouvian tax equal to MEC
-  restores `Q_social`.
-- **Assumptions:** constant external cost or benefit, known to the government; linear curves.
-- **Validation:** a tax equal to MEC gives exactly `Q_social`; welfare loss is zero there and
-  positive on both sides (over- and under-correction); permit price equals the equivalent tax.
+  `MSB = MSC`; welfare loss `½·MEC·(Q_market − Q_social)` (exact for linear curves and
+  constant MEC); a Pigouvian tax equal to MEC restores `Q_social`.
+- **Assumptions:** otherwise competitive market; linear curves; marginal external cost or
+  benefit known to the government and measured in money; the tax equals the marginal external
+  cost at the social optimum; no other distortions; costless enforcement; surplus-based
+  welfare with equal weights.
+- **Validation (model identities):** within those assumptions, a tax equal to MEC gives
+  exactly `Q_social`; welfare loss is zero there and positive on both sides (over- and
+  under-correction); with a fixed permit cap, the market permit price equals the tax that
+  gives the same quantity. The app states that real policies face the measurement and
+  information problems the guide lists, which these checks do not test.
 - **Explain afterwards:** why the free market over-produces goods with external costs; why the
   "right" tax depends on information governments rarely have.
 - **Inquiry:** what happens to welfare if the government sets the tax at twice the external
@@ -149,8 +205,10 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Track B link:** policy experiments in Phase 3; the extension reuses Solow-style dynamics.
 
 #### E5. AD-AS diagram explorer (cost M)
-- **Syllabus:** Econ 3.2 Variations in economic activity: aggregate demand and aggregate
-  supply; 3.3 Macroeconomic objectives (output gaps, unemployment, inflation).
+- **Syllabus:** Econ 3.2 (AD and its components; SRAS; monetarist/new classical LRAS and
+  the Keynesian AS curve; inflationary and deflationary/recessionary gaps); 3.3 objectives
+  (HL: AD/AS link to the short-run and long-run Phillips curve). The guide uses diagrams, not
+  equations, here; the linear functional forms are a labelled modelling choice.
 - **Objective:** shift AD, SRAS and LRAS and read off output, the price level and the output
   gap, in both the neo-classical and Keynesian AS models.
 - **Controls:** components of AD (C, I, G, X − M); cost shocks; a switch between
@@ -164,12 +222,15 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Explain afterwards:** why the same AD increase can cause inflation in one model and no
   inflation in the other.
 - **Inquiry:** under what conditions does fiscal expansion raise output without inflation?
-- **Extension:** the multiplier (3.6, HL calculation: `1/(MPS + MPT + MPM)`).
+- **Extension:** the Keynesian multiplier (3.6, HL only: `1/(1 − MPC)` or
+  `1/(MPS + MPT + MPM)`, and the effect on GDP of a change in an injection).
 - **Track B link:** a **precursor** to Phase 3 (AD-AS with dynamics, the three-equation NK
   model, schools of thought). Phase 3 remains unchanged.
 
 #### E6. Exchange rates (cost S, reuses E1)
-- **Syllabus:** Econ 4.5 Exchange rates (verify subtopic number and HL calculations).
+- **Syllabus:** Econ 4.5 Exchange rates (floating-rate determination; factors shifting demand
+  and supply of a currency; calculations: the price of a good in different currencies and
+  changes in a currency's value from data; HL only: fixed versus floating systems).
 - **Objective:** see how demand for exports, interest rates and speculation move a floating
   exchange rate, and the effect on import and export prices.
 - **Visualisation, equations, validation:** the E1 engine with currency labels; conversion
@@ -177,33 +238,49 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Track B link:** none yet.
 
 #### E7. Trade and protection (cost M, reuses E1 and E3)
-- **Syllabus:** Econ 4.1 Benefits of international trade, 4.2 Types of trade protection (HL:
-  calculating the effects of tariffs, quotas and subsidies; verify).
+- **Syllabus:** Econ 4.1 Benefits of international trade (HL: quantities of exports and imports,
+  import expenditure and export revenue from a diagram) and 4.2 Types of trade protection (HL:
+  effects on stakeholders of tariffs, quotas and subsidies from a diagram).
 - **Objective:** see who gains and loses from free trade and from a tariff.
 - **Equations:** world price `Pw` with perfectly elastic world supply; imports
   `Qd(Pw) − Qs(Pw)`; tariff revenue; two deadweight-loss triangles.
-- **Validation:** welfare accounting identity as in E3; tariff of zero reproduces free trade.
+- **Assumptions:** a small economy that takes the world price as given (perfectly elastic
+  world supply); otherwise as E3.
+- **Validation (model identities):** the welfare accounting identity as in E3; a tariff of
+  zero reproduces free trade exactly.
 
 #### E8. Inequality: Lorenz curve and Gini coefficient (cost S)
-- **Syllabus:** Econ 3.4 Economics of inequality and poverty.
+- **Syllabus:** Econ 3.4 Economics of inequality and poverty (Lorenz curve and Gini coefficient
+  as measures; HL: constructing a Lorenz curve from income quintile data; HL: average and
+  marginal tax rates). **Extension:** *calculating* the Gini coefficient is not listed as a
+  required calculation in the guide.
 - **Objective:** see how a tax-and-transfer scheme reshapes the Lorenz curve and the Gini
   coefficient.
-- **Equations:** Gini from quintile shares by the trapezium rule:
-  `G = 1 − Σ (X_k − X_{k−1})(Y_k + Y_{k−1})`, exact for a piecewise-linear Lorenz curve.
+- **Equations:** from grouped (quintile) shares, the trapezium rule
+  `G = 1 − Σ (X_k − X_{k−1})(Y_k + Y_{k−1})`.
+- **What "exact" means here:** this formula is **exact for the piecewise-linear Lorenz curve
+  drawn through the grouped data points**. It is not the Gini coefficient of the underlying
+  population, because it assumes everyone within a group has the same income. A Lorenz curve
+  is convex, so the straight segments lie on or above it: the grouped Gini is a **lower bound**
+  on the population Gini. The app says so.
 - **Validation:** perfect equality gives 0; all income in the top quintile gives 0.8, the
-  largest value five groups can show (a measurement limit worth seeing); a known textbook
-  example; equal lump-sum transfers always lower G.
+  largest value five equal groups can show; a hand-worked textbook example; equal lump-sum
+  transfers lower the grouped G. A test also checks the lower-bound property: splitting a
+  synthetic population into finer groups never lowers G.
 
 #### E9. Measuring economic activity (cost S, lower priority)
-- **Syllabus:** Econ 3.1 Measuring economic activity; 3.3 (inflation from a basket of goods).
+- **Syllabus:** Econ 3.1 (calculations of nominal GDP, GNI, real GDP and GNI using a price
+  deflator, per capita values); 3.3 (inflation rate from CPI data; HL: a weighted price
+  index).
 - Real versus nominal GDP, price indices, GDP per capita. Mainly calculations; lower
   simulation value, so listed last.
 
 ### Physics
 
 #### P1. Kinematics and motion graphs (cost S, high reuse)
-- **Syllabus:** Physics A.1 Kinematics (motion graphs, equations of motion for uniform
-  acceleration, projectile motion; fluid resistance treated qualitatively, verify).
+- **Syllabus:** Physics A.1 Kinematics (SL and HL; no additional HL content): the equations of
+  motion; projectiles without fluid resistance treated quantitatively; the effect of fluid
+  resistance **qualitatively** only. The trajectory equation is not required.
 - **Objective:** link s-t, v-t and a-t graphs to the motion; see why a projectile's horizontal
   and vertical motions are independent.
 - **Controls:** initial velocity, acceleration, launch speed and angle; a "drag on/off"
@@ -218,11 +295,14 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Inquiry:** two balls are released at the same time, one dropped and one thrown sideways.
   Which lands first? Then switch drag on.
 - **Track B link:** reuses Phase 0 projectile code; leads into the existing projectile,
-  angle-sweep and integrator pages.
+  angle-sweep and integrator pages. Those pages' quantitative drag goes beyond A.1 and is
+  labelled as an extension there.
 
 #### P2. Forces and Newton's laws: free-body diagrams on a slope (cost S-M)
-- **Syllabus:** Physics A.2 Forces and momentum (Newton's laws, free-body diagrams, friction
-  with static and dynamic coefficients; verify).
+- **Syllabus:** Physics A.2 Forces and momentum (SL and HL): Newton's three laws; free-body
+  diagrams in one and two dimensions; friction `Ff ≤ μs·FN` (static) and `Ff = μd·FN`
+  (dynamic); tension; Hooke's law; viscous drag `Fd = 6πηrv` (the linear drag already in
+  SimForge's projectile model); buoyancy.
 - **Objective:** build the free-body diagram and predict whether and how fast a block moves.
 - **Controls:** mass, slope angle, μs, μd, an applied force and its direction.
 - **Visualisation:** the block with force arrows to scale; resolved components; resultant
@@ -236,9 +316,12 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Inquiry:** find the smallest push that starts the block moving up the slope.
 
 #### P3. Momentum, impulse and one-dimensional collisions (cost M)
-- **Syllabus:** Physics A.2 Forces and momentum (momentum, impulse, conservation of momentum,
-  elastic and inelastic collisions and explosions; verify exact wording); energy comparisons
-  use A.3.
+- **Syllabus:** Physics A.2 Forces and momentum (SL and HL): conservation of linear momentum,
+  impulse `J = FΔt`, `F = Δp/Δt`, elastic and inelastic collisions of two bodies, explosions,
+  and energy considerations in each. Guidance: quantitative collisions and explosions are
+  **one-dimensional for SL and two-dimensional for HL**; "the use of simultaneous equations
+  involving conservation of momentum and energy in collisions is not required". Energy
+  comparisons use A.3.
 - **Objective:** see that momentum is conserved in **every** collision while kinetic energy
   is conserved **only** in elastic ones.
 - **Controls:** masses and initial velocities of two carts; collision type (elastic,
@@ -253,25 +336,32 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   `v2 = [(m2 − e·m1)u2 + (1 + e)m1·u1]/(m1 + m2)`.
   Kinetic energy lost: `½·μ·(1 − e²)(u1 − u2)²` with `μ = m1m2/(m1 + m2)`.
   Impulse `J = m1(v1 − u1) = −m2(v2 − u2)`; average force `J/Δt`.
-  The IB course names collision types; e itself is an **extension** (verify whether your
-  course uses it) and the app labels it that way.
+  The guide does not use e and does not require the simultaneous-equation solution, so these
+  formulas are an **extension**, labelled as such. The core view uses only momentum
+  conservation plus the chosen collision type.
+- **HL view:** two-dimensional collisions (momentum conserved in each component), since the
+  guide expects them quantitatively at HL.
 - **Assumptions:** one dimension, no external horizontal force during the collision, rigid
   bodies with constant mass.
-- **Validation:** total momentum conserved to rounding for all e; kinetic-energy loss matches
-  the formula; for e = 1 the relative velocity exactly reverses; the centre-of-mass velocity
-  is unchanged; the kinetic-energy loss is the same in every inertial frame (a Galilean
-  boost test); explosions conserve zero total momentum.
+- **Validation (model identities):** total momentum conserved to rounding for all e;
+  kinetic-energy loss matches the formula; for e = 1 the relative velocity exactly reverses;
+  the centre-of-mass velocity is unchanged; the kinetic-energy loss is the same in every
+  inertial frame (a Galilean boost test, linking to HL A.5); explosions conserve zero total
+  momentum.
 - **Explain afterwards:** where the "lost" kinetic energy goes; why a car crumple zone
   reduces the force on passengers without changing the impulse.
 - **Inquiry:** a light cart hits a heavy one at rest, elastically. Predict the direction of
   the light cart afterwards, then test it. What happens when the masses are equal?
 - **Extension:** derive the e-formulas from momentum conservation and the definition of e.
 - **Track B link:** a **precursor** to Phase 4 collisions (2-D discs, event-driven
-  simulation) and Phase 4b kinetic theory. Phase 4 remains unchanged; the 1-D formulas above
-  will serve as an exact reference in its tests.
+  simulation) and Phase 4b kinetic theory. Phase 4 remains unchanged and does not depend on
+  this module. If both exist, the 1-D formulas can serve as an extra reference test in
+  Phase 4, but Phase 4 can derive them itself.
 
 #### P4. Work, energy, power and efficiency (cost M)
-- **Syllabus:** Physics A.3 Work, energy and power.
+- **Syllabus:** Physics A.3 Work, energy and power (SL and HL): `W = Fs cos θ`, Sankey diagrams,
+  conservation of mechanical energy without resistive forces, the change in mechanical energy
+  as the work of non-conservative forces, `P = Fv`, efficiency, energy density of fuels.
 - **Objective:** follow energy transfers on a track with friction, and see efficiency and
   power.
 - **Controls:** track shape (preset ramps), mass, friction, launch speed, motor power.
@@ -285,8 +375,8 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   when there is no friction.
 
 #### P5. Simple harmonic motion (cost M)
-- **Syllabus:** Physics C.1 Simple harmonic motion (HL extends with phase and energy
-  equations; verify split).
+- **Syllabus:** Physics C.1 Simple harmonic motion (all students, plus additional HL content
+  such as phase angle; detailed lines: verify).
 - **Objective:** see x, v and a out of phase, and the constant exchange of kinetic and
   potential energy.
 - **Equations:** `x = A cos(ωt + φ)`, `ω = √(k/m)`, `T = 2π√(L/g)` for a small-angle pendulum.
@@ -316,20 +406,20 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   temperature emerge from particles. Phase 4b remains unchanged.
 
 #### P8. Electric circuits (cost M)
-- **Syllabus:** Physics B.5 Current and circuits (series and parallel, emf and internal
-  resistance, potential dividers; verify).
+- **Syllabus:** Physics B.5 Current and circuits (all students; detailed lines: verify).
 - **Validation:** Kirchhoff's laws checked on every circuit; power delivered equals power
   dissipated.
 
 #### P9. Gravitational fields and circular orbits (cost S-M)
-- **Syllabus:** Physics D.1 Gravitational fields (orbital speed, Kepler's third law, escape
-  speed; verify).
+- **Syllabus:** Physics D.1 Gravitational fields (all students plus additional HL content;
+  detailed lines: verify).
 - **Validation:** `T² ∝ r³` exactly; energy and speed formulas.
 - **Track B link:** a **precursor** to Phase 4 orbits (Kepler's equation, long-run
   integrator studies). Phase 4 remains unchanged.
 
 #### P10. Radioactive decay as a random process (cost S-M)
-- **Syllabus:** Physics E.3 Radioactive decay (half-life, decay constant at HL; verify).
+- **Syllabus:** Physics E.3 Radioactive decay (all students plus additional HL content;
+  detailed lines: verify).
 - **Objective:** see a smooth exponential emerge from random individual decays, and the
   fluctuations around it.
 - **Equations:** `N = N0·e^(−λt)`, `T½ = ln 2 / λ`; each nucleus decays in a step with
@@ -341,9 +431,12 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   thinking.
 
 #### P11. Measurement uncertainty and graphing (cost M; high IA value)
-- **Syllabus:** the guide's tools and inquiry skills for the experimental programme
-  (uncertainties, propagation, gradients and intercepts with uncertainty). **Verify the exact
-  tool names and content in the official guide.**
+- **Syllabus:** "Skills in the study of physics" (guide pp. 27-32). Tool 3: Mathematics,
+  "Processing uncertainties" (absolute, fractional and percentage uncertainties; propagation
+  through addition, subtraction, multiplication, division and powers) and "Graphing"
+  (uncertainty bars, lines of best fit, maximum and minimum gradient lines "by eye",
+  uncertainty in gradients and intercepts, linearising graphs). Tool 2: Technology includes
+  "generate data from models and simulations" and "use computer modelling".
 - **Objective:** see how uncertainties propagate and how a best-fit line with maximum and
   minimum gradients works.
 - **Equations:** the IB rules (absolute uncertainties add for sums; fractional ones add for
@@ -351,12 +444,14 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   linear approximations**. The app compares them with a Monte Carlo propagation and labels
   the difference.
 - **Validation:** Monte Carlo agrees with the linear rules for small uncertainties and
-  diverges, as expected, for large ones; least squares checked against a closed form.
+  diverges, as expected, for large ones (a statistical check, labelled as such); least squares
+  checked against a closed form. The app notes that the guide's max/min-gradient method is
+  done "by eye", while least squares is an extension.
 - **Track B link:** a **precursor** to Phase 5 regression and uncertainty in the Quant Lab.
   Phase 5 remains unchanged.
-- **Academic integrity:** this tool explains methods. It must not process data for an
-  assessed internal assessment unless the teacher approves, and the IA remains the student's
-  own work.
+- **Academic integrity:** this tool explains methods. Although the guide allows
+  investigations involving simulations and modelling, it must not process data for an assessed
+  internal assessment unless the teacher approves, and the IA remains the student's own work.
 
 ---
 
@@ -368,7 +463,7 @@ and reuse of existing code.
 | Rank | Module | Why now | Cost | Reuse |
 |---|---|---|---|---|
 | 1 | **E1 + E2** Market equilibrium and elasticity | Core early microeconomics; the engine for E3, E4, E6 and E7 | S-M | Workspace, `record_run`, schema-driven fields |
-| 2 | **P3** Momentum and collisions | Core A.2; momentum vs kinetic energy is a classic confusion; exact validation; precursor to Phase 4 | M | Workspace, Plotly |
+| 2 | **P3** Momentum and collisions | Core A.2 (1-D SL, 2-D HL); momentum vs kinetic energy is a classic confusion; exact validation; precursor to Phase 4 | M | Workspace, Plotly |
 | 3 | **E3** Taxes, subsidies, price controls | Builds directly on rank 1; welfare accounting is an exact test | M | E1 engine |
 | 4 | **P1 + P2** Kinematics graphs and slope forces | A.1-A.2; P1 reuses the projectile engine | S-M | projectile engine |
 | 5 | **P11** Uncertainty and graphing | Useful across the whole course and the IA; precursor to Quant | M | none yet |
@@ -376,17 +471,21 @@ and reuse of existing code.
 Next wave: E4, P4, P5, P10, E5, P6. Later: E6, E7, E8, P7, P8, P9, E9.
 
 ## How the two tracks coexist
-- **Cadence:** about one Track A module per Track B step, slotted between steps. Track B
-  steps keep their order: 1.2 → 1.3 → 1.4 → 1.5 → 1.6 → Phases 2-7.
-- **Suggested order:** Track B 1.2 (physics moves into the workspace) → **A1** (E1 + E2,
-  plus the Foundations index page) → B 1.3 (Quant datasets) → **A2** (P3 collisions) →
-  B 1.4 (replay) → **A3** (E3) → B 1.5 → **A4** (P1 + P2) → B 1.6 → **A5** (P11) → then
-  alternate with Phases 2-7.
-- **Dependencies:** Track A modules depend only on what already exists (workspace,
-  `record_run`, schema-driven fields), so none waits for Track B. After B 1.4 and 1.5, Track A
-  runs gain replay and the generic log automatically.
-- **Flexibility:** the order of Track A modules can follow the school's teaching order.
-  Track B's order does not change.
+- **Track B is the primary sequence.** It proceeds in its own order (1.2 → 1.3 → 1.4 → 1.5 →
+  1.6 → Phases 2-7) whether or not any Track A module has been built. Every original
+  milestone stays, in its original order.
+- **Track A is additional and optional in timing.** Its modules may be interleaved between
+  Track B steps *when practical*. A reasonable rhythm is at most one Track A module between
+  consecutive Track B steps, but this is a suggestion, not a schedule.
+- **No cross-track prerequisites, in either direction.** No Track B step requires a Track A
+  module, and no Track A module is allowed to block the next Track B step. If a Track A module
+  is unfinished, Track B continues.
+- **Inside Track A**, some modules build on others (E2, E3, E6 and E7 reuse the E1 engine).
+  Those dependencies stay within Track A.
+- **What Track A uses from Track B:** only what already exists (the workspace, `record_run`,
+  schema-driven fields). If later Track B steps add replay or a generic log, Track A runs
+  benefit automatically, but Track A never waits for them.
+- **Order of Track A modules** can follow the school's teaching order.
 
 ## Product structure (proposed)
 - Track A lives **inside** the Physics and Economy labs as a "Foundations" level, with a
@@ -400,13 +499,17 @@ Next wave: E4, P4, P5, P10, E5, P6. Later: E6, E7, E8, P7, P8, P9, E9.
 - Learning material goes into the existing lab guides (a "Foundations" part in
   `docs/LEARNING_GUIDE.md` and `docs/ECONOMY_LEARNING_GUIDE.md`).
 
-## Sources consulted (search excerpts; see "limits" above)
-- Physics guide, first assessment 2025, school-hosted copy:
-  https://peda.net/kuopio/lukiot/lyseonlukio/ib/syllabukset/group-4-sciences/physics-2025.pdf:file/download/c56a8c8592e847bbb555540b087b0990d1ade5b0/Physics,%202025.pdf
-- Economics guide, first assessment 2022, school-hosted copies:
-  https://dp.uwcea.org/docs/Economics%20Subject%20Guide.pdf and
-  https://www.ibdeconomics.com/uploads/1/1/7/5/11758934/new_economics_guide_first_assessment_2022.pdf
-- IB subject briefs (official): https://ibo.org/globalassets/new-structure/programmes/dp/pdfs/sl-economics-en.pdf
+## Sources
+**Primary (read directly; copies supplied by the author, not committed to the repository):**
+- International Baccalaureate Organization, *Diploma Programme Physics guide, first
+  assessment 2025* (published February 2023, updated May 2023).
+- International Baccalaureate Organization, *Diploma Programme Economics guide, first
+  assessment 2024* (published February 2020, updated October 2022).
+
+**Secondary (web search only, used for the cohort question and superseded where they
+conflict with the primary sources):**
+- Extended essay guide, first assessment 2027 (the only "first assessment 2027" IB document
+  found): https://ibo.org/globalassets/new-structure/university-admission/pdfs/subject-guides/extended-essay-first-assessment-2027-guide-sbs.pdf
+- IB subject briefs: https://ibo.org/globalassets/new-structure/programmes/dp/pdfs/sl-economics-en.pdf
   and https://ibo.org/globalassets/new-structure/programmes/dp/pdfs/hl-economics-en.pdf
-- Physics syllabus summaries: https://www.savemyexams.com/learning-hub/exam-guides/ib-physics-syllabus-update/
-- Economics review timing: https://owltutors.co.uk/advice/ib/economics/syllabus/
+- Economics review timing (third party): https://owltutors.co.uk/advice/ib/economics/syllabus/
