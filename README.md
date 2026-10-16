@@ -11,7 +11,7 @@ each run was produced, and is tested against analytical results wherever they ex
 |---|---|---|
 | **Physics Lab** | Projectile model and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
 | **Economy Lab** | Solow growth model with a savings-policy experiment | Growth, then interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
-| **Quant Research Lab** | Planned | CSV import, regression, hypothesis tests, uncertainty, reproducible experiments. |
+| **Quant Research Lab** | CSV import and dataset profile | Data import and exploration, then regression, hypothesis tests, time series, backtesting and overfitting checks. |
 
 ## What works today
 
@@ -52,11 +52,23 @@ reports its own numerical checks.
 
 ![Solow workspace: parameters, capital and consumption paths, steady states and per-run checks](docs/images/solow-lab.png)
 
+**Dataset profile** (`/quant/datasets`, the first Quant Research Lab feature). Upload a CSV
+file (UTF-8, at most 2 MiB and 50,000 rows) or use a bundled synthetic sample, and see what
+is actually in it: row and column counts, inferred column types (with the reason for each,
+and the option to override), missing values and how they were written, exact duplicate rows,
+descriptive statistics for numeric, categorical and date columns, a preview and two charts.
+Malformed files are rejected with row and line numbers, never repaired silently. The file
+is used for that one request and not stored; saving a run to the experiment log (opt-in)
+keeps only the file's SHA-256, its size, the settings and a few counts.
+
+![Dataset profile workspace: missing values, a histogram, column types and accounting checks](docs/images/quant-lab.png)
+
 Details, measured results and caveats are in [SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
 
 **Learning guides.** [docs/LEARNING_GUIDE.md](docs/LEARNING_GUIDE.md) covers the Physics Lab
 and the shared engineering; [docs/ECONOMY_LEARNING_GUIDE.md](docs/ECONOMY_LEARNING_GUIDE.md)
-covers the Economy Lab.
+covers the Economy Lab; [docs/QUANT_LEARNING_GUIDE.md](docs/QUANT_LEARNING_GUIDE.md) covers
+the Quant Research Lab.
 
 ## Quick start (macOS or Linux)
 

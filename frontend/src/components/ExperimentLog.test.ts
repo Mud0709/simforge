@@ -27,4 +27,15 @@ describe("keyResult", () => {
       }),
     ).toBe("k* 3.689 → 6.584, half-life 12.4 y");
   });
+
+  it("summarises a dataset profile without any data", () => {
+    expect(
+      keyResult("quant.dataset_profile", {
+        rows: 10,
+        columns: 6,
+        missing_cells: 7,
+        duplicate_rows: 1,
+      }),
+    ).toBe("10 rows × 6 columns, 7 missing cells, 1 duplicate rows");
+  });
 });

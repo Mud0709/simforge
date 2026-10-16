@@ -498,3 +498,80 @@ residuals 1.1e-16.
 - Numeric strings such as `"100"` are coerced to numbers by the API, as everywhere in
   SimForge; this is deterministic and does not affect hashes.
 
+
+---
+
+## `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+
+### What it computes, and what it does not
+A description of the rows in one file: shape, column types, missing and invalid values,
+exact duplicate rows, and descriptive statistics. **No statistic is an estimate for a wider
+population, a test or a prediction**; the page and the assumptions say so. Counts are exact.
+Means, standard deviations and quartiles are computed in double precision and are correct to
+rounding, not exact.
+
+### Definitions
+| Quantity | Definition |
+|---|---|
+| Missing cell | Empty after trimming spaces, or exactly (case-sensitive) one of the markers; default `N/A, NA, NaN, None, null` |
+| Number | `[+-]?(digits[.digits]|.digits)([eE][+-]?digits)?` with ASCII digits, finite in double precision. Not `1,000`, `inf`, `nan`, `1_000`, `1e999` |
+| Leading-zero number (`007`) | Not numeric unless the user overrides the column |
+| Date | ISO 8601 `YYYY-MM-DD[(T| )HH:MM[:SS[.ffffff]]]` that exists on the calendar; `01/02/2024` is flagged ambiguous and stays text |
+| Column type | `empty` (all missing), `numeric`/`date` (every non-missing value is one), otherwise `categorical` with counts of each kind |
+| Invalid | A non-missing value that does not fit an *overridden* type; excluded from statistics, never converted |
+| Duplicate row | Identical, character for character, to an earlier row; counted, not removed |
+| Mean, SD | `(1/n) Σx`; `sqrt(Σ(x − mean)² / (n − 1))`, defined for n ≥ 2 |
+| Quartiles | Hyndman-Fan type 7 (linear interpolation; NumPy default, R default, `QUARTILE.INC`) |
+| Histogram | `min(50, ⌈log₂ n⌉ + 1)` equal-width bins (Sturges); last bin includes the maximum |
+| Percentages | Of all rows |
+
+### Numerical-analysis issues handled
+- **Overflow in sums and squares.** Values are scaled by `2^−e` with `2^e ≥ max|x|` before
+  summing. Multiplying by a power of two is exact in binary floating point, so the scaling adds
+  no rounding (apart from values more than ~1e300 times smaller than the largest, which become
+  subnormal). The first version divided by `max|x|` instead and turned an exact mean of 37125
+  into 37124.99999999999; a test now guards this.
+- **Results that are not representable.** The true SD of `[−1.7e308, 1.7e308]` is ≈ 2.4e308,
+  beyond double precision. It is reported as `null` with a note, never as infinity.
+- **Interpolation between extremes.** `a + g(b − a)` overflows for `a = −max, b = max`; the
+  quantile uses `(1 − g)a + gb` and clamps to `[a, b]`, which only removes a rounding step,
+  because the exact value lies in that interval. The mean is clamped to `[min, max]` likewise.
+
+### What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 206 tests)
+| Check | Kind |
+|---|---|
+| Mean and SD against `statistics.fmean` / `statistics.stdev` (exact rational arithmetic), quartiles against `statistics.quantiles(method="inclusive")` (type 7), on 20 seeded random samples over 12 orders of magnitude; quantiles against `numpy.quantile(method="linear")` for n = 1-11 | Independent reference |
+| Hand-worked examples: `2,4,4,4,5,5,7,9`; `1..7` shows type 7 (Q1 = 2.5) differs from the "median of each half" rule (Q1 = 2); histogram edges and counts for 0..10 | Hand-derived |
+| Both bundled samples, every count and statistic derived by hand from the CSV text | Hand-derived (known answers) |
+| Extremes: `[1e308]*3`, `[max, max]`, `[−1.7e308, 1.7e308]` (SD `null`), subnormal values, all zeros, one value | Overflow and edge cases |
+| 39 cell classifications (numbers, leading zeros, non-finite, ISO and impossible dates, ambiguous dates, Arabic-Indic digits, `1_000`, `inf`, case-sensitive markers) and 9 column inferences | Type rules |
+| Overrides: numeric on a mixed column (invalid counted with row numbers), date on a numeric column (no statistics), categorical (all valid); missing + invalid + valid = rows | Override rules |
+| Parsing: empty, whitespace-only, header-only, UTF-16, invalid UTF-8, NUL bytes, BOM, duplicate or blank names, inconsistent rows with row and line numbers, unclosed and stray quotes, overlong cells, quoted newlines, blank lines, CRLF, three delimiters, the row, column and size limits at and just over each | Malformed input |
+| API: the identity (`input_hash`) changes with any byte or any option and not with equivalent options; a sample and an identical upload share it; 13 malformed requests give 422 (bad base64, path-like sample ids, unknown fields, a file name, out-of-range or duplicate overrides, marker limits); a 2 MiB request is accepted, 2 MiB + 1 byte is rejected even though its base64 fits the schema | Contract |
+| Body limit: a declared or chunked body over the limit gives 413; a small chunked body and the Solow, projectile and health endpoints still work | Contract |
+| Privacy: nothing is logged unless asked; a saved record contains the hash, size, options and counts, and no column name, cell value or encoded content | Data handling |
+
+### Per-run checks shown in the app
+Exact identities, each a count that must be 0: columns where missing + invalid + valid ≠ rows,
+numeric columns whose histogram does not hold every valid value, categorical columns whose
+listed counts plus "other" do not add up, and distinct + duplicate ≠ rows. Information only:
+the number of mixed columns and of invalid values. They check the bookkeeping of one profile,
+not whether the data are correct.
+
+### Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+A 2.04 MB upload with 40,000 rows and 5 columns (200,000 cells) was profiled in about 0.4 s
+through the API in-process, with a response of about 9 KB. The end-to-end test uploads 1.9 MiB
+(38,000 rows) through the Next.js proxy successfully.
+
+### Limitations
+- UTF-8 only, one header row, a delimiter chosen by the user (not guessed), at most 2 MiB,
+  50,000 rows and 100 columns.
+- Dates: ISO 8601 only, without time zones; dd/mm vs mm/dd cannot be resolved from a file and
+  stays text. There is no date-format override yet.
+- Numbers with thousands separators or decimal commas stay text; no locale handling.
+- Missing-value markers are a global list, not per column; marker matching is exact.
+- No cleaning: nothing is changed or removed. Replayable cleaning recipes are Phase 5.
+- The SHA-256 identifies bytes; it says nothing about how the data were collected or whether
+  they are accurate.
+- Multi-user isolation is not claimed: there is no authentication, and the experiment log
+  (when used) is visible to everyone on the deployment. The server stores no dataset.

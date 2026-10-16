@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-const MODULES = [
+type LabCard = { name: string; href: string | null; status: string; description: string };
+
+const MODULES: readonly LabCard[] = [
   {
     name: "Physics Lab",
     href: "/physics/projectile",
@@ -19,13 +21,13 @@ const MODULES = [
   },
   {
     name: "Quant Research Lab",
-    href: null,
-    status: "Planned",
+    href: "/quant/datasets",
+    status: "CSV import and dataset profile available",
     description:
       "Import datasets, fit statistical models, test hypotheses, examine uncertainty and run " +
       "reproducible experiments on historical data.",
   },
-] as const;
+];
 
 export default function Home() {
   return (
