@@ -190,24 +190,6 @@ button:disabled {
   cursor: progress;
 }
 
-.lab {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 860px) {
-  .lab {
-    grid-template-columns: 1fr;
-  }
-}
-
-.controls {
-  position: sticky;
-  top: 16px;
-}
-
 fieldset {
   border: none;
   margin: 0 0 16px;
@@ -262,11 +244,6 @@ legend {
 .unit {
   color: var(--muted);
   font-weight: 400;
-}
-
-.results {
-  display: grid;
-  gap: 20px;
 }
 
 .empty {
@@ -392,17 +369,20 @@ td.num {
   margin-bottom: 8px;
 }
 
-details.card > summary {
+/* Collapsible run tables inside a workspace section. */
+details.runs {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+details.runs > summary {
   cursor: pointer;
   list-style-position: inside;
 }
 
-details.card > summary h2 {
+details.runs > summary h3 {
   display: inline;
-}
-
-details.card[open] > summary {
-  margin-bottom: 12px;
 }
 
 /* Scientific workspace: Parameters | Visualisation, Results, Assumptions + Validation. */
@@ -428,12 +408,6 @@ details.card[open] > summary {
 /* Let wide tables scroll inside their section instead of widening the page. */
 .ws-section {
   min-width: 0;
-}
-
-.ws-pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-  gap: 20px;
 }
 
 .ws-section > h2 {

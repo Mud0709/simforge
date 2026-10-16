@@ -11,8 +11,14 @@ import {
 } from "@/lib/api/client";
 import { DEFAULT_DT_TEXT, parseSteps } from "@/lib/integrators/steps";
 import { PARAMETER_FIELDS, validateField } from "@/lib/projectile/fields";
-import { IntegratorResults } from "./IntegratorResults";
+import {
+  IntegratorAssumptions,
+  IntegratorCharts,
+  IntegratorOrders,
+  IntegratorValidation,
+} from "./IntegratorResults";
 import { NumberField } from "./NumberField";
+import { Workspace } from "./Workspace";
 
 export const METHOD_LABELS: Record<IntegratorMethod, string> = {
   euler: "Forward Euler (order 1)",
@@ -71,80 +77,106 @@ export function IntegratorLab() {
     }
   }
 
-  return (
-    <div className="lab">
-      <form className="card controls" onSubmit={onSubmit} noValidate aria-label="Study inputs">
-        <fieldset>
-          <legend>Physical parameters</legend>
-          {PARAMETER_FIELDS.map((f) => (
-            <NumberField
-              key={f.name}
-              field={f}
-              value={values[f.name] ?? ""}
-              error={touched ? (fieldErrors[f.name] ?? null) : null}
-              onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))}
+  const form = (
+    <form onSubmit={onSubmit} noValidate aria-label="Study inputs">
+      <fieldset>
+        <legend>Physical parameters</legend>
+        {PARAMETER_FIELDS.map((f) => (
+          <NumberField
+            key={f.name}
+            field={f}
+            value={values[f.name] ?? ""}
+            error={touched ? (fieldErrors[f.name] ?? null) : null}
+            onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))}
+          />
+        ))}
+      </fieldset>
+      <fieldset>
+        <legend>Integrators</legend>
+        {METHODS.map((m) => (
+          <label key={m} className="checkbox">
+            <input
+              type="checkbox"
+              checked={methods.includes(m)}
+              onChange={(e) =>
+                setMethods((prev) =>
+                  e.target.checked ? [...prev, m] : prev.filter((x) => x !== m),
+                )
+              }
             />
-          ))}
-        </fieldset>
-        <fieldset>
-          <legend>Integrators</legend>
-          {METHODS.map((m) => (
-            <label key={m} className="checkbox">
-              <input
-                type="checkbox"
-                checked={methods.includes(m)}
-                onChange={(e) =>
-                  setMethods((prev) =>
-                    e.target.checked ? [...prev, m] : prev.filter((x) => x !== m),
-                  )
-                }
-              />
-              {METHOD_LABELS[m]}
-            </label>
-          ))}
-          {touched && methodsError && <p className="field-error">{methodsError}</p>}
-          <div className="field">
-            <label htmlFor="field-dt">
-              Time steps <span className="unit">(s, comma-separated)</span>
-            </label>
-            <textarea
-              id="field-dt"
-              rows={3}
-              value={stepsText}
-              aria-invalid={touched && !steps.ok}
-              aria-describedby={touched && !steps.ok ? "field-dt-error" : undefined}
-              onChange={(e) => setStepsText(e.target.value)}
-            />
-            {touched && !steps.ok && (
-              <p className="field-error" id="field-dt-error">
-                {steps.error}
-              </p>
-            )}
-          </div>
-        </fieldset>
-        <button type="submit" disabled={running}>
-          {running ? "Running…" : "Run study"}
-        </button>
-        {apiError && (
-          <p className="api-error" role="alert">
-            {apiError}
-          </p>
-        )}
-      </form>
-
-      <div aria-live="polite">
-        {result ? (
-          <IntegratorResults result={result} />
-        ) : (
-          <div className="card empty">
-            <p>
-              Each selected method integrates the motion over the exact flight time with every time
-              step you list. Errors are measured against the exact solution, and the convergence
-              order is fitted only over step sizes that satisfy a pre-declared rule.
+            {METHOD_LABELS[m]}
+          </label>
+        ))}
+        {touched && methodsError && <p className="field-error">{methodsError}</p>}
+        <div className="field">
+          <label htmlFor="field-dt">
+            Time steps <span className="unit">(s, comma-separated)</span>
+          </label>
+          <textarea
+            id="field-dt"
+            rows={3}
+            value={stepsText}
+            aria-invalid={touched && !steps.ok}
+            aria-describedby={touched && !steps.ok ? "field-dt-error" : undefined}
+            onChange={(e) => setStepsText(e.target.value)}
+          />
+          {touched && !steps.ok && (
+            <p className="field-error" id="field-dt-error">
+              {steps.error}
             </p>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      </fieldset>
+      <button type="submit" disabled={running}>
+        {running ? "Running…" : "Run study"}
+      </button>
+      {apiError && (
+        <p className="api-error" role="alert">
+          {apiError}
+        </p>
+      )}
+    </form>
+  );
+
+  const empty = (text: string) => <p className="empty">{text}</p>;
+
+  return (
+    <Workspace
+      parameters={form}
+      visualisation={
+        result ? (
+          <IntegratorCharts result={result} />
+        ) : (
+          empty(
+            "Each selected method integrates the motion over the exact flight time with every " +
+              "time step you list. Errors are measured against the exact solution.",
+          )
+        )
+      }
+      results={
+        result ? (
+          <IntegratorOrders result={result} />
+        ) : (
+          empty("Fitted convergence orders appear here, next to the theoretical ones.")
+        )
+      }
+      assumptions={
+        result ? (
+          <IntegratorAssumptions result={result} />
+        ) : (
+          empty("The study's assumptions are listed with every run.")
+        )
+      }
+      validation={
+        result ? (
+          <IntegratorValidation result={result} />
+        ) : (
+          empty(
+            "The order is fitted only over step sizes that satisfy a pre-declared rule. Every " +
+              "run, and why it was included or excluded, appears here.",
+          )
+        )
+      }
+    />
   );
 }

@@ -56,8 +56,8 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
   const drag = (parameters.drag_coefficient ?? 0) > 0;
 
   return (
-    <section className="card" aria-labelledby="sweep-heading">
-      <h2 id="sweep-heading">Range against launch angle</h2>
+    <section aria-labelledby="sweep-heading">
+      <h3 id="sweep-heading">Range against launch angle</h3>
       {!sweep && (
         <>
           <p className="note">

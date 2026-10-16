@@ -70,7 +70,19 @@ function FitCell({ fit }: { fit: MethodStudyResult["position_fit"] }) {
   return <td className="num">{fit.order.toFixed(3)}</td>;
 }
 
-export function IntegratorResults({ result }: { result: IntegratorStudyResponse }) {
+type Props = { result: IntegratorStudyResponse };
+
+const logAxes = (yTitle: string) => ({
+  xaxis: {
+    type: "log" as const,
+    title: { text: "Time step h (s)" },
+    exponentformat: "power" as const,
+  },
+  yaxis: { type: "log" as const, title: { text: yTitle }, exponentformat: "power" as const },
+});
+
+/** Visualisation: convergence plots and trajectories. */
+export function IntegratorCharts({ result }: Props) {
   const position = useMemo(() => convergenceTraces(result.results, "position"), [result]);
   const velocity = useMemo(() => convergenceTraces(result.results, "velocity"), [result]);
   const trajectories = useMemo<Data[]>(
@@ -95,116 +107,114 @@ export function IntegratorResults({ result }: { result: IntegratorStudyResponse 
     [result],
   );
 
-  const logAxes = (yTitle: string) => ({
-    xaxis: {
-      type: "log" as const,
-      title: { text: "Time step h (s)" },
-      exponentformat: "power" as const,
-    },
-    yaxis: { type: "log" as const, title: { text: yTitle }, exponentformat: "power" as const },
-  });
-
   return (
-    <div className="results">
-      <section className="card" aria-labelledby="orders-heading">
-        <h2 id="orders-heading">Convergence orders</h2>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Method</th>
-                <th scope="col">Theory</th>
-                <th scope="col">Fitted (position)</th>
-                <th scope="col">Points</th>
-                <th scope="col">Fit range h (s)</th>
-                <th scope="col">R²</th>
-                <th scope="col">Fitted (velocity)</th>
-                <th scope="col">Stable for kh ≤</th>
+    <>
+      <h3>Position error against time step</h3>
+      <PlotlyChart
+        title="Log-log convergence plot of maximum position error against time step"
+        data={position}
+        height={520}
+        layout={{ ...logAxes("Max position error over grid nodes (m)") }}
+      />
+      <p className="note">
+        Filled markers are in the fit; open markers are excluded (hover for the reason). Dotted
+        lines have the theoretical slope: they start at the finest fitted point and are shifted down
+        ×{REFERENCE_OFFSET} so they don&apos;t hide the data. They are guides, not fits. On log-log
+        axes, error ∝ hᵖ appears as a straight line of slope p.
+      </p>
+
+      <h3>Velocity error against time step</h3>
+      <PlotlyChart
+        title="Log-log convergence plot of maximum velocity error against time step"
+        data={velocity}
+        height={520}
+        layout={{ ...logAxes("Max velocity error over grid nodes (m/s)") }}
+      />
+
+      <h3>Trajectories at the coarsest stable step</h3>
+      <PlotlyChart
+        title="Trajectories from each method compared with the exact solution"
+        data={trajectories}
+        layout={{
+          xaxis: { title: { text: "x (m)" } },
+          yaxis: { title: { text: "y (m)" } },
+        }}
+      />
+    </>
+  );
+}
+
+/** Results: the fitted convergence orders. */
+export function IntegratorOrders({ result }: Props) {
+  return (
+    <>
+      <h3>Convergence orders</h3>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Method</th>
+              <th scope="col">Theory</th>
+              <th scope="col">Fitted (position)</th>
+              <th scope="col">Points</th>
+              <th scope="col">Fit range h (s)</th>
+              <th scope="col">R²</th>
+              <th scope="col">Fitted (velocity)</th>
+              <th scope="col">Stable for kh ≤</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.results.map((m) => (
+              <tr key={m.method} data-testid={`order-${m.method}`}>
+                <th scope="row">{m.name}</th>
+                <td className="num">{m.theoretical_order}</td>
+                <FitCell fit={m.position_fit} />
+                <td className="num">{m.position_fit?.n_points ?? 0}</td>
+                <td className="num">
+                  {m.position_fit
+                    ? `${formatExp(m.position_fit.h_min, 3)} – ${formatExp(m.position_fit.h_max, 3)}`
+                    : "—"}
+                </td>
+                <td className="num">
+                  {m.position_fit ? m.position_fit.r_squared.toFixed(6) : "—"}
+                </td>
+                <FitCell fit={m.velocity_fit} />
+                <td className="num">
+                  {m.stability_limit_kh === null ? "all kh" : formatSig(m.stability_limit_kh, 5)}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {result.results.map((m) => (
-                <tr key={m.method} data-testid={`order-${m.method}`}>
-                  <th scope="row">{m.name}</th>
-                  <td className="num">{m.theoretical_order}</td>
-                  <FitCell fit={m.position_fit} />
-                  <td className="num">{m.position_fit?.n_points ?? 0}</td>
-                  <td className="num">
-                    {m.position_fit
-                      ? `${formatExp(m.position_fit.h_min, 3)} – ${formatExp(m.position_fit.h_max, 3)}`
-                      : "—"}
-                  </td>
-                  <td className="num">
-                    {m.position_fit ? m.position_fit.r_squared.toFixed(6) : "—"}
-                  </td>
-                  <FitCell fit={m.velocity_fit} />
-                  <td className="num">
-                    {m.stability_limit_kh === null ? "all kh" : formatSig(m.stability_limit_kh, 5)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {result.results
-          .filter((m) => m.fit_note)
-          .map((m) => (
-            <p key={m.method} className="note">
-              <strong>{m.name}:</strong> {m.fit_note}
-            </p>
-          ))}
-        <p className="note">
-          <strong>Fit rule.</strong> {result.fit_rule.description}
-        </p>
-        <p className="note">
-          For Euler and RK4 the velocity error is exactly k × the position error (a conserved linear
-          invariant), so their velocity order is not independent evidence. Horizon T ={" "}
-          {formatSig(result.horizon, 6)} s, k = {formatSig(result.k, 6)} s⁻¹.
-        </p>
-      </section>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {result.results
+        .filter((m) => m.fit_note)
+        .map((m) => (
+          <p key={m.method} className="note">
+            <strong>{m.name}:</strong> {m.fit_note}
+          </p>
+        ))}
+      <p className="note">
+        For Euler and RK4 the velocity error is exactly k × the position error (a conserved linear
+        invariant), so their velocity order is not independent evidence. Horizon T ={" "}
+        {formatSig(result.horizon, 6)} s, k = {formatSig(result.k, 6)} s⁻¹.
+      </p>
+    </>
+  );
+}
 
-      <section className="card" aria-labelledby="conv-pos-heading">
-        <h2 id="conv-pos-heading">Position error against time step</h2>
-        <PlotlyChart
-          title="Log-log convergence plot of maximum position error against time step"
-          data={position}
-          height={520}
-          layout={{ ...logAxes("Max position error over grid nodes (m)") }}
-        />
-        <p className="note">
-          Filled markers are in the fit; open markers are excluded (hover for the reason). Dotted
-          lines have the theoretical slope: they start at the finest fitted point and are shifted
-          down ×{REFERENCE_OFFSET} so they don&apos;t hide the data. They are guides, not fits. On
-          log-log axes, error ∝ hᵖ appears as a straight line of slope p.
-        </p>
-      </section>
-
-      <section className="card" aria-labelledby="conv-vel-heading">
-        <h2 id="conv-vel-heading">Velocity error against time step</h2>
-        <PlotlyChart
-          title="Log-log convergence plot of maximum velocity error against time step"
-          data={velocity}
-          height={520}
-          layout={{ ...logAxes("Max velocity error over grid nodes (m/s)") }}
-        />
-      </section>
-
-      <section className="card" aria-labelledby="traj-heading">
-        <h2 id="traj-heading">Trajectories at the coarsest stable step</h2>
-        <PlotlyChart
-          title="Trajectories from each method compared with the exact solution"
-          data={trajectories}
-          layout={{
-            xaxis: { title: { text: "x (m)" } },
-            yaxis: { title: { text: "y (m)" } },
-          }}
-        />
-      </section>
-
+/** Validation: the pre-declared fit rule, every run with its inclusion decision, and the
+ *  record of this run. */
+export function IntegratorValidation({ result }: Props) {
+  return (
+    <>
+      <p className="note">
+        <strong>Fit rule.</strong> {result.fit_rule.description}
+      </p>
       {result.results.map((m) => (
-        <details key={m.method} className="card">
+        <details key={m.method} className="runs">
           <summary>
-            <h2>All runs: {m.name}</h2>
+            <h3>All runs: {m.name}</h3>
           </summary>
           <div className="table-scroll">
             <table>
@@ -249,20 +259,22 @@ export function IntegratorResults({ result }: { result: IntegratorStudyResponse 
           </div>
         </details>
       ))}
+      <p className="note">
+        Run <code>{result.metadata.run_id}</code> · input hash{" "}
+        <code title={result.metadata.input_hash}>{result.metadata.input_hash.slice(0, 12)}…</code> ·{" "}
+        {formatSig(result.metadata.elapsed_ms, 3)} ms · NumPy {result.metadata.numpy_version}
+      </p>
+    </>
+  );
+}
 
-      <section className="card" aria-labelledby="int-assumptions-heading">
-        <h2 id="int-assumptions-heading">Assumptions</h2>
-        <ul className="assumptions">
-          {result.assumptions.map((a) => (
-            <li key={a.id}>{a.statement}</li>
-          ))}
-        </ul>
-        <p className="note">
-          Run <code>{result.metadata.run_id}</code> · input hash{" "}
-          <code title={result.metadata.input_hash}>{result.metadata.input_hash.slice(0, 12)}…</code>{" "}
-          · {formatSig(result.metadata.elapsed_ms, 3)} ms · NumPy {result.metadata.numpy_version}
-        </p>
-      </section>
-    </div>
+/** Assumptions of the study. */
+export function IntegratorAssumptions({ result }: Props) {
+  return (
+    <ul className="assumptions">
+      {result.assumptions.map((a) => (
+        <li key={a.id}>{a.statement}</li>
+      ))}
+    </ul>
   );
 }

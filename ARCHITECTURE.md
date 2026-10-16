@@ -46,9 +46,9 @@ simforge/
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
 │   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
 │   │                                /economy/solow, /experiments
-│   ├── src/components/              Workspace (shared layout), SolowLab/Results,
-│   │                                ProjectileLab/Results, IntegratorLab/Results, NumberField,
-│   │                                PlotlyChart, ExperimentLog
+│   ├── src/components/              Workspace (shared layout, used by every model page),
+│   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel,
+│   │                                IntegratorLab/Results, NumberField, PlotlyChart, ExperimentLog
 │   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client
 │   ├── src/lib/fields.ts            Schema-driven form fields for every lab (bounds and integer
 │   │                                types read from openapi.json); lib/projectile and lib/economy
@@ -138,9 +138,14 @@ headlines supplied by a model registry).
 `components/Workspace.tsx` lays out every model page the same way: **Parameters** on the
 left; **Visualisation**, **Results**, **Assumptions** and **Validation** on the right. Each
 section is a labelled region, so tests and screen readers can find it. The component only
-arranges content; each model supplies its own form, charts and tables. It was built for the
-Solow model first; roadmap step 1.2 moves the physics pages into it, and any change it needs
-for physics is made then, against a real second example.
+arranges content; each model supplies its own form, charts and tables, split into one piece
+per region (e.g. `ProjectileCharts`, `ProjectileValidation`, `IntegratorOrders`). It was built
+for the Solow model first; in roadmap step 1.2 the projectile and integrator pages moved into
+it. The only change the second real example needed: Assumptions and Validation are stacked at
+full width, because validation tables (exact vs numerical, per-run inclusion decisions) did not
+fit at half width. **Validation** always answers "how do we know these numbers are right?":
+per-run checks for Solow, the comparison with the exact solution for the projectile, the
+pre-declared fit rule and per-run evidence for the integrator study.
 
 ### 12. Per-run validation is data, not decoration
 A model can return `checks`: each has a value, an optional limit, a pass/fail/info status and
