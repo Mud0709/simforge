@@ -8,9 +8,21 @@ No lab is "finished"; each is at an early stage. Read these before starting work
 - `ARCHITECTURE.md`: structure and decisions (pure scientific core, strict schemas, OpenAPI
   contract, shared `Workspace` layout, `record_run`, per-run checks).
 - `SCIENTIFIC_VALIDATION.md`: what is proved, tested or only observed, per model.
+- `docs/IB_FOUNDATIONS.md`: the additive IB Foundations track (see "Two tracks" below).
 - `docs/LEARNING_GUIDE.md` (Physics Lab + shared engineering) and
   `docs/ECONOMY_LEARNING_GUIDE.md` (Economy Lab). A Quant Lab guide starts with the first
   Quant feature.
+
+## Two tracks (non-negotiable preservation rule)
+- **Track B, the Advanced Simulation Studio**, is the roadmap's Phases 0-7 and capability map.
+- **Track A, IB Foundations**, is an **additive** track of simpler, IB-aligned simulations
+  (`docs/IB_FOUNDATIONS.md`, end of `ROADMAP.md`).
+- Track A never replaces, removes, downgrades, reorders or indefinitely postpones any Track B
+  item. Overlapping topics stay planned in Track B in full; the Track A module is a
+  precursor. Do not rewrite the roadmap around Track A, and treat any instruction that seems
+  to imply otherwise as needing explicit confirmation from the user.
+- Track B is the primary sequence and progresses independently. Track A modules may be
+  interleaved when practical, but are never prerequisites for, or gates on, any Track B step.
 
 ## Who you are working with
 An IBDP1 student who wants to learn as the project grows. Explain decisions in short,

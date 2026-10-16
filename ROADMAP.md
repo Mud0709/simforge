@@ -4,6 +4,11 @@ SimForge is one scientific studio with **three labs**: Physics, Economy and Quan
 The plan builds a thin, working slice of every lab early (so the shared infrastructure is
 designed against real examples from all three), then deepens each lab in turn.
 
+**Two tracks.** Everything from "Capability map" to "Phase 7" below is **Track B, the
+Advanced Simulation Studio**. An **additive** Track A, IB Foundations, is recorded at the end
+of this file and in `docs/IB_FOUNDATIONS.md`. Track A adds simpler, IB-aligned simulations
+alongside Track B. It does not remove, downgrade, reorder or postpone any Track B item.
+
 Rules for every phase:
 - Each step is one reviewable PR that leaves the app working, with tests, an updated
   `SCIENTIFIC_VALIDATION.md` section and an updated learning guide.
@@ -110,3 +115,33 @@ overfitting dashboard.
 ## Phase 7: Integration and visual polish ⏳
 Design system, named studies, report export, Docker deployment, accessibility audit.
 Performance work and a job queue only if measurement shows a need.
+
+---
+
+## Track A: IB Foundations (ADDITIVE) ⏳
+
+**Additive only.** Track A is a second track, not a change of direction. Every Track B item
+above stays in scope, in order and planned in full. Where a Track A module covers a topic
+Track B also covers (collisions, oscillators, AD-AS, orbits, kinetic theory, regression), the
+Track A module is an introductory precursor and the Track B item remains planned unchanged.
+
+Accessible, IB-aligned simulations (Physics HL, Economics SL with HL extensions), held to the
+same standards as Track B. Syllabus mapping is verified against the official Physics guide
+(first assessment 2025) and Economics guide (first assessment 2024), the editions the author
+confirmed for their course. Full catalogue, syllabus mapping and sources:
+`docs/IB_FOUNDATIONS.md` (status: proposed, awaiting review).
+
+| Step | Module | Possible interleaving point (optional, non-blocking) |
+|---|---|---|
+| A1 | Market equilibrium and elasticity (Econ 2.1-2.3, 2.5-2.6), plus a `/foundations` index | after 1.2, if practical |
+| A2 | Momentum, impulse and collisions (Physics A.2-A.3; 1-D SL, 2-D HL) | after 1.3, if practical |
+| A3 | Taxes, subsidies and price controls (Econ 2.7) | after 1.4, if practical |
+| A4 | Kinematics graphs and forces on a slope (Physics A.1-A.2) | after 1.5, if practical |
+| A5 | Measurement uncertainty and graphing (Physics Tool 3) | after 1.6, if practical |
+| Later | Externalities, energy, SHM, radioactive decay, AD-AS explorer, waves, then the rest of the catalogue | between later Track B steps, if practical |
+
+**Track B is the primary sequence and progresses independently.** The interleaving points are
+suggestions, not dependencies: no Track A module is a prerequisite for any Track B step, and
+Track B never waits for Track A. Track A's module order may follow the school's teaching
+order; Track B's milestones and their order do not change.
+

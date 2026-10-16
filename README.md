@@ -95,7 +95,9 @@ scripts/    setup, dev and check scripts (CI runs the same steps)
 ```
 
 Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md). The plan for all three
-labs is in [ROADMAP.md](ROADMAP.md).
+labs is in [ROADMAP.md](ROADMAP.md). An additional, IB-aligned **Foundations** track of simpler simulations
+is planned alongside it, without changing that roadmap: see
+[docs/IB_FOUNDATIONS.md](docs/IB_FOUNDATIONS.md).
 
 ## Engineering standards
 
