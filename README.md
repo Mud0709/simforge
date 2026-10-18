@@ -59,7 +59,8 @@ and the option to override), missing values and how they were written, exact dup
 descriptive statistics for numeric, categorical and date columns, a preview and two charts.
 Malformed files are rejected with row and line numbers, never repaired silently. The file
 is used for that one request and not stored; saving a run to the experiment log (opt-in)
-keeps only the file's SHA-256, its size, the settings and a few counts.
+keeps only the file's SHA-256, its size, the settings (including any missing-value markers you
+typed) and a few counts.
 
 ![Dataset profile workspace: missing values, a histogram, column types and accounting checks](docs/images/quant-lab.png)
 

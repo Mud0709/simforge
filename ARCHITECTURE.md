@@ -176,8 +176,10 @@ bytes and the canonicalised options (markers sorted and de-duplicated, overrides
 `input_hash` covers all of them, so changed settings can never be mistaken for an earlier
 result; the page also marks a result stale as soon as any setting differs from the one it was
 computed with. A hash identifies bytes; it is not evidence that the data are accurate. Saving
-to the experiment log is opt-in and stores only the hash, size, options and counts: no cell
-values, file name or column names (overrides refer to column positions). Replay (roadmap 1.4)
+to the experiment log is opt-in and stores only the hash, size, options and counts: no rows,
+file name or column names (overrides refer to column positions). The options do include the
+missing-value markers the user typed; a marker is, by definition, text that occurs in the
+data, so markers should be generic tokens (`NA`, `-999`), not personal values. Replay (roadmap 1.4)
 will ask for the file again and check the hash. Because there is no authentication, the
 experiment log is visible to anyone using the deployment; no stronger isolation is claimed.
 

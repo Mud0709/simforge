@@ -187,4 +187,21 @@ describe("QuantLab", () => {
     expect(sent.source).toEqual({ kind: "sample", sample_id: "lab_measurements" });
     expect(sent.options.column_types).toEqual([]);
   });
+
+  it("clears overrides when the delimiter changes, because the columns may change", async () => {
+    const api = mockApi(() => json(200, PROFILE));
+    render(<QuantLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Profile dataset" }));
+    await screen.findByTestId("profile-rows");
+    await userEvent.selectOptions(screen.getByLabelText("income_gbp"), "numeric");
+    await userEvent.selectOptions(screen.getByLabelText("Delimiter"), "semicolon");
+    // Column positions from the comma reading no longer apply: no override controls.
+    expect(screen.queryByLabelText("income_gbp")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/have changed since this profile/)).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Profile again" }));
+    await vi.waitFor(() => expect(profileCalls(api)).toHaveLength(2));
+    const sent = JSON.parse(String(profileCalls(api)[1]![1]?.body));
+    expect(sent.options.delimiter).toBe("semicolon");
+    expect(sent.options.column_types).toEqual([]);
+  });
 });

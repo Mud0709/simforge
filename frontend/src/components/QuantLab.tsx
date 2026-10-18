@@ -66,10 +66,13 @@ export function QuantLab() {
   const markers = parseMarkers(markersText);
   const currentKey = settingsKey(source, delimiter, markers, overrides);
   const stale = result !== null && resultKey !== currentKey;
-  // Overrides refer to column positions of the profiled file, so they only make sense while
-  // that same file (or sample) is selected.
-  const sameSource = result !== null && resultSource === source;
+  // Overrides refer to column positions of the profiled table, so they only make sense while
+  // the same file (or sample) is read with the same delimiter: a different delimiter splits
+  // the rows into different columns.
+  const sameTable =
+    result !== null && resultSource === source && result.options.delimiter === delimiter;
 
+  /** Anything that changes which columns exist also discards the overrides. */
   function changeSource(next: () => void) {
     next();
     setOverrides({});
@@ -194,7 +197,7 @@ export function QuantLab() {
           <select
             id="delimiter"
             value={delimiter}
-            onChange={(e) => setDelimiter(e.target.value as Delimiter)}
+            onChange={(e) => changeSource(() => setDelimiter(e.target.value as Delimiter))}
           >
             <option value="comma">Comma ( , )</option>
             <option value="semicolon">Semicolon ( ; )</option>
@@ -216,7 +219,7 @@ export function QuantLab() {
           </p>
         </div>
       </fieldset>
-      {sameSource && result && (
+      {sameTable && result && (
         <fieldset>
           <legend>Column types</legend>
           <p className="note">
