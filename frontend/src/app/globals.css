@@ -468,3 +468,21 @@ details.runs > summary h3 {
     position: static;
   }
 }
+
+/* Quant Lab */
+.api-error.stale {
+  color: inherit;
+  background: rgba(234, 88, 12, 0.12);
+  border-left: 3px solid #ea580c;
+}
+
+td.reason {
+  white-space: normal;
+  min-width: 16em;
+}
+
+.preview td {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 16em;
+}

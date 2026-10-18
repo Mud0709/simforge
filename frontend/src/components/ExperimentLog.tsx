@@ -12,6 +12,10 @@ type Summary = {
   analytical?: { range?: number };
   comparison?: { max_position_error?: number };
   methods?: Record<string, { position_order?: number | null }>;
+  rows?: number;
+  columns?: number;
+  missing_cells?: number;
+  duplicate_rows?: number;
 };
 type Inputs = {
   parameters?: Record<string, number>;
@@ -31,6 +35,13 @@ export function keyResult(modelId: string, summary: Summary): string {
     const k1 = summary.scenario_steady_state_capital ?? NaN;
     const half = summary.half_life_years ?? NaN;
     return `k* ${formatSig(k0, 4)} → ${formatSig(k1, 4)}, half-life ${formatSig(half, 3)} y`;
+  }
+  if (modelId === "quant.dataset_profile") {
+    const n = (x: number | undefined) => (x === undefined ? "?" : String(x));
+    return (
+      `${n(summary.rows)} rows × ${n(summary.columns)} columns, ` +
+      `${n(summary.missing_cells)} missing cells, ${n(summary.duplicate_rows)} duplicate rows`
+    );
   }
   const range = summary.analytical?.range;
   const err = summary.comparison?.max_position_error;

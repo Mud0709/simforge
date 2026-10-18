@@ -19,6 +19,14 @@ export type SolowRequest = Schemas["SolowRequest"];
 export type SolowResponse = Schemas["SolowResponse"];
 export type SolowPath = Schemas["SolowPathResponse"];
 export type ValidationCheck = Schemas["ValidationCheck"];
+export type ProfileRequest = Schemas["ProfileRequest"];
+export type ProfileResponse = Schemas["ProfileResponse"];
+export type ParseOptions = Schemas["ParseOptions"];
+export type ColumnProfile = Schemas["ColumnProfile"];
+export type ColumnType = Schemas["ColumnOverride"]["type"];
+export type Delimiter = NonNullable<ParseOptions["delimiter"]>;
+export type SampleInfo = Schemas["SampleInfo"];
+export type SampleId = SampleInfo["id"];
 
 const API_BASE = "/api/v1";
 
@@ -84,6 +92,14 @@ export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<Integr
 
 export function simulateSolow(body: SolowRequest): Promise<SolowResponse> {
   return request("/economy/solow/simulate", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function listSampleDatasets(): Promise<SampleInfo[]> {
+  return request("/quant/datasets/samples");
+}
+
+export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
+  return request("/quant/datasets/profile", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function listExperiments(limit = 50): Promise<ExperimentRecord[]> {
