@@ -154,6 +154,25 @@ def test_single_column_with_another_delimiter_gets_a_hint(client: TestClient) ->
     assert any("Is the delimiter really comma?" in n for n in col["notes"])
 
 
+def test_one_column_file_warns_that_blank_lines_may_be_empty_values(client: TestClient) -> None:
+    b = client.post(URL, json=upload(b"score\n4\n\n7\n")).json()
+    assert (b["n_rows"], b["blank_lines_skipped"]) == (2, 1)
+    assert any("may be an empty value" in n for n in b["columns"][0]["notes"])
+    two = client.post(URL, json=upload(b"a,b\n4,1\n\n7,2\n")).json()
+    assert not any("may be an empty value" in n for c in two["columns"] for n in c["notes"])
+
+
+def test_numeric_sentinel_marker_is_missing_not_a_number(client: TestClient) -> None:
+    # -999 is a common "no reading" code; as a marker it must not enter the statistics.
+    data = b"temp\n10\n-999\n20\n"
+    plain = client.post(URL, json=upload(data)).json()["columns"][0]
+    assert plain["numeric"]["mean"] == pytest.approx(-323.0, rel=1e-15)  # (10 - 999 + 20) / 3
+    marked = client.post(URL, json=upload(data, options={"missing_markers": ["-999"]})).json()
+    col = marked["columns"][0]
+    assert (col["missing_count"], col["missing_markers_found"]) == (1, {"-999": 1})
+    assert col["numeric"]["mean"] == 15.0
+
+
 def test_override_that_fits_no_value_gives_no_statistics(client: TestClient) -> None:
     b = client.post(
         URL, json=upload(CSV, options={"column_types": [{"column": 0, "type": "date"}]})
@@ -210,6 +229,17 @@ def test_base64_longer_than_the_schema_allows_is_rejected(client: TestClient) ->
     data = b"x\n" + b"1\n" * ((MAX_FILE_BYTES + 2) // 2)
     assert len(base64.b64encode(data)) > MAX_BASE64_CHARS
     assert client.post(URL, json=upload(data)).status_code == 422
+
+
+def test_body_limit_boundary_is_exact(client: TestClient) -> None:
+    # Exactly at the limit the body reaches the app (and fails as JSON: 422); one byte more
+    # is refused by the guard (413).
+    at_limit = b'"' + b"x" * (MAX_REQUEST_BYTES - 2) + b'"'
+    assert len(at_limit) == MAX_REQUEST_BYTES
+    headers = {"content-type": "application/json"}
+    assert client.post(URL, content=at_limit, headers=headers).status_code == 422
+    over = b'"' + b"x" * (MAX_REQUEST_BYTES - 1) + b'"'
+    assert client.post(URL, content=over, headers=headers).status_code == 413
 
 
 def test_body_over_the_limit_is_refused_before_parsing(client: TestClient) -> None:

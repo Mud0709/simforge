@@ -877,7 +877,7 @@ export interface components {
       options?: components["schemas"]["ParseOptions"];
       /**
        * Save Experiment
-       * @description Opt in to logging this run. Only the file's hash and size, the options and a few counts are stored: no data, file name or column names.
+       * @description Opt in to logging this run. Only the file's hash and size, the options (including any missing-value markers typed) and a few counts are stored: no rows, file name or column names.
        * @default false
        */
       save_experiment?: boolean;

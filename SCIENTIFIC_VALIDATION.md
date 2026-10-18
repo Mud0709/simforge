@@ -514,7 +514,7 @@ rounding, not exact.
 | Quantity | Definition |
 |---|---|
 | Missing cell | Empty after trimming spaces, or exactly (case-sensitive) one of the markers; default `N/A, NA, NaN, None, null` |
-| Number | `[+-]?(digits[.digits]|.digits)([eE][+-]?digits)?` with ASCII digits, finite in double precision. Not `1,000`, `inf`, `nan`, `1_000`, `1e999` |
+| Number | `[+-]?(digits[.[digits]]|.digits)([eE][+-]?digits)?` with ASCII digits, finite in double precision. Not `1,000`, `inf`, `nan`, `1_000`, `1e999` |
 | Leading-zero number (`007`) | Not numeric unless the user overrides the column |
 | Date | ISO 8601 `YYYY-MM-DD[(T| )HH:MM[:SS[.ffffff]]]` that exists on the calendar; `01/02/2024` is flagged ambiguous and stays text |
 | Column type | `empty` (all missing), `numeric`/`date` (every non-missing value is one), otherwise `categorical` with counts of each kind |
@@ -537,7 +537,7 @@ rounding, not exact.
   quantile uses `(1 − g)a + gb` and clamps to `[a, b]`, which only removes a rounding step,
   because the exact value lies in that interval. The mean is clamped to `[min, max]` likewise.
 
-### What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 206 tests)
+### What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 209 tests)
 | Check | Kind |
 |---|---|
 | Mean and SD against `statistics.fmean` / `statistics.stdev` (exact rational arithmetic), quartiles against `statistics.quantiles(method="inclusive")` (type 7), on 20 seeded random samples over 12 orders of magnitude; quantiles against `numpy.quantile(method="linear")` for n = 1-11 | Independent reference |
@@ -548,8 +548,9 @@ rounding, not exact.
 | Overrides: numeric on a mixed column (invalid counted with row numbers), date on a numeric column (no statistics), categorical (all valid); missing + invalid + valid = rows | Override rules |
 | Parsing: empty, whitespace-only, header-only, UTF-16, invalid UTF-8, NUL bytes, BOM, duplicate or blank names, inconsistent rows with row and line numbers, unclosed and stray quotes, overlong cells, quoted newlines, blank lines, CRLF, three delimiters, the row, column and size limits at and just over each | Malformed input |
 | API: the identity (`input_hash`) changes with any byte or any option and not with equivalent options; a sample and an identical upload share it; 13 malformed requests give 422 (bad base64, path-like sample ids, unknown fields, a file name, out-of-range or duplicate overrides, marker limits); a 2 MiB request is accepted, 2 MiB + 1 byte is rejected even though its base64 fits the schema | Contract |
-| Body limit: a declared or chunked body over the limit gives 413; a small chunked body and the Solow, projectile and health endpoints still work | Contract |
-| Privacy: nothing is logged unless asked; a saved record contains the hash, size, options and counts, and no column name, cell value or encoded content | Data handling |
+| Body limit: exactly at the limit the body is read, one byte over gives 413; a declared or chunked body over the limit gives 413; a small chunked body and the Solow, projectile and health endpoints still work | Contract |
+| A numeric sentinel (`-999`) as a marker is missing, not averaged; a one-column file with blank lines carries a warning note | Missing values |
+| Privacy: nothing is logged unless asked; a saved record contains the hash, size, options and counts, and no column name, cell value or encoded content (the options do hold any markers the user typed) | Data handling |
 
 ### Per-run checks shown in the app
 Exact identities, each a count that must be 0: columns where missing + invalid + valid ≠ rows,
@@ -569,6 +570,11 @@ through the API in-process, with a response of about 9 KB. The end-to-end test u
 - Dates: ISO 8601 only, without time zones; dd/mm vs mm/dd cannot be resolved from a file and
   stays text. There is no date-format override yet.
 - Numbers with thousands separators or decimal commas stay text; no locale handling.
+- Values are stored as doubles: integers above 2^53 ≈ 9.0e15 are rounded (9007199254740993
+  becomes 9007199254740992), and magnitudes below ~5e-324 become 0. Long identifiers should
+  stay categorical (they do when they have leading zeros; otherwise override them).
+- In a one-column file a blank line is indistinguishable from an empty value. Blank lines are
+  skipped and counted, and the column gets a note saying they may be missing values.
 - Missing-value markers are a global list, not per column; marker matching is exact.
 - No cleaning: nothing is changed or removed. Replayable cleaning recipes are Phase 5.
 - The SHA-256 identifies bytes; it says nothing about how the data were collected or whether

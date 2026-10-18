@@ -27,7 +27,7 @@ async def profile_dataset(request: ProfileRequest, repo: Repository) -> ProfileR
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
     # Identity of the computation: the file's bytes (by hash and size) and every option.
-    # No data, file name or column names: overrides refer to columns by position.
+    # No rows, file name or column names: overrides use positions; markers are typed settings.
     inputs = {
         "dataset": {"sha256": result.dataset.sha256, "byte_size": result.dataset.byte_size},
         "options": result.options.model_dump(mode="json"),

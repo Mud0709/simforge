@@ -80,7 +80,7 @@ Intuition first. You pick `survey.csv`. What happens?
    checks. No HTTP, no database, no disk.
 5. **Response.** The profile goes back to the browser. The bytes are gone from the server.
    If you ticked "save", the experiment log gets the file's hash, size, settings and counts:
-   no data.
+   no rows of data.
 
 Four small modules, one job each:
 
@@ -497,7 +497,7 @@ the result. So the run's identity (`input_hash`) covers all of them:
 <!-- src: backend/src/simforge/api/routes/quant.py:29-34 -->
 ```python
     # Identity of the computation: the file's bytes (by hash and size) and every option.
-    # No data, file name or column names: overrides refer to columns by position.
+    # No rows, file name or column names: overrides use positions; markers are typed settings.
     inputs = {
         "dataset": {"sha256": result.dataset.sha256, "byte_size": result.dataset.byte_size},
         "options": result.options.model_dump(mode="json"),
@@ -551,7 +551,9 @@ started, so a slow old reply can never overwrite a newer result.
 - The browser keeps the file in memory so you can re-profile it; reloading discards it.
 - Saving to the experiment log is **opt-in** and stores only the hash, size, settings and
   counts. Overrides refer to column *positions*, so not even column names are stored. A test
-  searches the saved database for every cell value and column name and finds none.
+  searches the saved database for every cell value and column name and finds none. One
+  honest exception: the settings include the missing-value markers you type, and a marker is
+  text that occurs in your data. Use generic markers (`NA`, `-999`), never personal values.
 - What is **not** claimed: there is no login, so the experiment log is visible to anyone using
   the deployment. Claiming "multi-user isolation" would be false.
 
@@ -618,6 +620,10 @@ statistics.
 ---
 
 ## Changelog
+- **2026-10-18 (pre-merge review):** overrides are now cleared when the delimiter changes
+  (a different delimiter makes different columns, so position-based overrides could land on
+  the wrong column); a one-column file with blank lines gets a note; the privacy wording now
+  says that typed missing-value markers are stored with the settings.
 - **2026-10-16 (roadmap 1.3):** first edition with the dataset profile: parsing, type
   inference, missing values and duplicates, statistics and overflow handling, validation and
   privacy decisions, reuse.

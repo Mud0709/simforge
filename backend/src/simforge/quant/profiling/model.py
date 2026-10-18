@@ -366,6 +366,13 @@ def run(request: ProfileRequest) -> ProfileComputation:
         _profile_column(i, name, [row[i] for row in table.rows], markers, overrides.get(i))
         for i, name in enumerate(table.header)
     ]
+    if len(columns) == 1 and table.blank_lines_skipped:
+        # With one column, an empty value and a blank line are the same text: say so rather
+        # than let missing values vanish from the count.
+        columns[0].notes.append(
+            f"{table.blank_lines_skipped} blank line(s) were skipped. In a one-column file a "
+            "blank line may be an empty value; if so, it is not counted as missing here."
+        )
     if len(columns) == 1:
         others = [n for n, ch in DELIMITER_CHARS.items() if n != options.delimiter]
         hinted = [n for n in others if DELIMITER_CHARS[n] in table.header[0]]
