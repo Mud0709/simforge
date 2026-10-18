@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from simforge.core.errors import ModelDomainError
-from simforge.core.schemas import Assumption, ModelInfo
+from simforge.core.schemas import Assumption, ModelInfo, ValidationCheck
 from simforge.economy.solow import simulation as sim
 from simforge.economy.solow.schemas import (
     Convergence,
@@ -20,7 +20,6 @@ from simforge.economy.solow.schemas import (
     SolowPathResponse,
     SolowRequest,
     SteadyState,
-    ValidationCheck,
 )
 
 MODEL_INFO = ModelInfo(

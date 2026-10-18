@@ -8,7 +8,8 @@ behind it.
 
 ```
 Browser ──► Next.js (TypeScript, :3000) ──/api/* proxy──► FastAPI (Python, :8000)
-              │  UI, charts, form UX                         │  HTTP layer (validation, errors)
+              │  UI, charts, form UX                         │  body-size guard, HTTP layer
+              │                                              │  (validation, errors)
               │  types generated from OpenAPI                ▼
               │                                        Scientific core (NumPy / SciPy)
               │                                              │  pure functions, no I/O
@@ -36,23 +37,29 @@ simforge/
 │   │   │   ├── integrator_study.py    convergence study engine (Verlet, stability, fit rule)
 │   │   │   ├── integrator_model.py    study orchestration + assumptions
 │   │   │   └── integrator_schemas.py  study API contract
+│   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
+│   │   │                              inference.py (cell and column types), statistics.py,
+│   │   │                              model.py (orchestration, checks), schemas.py, samples/
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
-│   │   ├── api/                     FastAPI routes (physics, economy, experiments),
-│   │   │                              recording.py (run metadata + experiment log), errors
+│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments),
+│   │   │                              recording.py (run metadata + experiment log), errors,
+│   │   │                              body_limit.py (request-size guard)
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
 │   │   └── main.py                  App factory
-│   ├── tests/                       pytest: physics/, economy/ (reference tests), api/, persistence
+│   ├── tests/                       pytest: physics/, economy/, quant/ (reference tests), api/,
+│   │                                persistence
 │   └── scripts/export_openapi.py    Writes the API contract for the frontend
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
 │   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
-│   │                                /economy/solow, /experiments
+│   │                                /economy/solow, /quant/datasets, /experiments
 │   ├── src/components/              Workspace (shared layout, used by every model page),
 │   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel,
-│   │                                IntegratorLab/Results, NumberField, PlotlyChart, ExperimentLog
+│   │                                IntegratorLab/Results, QuantLab/Results, ChecksTable,
+│   │                                NumberField, PlotlyChart, ExperimentLog
 │   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client
 │   ├── src/lib/fields.ts            Schema-driven form fields for every lab (bounds and integer
 │   │                                types read from openapi.json); lib/projectile and lib/economy
-│   │                                list each model's fields
+│   │                                list each model's fields; lib/quant encodes uploads
 │   └── e2e/                         Playwright full-stack tests
 ├── scripts/                         setup.sh, dev.sh, check.sh (used locally and mirrored in CI)
 ├── .github/workflows/ci.yml         backend, frontend, api-contract, e2e jobs
@@ -151,7 +158,43 @@ pre-declared fit rule and per-run evidence for the integrator study.
 A model can return `checks`: each has a value, an optional limit, a pass/fail/info status and
 a *kind* (exact identity, numerical diagnostic or informational). The Validation section
 renders them. They describe one run; proofs and grid evidence live in
-`SCIENTIFIC_VALIDATION.md` and the test suite, and the page says so.
+`SCIENTIFIC_VALIDATION.md` and the test suite, and the page says so. When the dataset profile
+became the second model to report checks, the `ValidationCheck` schema moved to
+`core/schemas.py` (its OpenAPI name is unchanged) and the table moved from `SolowResults` to a
+shared `ChecksTable` component; the Solow page renders exactly as before.
+
+### 13. Imported datasets live for one request; their identity is a hash
+An uploaded CSV is sent as base64 inside the JSON body, so it goes through the same strict
+schema, OpenAPI contract and error handling as every other request. (A multipart form upload
+would need another dependency and spools large files to temporary disk.) The bytes exist only
+in memory while the profile is computed: they are not written to disk, the database or the
+logs, and the server keeps nothing afterwards. The browser keeps the file in memory so the
+user can re-profile it with different settings; reloading the page discards it.
+
+Identity, not storage: a profile is determined by the model version, the SHA-256 of the exact
+bytes and the canonicalised options (markers sorted and de-duplicated, overrides sorted).
+`input_hash` covers all of them, so changed settings can never be mistaken for an earlier
+result; the page also marks a result stale as soon as any setting differs from the one it was
+computed with. A hash identifies bytes; it is not evidence that the data are accurate. Saving
+to the experiment log is opt-in and stores only the hash, size, options and counts: no rows,
+file name or column names (overrides refer to column positions). The options do include the
+missing-value markers the user typed; a marker is, by definition, text that occurs in the
+data, so markers should be generic tokens (`NA`, `-999`), not personal values. Replay (roadmap 1.4)
+will ask for the file again and check the hash. Because there is no authentication, the
+experiment log is visible to anyone using the deployment; no stronger isolation is claimed.
+
+Parsing uses the standard `csv` module and statistics use NumPy; pandas is not needed yet
+(its CSV reader pads short rows, treats strings such as "NA" as missing and guesses types by
+default, all of which this feature must control explicitly). It arrives in Phase 5.
+
+### 14. Request bodies are capped before they are read
+`api/body_limit.py` refuses any request body larger than `MAX_REQUEST_BYTES` with 413: at once
+if `Content-Length` says so, otherwise while counting a chunked body. The limit is derived in
+`quant/profiling/limits.py`: 2 MiB of file, its base64 length (4 characters per 3 bytes,
+2,796,204), plus 64 KiB for the JSON and options. The schema caps the base64 length, and the
+decoded size is checked separately because base64's 3-byte groups let that length decode to
+up to 2 bytes more. Every other endpoint's body is under a kilobyte, so they are unaffected
+(a test confirms it).
 
 ## API endpoints
 
@@ -164,6 +207,8 @@ renders them. They describe one run; proofs and grid evidence live in
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
 | GET | `/api/v1/economy/solow/info` | Model metadata |
 | POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |
+| GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |
+| POST | `/api/v1/quant/datasets/profile` | Profile an uploaded CSV (base64) or a bundled sample |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
 
 ## Adding a new model (the intended pattern)

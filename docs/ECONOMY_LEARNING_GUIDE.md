@@ -536,7 +536,7 @@ least 0.001, and the policy year must be inside the horizon. Rates are fractions
 everywhere. The form never converts from percent, so what you type is exactly what is hashed
 and stored.
 
-<!-- src: backend/src/simforge/economy/solow/schemas.py:54-66 -->
+<!-- src: backend/src/simforge/economy/solow/schemas.py:60-72 -->
 ```python
     @model_validator(mode="after")
     def _steady_state_must_exist(self) -> Self:
@@ -563,7 +563,12 @@ per-run **checks**. Each check has a *kind*: exact identity (must be exactly rig
 numerical diagnostic (must be below a limit), or information. The frontend's
 `Workspace.tsx` arranges every model page into the five sections; `SolowResults.tsx` fills
 them. The route records every run in the experiment log through the shared `record_run`
-helper (`api/recording.py`), which both labs now use.
+helper (`api/recording.py`), which every lab now uses. When the Quant Lab's dataset profile
+became the second model with per-run checks, the check schema (`ValidationCheck`) moved to
+`core/schemas.py` and the table that draws the checks became the shared `ChecksTable.tsx`.
+The Solow page looks exactly as before: the code moved, its behaviour did not. This is the
+project's rule for shared code in action: extract it when a second real example needs it,
+not before.
 
 **Checkpoint 8:** find the line that makes the baseline and scenario go through the same
 code. Why would computing the baseline with a different (but mathematically equal) formula

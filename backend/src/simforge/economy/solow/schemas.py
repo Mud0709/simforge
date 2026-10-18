@@ -9,11 +9,17 @@ values are economically realistic.
 
 from __future__ import annotations
 
-from typing import Literal, Self
+from typing import Self
 
 from pydantic import Field, model_validator
 
-from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel
+from simforge.core.schemas import (
+    Assumption,
+    ModelInfo,
+    RunMetadata,
+    StrictModel,
+    ValidationCheck,
+)
 
 # Below this lambda = n + g + n g + delta, convergence is so slow (1 / (1 - rho) up to ~2e4
 # years) and k* so large that runs stop being informative. Also the bound that, with
@@ -132,18 +138,6 @@ class Convergence(StrictModel):
     half_life_years: float = Field(
         description="ln 0.5 / ln rho. A linearisation: valid only close to the steady state."
     )
-
-
-class ValidationCheck(StrictModel):
-    """A diagnostic of this run. Proofs and grid evidence live in the tests and docs."""
-
-    id: str
-    label: str
-    value: float
-    threshold: float | None = Field(description="Pass if value <= threshold; None = info only.")
-    passed: bool | None
-    kind: Literal["exact_identity", "numerical_diagnostic", "informational"]
-    note: str
 
 
 class SolowResponse(StrictModel):

@@ -3,8 +3,9 @@
 import type { Data, Layout } from "plotly.js";
 import { useMemo } from "react";
 
-import type { SolowResponse, ValidationCheck } from "@/lib/api/client";
-import { formatExp, formatSig } from "@/lib/format";
+import type { SolowResponse } from "@/lib/api/client";
+import { formatSig } from "@/lib/format";
+import { ChecksTable } from "./ChecksTable";
 import { PlotlyChart } from "./PlotlyChart";
 
 const BASELINE = "#64748b";
@@ -246,48 +247,10 @@ export function SolowAssumptions({ result }: Props) {
   );
 }
 
-const KIND_LABEL: Record<ValidationCheck["kind"], string> = {
-  exact_identity: "Exact identity",
-  numerical_diagnostic: "Numerical diagnostic",
-  informational: "Information",
-};
-
-function status(c: ValidationCheck) {
-  if (c.passed === true) return <span className="check-status pass">Pass</span>;
-  if (c.passed === false) return <span className="check-status fail">Fail</span>;
-  return <span className="check-status">Info</span>;
-}
-
 export function SolowValidation({ result }: Props) {
   return (
     <>
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Check</th>
-              <th scope="col">Value</th>
-              <th scope="col">Limit</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.checks.map((c) => (
-              <tr key={c.id} title={c.note} data-testid={`check-${c.id}`}>
-                <th scope="row" className="check-label">
-                  {c.label}
-                  <span className="check-kind">{KIND_LABEL[c.kind]}</span>
-                </th>
-                <td className="num">{c.value === 0 ? "0" : formatExp(c.value)}</td>
-                <td className="num">
-                  {c.threshold === null || c.threshold === undefined ? "—" : formatExp(c.threshold)}
-                </td>
-                <td>{status(c)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ChecksTable checks={result.checks} />
       <p className="note">
         These checks describe this run only. The mathematical guarantees (a unique steady state,
         monotone convergence, the golden rule) are proved in SCIENTIFIC_VALIDATION.md and tested
