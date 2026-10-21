@@ -2,7 +2,7 @@ import { DEFAULT_DT_TEXT, DT_LIMITS, parseSteps } from "./steps";
 
 describe("parseSteps", () => {
   it("reads limits from the OpenAPI contract", () => {
-    expect(DT_LIMITS).toEqual({ minItems: 2, maxItems: 12, exclusiveMin: 0, max: 100 });
+    expect(DT_LIMITS).toEqual({ minItems: 2, maxItems: 12, min: 1e-9, max: 100 });
   });
 
   it("parses the default list", () => {
@@ -18,8 +18,9 @@ describe("parseSteps", () => {
   it.each([
     ["", /at least 2/],
     ["0.1", /at least 2/],
-    ["0.1, 0", /> 0/],
-    ["0.1, -0.05", /> 0/],
+    ["0.1, 0", /≥ 1e-9/],
+    ["0.1, -0.05", /≥ 1e-9/],
+    ["0.1, 1e-10", /≥ 1e-9/],
     ["0.1, NaN", /finite/],
     ["0.1, Infinity", /finite/],
     ["0.1, abc", /finite/],

@@ -148,6 +148,12 @@ def test_bad_requests_are_rejected(
         assert fragment in r.json()["detail"]
 
 
+def test_numbers_and_dates_without_text_count_as_mixed(client: TestClient) -> None:
+    b = client.post(URL, json=upload(b"when\n1\n2024-01-01\n")).json()
+    assert "the rest are text" not in b["columns"][0]["inference_reason"]
+    assert {c["id"]: c["value"] for c in b["checks"]}["mixed_columns"] == 1.0
+
+
 def test_single_column_with_another_delimiter_gets_a_hint(client: TestClient) -> None:
     col = client.post(URL, json=upload(b"a;b\n1;2\n")).json()["columns"][0]
     assert col["name"] == "a;b"
@@ -214,7 +220,7 @@ def test_largest_allowed_file_fits_within_the_request_limit(client: TestClient) 
 
 def test_one_byte_over_the_file_limit_is_rejected(client: TestClient) -> None:
     # MAX + 1 bytes still encodes to MAX_BASE64_CHARS (base64 pads to 3-byte groups), so
-    # the schema accepts it; the separate check on the decoded size must reject it.
+    # the schema accepts it; the parser's check on the decoded size must reject it.
     data = b"x\n" + b"1" * (MAX_FILE_BYTES - 2) + b"\n"
     assert len(data) == MAX_FILE_BYTES + 1
     assert len(base64.b64encode(data)) == MAX_BASE64_CHARS
@@ -223,6 +229,35 @@ def test_one_byte_over_the_file_limit_is_rejected(client: TestClient) -> None:
     assert (
         r.json()["detail"] == "The file is 2,097,153 bytes; the limit is 2,097,152 bytes (2 MiB)."
     )
+
+
+def test_validation_errors_do_not_echo_the_upload(client: TestClient) -> None:
+    # One base64 group over the schema limit: rejected by validation, whose default error
+    # body would quote the whole ~2.8 MB input back.
+    content = base64.b64encode(b"x" * (MAX_FILE_BYTES + 3)).decode()
+    assert len(content) > MAX_BASE64_CHARS
+    r = client.post(URL, json={"source": {"kind": "upload", "content_base64": content}})
+    assert r.status_code == 422
+    assert len(r.content) < 2_000
+    assert content[:200] not in r.text
+    assert "omitted" in r.text
+
+
+def test_small_upload_is_not_echoed_either(client: TestClient) -> None:
+    # A short file rejected for another reason must not come back. An unknown source kind
+    # makes validation echo the whole source object, file content included.
+    content = base64.b64encode(b"name,secret\nAda,42\n").decode()
+    body = {"source": {"kind": "uploadd", "content_base64": content}}
+    r = client.post(URL, json=body)
+    assert r.status_code == 422
+    assert content not in r.text
+
+
+def test_huge_unknown_field_name_is_not_echoed(client: TestClient) -> None:
+    name = "k" * 100_000
+    r = client.post(URL, json={"source": {"kind": "sample", "sample_id": "messy_survey"}, name: 1})
+    assert r.status_code == 422
+    assert len(r.content) < 2_000
 
 
 def test_base64_longer_than_the_schema_allows_is_rejected(client: TestClient) -> None:
@@ -240,6 +275,30 @@ def test_body_limit_boundary_is_exact(client: TestClient) -> None:
     assert client.post(URL, content=at_limit, headers=headers).status_code == 422
     over = b'"' + b"x" * (MAX_REQUEST_BYTES - 1) + b'"'
     assert client.post(URL, content=over, headers=headers).status_code == 413
+
+
+def test_chunked_body_limit_boundary_is_exact(client: TestClient) -> None:
+    headers = {"content-type": "application/json"}
+
+    def chunks(total: int) -> Iterator[bytes]:
+        body = b'"' + b"x" * (total - 2) + b'"'
+        for i in range(0, total, 65_536):
+            yield body[i : i + 65_536]
+
+    assert client.post(URL, content=chunks(MAX_REQUEST_BYTES), headers=headers).status_code == 422
+    over = client.post(URL, content=chunks(MAX_REQUEST_BYTES + 1), headers=headers)
+    assert over.status_code == 413
+
+
+def test_size_limit_response_carries_cors_headers(client: TestClient) -> None:
+    # A browser on an allowed origin must be able to read the 413 message.
+    r = client.post(
+        URL,
+        content=b" " * (MAX_REQUEST_BYTES + 1),
+        headers={"content-type": "application/json", "origin": "http://localhost:3000"},
+    )
+    assert r.status_code == 413
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
 
 def test_body_over_the_limit_is_refused_before_parsing(client: TestClient) -> None:

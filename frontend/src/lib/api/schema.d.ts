@@ -249,7 +249,7 @@ export interface components {
       assumptions: components["schemas"]["Assumption"][];
       /**
        * Best Angle Deg
-       * @description Angle maximising the range, refined by a bounded Brent search (~1e-7 deg).
+       * @description Angle maximising the range, refined by a bounded Brent search (~1e-6 deg).
        */
       best_angle_deg: number;
       /**
@@ -385,13 +385,13 @@ export interface components {
       impact_speed: components["schemas"]["ErrorMetric"];
       /**
        * Max Energy Balance Residual
-       * @description max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the true solution, so this measures integration error only.
+       * @description max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the true solution, so this measures numerical error (the landing node also carries interpolation error).
        */
       max_energy_balance_residual: number;
       max_height: components["schemas"]["ErrorMetric"];
       /**
        * Max Position Error
-       * @description Max Euclidean distance (m) between numerical and exact positions, evaluated at the solver's accepted step nodes (no interpolation error).
+       * @description Max Euclidean distance (m) between numerical and exact positions over the solver's accepted step nodes. The last node, the landing, is located by interpolating the solver's dense output, so it also carries interpolation error.
        */
       max_position_error: number;
       range: components["schemas"]["ErrorMetric"];

@@ -6,8 +6,8 @@ therefore stated twice, deliberately:
 
 * ``MAX_FILE_BYTES`` caps the decoded file, the quantity a user understands;
 * ``MAX_BASE64_CHARS`` is the base64 length of a file of that size (the schema limit). As
-  2 MiB is not a multiple of 3, a string of this length can decode to up to 2 bytes more,
-  so the decoded size is checked separately;
+  2 MiB is not a multiple of 3, a string of this length can decode to 1 byte more, so
+  the decoded size is also checked, by the parser;
 * ``MAX_REQUEST_BYTES`` caps the whole HTTP body, before any of it is parsed, with room for
   the JSON around the file and the parsing options.
 """

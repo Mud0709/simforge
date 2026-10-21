@@ -8,7 +8,7 @@ const dtSchema = openapi.components.schemas.IntegratorStudyRequest.properties.dt
 export const DT_LIMITS = {
   minItems: dtSchema.minItems,
   maxItems: dtSchema.maxItems,
-  exclusiveMin: dtSchema.items.exclusiveMinimum,
+  min: dtSchema.items.minimum,
   max: dtSchema.items.maximum,
 };
 
@@ -27,8 +27,8 @@ export function parseSteps(raw: string): ParsedSteps {
   for (const token of tokens) {
     const v = Number(token);
     if (!Number.isFinite(v)) return { ok: false, error: `"${token}" is not a finite number` };
-    if (v <= DT_LIMITS.exclusiveMin)
-      return { ok: false, error: `Time steps must be > 0 (got ${token})` };
+    if (v < DT_LIMITS.min)
+      return { ok: false, error: `Time steps must be ≥ ${DT_LIMITS.min} s (got ${token})` };
     if (v > DT_LIMITS.max) return { ok: false, error: `Time steps must be ≤ ${DT_LIMITS.max} s` };
     values.push(v);
   }

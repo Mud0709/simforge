@@ -75,6 +75,14 @@ def test_single_value() -> None:
     assert any("at least two values" in n for n in s.notes)
 
 
+@pytest.mark.parametrize("value", [0.1, 1 / 3, -2.7e-5, 123456.789])
+def test_constant_column_has_exactly_zero_spread(value: float) -> None:
+    # Every value is the same, so the spread is 0 by definition. Values like 0.1 are not
+    # exact binary fractions; summing them must not leave a rounding residue in the SD.
+    s = numeric_stats([value] * 7)
+    assert (s.mean, s.std, s.min, s.max) == (value, 0.0, value, value)
+
+
 def test_constant_and_zero_columns() -> None:
     assert numeric_stats([0.0, 0.0, -0.0]).std == 0.0
     c = numeric_stats([7.0] * 5)
@@ -143,13 +151,22 @@ def test_histogram_bins_and_edges() -> None:
     assert sum(s.bin_counts) == s.count
 
 
+def test_dates_are_shown_as_written_and_distinct_means_distinct_moments() -> None:
+    values = ["2024-01-01", "2024-01-01 00:00", "2023-12-31T18:00"]
+    d = date_stats([(v, datetime.fromisoformat(v)) for v in values])
+    assert (d.min, d.max) == ("2023-12-31T18:00", "2024-01-01")  # text from the file
+    assert d.unique == 2  # the first two are the same moment
+    assert d.span_days == 0.25
+
+
 def test_date_stats() -> None:
-    d = date_stats([datetime(2026, 9, 3), datetime(2026, 9, 1), datetime(2026, 9, 1, 12)])
+    raw = ["2026-09-03", "2026-09-01", "2026-09-01 12:00"]
+    d = date_stats([(v, datetime.fromisoformat(v)) for v in raw])
     assert (d.count, d.unique, d.min, d.max) == (
         3,
         3,
-        "2026-09-01T00:00:00",
-        "2026-09-03T00:00:00",
+        "2026-09-01",
+        "2026-09-03",
     )
     assert d.span_days == 2.0
 
