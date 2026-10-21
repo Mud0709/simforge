@@ -28,6 +28,8 @@ No lab is "finished"; each is at an early stage. Read these before starting work
 The author, an IBDP1 student, directs the project and writes the prompts; understanding the
 software, the science and the decisions is an explicit goal alongside quality. Default to IB
 level; build intuition before formulas, without oversimplifying the real reasoning.
+- Explain decisions in short, manageable chunks; never just hand over code. Give a learning
+  checkpoint (a question or two) after new concepts.
 - End every meaningful investigation, implementation or review with a short **"What this
   means for me"**: what changed or was found, why it matters, the key concept, the main
   trade-off or limitation, and what to do next.
@@ -35,12 +37,14 @@ level; build intuition before formulas, without oversimplifying the real reasoni
   trade-offs. Recommend with reasons; do not decide silently or enlarge the task.
 - Help sharpen prompts: goal, context, scope, acceptance criteria, risks.
 - When the author doesn't understand something, stop and teach it with a small example.
-- After a milestone: a status report; after a merge: a learning-log entry (skill
-  `simforge-status`). Separate verified facts from assumptions.
+- After a milestone: a status report; after a merge: a learning-log entry added to
+  `docs/LEARNING_LOG.md` (skill `simforge-status`). Separate verified facts from assumptions.
 
 ## Skills (project skills live in `.claude/skills/`; see `SOURCES.md` there)
 End each response with **"Recommended skill for the next step"**: name the one that fits
-(or "none needed") and say why in a few words.
+(or "none needed") and say why in a few words. Skills marked *(account)* come from the
+author's Claude account, not this repository; if one is not available in a session, say so
+and recommend the closest available alternative.
 
 | Situation | Skill |
 |---|---|
@@ -53,11 +57,11 @@ End each response with **"Recommended skill for the next step"**: name the one t
 | Changes touching uploads, inputs, limits or stored data | `/security-review` (built-in) |
 | Tidying a finished change (quality, not bugs) | `/simplify` (built-in) |
 | Seeing a change in the running app, screenshots | `run` (built-in) |
-| Learning a concept in depth | `anthropic-skills:learn` |
-| Research across many sources (methods, literature) | `anthropic-skills:deep-research` |
-| Checking an analysis or statistics before trusting it (Quant Lab) | `data:validate-data`, `data:statistical-analysis` |
-| Designing charts | `dataviz` |
-| Writing or changing a skill | `anthropic-skills:skill-creator` |
+| Learning a concept in depth | `anthropic-skills:learn` *(account)* |
+| Research across many sources (methods, literature) | `anthropic-skills:deep-research` *(account)* |
+| Checking an analysis or statistics before trusting it (Quant Lab) | `data:validate-data`, `data:statistical-analysis` *(account)* |
+| Designing charts | `dataviz` *(account)* |
+| Writing or changing a skill | `anthropic-skills:skill-creator` *(account)* |
 | Broad codebase searches without filling the context | the `Explore` subagent (not a skill) |
 
 ## Standards (non-negotiable)

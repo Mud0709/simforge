@@ -85,6 +85,9 @@ Then open http://localhost:3000. Interactive API docs are at http://127.0.0.1:80
 
 Without `make`, use `./scripts/setup.sh` and `./scripts/dev.sh`. In the cloud, open the repo
 in GitHub Codespaces or any devcontainer host; `.devcontainer/` runs setup automatically.
+In Claude Code cloud sessions, `.claude/hooks/session-start.sh` installs the dependencies at
+startup the same way CI does; `.claude/skills/` holds the project's Claude Code skills
+(sources in `.claude/skills/SOURCES.md`).
 
 Configuration is optional. See [.env.example](.env.example); no secrets are required.
 
