@@ -17,6 +17,7 @@ from __future__ import annotations
 import codecs
 import csv
 import io
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -30,6 +31,9 @@ from simforge.quant.profiling.limits import (
 
 Delimiter = Literal["comma", "semicolon", "tab"]
 DELIMITER_CHARS: dict[Delimiter, str] = {"comma": ",", "semicolon": ";", "tab": "\t"}
+
+
+_LINE_BREAK = re.compile(r"\r\n|\r|\n")
 
 
 class DatasetError(ValueError):
@@ -97,8 +101,36 @@ def _check_header(raw: list[str]) -> tuple[str, ...]:
     return names
 
 
+def _check_quotes(text: str, delimiter: str) -> None:
+    """Reject quotes that RFC 4180 does not allow. Python's csv module, even with
+    strict=True, keeps a quote inside an unquoted field (``x"y``) as ordinary text.
+
+    A quote may open a field (first character, or right after a delimiter or line break),
+    appear doubled inside a quoted field, or close one. Only quote characters are visited.
+    """
+    in_quotes = False
+    i = text.find('"')
+    while i != -1:
+        if in_quotes:
+            if text.startswith('""', i):  # an escaped quote inside a quoted field
+                i = text.find('"', i + 2)
+                continue
+            in_quotes = False
+        elif i == 0 or text[i - 1] in (delimiter, "\n", "\r"):
+            in_quotes = True
+        else:
+            # Count line breaks of every style the csv reader accepts: \r\n, \n and \r.
+            line = len(_LINE_BREAK.findall(text, 0, i)) + 1
+            raise DatasetError(
+                f"The file has a stray quotation mark on line {line}: a quote may only start "
+                "a quoted field or be doubled inside one. Quote the whole field, or remove it."
+            )
+        i = text.find('"', i + 1)
+
+
 def parse_csv(data: bytes, delimiter: Delimiter) -> ParsedTable:
     text, had_bom = _decode(data)
+    _check_quotes(text, DELIMITER_CHARS[delimiter])
     # newline="" hands line endings to the csv module, which handles \n, \r\n and newlines
     # inside quoted fields itself.
     reader = csv.reader(

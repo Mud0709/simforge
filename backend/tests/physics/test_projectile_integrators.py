@@ -209,10 +209,20 @@ def test_steps_for_tolerates_rounding_noise() -> None:
     assert study.steps_for(3.0, 0.7) == 5  # ceil(4.29) -> h = 0.6 <= dt
 
 
-def test_effective_step_never_exceeds_requested() -> None:
+def test_effective_step_never_exceeds_requested_beyond_rounding() -> None:
     for run in study.run_study(setup(), [0.07, 0.013, 0.0031], ["euler"]).methods[0].runs:
         assert run.h <= run.dt_requested
         assert run.h * run.n_steps == pytest.approx(flight_time(setup()), rel=1e-14)
+
+
+def test_rounding_tolerance_can_exceed_dt_by_at_most_one_part_in_1e12() -> None:
+    # The promise is h <= dt (1 + 1e-12), not h <= dt: the tolerance that absorbs rounding
+    # noise also lets a horizon 5e-13 above 29 steps of 0.1 s use 29 steps.
+    horizon, dt = 2.9 * (1 + 5e-13), 0.1
+    n = study.steps_for(horizon, dt)
+    h = horizon / n
+    assert n == 29
+    assert dt < h <= dt * (1 + 1e-12)
 
 
 def test_vacuum_is_rejected_by_the_engine() -> None:

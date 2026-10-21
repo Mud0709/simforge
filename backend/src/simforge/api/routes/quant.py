@@ -32,7 +32,9 @@ async def profile_dataset(request: ProfileRequest, repo: Repository) -> ProfileR
         "dataset": {"sha256": result.dataset.sha256, "byte_size": result.dataset.byte_size},
         "options": result.options.model_dump(mode="json"),
     }
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         profiling.MODEL_INFO,
         inputs,

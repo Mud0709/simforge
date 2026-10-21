@@ -103,7 +103,7 @@ describe("ProjectileLab", () => {
     expect(vis.getByRole("img", { name: "Energy against time" })).toBeInTheDocument();
     // Results: the exact quantities and the angle sweep.
     const results = within(region("Results"));
-    expect(results.getByText("Range (exact)")).toBeInTheDocument();
+    expect(results.getByText("Range (analytical)")).toBeInTheDocument();
     expect(results.getByRole("button", { name: "Sweep launch angle" })).toBeInTheDocument();
     // Validation: the exact-vs-numerical comparison and the run record.
     const validation = within(region("Validation"));
@@ -146,7 +146,7 @@ describe("ProjectileLab", () => {
     await userEvent.type(speed, "-5");
     await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
 
-    expect(screen.getByText("Must be > 0")).toBeInTheDocument();
+    expect(screen.getByText("Must be ≥ 0.001")).toBeInTheDocument();
     expect(speed).toHaveAttribute("aria-invalid", "true");
     expect(fetchMock).not.toHaveBeenCalled();
   });

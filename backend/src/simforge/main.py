@@ -37,13 +37,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Validated scientific simulations with explicit assumptions and units.",
         lifespan=lifespan,
     )
+    # Starlette runs the last-added middleware first. The size guard is added before CORS so
+    # that CORS wraps it, and its 413 response still carries the CORS headers.
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
     )
-    app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
     register_error_handlers(app)
     for router in (
         health.router,

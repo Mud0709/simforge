@@ -158,7 +158,7 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
             "Use fewer or larger time steps, or fewer methods."
         )
 
-    result = study.run_study(setup, request.dt_values, request.methods)
+    result = study.run_study(setup, request.dt_values, request.methods, horizon=horizon)
 
     methods: list[MethodStudyResult] = []
     for m in result.methods:

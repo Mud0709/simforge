@@ -13,10 +13,17 @@ from pydantic import Field, model_validator
 
 from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel
 
+# Physical limits, agreed with the author. Below them the linear-drag model is not physically
+# meaningful (tiny particles are in another flow regime) and the arithmetic can overflow or
+# underflow; tests/api/test_physics_limits.py checks the corners of the allowed space.
+MIN_MASS = 1e-6  # kg
+MIN_SPEED = 1e-3  # m/s
+MAX_DRAG_RATE = 1e4  # k = b/m in s^-1: drag acts over at least 0.1 ms
+
 
 class ProjectileParameters(StrictModel):
     initial_speed: float = Field(
-        default=20.0, gt=0, le=1e4, description="Launch speed |v0| in m/s."
+        default=20.0, ge=MIN_SPEED, le=1e4, description="Launch speed |v0| in m/s."
     )
     launch_angle_deg: float = Field(
         default=45.0, ge=0, le=90, description="Launch angle above the horizontal, in degrees."
@@ -24,7 +31,7 @@ class ProjectileParameters(StrictModel):
     launch_height: float = Field(
         default=0.0, ge=0, le=1e5, description="Height of the launch point above the ground, in m."
     )
-    mass: float = Field(default=1.0, gt=0, le=1e6, description="Projectile mass in kg.")
+    mass: float = Field(default=1.0, ge=MIN_MASS, le=1e6, description="Projectile mass in kg.")
     drag_coefficient: float = Field(
         default=0.1,
         ge=0,
@@ -39,13 +46,22 @@ class ProjectileParameters(StrictModel):
     )
 
     @model_validator(mode="after")
-    def _projectile_must_fly(self) -> Self:
+    def _drag_rate_in_range(self) -> Self:
+        k = self.drag_coefficient / self.mass
+        if k > MAX_DRAG_RATE:
+            raise ValueError(
+                f"the drag rate k = b/m = {k:.3g} s^-1 is above the {MAX_DRAG_RATE:g} s^-1 limit "
+                "(drag would act in under 0.1 ms); lower drag_coefficient or raise mass"
+            )
+        return self
+
+    def check_flies(self) -> None:
+        """For requests that launch at this angle (not the sweep, which replaces it)."""
         if self.launch_height == 0 and self.launch_angle_deg == 0:
             raise ValueError(
                 "launch_angle_deg = 0 with launch_height = 0 gives zero flight time; "
                 "raise the angle or the launch height"
             )
-        return self
 
 
 class SolverSettings(StrictModel):
@@ -69,6 +85,11 @@ class ProjectileRequest(StrictModel):
     save_experiment: bool = Field(
         default=True, description="Record inputs and summary metrics in the experiment log."
     )
+
+    @model_validator(mode="after")
+    def _projectile_must_fly(self) -> Self:
+        self.parameters.check_flies()
+        return self
 
 
 class TrajectoryMetrics(StrictModel):
@@ -104,12 +125,14 @@ class Comparison(StrictModel):
     max_height: ErrorMetric
     impact_speed: ErrorMetric
     max_position_error: float = Field(
-        description="Max Euclidean distance (m) between numerical and exact positions, "
-        "evaluated at the solver's accepted step nodes (no interpolation error)."
+        description="Max Euclidean distance (m) between numerical and exact positions over "
+        "the solver's accepted step nodes. The last node, the landing, is located by "
+        "interpolating the solver's dense output, so it also carries interpolation error."
     )
     max_energy_balance_residual: float = Field(
         description="max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the "
-        "true solution, so this measures integration error only."
+        "true solution, so this measures numerical error (the landing node also carries "
+        "interpolation error)."
     )
 
 
@@ -168,7 +191,7 @@ class AngleSweepResponse(StrictModel):
     flight_times: list[float] = Field(description="s")
     max_heights: list[float] = Field(description="m")
     best_angle_deg: float = Field(
-        description="Angle maximising the range, refined by a bounded Brent search (~1e-7 deg)."
+        description="Angle maximising the range, refined by a bounded Brent search (~1e-6 deg)."
     )
     best_range: float = Field(description="m")
     vacuum_best_angle_deg: float = Field(

@@ -48,8 +48,8 @@ class NumericalSolution:
         """Interpolated state at arbitrary times (rows: x, y, vx, vy, W).
 
         This uses the solver's dense-output interpolant, which adds its own (small)
-        error on top of the step error. Accuracy metrics are therefore computed at the
-        accepted step nodes, not at these resampled points.
+        error on top of the step error. Accuracy metrics use the accepted step nodes
+        instead, though the last node (the landing event) is itself interpolated.
         """
         result: FloatArray = self.dense(t)  # type: ignore[operator]
         return result
@@ -70,8 +70,11 @@ def integrate(
         _, _, vx, vy, _ = s
         return np.array([vx, vy, -k * vx, -g - k * vy, b * (vx * vx + vy * vy)])
 
-    def hits_ground(_t: float, s: FloatArray) -> float:
-        return float(s[1])
+    def hits_ground(t: float, s: FloatArray) -> float:
+        # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
+        # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
+        # Treating the launch instant as "above ground" leaves only the real landing.
+        return float(s[1]) if t > 0.0 else 1.0
 
     def reaches_apex(_t: float, s: FloatArray) -> float:
         return float(s[3])

@@ -99,6 +99,14 @@ Field descriptions state SI units, and every response includes a `units` map and
 sent to an explicit solver) raise `ModelDomainError` and produce a 422 response with an
 explanation.
 
+Bounds are physical, not just "positive". A bound such as `mass > 0` still admits 1e-305 kg,
+where the arithmetic overflows. The projectile therefore has floors (mass ≥ 1e-6 kg, speed
+≥ 1e-3 m/s) and a limit on the *combination* that the physics depends on, the drag rate
+`k = b/m ≤ 1e4 s⁻¹`. A test runs every corner of the allowed space and requires a result or a
+422 with a reason, never a 500. Validation errors echo the rejected input back to the
+client, as FastAPI does by default, except that file content (`content_base64`) is always
+replaced by a note, and so are long strings in the echoed input or field location.
+
 ### 4. One source of truth for the API contract
 Backend Pydantic schemas → `openapi.json` → `openapi-typescript` → `schema.d.ts`. The
 frontend's types *and* its form bounds come from this file. A CI job regenerates both files
@@ -195,9 +203,10 @@ default, all of which this feature must control explicitly). It arrives in Phase
 if `Content-Length` says so, otherwise while counting a chunked body. The limit is derived in
 `quant/profiling/limits.py`: 2 MiB of file, its base64 length (4 characters per 3 bytes,
 2,796,204), plus 64 KiB for the JSON and options. The schema caps the base64 length, and the
-decoded size is checked separately because base64's 3-byte groups let that length decode to
-up to 2 bytes more. Every other endpoint's body is under a kilobyte, so they are unaffected
-(a test confirms it).
+decoded size is also checked, by the parser, because base64's 3-byte groups let that length
+decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they are unaffected
+(a test confirms it). The guard is added before the CORS middleware, so CORS wraps it and a
+413 still carries the CORS headers a browser needs to read the message.
 
 ## API endpoints
 

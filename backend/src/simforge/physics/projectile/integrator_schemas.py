@@ -7,11 +7,11 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel
+from simforge.physics.projectile.integrator_study import MethodName
 from simforge.physics.projectile.schemas import ProjectileParameters
 
-MethodName = Literal["euler", "rk4", "verlet"]
 ALL_METHODS: tuple[MethodName, ...] = ("euler", "rk4", "verlet")
-PositiveStep = Annotated[float, Field(gt=0, le=100, description="Requested time step in s.")]
+PositiveStep = Annotated[float, Field(ge=1e-9, le=100, description="Requested time step in s.")]
 
 DEFAULT_DT_VALUES = [0.2 / 2**i for i in range(8)]  # 0.2 s down to 0.0015625 s, halving
 
@@ -38,9 +38,14 @@ class IntegratorStudyRequest(StrictModel):
 
     @model_validator(mode="after")
     def _check(self) -> Self:
-        if self.parameters.drag_coefficient == 0:
+        self.parameters.check_flies()
+        # b > 0 is not enough: a tiny b over a large m makes k = b/m underflow to exactly 0.
+        # (A tiny but nonzero k is allowed: the fit rule then excludes every run as marginal,
+        # so no convergence order is reported.)
+        if self.parameters.drag_coefficient / self.parameters.mass == 0:
             raise ValueError(
-                "the integrator study requires drag_coefficient > 0: in vacuum the exact "
+                "the integrator study requires a nonzero drag rate k = b/m (b = 0, or b so "
+                "small that b/m rounds to 0): in vacuum the exact "
                 "solution is a parabola, which RK4 and Verlet reproduce exactly, so their "
                 "errors are pure round-off and no convergence order can be measured"
             )

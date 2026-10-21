@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { ColumnProfile, ProfileResponse } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
+import { binGeometry } from "@/lib/quant/histogram";
 import { ChecksTable } from "./ChecksTable";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -33,14 +34,13 @@ function DistributionChart({ column }: { column: ColumnProfile }) {
   const data = useMemo<Data[] | null>(() => {
     if (column.numeric) {
       const { edges, counts } = column.numeric.histogram;
-      const x = counts.map((_, i) => (edges[i]! + edges[i + 1]!) / 2);
-      const width = counts.map((_, i) => edges[i + 1]! - edges[i]!);
+      const { centres: x, widths } = binGeometry(edges);
       return [
         {
           type: "bar",
           x,
           y: counts,
-          width: width.map((w) => (w > 0 ? w : 1)),
+          width: widths,
           marker: { color: BARS },
           hovertemplate: "%{y} values<extra></extra>",
         },

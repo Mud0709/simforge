@@ -186,11 +186,11 @@ def run(request: ProjectileRequest) -> ProjectileComputation:
     )
     numerical = _numerical_metrics(sol)
 
-    # --- Accuracy at the solver's own step nodes (pure integration error) -------------
+    # --- Accuracy at the solver's step nodes (the landing node is event-interpolated) ---
     x_ex, y_ex, _vx_ex, _vy_ex = analytical.state(setup, sol.t)
     max_position_error = float(np.max(np.hypot(sol.x - x_ex, sol.y - y_ex)))
     ke, pe = _energies(setup, sol.y, sol.vx, sol.vy)
-    e0 = ke[0] + pe[0]  # > 0 because initial_speed > 0 and launch_height >= 0
+    e0 = ke[0] + pe[0]  # > 0: initial_speed >= 1e-3 m/s and mass >= 1e-6 kg (schema limits)
     max_energy_residual = float(np.max(np.abs(ke + pe + sol.drag_work - e0)) / e0)
 
     comparison = Comparison(
@@ -229,8 +229,8 @@ ANGLE_SWEEP_INFO = ModelInfo(
     id="physics.projectile.angle_sweep",
     version="1.0.0",
     name="Range versus launch angle (linear drag)",
-    description="Exact range at evenly spaced launch angles from 0 to 90 degrees, and the angle "
-    "that maximises it, compared with the closed-form vacuum optimum.",
+    description="Range from the analytical solution at evenly spaced launch angles from 0 to 90 "
+    "degrees, and the angle that maximises it, compared with the closed-form vacuum optimum.",
 )
 
 ANGLE_SWEEP_UNITS: dict[str, str] = {
@@ -241,8 +241,9 @@ ANGLE_SWEEP_UNITS: dict[str, str] = {
 }
 
 ANGLE_SWEEP_NOTE = (
-    "Every range is computed from the exact linear-drag solution. The best angle is the best "
-    "grid point refined by a bounded Brent search to about 1e-7 degrees. The range curve is "
+    "Every range comes from the analytical linear-drag solution: closed-form motion, with the "
+    "landing time found by Brent's method to about 1e-15. The best angle is the best "
+    "grid point refined by a bounded Brent search to about 1e-6 degrees. The range curve is "
     "flat at its peak, so the maximum range is known far more precisely than the angle that "
     "achieves it."
 )

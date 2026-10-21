@@ -174,7 +174,7 @@ def integrate(
 
 
 def steps_for(horizon: float, dt: float) -> int:
-    """Number of steps so that N h = horizon exactly with h <= dt.
+    """Number of steps so that N h = horizon exactly with h <= dt * (1 + 1e-12).
 
     The small tolerance stops T/dt = 29.000000000001 (rounding noise) becoming 30 steps.
     """
@@ -309,12 +309,14 @@ def run_study(
     methods: Sequence[MethodName],
     *,
     max_plot_points: int = 400,
+    horizon: float | None = None,
 ) -> StudyResult:
     """Integrate with every (method, dt) pair over [0, T_exact] and compare with the
-    exact solution at every node."""
+    exact solution at every node. ``horizon`` is T_exact, if the caller already has it."""
     if setup.k <= 0:
         raise ValueError("The integrator study requires nonzero drag (k > 0)")
-    horizon = analytical.flight_time(setup)
+    if horizon is None:
+        horizon = analytical.flight_time(setup)
     t_ref = np.linspace(0.0, horizon, 1001)
     x_ref, y_ref, vx_ref, vy_ref = analytical.state(setup, t_ref)
     pos_scale = float(np.max(np.hypot(x_ref, y_ref)))

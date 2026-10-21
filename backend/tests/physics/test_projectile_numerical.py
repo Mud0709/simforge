@@ -25,6 +25,18 @@ def run(method: str = "DOP853", rtol: float = 1e-10, atol: float = 1e-10, **para
 
 
 @pytest.mark.parametrize("method", ["RK45", "DOP853", "Radau"])
+@pytest.mark.parametrize("angle", [1.0, 0.1, 0.01, 0.001])
+def test_shallow_launch_from_the_ground_lands_at_the_exact_time(method: str, angle: float) -> None:
+    # From the ground the height is exactly 0 at launch. If the first step overshoots the
+    # landing, the event must still be the real landing, not t = 0. Reference: the exact
+    # flight time (closed-form state, landing root found by Brent; tested elsewhere).
+    r = run(method=method, launch_height=0.0, launch_angle_deg=angle)
+    assert r.analytical.flight_time > 0
+    assert r.numerical.flight_time == pytest.approx(r.analytical.flight_time, rel=1e-6)
+    assert r.numerical.range == pytest.approx(r.analytical.range, rel=1e-6)
+
+
+@pytest.mark.parametrize("method", ["RK45", "DOP853", "Radau"])
 @pytest.mark.parametrize("drag", [0.0, 0.1, 3.0])
 def test_all_solvers_agree_with_exact_solution(method: str, drag: float) -> None:
     r = run(method=method, drag_coefficient=drag, launch_height=2.0)
@@ -79,9 +91,12 @@ def test_horizontal_launch_from_height() -> None:
 
 
 def test_vertical_launch_has_zero_range_and_null_relative_error() -> None:
+    # A vertical launch has exactly zero horizontal velocity, so the exact range is exactly 0
+    # and a relative error is undefined (null), not a ratio of rounding noise.
     r = run(launch_angle_deg=90.0, drag_coefficient=0.1)
-    assert abs(r.numerical.range) < 1e-12
-    assert r.analytical.range == pytest.approx(0.0, abs=1e-12)
+    assert r.analytical.range == 0.0
+    assert r.numerical.range == 0.0
+    assert r.comparison.range.relative is None
 
 
 def test_stiff_problem_rejected_for_explicit_solver() -> None:
