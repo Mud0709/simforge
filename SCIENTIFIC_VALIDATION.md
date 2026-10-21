@@ -491,13 +491,18 @@ this (3 economies) that also asserts all combinations occur.
 | At k*: y constant, `G_t = g`, total output grows at `n + g + ng`, index `= 100(1+g)^t` | Effective vs actual worker |
 | Continuous limit: steady-state and path errors first order (fitted 0.95-1.05), exact when n̂ = 0, `(1−ρ)/ε → β`; closed-form z solution satisfies the ODE | Guarantee 8 |
 | Baseline and scenario bit-identical (`tobytes`) for `k, y` at `t ≤ T_c` and `c, i` at `t < T_c`; differ at `c_{T_c}` and `k_{T_c+1}`; `s₁ = s₀` reproduces the baseline | Policy timing |
-| API: shapes, formulas, timing, logging and hash; corners of the input box stay finite; 22 invalid payloads (bounds, λ < 10⁻³, policy year ≥ horizon, unknown fields, NaN/±Infinity) give 422 | Contract |
+| API: shapes, formulas, timing, logging and hash; corners of the input box stay finite; 23 invalid payloads (bounds, λ = 0 and λ = 5·10⁻⁴, policy year ≥ horizon, unknown fields, NaN/±Infinity) give 422 | Contract |
+| Per-run checks (`test_solow_checks.py`): the identity check counts a 1-ulp change in any of k, y, c, i before the change; its note is well formed for `T_c = 0`; the convergence note states the true reason (default run: 80 years = 6.5 half-lives, about 12.7 more needed), and simulating the predicted extra 157 years lands within a factor 2 of 1e-6; `|G − g|` is ~0 at the steady state and uses the final year; non-finite paths or half-life give a 422 domain error, not a 500. Mutation-checked: weakening the λ rule, dropping y from the identity, reading `G_0` and swapping the notes each fail a test | Per-run checks |
 
 ### Per-run checks shown in the app
 Steady-state residuals for s₀ and s₁ (numerical diagnostic, limit 1e-13), baseline =
-scenario before the change (exact identity, must be 0 mismatches), distance from `k*(s₁)` in
-the final year and `|G − g|` in the final year (information only). These describe one run;
-the guarantees above are what make them meaningful.
+scenario before the change (exact identity over k and y for `t ≤ T_c` and c and i for
+`t < T_c`, must be 0 mismatches), distance from `k*(s₁)` in the final year and `|G − g|` in
+the final year (information only). When the distance is above 1e-6, the note says how many
+half-lives have passed and estimates, from the linearisation, how many more are needed. These
+describe one run; the guarantees above are what make them meaningful. The form also applies
+the λ ≥ 10⁻³ rule before sending; the bound is read from the API contract
+(`x-min-effective-depreciation`), and the server stays the authority.
 
 ### Observed (2026-10-15, default inputs)
 `α = 0.3, s₀ = 0.2, s₁ = 0.3, δ = 0.05, n = 0.01, g = 0.02`: `k*(0.2) = 3.68924`,

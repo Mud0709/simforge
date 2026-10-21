@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Self
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from simforge.core.schemas import (
     Assumption,
@@ -28,6 +28,12 @@ MIN_EFFECTIVE_DEPRECIATION = 1e-3
 
 
 class SolowParameters(StrictModel):
+    # Published in the OpenAPI schema so the browser applies the same cross-field bound as
+    # the validator below (JSON Schema cannot express a rule on a sum of fields).
+    model_config = ConfigDict(
+        json_schema_extra={"x-min-effective-depreciation": MIN_EFFECTIVE_DEPRECIATION}
+    )
+
     capital_share: float = Field(
         default=0.3,
         ge=0.05,

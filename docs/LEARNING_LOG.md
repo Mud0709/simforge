@@ -8,6 +8,26 @@ approves it, in the branch of their next change (never directly on `main`).
 
 ---
 
+## Review fixes: Physics and Quant labs
+- **Merged:** PR #8, `c80fd6d` (2026-10-21).
+- **What it does:** fixes bugs found by reviewing all merged work: a false t = 0 landing,
+  physical input limits, exact vertical launch, stray-quote rejection, private error
+  messages, exact SD 0 for constant columns.
+- **Key concepts:** an event at the starting point; limits on derived quantities (k = b/m);
+  mutation checks prove a test can fail; middleware order decides which layer answers.
+- **Decisions and trade-offs:** some previously accepted (absurd) inputs are now refused,
+  each with a reason; near-vertical rounding left alone (it is rounding of the input).
+- **Revisit:** why the t = 0 bug looked like *perfect* accuracy.
+- **Next:** remaining Economy, Workspace UI and docs fixes; then 1.4.
+
+## Claude Code project setup
+- **Merged:** PR #7, `b041fc9` (2026-10-21).
+- **What it does:** project skills (debugging, verification, TDD, grilling, status) and a
+  cloud-session hook that installs dependencies.
+- **Key concepts:** CLAUDE.md is the only memory that persists; a hook's stdout enters the
+  context.
+- **Next:** review fixes (PR #8).
+
 ## Roadmap 1.3: Quant Lab CSV import and dataset profile
 - **Merged:** PR #6, `e8b3371` (2026-10-19).
 - **What it does:** imports a CSV (or a bundled synthetic sample) and describes it: column

@@ -136,6 +136,14 @@ def test_info_endpoint(client: TestClient) -> None:
                 "depreciation": 0.05,
             }
         },
+        # 0 < lambda = 5e-4 < 1e-3: a steady state exists but convergence takes ~4e4 years.
+        {
+            "parameters": {
+                "population_growth": -0.05,
+                "technology_growth": 0.0,
+                "depreciation": 0.0505,
+            }
+        },
         {"policy": {"new_savings_rate": 1.5}},
         {"policy": {"policy_year": -1}},
         {"policy": {"policy_year": 100}},  # = default horizon: change would be invisible
