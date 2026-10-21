@@ -4,11 +4,15 @@ Project skills load automatically in every Claude Code session opened in this re
 
 | Skill | Source | Licence | Changes |
 |---|---|---|---|
-| `systematic-debugging` | [obra/superpowers](https://github.com/obra/superpowers) `skills/systematic-debugging` at `b739a8a` | MIT, (c) 2025 Jesse Vincent | Two references renamed to the skills installed here; its internal test-scenario files were not copied |
+| `systematic-debugging` | [obra/superpowers](https://github.com/obra/superpowers) `skills/systematic-debugging` at `b739a8a` | MIT, (c) 2025 Jesse Vincent | Two references renamed to the skills installed here; its helper `find-polluter.sh` (npm-only) replaced by a pytest/Vitest loop in `root-cause-tracing.md`; its internal test-scenario files were not copied |
 | `verification-before-completion` | obra/superpowers `skills/verification-before-completion` at `b739a8a` | MIT, (c) 2025 Jesse Vincent | None |
 | `tdd` | [mattpocock/skills](https://github.com/mattpocock/skills) `skills/engineering/tdd` at `5beb35b` | MIT, (c) 2026 Matt Pocock | Points to SimForge's test standards; two references to skills not installed here replaced (marked "SimForge adaptation") |
 | `grilling` | mattpocock/skills `skills/productivity/grilling` at `5beb35b` | MIT, (c) 2026 Matt Pocock | None |
 | `simforge-status` | Written for SimForge | Project licence | — |
+
+Skills from the author's Claude account (marked *(account)* in `CLAUDE.md`, such as
+`anthropic-skills:learn` or `data:validate-data`) are not stored here; they are available
+only in sessions signed in to that account.
 
 Deliberately not installed: the full Superpowers plugin (its session-start hook makes skill
 use compulsory on every message and costs tokens every session), terse-output "token

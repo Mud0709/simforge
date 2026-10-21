@@ -15,7 +15,11 @@ Report what you verified, label anything you did not verify, and keep it short.
   (GitHub tools). Note CI as passed, failed, pending or not run.
 - `ROADMAP.md`: the step marked 🔜, the last ✅ steps, and the Track A table (optional,
   never a prerequisite).
-- The newest entries in the learning guides' changelogs (`docs/*LEARNING_GUIDE.md`).
+- `docs/LEARNING_LOG.md`: the latest entries (what was learned, what to revisit).
+- What changed in the docs recently: `git log --oneline -5 -- docs/`. The guides record
+  changes differently (`LEARNING_GUIDE.md`: "Changes from the previous version of this
+  guide"; `QUANT_LEARNING_GUIDE.md`: "Changelog"; `ECONOMY_LEARNING_GUIDE.md`: none), so
+  rely on git, not on those sections, and never guess what changed.
 - Do not run the full check suite unless asked; say which checks were and were not run.
 
 ## 2. Choose the output
@@ -33,7 +37,9 @@ meant to achieve, and the one or two concepts to understand before starting it.
 - Remaining limitations and unresolved questions.
 - Next recommended milestone and why it should come next.
 
-**Learning-log entry (after a merge), compact enough to save:**
+**Learning-log entry (after a merge):** draft it in the format of `docs/LEARNING_LOG.md`
+(newest first), show it to the author, and add it to that file only with their approval,
+in the branch of the next change:
 - Milestone and merged commit.
 - What the feature does.
 - Key concepts learned.

@@ -98,13 +98,18 @@ npm test 2>&1 | grep 'DEBUG git init'
 
 If something appears during tests but you don't know which test:
 
-Use the bisection script `find-polluter.sh` in this directory:
+Run the test files one at a time and check after each which one leaves the pollution behind
+(SimForge adaptation: the upstream helper script ran only `npm test`, so it was not copied):
 
 ```bash
-bash ./find-polluter.sh '.git' 'src/**/*.test.ts'
+# Backend (pytest), from backend/
+for f in $(find tests -name 'test_*.py' | sort); do
+  uv run pytest -q "$f" >/dev/null 2>&1
+  [ -e <polluted-path> ] && { echo "First polluter: $f"; break; }
+done
+# Frontend (Vitest), from frontend/: the same loop over src/**/*.test.ts(x) with
+#   npx vitest run "$f"
 ```
-
-Runs tests one-by-one, stops at first polluter. See script for usage.
 
 ## Real Example: Empty projectDir
 
