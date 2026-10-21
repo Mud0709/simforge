@@ -15,7 +15,7 @@ import {
 } from "@/lib/api/client";
 import { fileSizeProblem, fileToBase64, parseMarkers } from "@/lib/quant/upload";
 import { QuantAssumptions, QuantCharts, QuantSummary, QuantValidation } from "./QuantResults";
-import { Workspace } from "./Workspace";
+import { Workspace, runStatus } from "./Workspace";
 
 /** The chosen file could not be read (moved, deleted or changed since it was chosen). */
 class FileReadError extends Error {
@@ -284,53 +284,29 @@ export function QuantLab() {
     </form>
   );
 
-  const empty = (text: string) => <p className="empty">{text}</p>;
-  const staleBanner = stale && (
-    <p className="api-error stale" role="status">
-      The settings or the data have changed since this profile was made. Press &ldquo;Profile
-      again&rdquo; to update it; the results below are for the previous settings.
-    </p>
-  );
-
   return (
     <Workspace
       parameters={form}
-      visualisation={
-        result ? (
-          <>
-            {staleBanner}
-            <QuantCharts key={result.metadata.run_id} result={result} />
-          </>
-        ) : (
-          empty("Profile a dataset to see where values are missing and how each column is spread.")
-        )
+      status={runStatus(status, result)}
+      staleNote={
+        stale
+          ? "The settings or the data have changed since this profile was made. Press " +
+            "\u201cProfile again\u201d to update it; the results below are for the previous settings."
+          : null
       }
-      results={
-        result ? (
-          <>
-            {staleBanner}
-            <QuantSummary result={result} />
-          </>
-        ) : (
-          empty(
-            "Row and column counts, types, missing values, duplicates and summaries appear here.",
-          )
-        )
-      }
-      assumptions={
-        result ? (
-          <QuantAssumptions result={result} />
-        ) : (
-          empty("How each cell is interpreted is listed with every profile.")
-        )
-      }
-      validation={
-        result ? (
-          <QuantValidation result={result} />
-        ) : (
-          empty("Each profile reports its own accounting checks and the dataset's identity here.")
-        )
-      }
+      visualisation={result && <QuantCharts key={result.metadata.run_id} result={result} />}
+      results={result && <QuantSummary result={result} />}
+      assumptions={result && <QuantAssumptions result={result} />}
+      validation={result && <QuantValidation result={result} />}
+      placeholders={{
+        visualisation:
+          "Profile a dataset to see where values are missing and how each column is spread.",
+        results:
+          "Row and column counts, types, missing values, duplicates and summaries appear here.",
+        assumptions: "How each cell is interpreted is listed with every profile.",
+        validation:
+          "Each profile reports its own accounting checks and the dataset's identity here.",
+      }}
     />
   );
 }

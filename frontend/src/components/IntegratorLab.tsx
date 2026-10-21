@@ -6,11 +6,11 @@ import {
   ApiError,
   type IntegratorMethod,
   type IntegratorStudyResponse,
-  type ProjectileParameters,
   runIntegratorStudy,
 } from "@/lib/api/client";
 import { DEFAULT_DT_TEXT, parseSteps } from "@/lib/integrators/steps";
-import { PARAMETER_FIELDS, validateField } from "@/lib/projectile/fields";
+import { validateField } from "@/lib/fields";
+import { PARAMETER_FIELDS, toProjectileParameters } from "@/lib/projectile/fields";
 import {
   IntegratorAssumptions,
   IntegratorCharts,
@@ -18,7 +18,7 @@ import {
   IntegratorValidation,
 } from "./IntegratorResults";
 import { NumberField } from "./NumberField";
-import { Workspace } from "./Workspace";
+import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
 
 export const METHOD_LABELS: Record<IntegratorMethod, string> = {
   euler: "Forward Euler (order 1)",
@@ -43,6 +43,8 @@ export function IntegratorLab() {
   const [running, setRunning] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<IntegratorStudyResponse | null>(null);
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  const currentKey = JSON.stringify([values, stepsText, [...methods].sort()]);
 
   const fieldErrors = Object.fromEntries(
     PARAMETER_FIELDS.map((f) => [f.name, validateField(f, values[f.name] ?? "")]),
@@ -59,17 +61,20 @@ export function IntegratorLab() {
     e.preventDefault();
     setTouched(true);
     if (hasErrors || !steps.ok) return;
+    const key = currentKey;
     setRunning(true);
     setApiError(null);
     try {
-      const parameters = Object.fromEntries(
-        PARAMETER_FIELDS.map((f) => [f.name, Number(values[f.name])]),
-      ) as unknown as ProjectileParameters;
       // Keep the canonical method order regardless of click order.
       const ordered = METHODS.filter((m) => methods.includes(m));
       setResult(
-        await runIntegratorStudy({ parameters, dt_values: steps.values, methods: ordered }),
+        await runIntegratorStudy({
+          parameters: toProjectileParameters(values),
+          dt_values: steps.values,
+          methods: ordered,
+        }),
       );
+      setResultKey(key);
     } catch (err) {
       setApiError(err instanceof ApiError ? err.message : "Unexpected error");
     } finally {
@@ -138,45 +143,25 @@ export function IntegratorLab() {
     </form>
   );
 
-  const empty = (text: string) => <p className="empty">{text}</p>;
-
   return (
     <Workspace
       parameters={form}
-      visualisation={
-        result ? (
-          <IntegratorCharts result={result} />
-        ) : (
-          empty(
-            "Each selected method integrates the motion over the exact flight time with every " +
-              "time step you list. Errors are measured against the exact solution.",
-          )
-        )
-      }
-      results={
-        result ? (
-          <IntegratorOrders result={result} />
-        ) : (
-          empty("Fitted convergence orders appear here, next to the theoretical ones.")
-        )
-      }
-      assumptions={
-        result ? (
-          <IntegratorAssumptions result={result} />
-        ) : (
-          empty("The study's assumptions are listed with every run.")
-        )
-      }
-      validation={
-        result ? (
-          <IntegratorValidation result={result} />
-        ) : (
-          empty(
-            "The order is fitted only over step sizes that satisfy a pre-declared rule. Every " +
-              "run, and why it was included or excluded, appears here.",
-          )
-        )
-      }
+      status={runStatus(running ? "running" : "idle", result)}
+      staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
+      visualisation={result && <IntegratorCharts result={result} />}
+      results={result && <IntegratorOrders result={result} />}
+      assumptions={result && <IntegratorAssumptions result={result} />}
+      validation={result && <IntegratorValidation result={result} />}
+      placeholders={{
+        visualisation:
+          "Each selected method integrates the motion over the analytical flight time with " +
+          "every time step you list. Errors are measured against the analytical solution.",
+        results: "Fitted convergence orders appear here, next to the theoretical ones.",
+        assumptions: "The study's assumptions are listed with every run.",
+        validation:
+          "The order is fitted only over step sizes that satisfy a pre-declared rule. Every " +
+          "run, and why it was included or excluded, appears here.",
+      }}
     />
   );
 }

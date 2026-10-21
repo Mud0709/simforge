@@ -184,6 +184,22 @@ describe("SolowLab", () => {
     expect(within(row).queryByText("3e0")).not.toBeInTheDocument();
   });
 
+  it("marks the results as out of date when an input changes or a re-run fails", async () => {
+    mockFetch(200, RESPONSE);
+    render(<SolowLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    await screen.findByTestId("steady-state-baseline");
+    const s1 = screen.getByLabelText(/^New savings rate/);
+    await userEvent.clear(s1);
+    await userEvent.type(s1, "0.5");
+    mockFetch(422, { detail: [{ loc: ["body"], msg: "refused" }] });
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    await screen.findByRole("alert");
+    expect(
+      within(screen.getByRole("region", { name: "Results" })).getByText(/inputs have changed/),
+    ).toBeInTheDocument();
+  });
+
   it("shows the server's explanation when the API rejects a run", async () => {
     mockFetch(422, {
       detail: [

@@ -1,10 +1,11 @@
 "use client";
 
 import type { Data } from "plotly.js";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import type { IntegratorStudyResponse, MethodStudyResult } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
+import { AssumptionsList } from "./AssumptionsList";
 import { PlotlyChart } from "./PlotlyChart";
 
 const COLORS: Record<MethodStudyResult["method"], string> = {
@@ -82,7 +83,7 @@ const logAxes = (yTitle: string) => ({
 });
 
 /** Visualisation: convergence plots and trajectories. */
-export function IntegratorCharts({ result }: Props) {
+function IntegratorChartsView({ result }: Props) {
   const position = useMemo(() => convergenceTraces(result.results, "position"), [result]);
   const velocity = useMemo(() => convergenceTraces(result.results, "velocity"), [result]);
   const trajectories = useMemo<Data[]>(
@@ -212,52 +213,55 @@ export function IntegratorValidation({ result }: Props) {
         <strong>Fit rule.</strong> {result.fit_rule.description}
       </p>
       {result.results.map((m) => (
-        <details key={m.method} className="runs">
-          <summary>
-            <h3>All runs: {m.name}</h3>
-          </summary>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">h (s)</th>
-                  <th scope="col">N</th>
-                  <th scope="col">kh</th>
-                  <th scope="col">R(−kh)</th>
-                  <th scope="col">Stability</th>
-                  <th scope="col">Max pos. err (m)</th>
-                  <th scope="col">Max vel. err (m/s)</th>
-                  <th scope="col">Local order</th>
-                  <th scope="col">Fit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {m.runs.map((r, i) => {
-                  const local = i > 0 ? m.position_local_orders[i - 1] : null;
-                  return (
-                    <tr key={r.h}>
-                      <td className="num">{formatExp(r.h, 4)}</td>
-                      <td className="num">{r.n_steps}</td>
-                      <td className="num">{formatSig(r.kh, 3)}</td>
-                      <td className="num">{formatSig(r.amplification_factor, 4)}</td>
-                      <td>{r.diverged ? `diverged at step ${r.n_completed}` : r.stability}</td>
-                      <td className="num">
-                        {r.max_position_error === null ? "—" : formatExp(r.max_position_error, 3)}
-                      </td>
-                      <td className="num">
-                        {r.max_velocity_error === null ? "—" : formatExp(r.max_velocity_error, 3)}
-                      </td>
-                      <td className="num">
-                        {local === null || local === undefined ? "—" : local.toFixed(3)}
-                      </td>
-                      <td>{r.in_position_fit ? "✓" : r.exclusion_reason}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </details>
+        // The heading sits outside <summary>: a summary is a button to screen readers, and
+        // headings inside it do not appear in heading navigation.
+        <div key={m.method} className="runs">
+          <h3>All runs: {m.name}</h3>
+          <details>
+            <summary>Show the {m.runs.length} runs</summary>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">h (s)</th>
+                    <th scope="col">N</th>
+                    <th scope="col">kh</th>
+                    <th scope="col">R(−kh)</th>
+                    <th scope="col">Stability</th>
+                    <th scope="col">Max pos. err (m)</th>
+                    <th scope="col">Max vel. err (m/s)</th>
+                    <th scope="col">Local order</th>
+                    <th scope="col">Fit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {m.runs.map((r, i) => {
+                    const local = i > 0 ? m.position_local_orders[i - 1] : null;
+                    return (
+                      <tr key={r.h}>
+                        <td className="num">{formatExp(r.h, 4)}</td>
+                        <td className="num">{r.n_steps}</td>
+                        <td className="num">{formatSig(r.kh, 3)}</td>
+                        <td className="num">{formatSig(r.amplification_factor, 4)}</td>
+                        <td>{r.diverged ? `diverged at step ${r.n_completed}` : r.stability}</td>
+                        <td className="num">
+                          {r.max_position_error === null ? "—" : formatExp(r.max_position_error, 3)}
+                        </td>
+                        <td className="num">
+                          {r.max_velocity_error === null ? "—" : formatExp(r.max_velocity_error, 3)}
+                        </td>
+                        <td className="num">
+                          {local === null || local === undefined ? "—" : local.toFixed(3)}
+                        </td>
+                        <td>{r.in_position_fit ? "✓" : r.exclusion_reason}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
       ))}
       <p className="note">
         Run <code>{result.metadata.run_id}</code> · input hash{" "}
@@ -270,11 +274,11 @@ export function IntegratorValidation({ result }: Props) {
 
 /** Assumptions of the study. */
 export function IntegratorAssumptions({ result }: Props) {
-  return (
-    <ul className="assumptions">
-      {result.assumptions.map((a) => (
-        <li key={a.id}>{a.statement}</li>
-      ))}
-    </ul>
-  );
+  return <AssumptionsList assumptions={result.assumptions} />;
 }
+
+/**
+ * Memoised: the charts redraw only when the result changes, not on every keystroke in the
+ * form (which re-renders the page but leaves the result object the same).
+ */
+export const IntegratorCharts = memo(IntegratorChartsView);

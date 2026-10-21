@@ -1,10 +1,11 @@
 "use client";
 
 import type { Data } from "plotly.js";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import type { ErrorMetric, ProjectileResponse } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
+import { AssumptionsList } from "./AssumptionsList";
 import { AngleSweepPanel } from "./AngleSweepPanel";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -26,7 +27,7 @@ function relError(e: ErrorMetric): string {
 type Props = { result: ProjectileResponse };
 
 /** Visualisation: the trajectory and the energy budget. */
-export function ProjectileCharts({ result }: Props) {
+function ProjectileChartsView({ result }: Props) {
   const { numerical, series } = result;
 
   const trajectory = useMemo<Data[]>(
@@ -199,11 +200,13 @@ export function ProjectileAssumptions({ result }: Props) {
       <p className="note">
         {result.model.name} · v{result.model.version}
       </p>
-      <ul className="assumptions">
-        {result.assumptions.map((a) => (
-          <li key={a.id}>{a.statement}</li>
-        ))}
-      </ul>
+      <AssumptionsList assumptions={result.assumptions} />
     </>
   );
 }
+
+/**
+ * Memoised: the charts redraw only when the result changes, not on every keystroke in the
+ * form (which re-renders the page but leaves the result object the same).
+ */
+export const ProjectileCharts = memo(ProjectileChartsView);

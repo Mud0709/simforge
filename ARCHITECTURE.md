@@ -165,6 +165,21 @@ fit at half width. **Validation** always answers "how do we know these numbers a
 per-run checks for Solow, the comparison with the exact solution for the projectile, the
 pre-declared fit rule and per-run evidence for the integrator study.
 
+The workspace also owns three behaviours every page needs, so no lab can forget one:
+- **Placeholders.** A page passes each region's content, or `null` before there is a result,
+  plus one placeholder text per region.
+- **Out-of-date results.** Each page remembers the inputs its result was computed from (one
+  string of all the form's values). When the form no longer matches, the page passes a
+  `staleNote` and the workspace marks Visualisation, Results and Validation. Old results stay
+  visible, labelled, rather than disappearing or passing as current.
+- **One short live status line.** Screen readers hear "Running…" and "Run complete. Showing run
+  …", not every chart and table (the regions themselves are not live).
+
+Shared pieces used by all three labs: `ChecksTable` (decision 12) and `AssumptionsList`.
+Chart components are wrapped in `React.memo`, so typing in the form does not redraw Plotly
+charts. The Parameters panel is sticky but never taller than the window; a long form scrolls
+inside it.
+
 ### 12. Per-run validation is data, not decoration
 A model can return `checks`: each has a value, an optional limit, a pass/fail/info status and
 a *kind* (exact identity, numerical diagnostic or informational). The Validation section

@@ -1,4 +1,5 @@
-import { PARAMETER_FIELDS, SOLVER_FIELDS, validateField } from "./fields";
+import { validateField } from "@/lib/fields";
+import { PARAMETER_FIELDS, SOLVER_FIELDS } from "./fields";
 
 const byName = (name: string) => {
   const f = [...PARAMETER_FIELDS, ...SOLVER_FIELDS].find((x) => x.name === name);
