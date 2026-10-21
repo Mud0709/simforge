@@ -26,7 +26,9 @@ async def simulate_solow(request: SolowRequest, repo: Repository) -> SolowRespon
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
     years = list(range(request.horizon_years + 1))
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         solow.MODEL_INFO,
         request.model_dump(include={"parameters", "policy", "horizon_years"}),

@@ -53,7 +53,7 @@ def test_lab_measurements() -> None:
     date = by["date"].date
     assert date is not None
     assert (date.count, date.unique, date.span_days) == (12, 3, 2.0)
-    assert (date.min, date.max) == ("2026-09-01T00:00:00", "2026-09-03T00:00:00")
+    assert (date.min, date.max) == ("2026-09-01", "2026-09-03")
 
     material = by["material"].categorical
     assert material is not None

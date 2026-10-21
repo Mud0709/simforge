@@ -38,7 +38,9 @@ async def simulate_projectile(request: ProjectileRequest, repo: Repository) -> P
     except SolverError as exc:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)) from exc
 
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         projectile.MODEL_INFO,
         # Only the inputs that affect the numbers are hashed (not save_experiment).
@@ -74,7 +76,9 @@ async def integrator_study(
     except ModelDomainError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         integrator_model.MODEL_INFO,
         request.model_dump(include={"parameters", "dt_values", "methods"}),
@@ -120,7 +124,9 @@ async def projectile_angle_sweep(
     r = computation.result
     # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
     params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         projectile.ANGLE_SWEEP_INFO,
         {"parameters": params, "n_angles": request.n_angles},

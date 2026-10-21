@@ -62,7 +62,8 @@ auxiliary functions
 ```
 
 evaluated with `expm1` for `u ≥ 0.1` and a 12-term Taylor series for `u < 0.1`. This form is
-accurate to ~1e-15 relative for all `u ≥ 0`, and it reduces *exactly* to the vacuum formulas
+accurate to within 2e-15 relative (an empirical bound: the worst error measured on dense
+grids over `1e-12 ≤ u ≤ 100` was 1.6e-15), and it reduces *exactly* to the vacuum formulas
 at `b = 0` (`ψ(0) = 1`, `φ(0) = ½`). That means a single code path, with no special case.
 `test_stable_form_avoids_catastrophic_cancellation` demonstrates both the failure and the fix
 against a 50-digit `decimal` reference.
@@ -73,7 +74,7 @@ All tests are in `backend/tests/physics/`.
 
 | Check | Reference | Tolerance | Why that tolerance |
 |---|---|---|---|
-| `ψ`, `φ` at 11 points from 1e-12 to 100, including either side of the series switch | 50-digit `decimal` | rel 1e-15 | A few ε |
+| `ψ`, `φ` on 2002 points from 1e-12 to 100, densely around the series switch at 0.1 | 50-digit `decimal` | rel 4e-16 (`ψ`), 2e-15 (`φ`) | Empirical: worst measured 2.2e-16 and 1.6e-15 |
 | Vacuum range `v²sin2θ/g`, flight time `2v sinθ/g`, height `v²sin²θ/2g` (5 angles) | Textbook | rel 1e-13 to 1e-14 | Several ε, plus one root-find |
 | Vacuum launch from height | Quadratic formula | rel 1e-14 | — |
 | Complementary angles give equal range; 45° maximises range | Symmetry | rel 1e-13 | — |
@@ -87,6 +88,17 @@ All tests are in `backend/tests/physics/`.
 | Vacuum conserves mechanical energy | Invariant | 1e-12 | — |
 | Drag work is non-negative and monotonic | Second law | strict | — |
 | Stiff inputs sent to an explicit solver are refused | Guard | — | `k·T > 1e4` would need ≥ ~1e4 stability-limited steps |
+| Shallow launches from the ground (0.001° to 1°, all 3 solvers) land at the exact time | Exact solution | rel 1e-6 | Catches a landing reported at t = 0 (a 100 % error); far above solver error |
+| A vertical launch has range exactly 0 and a null relative range error | Exact (`v_x = 0`) | exact | — |
+
+**Input limits** (`tests/api/test_physics_limits.py`): mass ≥ 1e-6 kg, initial speed
+≥ 1e-3 m/s and drag rate `k = b/m ≤ 1e4 s⁻¹` (drag acting over at least 0.1 ms); integrator
+steps `dt ≥ 1e-9 s`. Below these the linear-drag model is not physically meaningful and the
+arithmetic could overflow or underflow (before the limits, `m = 1e-305, b = 1e6` crashed with a
+division by zero). The test runs every corner of the allowed space through the API: each one
+either runs (finite, and agreeing with the exact solution to rel 1e-5 wherever the motion is
+much larger than the solver's 1e-10 m absolute tolerance) or is refused with a 422 that
+explains why. None returns a 500.
 
 API tests (`backend/tests/api/`) check input validation, including `NaN` and `±Infinity`,
 which Python's JSON parser accepts. They also check that errors are reported in valid JSON,
@@ -128,9 +140,10 @@ also appear in its API response under `comparison`.
 - **Linear drag only.** Real balls experience drag closer to `F ∝ v²`, which has no
   closed-form 2-D solution. That model will be validated against limits, invariants and
   convergence studies instead (see ROADMAP).
-- **The reported error does not measure interpolation error.** Error metrics are evaluated at
-  the solver's accepted step nodes. Plotted curves come from the dense-output interpolant,
-  which adds its own (smaller-order) error that is not reported.
+- **Interpolation error is mixed in, not separated out.** Error metrics are evaluated at the
+  solver's accepted step nodes, but the last node (the landing) and the event-located apex
+  come from the dense-output interpolant, so they include interpolation error. Plotted curves
+  also come from the interpolant. Interpolation error is not reported separately.
 - **The integration cap depends on the exact solution.** The numerical run uses `2 × T_exact`
   as its integration cap. The answer is found independently, but a future model without
   an exact solution will need a different bound.
@@ -198,7 +211,8 @@ computation refused to find a root there, which is how the mistake was caught.
 ### Error metrics
 
 - **Fixed horizon.** Every run integrates over `[0, T]`, where `T` is the exact flight time,
-  using `N = ⌈T/dt⌉` equal steps of `h = T/N ≤ dt`. Convergence is fitted against `h`, not
+  using `N = ⌈T/dt⌉` equal steps of `h = T/N ≤ dt` (up to a relative 1e-12 that absorbs
+  rounding noise in `T/dt`). Convergence is fitted against `h`, not
   the requested `dt`. Landing is *not* detected: locating it between nodes would add an
   interpolation error (typically O(h²)) that could mask RK4's fourth order.
 - **Max position error** = `max_n |r_n − r(t_n)|` (m), and **max velocity error** =
@@ -265,7 +279,7 @@ Projectile study (`backend/tests/physics/test_projectile_integrators.py`):
 | Linear invariant conserved by Euler/RK4 (1e-13); violated by Verlet | Theorem above |
 | Round-off floor excludes the finest RK4 points; too few points ⇒ no order claimed | Fit rule |
 | Divergent runs report null errors (strict JSON); unstable-but-finite runs are flagged and excluded | — |
-| `dt > T` ⇒ one step; `⌈T/dt⌉` is robust to rounding noise; `h ≤ dt`; `N·h = T` | — |
+| `dt > T` ⇒ one step; `⌈T/dt⌉` is robust to rounding noise; `h ≤ dt (1 + 1e-12)`; `N·h = T` | — |
 | Vacuum (`b = 0`) rejected; results deterministic | — |
 
 API tests (`backend/tests/api/test_integrators_api.py`) cover validation (zero drag, ≤ 0,
@@ -329,7 +343,9 @@ or run the study from the UI (Physics Lab → Integrators).
 For fixed speed, height, mass, drag and gravity, the exact linear-drag range `R(θ)` is computed
 at evenly spaced angles from 0° to 90°. The angle that maximises the range is then found by
 refining the best grid point with a bounded Brent search (`xatol = 1e-7°`) on the
-neighbouring grid interval. Engine: `backend/src/simforge/physics/projectile/angle_sweep.py`.
+neighbouring grid interval. SciPy's bounded Brent stops within `√ε·|θ| + xatol/3`, about
+7e-7° near 45°, so the angle is known to roughly 1e-6° (measured: up to 6.9e-7° from 45° on
+grids that do not contain 45°). Engine: `backend/src/simforge/physics/projectile/angle_sweep.py`.
 
 The vacuum optimum has a closed form, reported alongside the drag result for comparison:
 `tan θ* = v₀ / √(v₀² + 2gh)` and `R* = (v₀/g)·√(v₀² + 2gh)`, which gives 45° and `v₀²/g`
@@ -344,16 +360,17 @@ about `√ε` in relative terms. Tests check the range to `1e-12` relative and t
 ### Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
 | Check | Reference |
 |---|---|
-| Vacuum from the ground: best angle 45°, `R* = v²/g` | Textbook |
+| Vacuum from the ground: best angle 45° (to 1e-6°, on a grid that does not contain 45°), `R* = v²/g` | Textbook |
 | Vacuum from h = 5, 10, 50, 200 m: angle and range | Closed form above |
 | Complementary angles give equal vacuum range | Symmetry |
 | With drag: best angle < 45° and decreasing as b rises (b = 0.01…3 kg/s) | Physical property |
 | `b = 1e-6` gives 45° to within 1e-3° | Limit |
 | Exactly one peak on a 0.25° grid, for 5 drag values | Assumption behind the refinement |
-| Refined optimum ≥ every grid point, and ±0.001° does no better | Definition of a maximum |
-| Sweep values equal `analytical.state` at the landing time | Consistency |
+| A dense scan (1e-6° steps, ±1e-4°) finds no longer range than the reported one, beyond 8 ulps; mutation-checked to catch a reported angle 1e-5° off | Independent search method |
+| Vacuum flight time and maximum height at 3 angles and heights | Textbook formulas |
+| The 90° point has range exactly 0 | Exact |
 | Drag never increases the maximum range | Physics |
-| API: 45° and `v²/g` end to end; launch angle ignored in results and hash; validation | Contract |
+| API: 45° and `v²/g` end to end; launch angle ignored in results and hash (including 0° from the ground); validation | Contract |
 
 ### Observed (2026-10-15)
 With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48°, 35.46°,
@@ -517,10 +534,11 @@ rounding, not exact.
 | Number | `[+-]?(digits[.[digits]]|.digits)([eE][+-]?digits)?` with ASCII digits, finite in double precision. Not `1,000`, `inf`, `nan`, `1_000`, `1e999` |
 | Leading-zero number (`007`) | Not numeric unless the user overrides the column |
 | Date | ISO 8601 `YYYY-MM-DD[(T| )HH:MM[:SS[.ffffff]]]` that exists on the calendar; `01/02/2024` is flagged ambiguous and stays text |
-| Column type | `empty` (all missing), `numeric`/`date` (every non-missing value is one), otherwise `categorical` with counts of each kind |
+| Column type | `empty` (all missing), `numeric`/`date` (every non-missing value is one), otherwise `categorical` with counts of each kind; **mixed** if its values come from at least two of: number-like, date, other text |
 | Invalid | A non-missing value that does not fit an *overridden* type; excluded from statistics, never converted |
 | Duplicate row | Identical, character for character, to an earlier row; counted, not removed |
-| Mean, SD | `(1/n) Σx`; `sqrt(Σ(x − mean)² / (n − 1))`, defined for n ≥ 2 |
+| Date summary | Earliest and latest shown as written in the file; "distinct" counts moments in time (`2024-01-01` and `2024-01-01 00:00` count once) |
+| Mean, SD | `(1/n) Σx`; `sqrt(Σ(x − mean)² / (n − 1))`, defined for n ≥ 2; exactly 0 when all values are identical (computing it would leave a rounding residue such as 1.7e-17 for three `0.1`s) |
 | Quartiles | Hyndman-Fan type 7 (linear interpolation; NumPy default, R default, `QUARTILE.INC`) |
 | Histogram | `min(50, ⌈log₂ n⌉ + 1)` equal-width bins (Sturges); last bin includes the maximum |
 | Percentages | Of all rows |
@@ -537,20 +555,20 @@ rounding, not exact.
   quantile uses `(1 − g)a + gb` and clamps to `[a, b]`, which only removes a rounding step,
   because the exact value lies in that interval. The mean is clamped to `[min, max]` likewise.
 
-### What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 209 tests)
+### What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
 | Check | Kind |
 |---|---|
 | Mean and SD against `statistics.fmean` / `statistics.stdev` (exact rational arithmetic), quartiles against `statistics.quantiles(method="inclusive")` (type 7), on 20 seeded random samples over 12 orders of magnitude; quantiles against `numpy.quantile(method="linear")` for n = 1-11 | Independent reference |
 | Hand-worked examples: `2,4,4,4,5,5,7,9`; `1..7` shows type 7 (Q1 = 2.5) differs from the "median of each half" rule (Q1 = 2); histogram edges and counts for 0..10 | Hand-derived |
 | Both bundled samples, every count and statistic derived by hand from the CSV text | Hand-derived (known answers) |
-| Extremes: `[1e308]*3`, `[max, max]`, `[−1.7e308, 1.7e308]` (SD `null`), subnormal values, all zeros, one value | Overflow and edge cases |
+| Extremes: `[1e308]*3`, `[max, max]`, `[−1.7e308, 1.7e308]` (SD `null`), subnormal values, all zeros, one value, constant columns of non-binary values (SD exactly 0) | Overflow and edge cases |
 | 39 cell classifications (numbers, leading zeros, non-finite, ISO and impossible dates, ambiguous dates, Arabic-Indic digits, `1_000`, `inf`, case-sensitive markers) and 9 column inferences | Type rules |
 | Overrides: numeric on a mixed column (invalid counted with row numbers), date on a numeric column (no statistics), categorical (all valid); missing + invalid + valid = rows | Override rules |
-| Parsing: empty, whitespace-only, header-only, UTF-16, invalid UTF-8, NUL bytes, BOM, duplicate or blank names, inconsistent rows with row and line numbers, unclosed and stray quotes, overlong cells, quoted newlines, blank lines, CRLF, three delimiters, the row, column and size limits at and just over each | Malformed input |
+| Parsing: empty, whitespace-only, header-only, UTF-16, invalid UTF-8, NUL bytes, BOM, duplicate or blank names, inconsistent rows with row and line numbers, unclosed quotes, stray quotes inside unquoted fields (which Python's `csv` module would accept), overlong cells, quoted newlines, blank lines, CRLF, three delimiters, the row, column and size limits at and just over each | Malformed input |
 | API: the identity (`input_hash`) changes with any byte or any option and not with equivalent options; a sample and an identical upload share it; 13 malformed requests give 422 (bad base64, path-like sample ids, unknown fields, a file name, out-of-range or duplicate overrides, marker limits); a 2 MiB request is accepted, 2 MiB + 1 byte is rejected even though its base64 fits the schema | Contract |
-| Body limit: exactly at the limit the body is read, one byte over gives 413; a declared or chunked body over the limit gives 413; a small chunked body and the Solow, projectile and health endpoints still work | Contract |
+| Body limit: exactly at the limit the body is read and one byte over gives 413, for declared and chunked bodies alike; the 413 carries CORS headers; a small chunked body and the Solow, projectile and health endpoints still work | Contract |
 | A numeric sentinel (`-999`) as a marker is missing, not averaged; a one-column file with blank lines carries a warning note | Missing values |
-| Privacy: nothing is logged unless asked; a saved record contains the hash, size, options and counts, and no column name, cell value or encoded content (the options do hold any markers the user typed) | Data handling |
+| Privacy: a rejected upload is never echoed back in a 422 error, however small (file content and long strings in the echoed input or field location are replaced by a note); nothing is logged unless asked; a saved record contains the hash, size, options and counts, and no column name, cell value or encoded content (the options do hold any markers the user typed) | Data handling |
 
 ### Per-run checks shown in the app
 Exact identities, each a count that must be 0: columns where missing + invalid + valid ≠ rows,

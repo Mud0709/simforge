@@ -126,6 +126,23 @@ def test_malformed_quoting_is_rejected(data: bytes) -> None:
         parse_csv(data, "comma")
 
 
+@pytest.mark.parametrize(
+    ("data", "line"),
+    [
+        (b'a,b\nx"y,2\n', 2),  # a quote inside an unquoted field
+        (b'a,b\n1, "5"\n', 2),  # a quote after a leading space is not an opening quote
+        (b'a,b\n1,2\n3,4 inch"\n', 3),
+        (b'a,b\r1,2\r3,4 inch"\r', 3),  # old Mac line endings
+        (b'a,b\r\n1,2\r\n3,4 inch"\r\n', 3),
+    ],
+)
+def test_stray_quote_in_an_unquoted_field_is_rejected(data: bytes, line: int) -> None:
+    # RFC 4180: a quote may appear only at the start of a quoted field, or doubled inside
+    # one. Python's csv module keeps other quotes as text even in strict mode.
+    with pytest.raises(DatasetError, match=f"stray quotation mark on line {line}"):
+        parse_csv(data, "comma")
+
+
 def test_quoted_fields_may_contain_delimiters_quotes_and_newlines() -> None:
     data = b'id,note\n1,"a, b"\n2,"say ""hi"""\n3,"two\nlines"\n4,x\n'
     t = parse_csv(data, "comma")

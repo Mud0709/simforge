@@ -204,4 +204,39 @@ describe("QuantLab", () => {
     expect(sent.options.delimiter).toBe("semicolon");
     expect(sent.options.column_types).toEqual([]);
   });
+
+  it("explains a file that can no longer be read, without contacting the server", async () => {
+    const api = mockApi(() => json(200, PROFILE));
+    render(<QuantLab />);
+    await userEvent.click(screen.getByLabelText("Upload a CSV file"));
+    const file = new File(["a\n1\n"], "gone.csv", { type: "text/csv" });
+    // The file was moved or edited after it was chosen: reading it fails.
+    Object.defineProperty(file, "arrayBuffer", {
+      value: () => Promise.reject(new DOMException("changed", "NotReadableError")),
+    });
+    await userEvent.upload(screen.getByLabelText(/^CSV file/), file);
+    await userEvent.click(screen.getByRole("button", { name: "Profile dataset" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not read the file");
+    expect(profileCalls(api)).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Profile dataset" })).toBeEnabled();
+  });
+
+  it("ignores a second click while the file is still being read", async () => {
+    const api = mockApi(() => json(200, PROFILE));
+    render(<QuantLab />);
+    await userEvent.click(screen.getByLabelText("Upload a CSV file"));
+    const file = new File(["a\n1\n"], "slow.csv", { type: "text/csv" });
+    let finishReading: (b: ArrayBuffer) => void = () => {};
+    Object.defineProperty(file, "arrayBuffer", {
+      value: () => new Promise<ArrayBuffer>((resolve) => (finishReading = resolve)),
+    });
+    await userEvent.upload(screen.getByLabelText(/^CSV file/), file);
+    await userEvent.click(screen.getByRole("button", { name: "Profile dataset" }));
+    const button = screen.getByRole("button", { name: "Profiling…" });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    finishReading(new TextEncoder().encode("a\n1\n").buffer as ArrayBuffer);
+    await screen.findByTestId("profile-rows");
+    expect(profileCalls(api)).toHaveLength(1);
+  });
 });

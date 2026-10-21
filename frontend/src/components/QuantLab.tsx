@@ -17,6 +17,13 @@ import { fileSizeProblem, fileToBase64, parseMarkers } from "@/lib/quant/upload"
 import { QuantAssumptions, QuantCharts, QuantSummary, QuantValidation } from "./QuantResults";
 import { Workspace } from "./Workspace";
 
+/** The chosen file could not be read (moved, deleted or changed since it was chosen). */
+class FileReadError extends Error {
+  constructor() {
+    super("Could not read the file. It may have been moved or changed; choose it again.");
+  }
+}
+
 /** Mirrors the server's default missing-value markers (which remain the authority). */
 const DEFAULT_MARKERS = "NA, N/A, NaN, None, null";
 
@@ -81,7 +88,6 @@ export function QuantLab() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    let body: ProfileRequest;
     if (sourceKind === "upload") {
       if (!file) {
         setError("Choose a CSV file first.");
@@ -92,35 +98,47 @@ export function QuantLab() {
         setError(tooBig);
         return;
       }
-      body = {
-        source: { kind: "upload", content_base64: await fileToBase64(file) },
-        options: { delimiter, missing_markers: markers, column_types: [] },
-        save_experiment: save,
-      };
-    } else {
-      body = {
-        source: { kind: "sample", sample_id: sampleId },
-        options: { delimiter, missing_markers: markers, column_types: [] },
-        save_experiment: save,
-      };
     }
-    body.options!.column_types = Object.entries(overrides).map(([column, type]) => ({
-      column: Number(column),
-      type,
-    }));
-
+    // Claim the request number and disable the button *before* reading the file, so a
+    // second click during a slow read is ignored and replies are ordered by click.
     const id = ++latestRequest.current;
     const key = currentKey;
+    const requestSource = source;
     setStatus("running");
     try {
+      let content_base64 = "";
+      if (sourceKind === "upload" && file) {
+        try {
+          content_base64 = await fileToBase64(file);
+        } catch {
+          throw new FileReadError();
+        }
+      }
+      const body: ProfileRequest = {
+        source:
+          sourceKind === "upload"
+            ? { kind: "upload", content_base64 }
+            : { kind: "sample", sample_id: sampleId },
+        options: {
+          delimiter,
+          missing_markers: markers,
+          column_types: Object.entries(overrides).map(([column, type]) => ({
+            column: Number(column),
+            type,
+          })),
+        },
+        save_experiment: save,
+      };
       const response = await profileDataset(body);
       if (id !== latestRequest.current) return; // a newer request has started
       setResult(response);
       setResultKey(key);
-      setResultSource(source);
+      setResultSource(requestSource);
     } catch (err) {
       if (id !== latestRequest.current) return;
-      setError(err instanceof ApiError ? err.message : "Unexpected error");
+      setError(
+        err instanceof ApiError || err instanceof FileReadError ? err.message : "Unexpected error",
+      );
     } finally {
       if (id === latestRequest.current) setStatus("idle");
     }

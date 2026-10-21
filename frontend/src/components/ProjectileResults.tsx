@@ -34,7 +34,7 @@ export function ProjectileCharts({ result }: Props) {
       {
         x: series.x_analytical,
         y: series.y_analytical,
-        name: "Analytical (exact)",
+        name: "Analytical",
         mode: "lines",
         line: { color: ANALYTICAL, width: 2 },
       },
@@ -91,7 +91,7 @@ export function ProjectileCharts({ result }: Props) {
       />
       <p className="note">
         The dashed line should be flat: energy lost to drag is accounted for, so any drift is
-        integration error.
+        numerical error (integration error, plus interpolation between solver steps).
       </p>
     </>
   );
@@ -105,7 +105,7 @@ export function ProjectileSummary({ result }: Props) {
       <dl className="stats">
         {METRICS.map(({ key, label, unit }) => (
           <div key={key}>
-            <dt>{label} (exact)</dt>
+            <dt>{label} (analytical)</dt>
             <dd>
               {formatSig(analytical[key], 8)} {unit}
             </dd>

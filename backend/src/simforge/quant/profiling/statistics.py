@@ -131,7 +131,11 @@ def numeric_stats(values: list[float]) -> NumericStats:
     # The exact mean lies in [min, max]; clamping only removes a rounding step outside it.
     unscaled = _unscale(mean_y, e)
     mean = hi if unscaled is None else min(max(unscaled, lo), hi)
-    if n >= 2:
+    if n >= 2 and lo == hi:
+        # Every value is identical: the spread is exactly 0. Computing it would leave a
+        # rounding residue (e.g. 1.7e-17 for three 0.1s), since mean_y is itself rounded.
+        std = 0.0
+    elif n >= 2:
         std = _unscale(math.sqrt(float(np.sum((y - mean_y) ** 2)) / (n - 1)), e)
         if std is None:
             notes.append(
@@ -165,16 +169,20 @@ def numeric_stats(values: list[float]) -> NumericStats:
     )
 
 
-def date_stats(values: list[datetime]) -> DateStats:
+def date_stats(values: list[tuple[str, datetime]]) -> DateStats:
+    """``values`` are (text as written in the file, parsed moment) pairs. The earliest and
+    latest are reported as written; "unique" counts distinct moments in time, so
+    '2024-01-01' and '2024-01-01 00:00' count once."""
     if not values:
         raise ValueError("date_stats needs at least one value")
-    lo, hi = min(values), max(values)
+    lo = min(values, key=lambda v: v[1])  # first in file order among equal moments
+    hi = max(values, key=lambda v: v[1])
     return DateStats(
         count=len(values),
-        unique=len(set(values)),
-        min=lo.isoformat(),
-        max=hi.isoformat(),
-        span_days=(hi - lo).total_seconds() / 86_400,
+        unique=len({moment for _, moment in values}),
+        min=lo[0],
+        max=hi[0],
+        span_days=(hi[1] - lo[1]).total_seconds() / 86_400,
     )
 
 

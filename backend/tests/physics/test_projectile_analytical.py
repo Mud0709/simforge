@@ -45,10 +45,18 @@ def _psi_decimal(u: float) -> float:
     return float((1 - (-d).exp()) / d)
 
 
-@pytest.mark.parametrize("u", [1e-12, 1e-8, 1e-4, 0.01, 0.0999, 0.1, 0.1001, 0.5, 1, 10, 100])
-def test_auxiliary_functions_match_50_digit_reference(u: float) -> None:
-    assert analytical.phi(np.array([u]))[0] == pytest.approx(_phi_decimal(u), rel=1e-15)
-    assert analytical.psi(np.array([u]))[0] == pytest.approx(_psi_decimal(u), rel=1e-15)
+# Empirical bounds, not proofs: on dense grids (4001 log-spaced points in [1e-12, 100] and
+# 20001 points in [0.1, 1], where the direct formula takes over) the worst errors measured
+# were 1.63e-15 for phi and 2.2e-16 for psi (2026-10-21). The bounds leave a small margin.
+PHI_REL, PSI_REL = 2e-15, 4e-16
+DENSE_U = np.concatenate([np.geomspace(1e-12, 100, 1001), np.linspace(0.09, 1.1, 1001)])
+
+
+def test_auxiliary_functions_match_50_digit_reference_on_a_dense_grid() -> None:
+    phi, psi = analytical.phi(DENSE_U), analytical.psi(DENSE_U)
+    for i, u in enumerate(DENSE_U):
+        assert phi[i] == pytest.approx(_phi_decimal(float(u)), rel=PHI_REL), u
+        assert psi[i] == pytest.approx(_psi_decimal(float(u)), rel=PSI_REL), u
 
 
 def test_auxiliary_functions_vacuum_limit_is_exact() -> None:
