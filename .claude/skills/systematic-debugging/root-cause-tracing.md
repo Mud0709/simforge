@@ -102,10 +102,11 @@ Run the test files one at a time and check after each which one leaves the pollu
 (SimForge adaptation: the upstream helper script ran only `npm test`, so it was not copied):
 
 ```bash
-# Backend (pytest), from backend/
+# Backend (pytest), from backend/. Set POLLUTED to the file or directory that appears.
+POLLUTED=path/that/appears
 for f in $(find tests -name 'test_*.py' | sort); do
-  uv run pytest -q "$f" >/dev/null 2>&1
-  [ -e <polluted-path> ] && { echo "First polluter: $f"; break; }
+  uv run pytest -q "$f" >/dev/null 2>&1 || echo "note: $f failed or crashed (exit $?); check it separately"
+  [ -e "$POLLUTED" ] && { echo "First polluter: $f"; break; }
 done
 # Frontend (Vitest), from frontend/: the same loop over src/**/*.test.ts(x) with
 #   npx vitest run "$f"

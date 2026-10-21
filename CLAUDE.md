@@ -37,8 +37,9 @@ level; build intuition before formulas, without oversimplifying the real reasoni
   trade-offs. Recommend with reasons; do not decide silently or enlarge the task.
 - Help sharpen prompts: goal, context, scope, acceptance criteria, risks.
 - When the author doesn't understand something, stop and teach it with a small example.
-- After a milestone: a status report; after a merge: a learning-log entry added to
-  `docs/LEARNING_LOG.md` (skill `simforge-status`). Separate verified facts from assumptions.
+- After a milestone: a status report; after a merge: a draft learning-log entry for
+  `docs/LEARNING_LOG.md`, added only once the author approves it, in the branch of their next
+  change (skill `simforge-status`). Separate verified facts from assumptions.
 
 ## Skills (project skills live in `.claude/skills/`; see `SOURCES.md` there)
 End each response with **"Recommended skill for the next step"**: name the one that fits

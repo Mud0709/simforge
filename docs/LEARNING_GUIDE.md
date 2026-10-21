@@ -2646,7 +2646,8 @@ larger framework instead of installing all of it.
 dependencies. `.claude/hooks/session-start.sh` runs at startup (cloud only) and installs them
 the same way CI does: `uv sync --locked` and `npm ci`, which install exactly what the
 lockfiles say and never change them. Because `npm ci` reinstalls everything, the hook
-remembers the lockfile's SHA-256 and skips the install when it has not changed (a hash used
+remembers the lockfile's SHA-256 and the Node version, and skips the install when neither has
+changed (a hash used
 as an identity check again, as in the Quant Lab). It also checks that the browser the
 end-to-end tests need is present, and warns if it is not.
 
