@@ -3,7 +3,8 @@
 One short entry per merged milestone, newest first: what was built, what it taught, and what
 to revisit. Detail lives in the learning guides, `ARCHITECTURE.md` and
 `SCIENTIFIC_VALIDATION.md`; this log only points to it. New entries are added after each
-merge (the `simforge-status` skill drafts them; the author edits and keeps them).
+merge: the `simforge-status` skill drafts them, and an entry is added only once the author
+approves it, in the branch of their next change (never directly on `main`).
 
 ---
 
