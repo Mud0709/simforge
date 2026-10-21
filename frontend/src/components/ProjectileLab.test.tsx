@@ -6,8 +6,13 @@ import type { ProjectileResponse } from "@/lib/api/client";
 import { ProjectileLab } from "./ProjectileLab";
 
 // Plotly needs a real browser (canvas, SVG layout); charts are covered by the E2E test.
+// Each chart's layout object is recorded so a test can check that typing does not redraw.
+const layouts = new Map<string, unknown[]>();
 vi.mock("./PlotlyChart", () => ({
-  PlotlyChart: ({ title }: { title: string }) => <div role="img" aria-label={title} />,
+  PlotlyChart: ({ title, layout }: { title: string; layout: unknown }) => {
+    layouts.set(title, [...(layouts.get(title) ?? []), layout]);
+    return <div role="img" aria-label={title} />;
+  },
 }));
 
 const metrics = {
@@ -101,6 +106,9 @@ describe("ProjectileLab", () => {
     const vis = within(region("Visualisation"));
     expect(vis.getByRole("img", { name: /Trajectory/ })).toBeInTheDocument();
     expect(vis.getByRole("img", { name: "Energy against time" })).toBeInTheDocument();
+    expect(vis.queryByText("Range (analytical)")).not.toBeInTheDocument();
+    expect(vis.queryByTestId("max-position-error")).not.toBeInTheDocument();
+    expect(vis.queryByText("Analytical vs numerical")).not.toBeInTheDocument();
     // Results: the exact quantities and the angle sweep.
     const results = within(region("Results"));
     expect(results.getByText("Range (analytical)")).toBeInTheDocument();
@@ -114,6 +122,41 @@ describe("ProjectileLab", () => {
     expect(
       within(region("Assumptions")).getByText("The projectile is a point mass."),
     ).toBeInTheDocument();
+  });
+
+  it("marks the results as out of date when an input changes, until the next run", async () => {
+    mockFetch(200, RESPONSE);
+    render(<ProjectileLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    await screen.findByText("Analytical vs numerical");
+    expect(screen.queryByText(/inputs have changed/)).not.toBeInTheDocument();
+
+    const drag = screen.getByLabelText(/^Drag coefficient/);
+    await userEvent.type(drag, "5");
+    expect(
+      within(screen.getByRole("region", { name: "Validation" })).getByText(/inputs have changed/),
+    ).toBeInTheDocument();
+    // Back to the inputs of the shown run: current again.
+    await userEvent.type(drag, "{backspace}");
+    expect(screen.queryByText(/inputs have changed/)).not.toBeInTheDocument();
+    await userEvent.type(drag, "5");
+    mockFetch(200, RESPONSE); // a fresh response: a body can be read only once
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    expect(await screen.findByRole("status")).toHaveTextContent(/Run complete/);
+    expect(screen.queryByText(/inputs have changed/)).not.toBeInTheDocument();
+  });
+
+  it("does not hand the charts new layouts while the user types", async () => {
+    mockFetch(200, RESPONSE);
+    layouts.clear();
+    render(<ProjectileLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    await screen.findByText("Analytical vs numerical");
+    await userEvent.type(screen.getByLabelText(/^Mass/), "1");
+    expect(layouts.size).toBeGreaterThan(0);
+    for (const [title, seen] of layouts) {
+      expect(new Set(seen).size, title).toBe(1);
+    }
   });
 
   it("submits validated inputs and renders the comparison", async () => {

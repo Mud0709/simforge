@@ -5,10 +5,6 @@ test("run the Solow model and find it in the experiment log", async ({ page }) =
   await page.goto("/");
   await page.getByRole("link", { name: "Open Economy Lab" }).click();
   await expect(page.getByRole("heading", { name: "Solow growth model" })).toBeVisible();
-  for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
-    await expect(page.getByRole("region", { name })).toBeVisible();
-  }
-
   // Defaults: alpha = 0.3, s0 = 0.2, delta = 0.05, n = 0.01, g = 0.02. Move to s1 = alpha.
   await page.getByLabel(/^New savings rate/).fill("0.3");
   await page.getByLabel(/^Policy year/).fill("10");
@@ -27,10 +23,15 @@ test("run the Solow model and find it in the experiment log", async ({ page }) =
   await expect(page.getByTestId("golden-rule-sentence")).toContainText(
     "equal to the golden-rule rate",
   );
-  await expect(page.getByTestId("check-identical_before_policy")).toContainText("Pass");
+  const region = (name: string) => page.getByRole("region", { name });
+  await expect(region("Validation").getByTestId("check-identical_before_policy")).toContainText(
+    "Pass",
+  );
+  await expect(region("Results").getByTestId("steady-state-baseline")).toBeVisible();
 
-  await expect(page.locator(".chart .main-svg").first()).toBeVisible();
-  await expect(page.locator(".chart")).toHaveCount(3);
+  const vis = region("Visualisation");
+  await expect(vis.locator(".chart .main-svg").first()).toBeVisible();
+  await expect(vis.locator(".chart")).toHaveCount(3);
 
   await page.getByRole("link", { name: "Experiments" }).click();
   const row = page

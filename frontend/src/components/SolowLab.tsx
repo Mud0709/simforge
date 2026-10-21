@@ -13,7 +13,7 @@ import {
 import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import { NumberField } from "./NumberField";
 import { SolowAssumptions, SolowCharts, SolowSummary, SolowValidation } from "./SolowResults";
-import { Workspace } from "./Workspace";
+import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
 
 type FormValues = Record<string, string>;
 
@@ -47,6 +47,8 @@ export function SolowLab() {
   const [status, setStatus] = useState<"idle" | "running">("idle");
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<SolowResponse | null>(null);
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  const currentKey = JSON.stringify(values);
 
   const errors = fieldErrors(values);
   const hasErrors = Object.values(errors).some((e) => e !== null);
@@ -69,10 +71,12 @@ export function SolowLab() {
       policy: { new_savings_rate: num("new_savings_rate"), policy_year: num("policy_year") },
       horizon_years: num("horizon_years"),
     };
+    const key = currentKey;
     setStatus("running");
     setApiError(null);
     try {
       setResult(await simulateSolow(body));
+      setResultKey(key);
     } catch (err) {
       setApiError(err instanceof ApiError ? err.message : "Unexpected error");
     } finally {
@@ -89,8 +93,6 @@ export function SolowLab() {
       onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))}
     />
   );
-
-  const empty = (text: string) => <p className="empty">{text}</p>;
 
   const form = (
     <form onSubmit={onSubmit} noValidate aria-label="Solow model inputs">
@@ -121,37 +123,20 @@ export function SolowLab() {
   return (
     <Workspace
       parameters={form}
-      visualisation={
-        result ? (
-          <SolowCharts result={result} />
-        ) : (
-          empty(
-            "Run the model to see capital, consumption and output per worker over time, for " +
-              "the baseline and for the savings-policy scenario.",
-          )
-        )
-      }
-      results={
-        result ? (
-          <SolowSummary result={result} />
-        ) : (
-          empty("Steady states and convergence appear here.")
-        )
-      }
-      assumptions={
-        result ? (
-          <SolowAssumptions result={result} />
-        ) : (
-          empty("The model's assumptions are listed with every run.")
-        )
-      }
-      validation={
-        result ? (
-          <SolowValidation result={result} />
-        ) : (
-          empty("Each run reports its own numerical checks here.")
-        )
-      }
+      status={runStatus(status, result)}
+      staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
+      visualisation={result && <SolowCharts result={result} />}
+      results={result && <SolowSummary result={result} />}
+      assumptions={result && <SolowAssumptions result={result} />}
+      validation={result && <SolowValidation result={result} />}
+      placeholders={{
+        visualisation:
+          "Run the model to see capital, consumption and output per worker over time, for " +
+          "the baseline and for the savings-policy scenario.",
+        results: "Steady states and convergence appear here.",
+        assumptions: "The model's assumptions are listed with every run.",
+        validation: "Each run reports its own numerical checks here.",
+      }}
     />
   );
 }

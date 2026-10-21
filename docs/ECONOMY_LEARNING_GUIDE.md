@@ -572,7 +572,10 @@ them. The route records every run in the experiment log through the shared `reco
 helper (`api/recording.py`), which every lab now uses. When the Quant Lab's dataset profile
 became the second model with per-run checks, the check schema (`ValidationCheck`) moved to
 `core/schemas.py` and the table that draws the checks became the shared `ChecksTable.tsx`.
-The Solow page looks exactly as before: the code moved, its behaviour did not. This is the
+The Solow page looks exactly as before: the code moved, its behaviour did not. (One later change did reach this page: when the physics pages joined the workspace,
+Assumptions and Validation became full-width sections stacked one above the other instead of
+side by side, because the physics tables needed the width. The workspace now also marks results
+as out of date when you edit an input after a run; see ARCHITECTURE decision 11.) This is the
 project's rule for shared code in action: extract it when a second real example needs it,
 not before.
 
