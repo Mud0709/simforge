@@ -59,6 +59,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 10 — Exercises and learning plan](#part-10--exercises-and-learning-plan)
 - [Part 11 — The angle sweep: which launch angle throws furthest?](#part-11--the-angle-sweep-which-launch-angle-throws-furthest)
 - [Part 12 — The Economy Lab: the Solow growth model](#part-12--the-economy-lab-the-solow-growth-model)
+- [Part 13 — Working tools: Claude Code skills and the session hook](#part-13--working-tools-claude-code-skills-and-the-session-hook)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -2622,6 +2623,44 @@ rather than *Results*? What would a reader lose if it were hidden among the resu
 
 ---
 
+## Part 13 — Working tools: Claude Code skills and the session hook
+
+This part is about *how* SimForge is built, not about the science.
+
+**Skills.** A skill is a file of instructions (`SKILL.md`) that Claude loads only when it is
+relevant, instead of keeping it in mind all the time. The project's skills live in
+`.claude/skills/`; where each came from, and what was changed, is in `SOURCES.md` there.
+They encode habits this project already values: find the root cause before fixing
+(`systematic-debugging`), write a failing test against an independent reference first
+(`tdd`), show the command output before claiming success
+(`verification-before-completion`), stress-test a plan (`grilling`) and report status from
+the repository rather than from memory (`simforge-status`). `CLAUDE.md` maps situations to
+skills.
+
+**Why not more skills?** Each one is more text to keep consistent, and anything always
+loaded (like `CLAUDE.md`) costs tokens every session. A skill earns its place only if its
+instructions are good *and* fit this project; that is why two skills were copied from a
+larger framework instead of installing all of it.
+
+**The session hook.** A cloud session starts in a fresh container without the project's
+dependencies. `.claude/hooks/session-start.sh` runs at startup (cloud only) and installs them
+the same way CI does: `uv sync --locked` and `npm ci`, which install exactly what the
+lockfiles say and never change them. Because `npm ci` reinstalls everything, the hook
+remembers the lockfile's SHA-256 and the Node version, and skips the install when neither has
+changed (a hash used
+as an identity check again, as in the Quant Lab). It also checks that the browser the
+end-to-end tests need is present, and warns if it is not.
+
+**Memory.** Claude remembers nothing between sessions except what is in the repository.
+`CLAUDE.md` holds the working rules, the docs hold the decisions, and `docs/LEARNING_LOG.md`
+holds one short entry per merged milestone.
+
+### 13.1 Checkpoint
+Why does the hook use `npm ci` rather than `npm install`, and what would go wrong if a
+session's dependencies differed from CI's?
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -2662,12 +2701,16 @@ rather than *Results*? What would a reader lose if it were hidden among the resu
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap step 1.3, Quant Lab dataset profile):**
+**This version (working tools):**
+- **Added Part 13**, on the project's Claude Code skills, the cloud-session hook and where
+  "memory" lives (`CLAUDE.md`, the docs, `docs/LEARNING_LOG.md`).
+
+**The previous version (roadmap step 1.3, Quant Lab dataset profile):**
 - **Updated** the Part 8 step [2] line references for `client.ts` (new type aliases moved
   `request` down eight lines; its code is unchanged). The Quant Lab has its own guide,
   [QUANT_LEARNING_GUIDE.md](QUANT_LEARNING_GUIDE.md).
 
-**The previous version (roadmap step 1.2, physics pages in the workspace):**
+**An earlier version (roadmap step 1.2, physics pages in the workspace):**
 - **Added 12.3**, how the projectile and integrator pages map onto the workspace sections, and
   why this is a UI change only.
 - **Updated** Part 8 line references for `IntegratorLab.tsx` (the submit handler moved down six
