@@ -63,6 +63,9 @@ simforge/
 │   └── e2e/                         Playwright full-stack tests
 ├── scripts/                         setup.sh, dev.sh, check.sh (used locally and mirrored in CI)
 ├── .github/workflows/ci.yml         backend, frontend, api-contract, e2e jobs
+├── .claude/                         Claude Code setup: skills/ (project skills, sources in
+│                                    SOURCES.md) and a SessionStart hook that installs
+│                                    dependencies in cloud sessions
 └── .devcontainer/                   Reproducible cloud dev environment (Codespaces etc.)
 ```
 

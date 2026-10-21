@@ -25,9 +25,40 @@ No lab is "finished"; each is at an early stage. Read these before starting work
   interleaved when practical, but are never prerequisites for, or gates on, any Track B step.
 
 ## Who you are working with
-An IBDP1 student who wants to learn as the project grows. Explain decisions in short,
-manageable chunks, give a learning checkpoint, and never just hand over code. Default to IB
-level; build intuition before formulas.
+The author, an IBDP1 student, directs the project and writes the prompts; understanding the
+software, the science and the decisions is an explicit goal alongside quality. Default to IB
+level; build intuition before formulas, without oversimplifying the real reasoning.
+- End every meaningful investigation, implementation or review with a short **"What this
+  means for me"**: what changed or was found, why it matters, the key concept, the main
+  trade-off or limitation, and what to do next.
+- Put significant decisions to the author *before* implementing, with alternatives and
+  trade-offs. Recommend with reasons; do not decide silently or enlarge the task.
+- Help sharpen prompts: goal, context, scope, acceptance criteria, risks.
+- When the author doesn't understand something, stop and teach it with a small example.
+- After a milestone: a status report; after a merge: a learning-log entry (skill
+  `simforge-status`). Separate verified facts from assumptions.
+
+## Skills (project skills live in `.claude/skills/`; see `SOURCES.md` there)
+End each response with **"Recommended skill for the next step"**: name the one that fits
+(or "none needed") and say why in a few words.
+
+| Situation | Skill |
+|---|---|
+| Returning after a break; status report; learning-log entry | `simforge-status` |
+| Stress-testing a plan, prompt or design decision | `grilling` |
+| Any bug, failing test or unexpected behaviour (before proposing a fix) | `systematic-debugging` |
+| Building a feature or fixing a bug test-first | `tdd` |
+| Before claiming anything is done, fixed or passing | `verification-before-completion` |
+| Reviewing a diff or PR for bugs | `/code-review` (built-in) |
+| Changes touching uploads, inputs, limits or stored data | `/security-review` (built-in) |
+| Tidying a finished change (quality, not bugs) | `/simplify` (built-in) |
+| Seeing a change in the running app, screenshots | `run` (built-in) |
+| Learning a concept in depth | `anthropic-skills:learn` |
+| Research across many sources (methods, literature) | `anthropic-skills:deep-research` |
+| Checking an analysis or statistics before trusting it (Quant Lab) | `data:validate-data`, `data:statistical-analysis` |
+| Designing charts | `dataviz` |
+| Writing or changing a skill | `anthropic-skills:skill-creator` |
+| Broad codebase searches without filling the context | the `Explore` subagent (not a skill) |
 
 ## Standards (non-negotiable)
 - Never present an approximation as exact. Label every result by how it was obtained.
