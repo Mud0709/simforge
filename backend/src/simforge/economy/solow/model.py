@@ -91,7 +91,8 @@ METHOD_NOTE = (
 )
 
 # Single-evaluation steady-state residual |f(k*) - k*| / k*. On the documented grid the
-# worst case observed was 4 u (u = 2^-53); 1e-13 leaves a wide margin.
+# worst case observed was 5 u (u = 2^-53, see SCIENTIFIC_VALIDATION.md); 1e-13 leaves a wide
+# margin.
 RESIDUAL_THRESHOLD = 1e-13
 # Below this distance from the new steady state we report the path as converged.
 CONVERGED_DISTANCE = 1e-6
@@ -120,8 +121,10 @@ def to_economy(p: SolowParameters) -> sim.SolowEconomy:
     )
 
 
-def steady_state(e: sim.SolowEconomy, s: float) -> SteadyState:
-    k = sim.steady_state_capital(e, s)
+def steady_state(e: sim.SolowEconomy, s: float, k: float | None = None) -> SteadyState:
+    """The steady state at savings rate ``s``. Pass ``k`` = k*(s) if it is already computed."""
+    if k is None:
+        k = sim.steady_state_capital(e, s)
     y = math.pow(k, e.capital_share)
     return SteadyState(
         savings_rate=s,
@@ -148,20 +151,59 @@ def _residual(e: sim.SolowEconomy, s: float, k_star: float) -> float:
     return abs(sim.step(e, s, k_star) / k_star - 1.0)
 
 
-def _checks(
-    e: sim.SolowEconomy,
+def _sci(x: float) -> str:
+    """1e-06 -> '1e-6': the tolerance as a person would write it."""
+    mantissa, exponent = f"{x:e}".split("e")
+    return f"{float(mantissa):g}e{int(exponent)}"
+
+
+def _identity_note(t_c: int) -> str:
+    if t_c == 0:
+        covered = "k_0 and y_0 (c and i already use s1 in year 0)"
+    else:
+        covered = f"k and y for t = 0..{t_c}, c and i for t = 0..{t_c - 1}"
+    return (
+        f"Number of entries that differ in {covered}. Both paths come from the same code, "
+        "so they must be bit-identical there."
+    )
+
+
+def _convergence_note(distance: float, years_after: int, half_life: float) -> str:
+    tolerance = _sci(CONVERGED_DISTANCE)
+    if distance < CONVERGED_DISTANCE:
+        return f"Converged to within {tolerance}."
+    # Near k*, each half-life halves the gap: log2(distance / tolerance) more are needed.
+    more = math.log2(distance / CONVERGED_DISTANCE)
+    return (
+        f"Not yet within {tolerance}: {years_after} years after the change is about "
+        f"{years_after / half_life:.1f} half-lives. Each half-life roughly halves the "
+        f"remaining gap, so about {more:.1f} more ({more * half_life:.0f} years) would be "
+        "needed (an estimate from the linearisation)."
+    )
+
+
+def per_run_checks(
     request: SolowRequest,
     baseline: sim.SolowPath,
     scenario: sim.SolowPath,
     k_star_0: float,
     k_star_1: float,
 ) -> list[ValidationCheck]:
+    """The checks reported with every run, from the two paths and the two steady states."""
+    e = to_economy(request.parameters)
     t_c = request.policy.policy_year
     s0, s1 = request.parameters.savings_rate, request.policy.new_savings_rate
-    # Bit-identity before the change: k and y for t <= T_c, c and i for t < T_c.
-    mismatches = int(
-        np.count_nonzero(baseline.capital[: t_c + 1] != scenario.capital[: t_c + 1])
-        + np.count_nonzero(baseline.consumption[:t_c] != scenario.consumption[:t_c])
+    # Bit-identity before the change: k and y for t <= T_c; c and i for t < T_c, because
+    # year-T_c output is already split at s1.
+    before, through = slice(0, t_c), slice(0, t_c + 1)
+    mismatches = sum(
+        int(np.count_nonzero(getattr(baseline, name)[part] != getattr(scenario, name)[part]))
+        for name, part in (
+            ("capital", through),
+            ("output", through),
+            ("consumption", before),
+            ("investment", before),
+        )
     )
     distance = abs(scenario.capital[-1] / k_star_1 - 1.0)
     growth_gap = abs(float(scenario.output_per_worker_growth[-1]) - e.technology_growth)
@@ -193,8 +235,7 @@ def _checks(
             threshold=0.0,
             passed=mismatches == 0,
             kind="exact_identity",
-            note=f"Number of entries that differ in k_0..k_{t_c} and c_0..c_{t_c - 1}. "
-            "Both paths come from the same code, so they must be bit-identical there.",
+            note=_identity_note(t_c),
         ),
         ValidationCheck(
             id="distance_to_new_steady_state",
@@ -203,11 +244,7 @@ def _checks(
             threshold=None,
             passed=None,
             kind="informational",
-            note=(
-                "Converged to within 1e-6."
-                if distance < CONVERGED_DISTANCE
-                else "Not yet converged: the horizon is short compared with the half-life."
-            ),
+            note=_convergence_note(distance, request.horizon_years - t_c, sim.half_life(e)),
         ),
         ValidationCheck(
             id="final_growth_gap",
@@ -242,25 +279,26 @@ def run(request: SolowRequest) -> SolowComputation:
             if not np.all(np.isfinite(getattr(path, name))):
                 raise ModelDomainError(f"{name} overflowed for these inputs")
 
-    gap = sim.convergence_gap(e)
+    half_life = sim.half_life(e)
+    if not (math.isfinite(half_life) and half_life > 0):
+        raise ModelDomainError(f"the half-life ({half_life}) is not a positive finite number")
     convergence = Convergence(
         effective_depreciation=sim.effective_depreciation(e),
         growth_factor=sim.growth_factor(e),
         rho=sim.convergence_factor(e),
-        one_minus_rho=gap,
-        half_life_years=sim.half_life(e),
+        one_minus_rho=sim.convergence_gap(e),
+        half_life_years=half_life,
     )
-    assert math.isfinite(convergence.half_life_years)
 
     return SolowComputation(
         economy=e,
         initial_capital=k0,
         baseline=baseline,
         scenario=scenario,
-        baseline_steady_state=steady_state(e, p.savings_rate),
-        scenario_steady_state=steady_state(e, pol.new_savings_rate),
+        baseline_steady_state=steady_state(e, p.savings_rate, k_star_0),
+        scenario_steady_state=steady_state(e, pol.new_savings_rate, k_star_1),
         golden_rule=steady_state(e, sim.golden_rule_savings_rate(e)),
         convergence=convergence,
-        checks=_checks(e, request, baseline, scenario, k_star_0, k_star_1),
+        checks=per_run_checks(request, baseline, scenario, k_star_0, k_star_1),
         elapsed_ms=(time.perf_counter() - start) * 1e3,
     )

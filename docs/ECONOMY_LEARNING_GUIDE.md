@@ -536,7 +536,7 @@ least 0.001, and the policy year must be inside the horizon. Rates are fractions
 everywhere. The form never converts from percent, so what you type is exactly what is hashed
 and stored.
 
-<!-- src: backend/src/simforge/economy/solow/schemas.py:60-72 -->
+<!-- src: backend/src/simforge/economy/solow/schemas.py:66-78 -->
 ```python
     @model_validator(mode="after")
     def _steady_state_must_exist(self) -> Self:
@@ -557,6 +557,12 @@ Lines worth noticing: λ uses the same direct sum as the engine, and the relativ
 even though rounding puts their float sum a few units of the last place below it. A test
 uses exactly that case.
 
+JSON Schema can say "δ ≤ 1", but it cannot say "n + g + ng + δ ≥ 0.001": that is a rule about
+a *sum* of fields. So the server publishes the bound as an extra key in the contract
+(`x-min-effective-depreciation`) and the form reads it from there and applies the same rule,
+with the same slack, before sending. The number lives in one place (the Python constant), so
+the two checks cannot drift; the server still decides.
+
 ### 8.7 The workspace and the per-run checks
 `model.py` runs both paths, builds the steady states, the golden rule and ρ, and computes the
 per-run **checks**. Each check has a *kind*: exact identity (must be exactly right),
@@ -570,9 +576,19 @@ The Solow page looks exactly as before: the code moved, its behaviour did not. T
 project's rule for shared code in action: extract it when a second real example needs it,
 not before.
 
+A check's *note* is a claim too, and it must be true. An early version said "not yet
+converged: the horizon is short compared with the half-life" for the default run, which is
+80 years, about 6.5 half-lives, after the change. The real reason is how strict 1e-6 is: each
+half-life only halves the gap, and 0.0068 is still 2^12.7 times 1e-6. The note now gives the
+half-lives that have passed and the estimate for how many more are needed, and a test
+simulates those extra years to check the estimate.
+
 **Checkpoint 8:** find the line that makes the baseline and scenario go through the same
 code. Why would computing the baseline with a different (but mathematically equal) formula
 break the bit-identity check?
+
+**Checkpoint 8b:** the identity check compares k and y up to year T_c, but c and i only up to
+T_c − 1. Why? What would the check report for T_c = 0?
 
 ---
 
@@ -590,7 +606,8 @@ A test can only check finitely many cases, so it can never replace the proof. A 
 nothing about rounding, so it can never replace the tests. Both are needed.
 
 The full list of checks is in `SCIENTIFIC_VALIDATION.md` under `economy.solow`, and the tests
-are in `backend/tests/economy/test_solow.py` (engine) and
+are in `backend/tests/economy/test_solow.py` (engine),
+`backend/tests/economy/test_solow_checks.py` (per-run checks) and
 `backend/tests/api/test_solow_api.py` (API).
 
 ---

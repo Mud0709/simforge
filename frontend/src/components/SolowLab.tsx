@@ -8,6 +8,7 @@ import {
   ECONOMY_FIELDS,
   POLICY_FIELDS,
   START_FIELDS,
+  effectiveDepreciationProblem,
 } from "@/lib/economy/solowFields";
 import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import { NumberField } from "./NumberField";
@@ -24,7 +25,14 @@ function fieldErrors(values: FormValues): Record<string, string | null> {
   const errors = Object.fromEntries(
     ALL_SOLOW_FIELDS.map((f) => [f.name, validateField(f, values[f.name] ?? "")]),
   );
-  // Cross-field rule mirrored from the server (which remains the authority).
+  // Cross-field rules mirrored from the server (which remains the authority).
+  if (!errors.population_growth && !errors.technology_growth && !errors.depreciation) {
+    errors.depreciation = effectiveDepreciationProblem(
+      Number(values.population_growth),
+      Number(values.technology_growth),
+      Number(values.depreciation),
+    );
+  }
   if (!errors.policy_year && !errors.horizon_years) {
     if (Number(values.policy_year) >= Number(values.horizon_years)) {
       errors.policy_year = "Must be below the horizon";
@@ -48,10 +56,16 @@ export function SolowLab() {
     setTouched(true);
     if (hasErrors) return;
     const num = (name: string) => Number(values[name]);
+    // Written out field by field so tsc checks every name against the generated contract.
     const body: SolowRequest = {
-      parameters: Object.fromEntries(
-        [...ECONOMY_FIELDS, ...START_FIELDS].map((f) => [f.name, num(f.name)]),
-      ) as unknown as SolowRequest["parameters"],
+      parameters: {
+        capital_share: num("capital_share"),
+        savings_rate: num("savings_rate"),
+        depreciation: num("depreciation"),
+        population_growth: num("population_growth"),
+        technology_growth: num("technology_growth"),
+        initial_capital_ratio: num("initial_capital_ratio"),
+      },
       policy: { new_savings_rate: num("new_savings_rate"), policy_year: num("policy_year") },
       horizon_years: num("horizon_years"),
     };
