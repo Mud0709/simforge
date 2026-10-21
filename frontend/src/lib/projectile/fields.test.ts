@@ -9,7 +9,7 @@ const byName = (name: string) => {
 describe("field specs derived from the OpenAPI contract", () => {
   it("picks up backend bounds and defaults", () => {
     const mass = byName("mass");
-    expect(mass.exclusiveMin).toBe(0);
+    expect(mass.min).toBe(1e-6); // physical floor (see the backend's MIN_MASS)
     expect(mass.default).toBe(1);
     const angle = byName("launch_angle_deg");
     expect([angle.min, angle.max]).toEqual([0, 90]);
@@ -31,7 +31,8 @@ describe("validateField", () => {
   });
 
   it("enforces exclusive and inclusive bounds", () => {
-    expect(validateField(mass, "0")).toMatch(/> 0/);
+    expect(validateField(mass, "0")).toMatch(/≥ 0.000001/);
+    expect(validateField(mass, "0.000001")).toBeNull();
     expect(validateField(angle, "0")).toBeNull();
     expect(validateField(angle, "90")).toBeNull();
     expect(validateField(angle, "90.01")).toMatch(/≤ 90/);

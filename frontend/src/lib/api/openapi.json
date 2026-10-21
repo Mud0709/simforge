@@ -87,7 +87,7 @@
             "type": "array"
           },
           "best_angle_deg": {
-            "description": "Angle maximising the range, refined by a bounded Brent search (~1e-7 deg).",
+            "description": "Angle maximising the range, refined by a bounded Brent search (~1e-6 deg).",
             "title": "Best Angle Deg",
             "type": "number"
           },
@@ -416,7 +416,7 @@
             "$ref": "#/components/schemas/ErrorMetric"
           },
           "max_energy_balance_residual": {
-            "description": "max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the true solution, so this measures integration error only.",
+            "description": "max |KE + PE + W_drag - E0| / E0 over step nodes. Exactly 0 for the true solution, so this measures numerical error (the landing node also carries interpolation error).",
             "title": "Max Energy Balance Residual",
             "type": "number"
           },
@@ -424,7 +424,7 @@
             "$ref": "#/components/schemas/ErrorMetric"
           },
           "max_position_error": {
-            "description": "Max Euclidean distance (m) between numerical and exact positions, evaluated at the solver's accepted step nodes (no interpolation error).",
+            "description": "Max Euclidean distance (m) between numerical and exact positions over the solver's accepted step nodes. The last node, the landing, is located by interpolating the solver's dense output, so it also carries interpolation error.",
             "title": "Max Position Error",
             "type": "number"
           },
@@ -950,8 +950,8 @@
             "description": "Requested time steps (s). Each run uses h = T/N with N = ceil(T/dt), so that every run ends exactly at the horizon T.",
             "items": {
               "description": "Requested time step in s.",
-              "exclusiveMinimum": 0.0,
               "maximum": 100.0,
+              "minimum": 1e-09,
               "type": "number"
             },
             "maxItems": 12,
@@ -1683,8 +1683,8 @@
           "initial_speed": {
             "default": 20.0,
             "description": "Launch speed |v0| in m/s.",
-            "exclusiveMinimum": 0.0,
             "maximum": 10000.0,
+            "minimum": 0.001,
             "title": "Initial Speed",
             "type": "number"
           },
@@ -1707,8 +1707,8 @@
           "mass": {
             "default": 1.0,
             "description": "Projectile mass in kg.",
-            "exclusiveMinimum": 0.0,
             "maximum": 1000000.0,
+            "minimum": 1e-06,
             "title": "Mass",
             "type": "number"
           }

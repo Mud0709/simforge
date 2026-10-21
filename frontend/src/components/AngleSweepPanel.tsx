@@ -39,7 +39,7 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
       {
         x: sweep.angles_deg,
         y: sweep.ranges,
-        name: "Range (exact)",
+        name: "Range (analytical)",
         mode: "lines",
         line: { color: "#2563eb", width: 2 },
       },

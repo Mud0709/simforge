@@ -18,10 +18,10 @@ from importlib.resources import files
 from simforge.core.schemas import Assumption, ModelInfo, ValidationCheck
 from simforge.quant.profiling import statistics as st
 from simforge.quant.profiling.inference import ColumnType, Kind, parse_date, type_column
+from simforge.quant.profiling.inference import is_mixed as kinds_are_mixed
 from simforge.quant.profiling.limits import (
     MAX_DISPLAY_CHARS,
     MAX_EXAMPLES,
-    MAX_FILE_BYTES,
     PREVIEW_ROWS,
 )
 from simforge.quant.profiling.parsing import (
@@ -161,12 +161,7 @@ def decode_upload(source: UploadSource) -> bytes:
             "The upload is not valid base64. The page encodes files automatically, so this "
             "suggests a damaged request."
         ) from exc
-    # Checked separately from the base64 length: base64 works in 3-byte groups, so the
-    # longest string the schema accepts can decode to up to 2 bytes more than the limit.
-    if len(data) > MAX_FILE_BYTES:
-        raise DatasetError(
-            f"The file is {len(data):,} bytes; the limit is {MAX_FILE_BYTES:,} bytes (2 MiB)."
-        )
+    # The decoded size is checked by parse_csv, which applies to bundled samples as well.
     return data
 
 
@@ -212,8 +207,8 @@ def _profile_column(
             histogram=HistogramBins(edges=s.bin_edges, counts=s.bin_counts),
         )
     elif valid and typing.type == "date":
-        parsed = [parse_date(v) for v in valid]
-        d = st.date_stats([p for p in parsed if p is not None])
+        pairs = [(v, parse_date(v)) for v in valid]
+        d = st.date_stats([(v, p) for v, p in pairs if p is not None])
         date = DateSummary(
             count=d.count, unique=d.unique, min=d.min, max=d.max, span_days=d.span_days
         )
@@ -263,11 +258,19 @@ def _profile_column(
 
 
 def is_mixed(column: ColumnProfile) -> bool:
-    """Categorical with both number/date-looking values and other text."""
+    """Categorical and mixed by the same rule as its inference reason (inference.is_mixed)."""
     k = column.kind_counts
-    looks_typed = k.number + k.leading_zero_number + k.date
-    other = k.text + k.ambiguous_date + k.non_finite_number
-    return column.inferred_type == "categorical" and looks_typed > 0 and other > 0
+    kinds = Counter(
+        {
+            Kind.NUMBER: k.number,
+            Kind.LEADING_ZERO_NUMBER: k.leading_zero_number,
+            Kind.NON_FINITE_NUMBER: k.non_finite_number,
+            Kind.DATE: k.date,
+            Kind.AMBIGUOUS_DATE: k.ambiguous_date,
+            Kind.TEXT: k.text,
+        }
+    )
+    return column.inferred_type == "categorical" and kinds_are_mixed(kinds)
 
 
 def _checks(

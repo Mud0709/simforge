@@ -60,6 +60,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 11 — The angle sweep: which launch angle throws furthest?](#part-11--the-angle-sweep-which-launch-angle-throws-furthest)
 - [Part 12 — The Economy Lab: the Solow growth model](#part-12--the-economy-lab-the-solow-growth-model)
 - [Part 13 — Working tools: Claude Code skills and the session hook](#part-13--working-tools-claude-code-skills-and-the-session-hook)
+- [Part 14 — What reviewing the merged work taught us](#part-14--what-reviewing-the-merged-work-taught-us)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -610,7 +611,7 @@ never cancels. For `u < 0.1` the code goes further and uses the Taylor series di
 
 #### `ProjectileSetup`: the inputs, in SI units
 
-<!-- src: backend/src/simforge/physics/projectile/analytical.py:66-94 -->
+<!-- src: backend/src/simforge/physics/projectile/analytical.py:66-97 -->
 ```python
 @dataclass(frozen=True, slots=True)
 class ProjectileSetup:
@@ -626,6 +627,9 @@ class ProjectileSetup:
 
     @property
     def vx0(self) -> float:
+        # cos(math.radians(90)) is 6.1e-17, not 0: a vertical launch would get a fake range.
+        if self.launch_angle_rad == math.pi / 2:
+            return 0.0
         return self.initial_speed * math.cos(self.launch_angle_rad)
 
     @property
@@ -648,13 +652,13 @@ class ProjectileSetup:
 | 66 | `@dataclass` is a **decorator**: it rewrites the class to auto-generate a constructor from the listed fields. `frozen=True` makes instances **immutable** (you can't change `mass` after creation), so a setup can't be modified halfway through a calculation. `slots=True` is a memory and speed optimisation. |
 | 68-69 | The docstring states a **division of responsibility**: this class *trusts* its inputs, because validation (no NaN, positive mass, …) already happened in the API layer (Part 8). The physics stays simple, and validation happens once, at the boundary. |
 | 71-76 | Six fields, with SI units in comments. Note `launch_angle_rad`: the API accepts **degrees** (friendlier), and `model.to_setup` converts with `math.radians`. Python's `cos`/`sin` require radians, so mixing up units here would be a silent bug. |
-| 78-84 | `@property` makes a method behave like a stored value: you write `setup.vx0`, not `setup.vx0()`. These are the components from 1.2. |
-| 86-89 | `k = b/m`, the drag rate. |
-| 91-94 | `v_t = g/k`, with a guard: in vacuum `k = 0`, so return infinity instead of crashing with a division by zero. |
+| 78-87 | `@property` makes a method behave like a stored value: you write `setup.vx0`, not `setup.vx0()`. These are the components from 1.2. Lines 80-82 special-case 90°: `math.radians(90)` is the double closest to π/2, and `cos` of it is 6.1 × 10⁻¹⁷, not 0, which would give a vertical launch a small fake range. |
+| 89-92 | `k = b/m`, the drag rate. |
+| 94-97 | `v_t = g/k`, with a guard: in vacuum `k = 0`, so return infinity instead of crashing with a division by zero. |
 
 #### `_series`: evaluating a polynomial with Horner's rule
 
-<!-- src: backend/src/simforge/physics/projectile/analytical.py:97-102 -->
+<!-- src: backend/src/simforge/physics/projectile/analytical.py:100-105 -->
 ```python
 def _series(u: FloatArray, coefficients: FloatArray) -> FloatArray:
     # Horner's rule, highest power first.
@@ -686,7 +690,7 @@ The true `ψ(0.1) = 0.951626`. Three terms are close but not exact. The code use
 
 #### `psi` and `phi`: choosing the safe formula for each `u`
 
-<!-- src: backend/src/simforge/physics/projectile/analytical.py:105-118 -->
+<!-- src: backend/src/simforge/physics/projectile/analytical.py:108-121 -->
 ```python
 def psi(u: FloatArray) -> FloatArray:
     """(1 - exp(-u)) / u, accurate for all u >= 0 (including u = 0)."""
@@ -722,7 +726,7 @@ which overstated it by about a factor of ten.)
 
 #### `state`: the exact solution at any times
 
-<!-- src: backend/src/simforge/physics/projectile/analytical.py:121-133 -->
+<!-- src: backend/src/simforge/physics/projectile/analytical.py:124-136 -->
 ```python
 def state(
     setup: ProjectileSetup, t: FloatArray
@@ -783,7 +787,7 @@ ordinary algebra (`t` appears both inside and outside an exponential). Two optio
   cross-check in the tests.
 - **Root-finding** (`flight_time`, `analytical.py:175-189`), which is what the results use:
 
-<!-- src: backend/src/simforge/physics/projectile/analytical.py:181-189 -->
+<!-- src: backend/src/simforge/physics/projectile/analytical.py:184-192 -->
 ```python
     t_lo = apex_time(setup)
     if _y(setup, t_lo) <= 0.0:  # launched horizontally from ground level: no flight
@@ -1250,7 +1254,7 @@ def integrate(
 
 
 def steps_for(horizon: float, dt: float) -> int:
-    """Number of steps so that N h = horizon exactly with h <= dt.
+    """Number of steps so that N h = horizon exactly with h <= dt * (1 + 1e-12).
 
     The small tolerance stops T/dt = 29.000000000001 (rounding noise) becoming 30 steps.
     """
@@ -1337,11 +1341,12 @@ Rules 3 and 4 keep only runs in the **asymptotic regime**, where the leading err
 
 ### 5.9 The whole study: `run_study`, `integrator_study.py:306-368` (key lines)
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:315-338 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:316-340 -->
 ```python
     if setup.k <= 0:
         raise ValueError("The integrator study requires nonzero drag (k > 0)")
-    horizon = analytical.flight_time(setup)
+    if horizon is None:
+        horizon = analytical.flight_time(setup)
     t_ref = np.linspace(0.0, horizon, 1001)
     x_ref, y_ref, vx_ref, vy_ref = analytical.state(setup, t_ref)
     pos_scale = float(np.max(np.hypot(x_ref, y_ref)))
@@ -1367,12 +1372,12 @@ Rules 3 and 4 keep only runs in the **asymptotic regime**, where the leading err
 
 | Line(s) | Meaning |
 |---|---|
-| 315-316 | Refuses vacuum (`k = 0`). With no drag, the exact solution is a parabola, which RK4 and Verlet reproduce *exactly*, so there's no error to measure (Part 7.5). |
-| 317 | **Horizon `T`**: every run integrates over `[0, T]`, the exact flight time. Landing isn't detected numerically, because locating it between grid points would add a separate interpolation error. |
-| 318-321 | Samples the exact solution at 1,001 times to find the largest position (`12.51 m`) and speed (`20 m/s`) in the default case. These scales feed the round-off floor. |
-| 324-328 | For each method, runs every requested `dt`, **coarsest first**. A *list comprehension* `[expr for item in list]` builds a list in one line. |
-| 329 | Keeps just the `RunResult`s. |
-| 331-338 | Fits the order using only runs that passed the rule. `fit_order` returns `None` if fewer than 3 qualify. |
+| 316-317 | Refuses vacuum (`k = 0`). With no drag, the exact solution is a parabola, which RK4 and Verlet reproduce *exactly*, so there's no error to measure (Part 7.5). |
+| 318-319 | **Horizon `T`**: every run integrates over `[0, T]`, the exact flight time (computed here unless the caller, which already needed it for the step limits, passes it in). Landing isn't detected numerically, because locating it between grid points would add a separate interpolation error. |
+| 320-323 | Samples the exact solution at 1,001 times to find the largest position (`12.51 m`) and speed (`20 m/s`) in the default case. These scales feed the round-off floor. |
+| 326-330 | For each method, runs every requested `dt`, **coarsest first**. A *list comprehension* `[expr for item in list]` builds a list in one line. |
+| 331 | Keeps just the `RunResult`s. |
+| 333-340 | Fits the order using only runs that passed the rule. `fit_order` returns `None` if fewer than 3 qualify. |
 
 ### 5.10 Estimating the order: `numerics/convergence.py`
 
@@ -2024,7 +2029,7 @@ backend's address, and there are no cross-origin (CORS) problems.
 
 ### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:68-75`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:68-75 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:70-77 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2091,7 +2096,7 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
             "Use fewer or larger time steps, or fewer methods."
         )
 
-    result = study.run_study(setup, request.dt_values, request.methods)
+    result = study.run_study(setup, request.dt_values, request.methods, horizon=horizon)
 ```
 
 | Line(s) | Meaning |
@@ -2100,7 +2105,7 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
 | 145 | `to_setup` converts the validated API object into the engine's plain `ProjectileSetup`, including **degrees → radians**. The engine never sees Pydantic or HTTP. |
 | 146-153 | Computes how many steps each requested `dt` needs. If any run needs more than 50,000 steps (`MAX_STEPS_PER_RUN`, line 89), refuse with an explanation. Python loops take about 17 µs per RK4 step, so this prevents a request that would run for minutes. |
 | 154-159 | The same idea for the total across all runs and methods (limit 150,000). |
-| 161 | Calls the engine (Parts 5.8-5.9). |
+| 161 | Calls the engine (Parts 5.8-5.9), passing the flight time it already computed so the engine does not find the same root again. |
 
 **Real refusal** for `dt_values = [0.1, 1e-6]`: HTTP 422,
 `"dt = 1e-06 s needs 2160643 steps over T = 2.161 s; the limit is 50000 per run. Use larger steps."`
@@ -2365,7 +2370,7 @@ the exact solution. Part 6.4 (round-off) helps with 11.4.
 
 On the projectile page, the panel **"Range against launch angle"** computes the range at
 every angle from 0° to 90° (default: 91 angles, 1° apart), draws the curve, and reports the
-best angle to about `10⁻⁷°`.
+best angle to about `10⁻⁶°`.
 
 ### 11.1 The vacuum answer, and why 45° is a special case **[IB core]**
 
@@ -2373,7 +2378,8 @@ With no air and a launch from the ground, the range is `R = v₀² sin(2θ)/g`.
 - `sin(2θ)` is largest when `2θ = 90°`, so the best angle is **45°**, and `R* = v₀²/g`.
   For `v₀ = 20 m/s` the code gives `40.78864851911713 m`, which equals `400/9.80665`.
 - `sin(2θ) = sin(180° − 2θ)`, so angles that add up to 90° give the **same range**. The
-  code gives `31.2459175404028 m` at both 25° and 65°.
+  code gives `31.24591754040281 m` at 25° and `31.245917540402807 m` at 65°: equal except
+  in the last digit, a difference of one unit in the last place (1 ulp, 1.7).
 
 Launching from a height `h₀` changes the answer:
 
@@ -2445,7 +2451,7 @@ def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
 | Line(s) | Meaning |
 |---|---|
 | 101-102 | You need at least three points to trap a maximum between two neighbours. |
-| 103 | Exact range, flight time and peak height at every grid angle. |
+| 103 | Analytical range, flight time and peak height at every grid angle. |
 | 106 | `i` is the index of the best grid point. |
 | 107-108 | Its two neighbours form the **bracket** `[lo, hi]`, the interval the search is restricted to. At the edges of the grid, the bracket stops at the edge. |
 | 109-114 | `minimize_scalar` finds a *minimum*, so we minimise `−R`. `method="bounded"` is **Brent's method** on an interval. It mixes golden-section steps (safe, slow) with fitting a parabola through three points and jumping to its top (fast, and very good near a smooth peak). `xatol` is the tolerance on the angle. |
@@ -2485,8 +2491,10 @@ short script calling the engine:
 
 Each 10× smaller δ gives a 100× smaller drop, until the drop falls below the rounding of
 `R` itself: about `ε·R ≈ 2.2 × 10⁻¹⁶ × 13.9 ≈ 3 × 10⁻¹⁵ m` (1.7). After that point the
-computer **cannot tell which angle is better**. That happens near `δ ≈ 10⁻⁷°`, which is why
-`ANGLE_XATOL = 1e-7`.
+computer **cannot tell which angle is better**. In the table that happens between `δ = 10⁻⁶°`
+(drop 1.1 × 10⁻¹⁴ m, still above 3 × 10⁻¹⁵) and `δ = 10⁻⁷°` (noise). `ANGLE_XATOL = 1e-7` asks
+for that limit, but SciPy's bounded Brent also stops once it is within `√ε·|θ|`
+(≈ 6.6 × 10⁻⁷° near 45°), so in practice the angle is found to about `7 × 10⁻⁷°`.
 
 **Rule of thumb:** at a smooth maximum, the *value* is known to about ε, but its
 *location* only to about `√ε`. The tests reflect this: the range is checked to a relative
@@ -2500,22 +2508,24 @@ explain the physics.)
 
 `run_angle_sweep` (`model.py:258-262`) builds the grid with
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
-(`schemas.py:147-158`) allows `n_angles` from 10 to 361.
+(`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:119-126 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:123-132 -->
 ```python
     computation = await run_in_threadpool(projectile.run_angle_sweep, request)
     r = computation.result
     # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
     params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    metadata = record_run(
+    # SQLite I/O runs in a worker thread so it never blocks the event loop.
+    metadata = await run_in_threadpool(
+        record_run,
         repo,
         projectile.ANGLE_SWEEP_INFO,
         {"parameters": params, "n_angles": request.n_angles},
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 122). Otherwise, two identical computations that differ
+is removed before hashing (line 126). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 
@@ -2523,13 +2533,15 @@ treat them as different experiments.
 
 | Test (`tests/physics/test_angle_sweep.py`) | Reference | Why it matters |
 |---|---|---|
-| Vacuum from the ground | 45°, `v₀²/g` | Textbook result |
+| Vacuum from the ground | 45°, `v₀²/g` | Textbook result. The test uses a 10° grid, which does not contain 45°, so the optimiser (not a lucky grid point) must find it, to `10⁻⁶°` |
 | Vacuum from 5, 10, 50 and 200 m | Closed form in 11.1 | Range to relative `10⁻¹²`, angle to `10⁻⁵°` (11.4) |
 | Complementary angles | `sin 2θ` symmetry | Checks the exact solution itself |
 | Drag lowers the best angle, monotonically | Physics (11.2) | Checked at five drag strengths |
 | Weak drag (`b = 10⁻⁶`) gives 45° | The limit `b → 0` | Drag model joins smoothly onto the vacuum model |
 | One peak on a 0.25° grid | The method's assumption | Without it, the bracket could be wrong |
-| No grid point beats the refined point, and neither does ±0.001° | Definition of a maximum | Checks we found a real maximum |
+| A dense scan (steps of `10⁻⁶°`, ±`10⁻⁴°`) finds no longer range than the reported one | A different search method | Catches a refinement that stopped `10⁻⁵°` from the peak (checked by deliberately shifting the reported angle) |
+| Vacuum flight time and maximum height at three angles | Textbook formulas | Checks the sweep's numbers against an independent source, not against its own code |
+| The 90° point | Range exactly 0 | A vertical launch has no horizontal motion (1.2) |
 | Coarse grid gives the same answer | Robustness | The bracket works even at 30° spacing |
 
 **Not shown:**
@@ -2661,6 +2673,45 @@ session's dependencies differed from CI's?
 
 ---
 
+## Part 14 — What reviewing the merged work taught us
+
+Every merged PR was reviewed again against the current code. Four lessons stand out.
+
+**1. A boundary value can fool event detection.** Launched from the ground, the height is
+exactly 0 at `t = 0`. With a shallow angle the solver's first step can already overshoot the
+landing, and SciPy then sees "0, then negative", treats it as a crossing, and reports landing
+at `t = 0`. The page showed a flight time of 0 with "perfect" accuracy, because comparing
+nothing with nothing gives zero error. The fix (`numerical.py`, `hits_ground`) treats the
+launch instant as above ground, so only the real landing counts.
+
+**2. Validate combinations, not just fields.** `mass > 0` allows `1e-305 kg`, and
+`b = 10⁶ kg/s` divided by that overflows to infinity. The physics depends on the *ratio*
+`k = b/m`, so the schema now limits it (`k ≤ 10⁴ s⁻¹`) as well as setting floors on mass and
+speed. A test runs every corner of the allowed space to show the limits are safe.
+
+**3. A test that cannot fail is not evidence.** Three sweep tests could not fail:
+- one used a grid containing 45° exactly, so the optimiser was never tested;
+- one compared the code with itself;
+- one checked a property guaranteed by construction.
+
+The replacements use a grid without 45°, textbook formulas and an independent dense scan.
+To check that they *can* fail, the optimiser was deliberately broken (tolerance 0.5°): 11 tests
+failed, including both new optimiser tests. (The new textbook-formula test does not involve
+the optimiser, so it rightly kept passing.) That deliberate break is called a **mutation check**.
+
+**4. Labels must match the method.** Flight time comes from solving an exact equation
+numerically (Brent's method), so it is labelled "analytical", not "exact". And the numerical
+landing point is interpolated, so the error it shows includes interpolation error. Smaller
+corrections of the same kind: the best angle is known to about 10⁻⁶°, not 10⁻⁷°, and the
+`φ` function is accurate to 2 × 10⁻¹⁵ on a dense grid, not 10⁻¹⁵.
+
+### 14.1 Checkpoint
+1. Why did the flight-time-0 bug report a *perfect* accuracy instead of a large error?
+2. Give an input where checking `mass` and `drag_coefficient` separately passes but the
+   model still breaks.
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -2701,11 +2752,19 @@ session's dependencies differed from CI's?
 
 ## Changes from the previous version of this guide
 
-**This version (working tools):**
+**This version (review of the merged PRs):**
+- **Added Part 14:** lessons from the review (event at a boundary, combination limits,
+  tests that cannot fail, honest labels), with a checkpoint.
+- **Updated** the line references and excerpts for `analytical.py` (exact 90°),
+  `integrator_study.py` and `integrator_model.py` (the horizon is passed in, not recomputed),
+  `routes/physics.py` (the experiment log is written off the event loop); the precision of the
+  best angle (11, about 10⁻⁶°); the 25°/65° values (1 ulp apart); the 11.6 test table.
+
+**The previous version (working tools):**
 - **Added Part 13**, on the project's Claude Code skills, the cloud-session hook and where
   "memory" lives (`CLAUDE.md`, the docs, `docs/LEARNING_LOG.md`).
 
-**The previous version (roadmap step 1.3, Quant Lab dataset profile):**
+**An earlier version (roadmap step 1.3, Quant Lab dataset profile):**
 - **Updated** the Part 8 step [2] line references for `client.ts` (new type aliases moved
   `request` down eight lines; its code is unchanged). The Quant Lab has its own guide,
   [QUANT_LEARNING_GUIDE.md](QUANT_LEARNING_GUIDE.md).

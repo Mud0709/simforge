@@ -106,6 +106,19 @@ class ColumnTyping:
     notes: list[str]
 
 
+def kind_groups(kinds: Counter[Kind]) -> tuple[int, int, int]:
+    """Non-missing values in three groups: number-like, date, other text."""
+    numeric_like = kinds[Kind.NUMBER] + kinds[Kind.LEADING_ZERO_NUMBER]
+    date = kinds[Kind.DATE]
+    other = sum(n for k, n in kinds.items() if k is not Kind.MISSING) - numeric_like - date
+    return numeric_like, date, other
+
+
+def is_mixed(kinds: Counter[Kind]) -> bool:
+    """Mixed: the non-missing values come from at least two of the three groups."""
+    return sum(1 for g in kind_groups(kinds) if g > 0) >= 2
+
+
 def infer(kinds: Counter[Kind]) -> tuple[InferredType, str]:
     present = sum(n for k, n in kinds.items() if k is not Kind.MISSING)
     if present == 0:
@@ -127,10 +140,11 @@ def infer(kinds: Counter[Kind]) -> tuple[InferredType, str]:
             "Values look like dates written as dd/mm/yyyy or mm/dd/yyyy. The day and month "
             "order cannot be known from the file, so they are kept as categories."
         )
-    if numeric_like or kinds[Kind.DATE]:
+    if is_mixed(kinds):
+        _, date, other = kind_groups(kinds)
         return "categorical", (
-            f"Mixed: {numeric_like} numeric-looking and {kinds[Kind.DATE]} date-looking values "
-            f"among {present} non-missing values; the rest are text. Nothing was converted."
+            f"Mixed: {numeric_like} numeric-looking, {date} date-looking and "
+            f"{other} other values among {present} non-missing values. Nothing was converted."
         )
     return "categorical", "Values are text."
 

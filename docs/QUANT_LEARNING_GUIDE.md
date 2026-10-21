@@ -126,7 +126,7 @@ leaves"
 That is why we never split lines on commas ourselves: Python's `csv` module implements the
 rules. `strict=True` makes it refuse malformed quoting instead of guessing:
 
-<!-- src: backend/src/simforge/quant/profiling/parsing.py:104-110 -->
+<!-- src: backend/src/simforge/quant/profiling/parsing.py:136-142 -->
 ```python
     reader = csv.reader(
         io.StringIO(text, newline=""),
@@ -140,7 +140,7 @@ rules. `strict=True` makes it refuse malformed quoting instead of guessing:
 ### 2.3 Never repair silently
 The heart of the parser is a loop over records. Read it slowly:
 
-<!-- src: backend/src/simforge/quant/profiling/parsing.py:119-139 -->
+<!-- src: backend/src/simforge/quant/profiling/parsing.py:151-171 -->
 ```python
         for record in reader:
             start_line = previous_line + 1
@@ -239,10 +239,11 @@ and let the person who knows the data decide.
 
 ### 3.3 Columns
 A column is `numeric` if *every* non-missing cell is a number, `date` if every one is a date,
-`empty` if all are missing, and otherwise `categorical`. A categorical column that contains
-some numbers is reported as **mixed**, with counts. In the messy sample, `income_gbp` holds
-six numbers plus `1,200` (twice) and `unknown`: "Mixed: 6 numeric-looking and 0 date-looking
-values among 9 non-missing values".
+`empty` if all are missing, and otherwise `categorical`. A categorical column is **mixed** if
+its values come from at least two of three groups: number-like, date, other text. It is
+reported with the counts of each. In the messy sample, `income_gbp` holds six numbers plus
+`1,200` (twice) and `unknown`: "Mixed: 6 numeric-looking, 0 date-looking and 3 other values
+among 9 non-missing values. Nothing was converted."
 
 ### 3.4 Overrides never change the data
 If you set `income_gbp` to numeric, the six numbers become valid, and `1,200`, `1,200` and
@@ -279,7 +280,7 @@ Percentages are of **all rows**: `age` is 3 of 10 → 30.0%.
 ### 4.2 Duplicates: exact, counted, not removed
 A duplicate row is identical, *character for character*, to an earlier row:
 
-<!-- src: backend/src/simforge/quant/profiling/statistics.py:195-206 -->
+<!-- src: backend/src/simforge/quant/profiling/statistics.py:203-214 -->
 ```python
 def duplicate_rows(rows: list[tuple[str, ...]], max_examples: int) -> Duplicates:
     """Rows whose cells are identical, character for character, to an earlier row."""
@@ -349,7 +350,7 @@ still inf. Squares overflow even sooner.
 The fix: divide every value by a power of two 2ᵉ ≥ max|x| first, so every value is between −1
 and 1, do the sums, then multiply back.
 
-<!-- src: backend/src/simforge/quant/profiling/statistics.py:125-135 -->
+<!-- src: backend/src/simforge/quant/profiling/statistics.py:125-139 -->
 ```python
     # Scale by a power of two, 2^e >= max |x|: multiplying by 2^-e only changes the binary
     # exponent, so it is exact (it cannot round), and every |y| <= 1 keeps the sums finite.
@@ -360,9 +361,19 @@ and 1, do the sums, then multiply back.
     # The exact mean lies in [min, max]; clamping only removes a rounding step outside it.
     unscaled = _unscale(mean_y, e)
     mean = hi if unscaled is None else min(max(unscaled, lo), hi)
-    if n >= 2:
+    if n >= 2 and lo == hi:
+        # Every value is identical: the spread is exactly 0. Computing it would leave a
+        # rounding residue (e.g. 1.7e-17 for three 0.1s), since mean_y is itself rounded.
+        std = 0.0
+    elif n >= 2:
         std = _unscale(math.sqrt(float(np.sum((y - mean_y) ** 2)) / (n - 1)), e)
 ```
+
+**A constant column (lines 134-137).** If every value is the same, the spread is 0 *by
+definition*, so the code says so directly. Computing it would not give 0: `0.1` is not an
+exact binary fraction, so the computed mean of three `0.1`s is a hair off `0.1`, and the
+"spread" around that slightly wrong mean came out as `1.7 × 10⁻¹⁷`. A rounding leftover
+shown as a result is exactly what "never present an approximation as exact" forbids.
 
 **Why a power of two, not max|x| itself?** Doubles are stored in binary as mantissa × 2ᵉ.
 Dividing by 2ᵉ only changes the exponent, so the division is exact. The first version of this
@@ -452,19 +463,22 @@ _OPTIONS_MARGIN_BYTES = 64 * 1024
 MAX_REQUEST_BYTES = MAX_BASE64_CHARS + _OPTIONS_MARGIN_BYTES
 ```
 
-A subtle point found while building this: 2,097,152 is not a multiple of 3, so a string of
-2,796,204 characters can decode to **2,097,153** bytes, one byte over the limit, while still
-passing the schema. That is why the decoded size is checked *separately*:
+A subtle point: 2,097,152 is not a multiple of 3, so a string of 2,796,204 characters can
+decode to **2,097,153** bytes, one byte over the limit, while still passing the schema. So
+the *decoded* size must be checked too. The parser does that for every file, uploaded or
+bundled:
 
-<!-- src: backend/src/simforge/quant/profiling/model.py:164-169 -->
+<!-- src: backend/src/simforge/quant/profiling/parsing.py:55-58 -->
 ```python
-    # Checked separately from the base64 length: base64 works in 3-byte groups, so the
-    # longest string the schema accepts can decode to up to 2 bytes more than the limit.
     if len(data) > MAX_FILE_BYTES:
         raise DatasetError(
             f"The file is {len(data):,} bytes; the limit is {MAX_FILE_BYTES:,} bytes (2 MiB)."
         )
 ```
+
+(An earlier version of this guide said the longest string could decode to "up to 2 bytes"
+more and that a second, separate check was the only guard. Both were wrong: the maximum is
+one byte, and the duplicate check was removed in the pre-merge review of the past PRs.)
 
 A test sends exactly that 2,097,153-byte file and expects the rejection.
 
@@ -527,7 +541,7 @@ The page applies the same idea so that changed settings can never pass as fresh 
 remembers the exact settings each result was computed with, and shows a "settings have
 changed" notice the moment they differ:
 
-<!-- src: frontend/src/components/QuantLab.tsx:29-40 -->
+<!-- src: frontend/src/components/QuantLab.tsx:36-47 -->
 ```tsx
 function settingsKey(
   source: string,
@@ -620,6 +634,12 @@ statistics.
 ---
 
 ## Changelog
+- **2026-10-21 (review of the merged PRs):**
+  - 6.2 corrected: base64's 3-byte groups allow 1 extra byte, not 2, and the parser's
+    size check is the one that catches it; a duplicate check was removed.
+  - 5.2: a constant column now has SD exactly 0.
+  - 3.3: "mixed" means values from at least two of number-like, date, other.
+  - Stray quotes inside unquoted fields are now rejected, as the guide always said.
 - **2026-10-18 (pre-merge review):** overrides are now cleared when the delimiter changes
   (a different delimiter makes different columns, so position-based overrides could land on
   the wrong column); a one-column file with blank lines gets a note; the privacy wording now

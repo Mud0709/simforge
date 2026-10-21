@@ -77,6 +77,9 @@ class ProjectileSetup:
 
     @property
     def vx0(self) -> float:
+        # cos(math.radians(90)) is 6.1e-17, not 0: a vertical launch would get a fake range.
+        if self.launch_angle_rad == math.pi / 2:
+            return 0.0
         return self.initial_speed * math.cos(self.launch_angle_rad)
 
     @property

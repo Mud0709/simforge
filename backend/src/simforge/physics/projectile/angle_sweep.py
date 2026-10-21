@@ -7,9 +7,9 @@ Method
 ------
 1. Evaluate the exact range R(theta) on a uniform grid of angles.
 2. Take the best grid point and refine it with a bounded Brent search on the
-   neighbouring grid interval. Every case checked shows R(theta) with a single
-   peak on [0, 90] degrees (see the tests), so the refined point is the global
-   maximum, not just a local one.
+   neighbouring grid interval. In every case tested, R(theta) has a single peak on
+   [0, 90] degrees, so the refined point is the global maximum there. That is
+   evidence on the tested cases, not a proof for every allowed input.
 
 Precision note
 --------------
