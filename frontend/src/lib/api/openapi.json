@@ -681,6 +681,36 @@
             "title": "Model Version",
             "type": "string"
           },
+          "output_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.",
+            "title": "Output Digest"
+          },
+          "record_version": {
+            "default": 1,
+            "description": "1: before roadmap 1.4 (no output digest); 2: current.",
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "replay_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "run_id of the run this record replayed, if it is a replay.",
+            "title": "Replay Of"
+          },
           "run_id": {
             "title": "Run Id",
             "type": "string"
@@ -1931,6 +1961,11 @@
             "title": "Experiment Saved",
             "type": "boolean"
           },
+          "git_commit": {
+            "description": "Commit of the code that ran ('-dirty' if the checkout had changes; 'unknown' if it could not be determined).",
+            "title": "Git Commit",
+            "type": "string"
+          },
           "input_hash": {
             "description": "SHA-256 of the canonical JSON of the validated inputs. Identical inputs produce identical hashes, so repeated runs can be grouped and compared.",
             "title": "Input Hash",
@@ -1940,8 +1975,17 @@
             "title": "Numpy Version",
             "type": "string"
           },
+          "output_digest": {
+            "description": "SHA-256 of the canonical JSON of this response without its metadata (keys sorted, no whitespace). Equal digests mean bit-identical outputs; anyone can recompute it from the response.",
+            "title": "Output Digest",
+            "type": "string"
+          },
           "platform": {
             "title": "Platform",
+            "type": "string"
+          },
+          "python_implementation": {
+            "title": "Python Implementation",
             "type": "string"
           },
           "python_version": {
@@ -1966,7 +2010,10 @@
           "run_id",
           "created_at",
           "input_hash",
+          "output_digest",
           "simforge_version",
+          "git_commit",
+          "python_implementation",
           "python_version",
           "numpy_version",
           "scipy_version",

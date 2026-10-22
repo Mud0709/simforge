@@ -46,7 +46,17 @@ class RunMetadata(StrictModel):
         description="SHA-256 of the canonical JSON of the validated inputs. Identical inputs "
         "produce identical hashes, so repeated runs can be grouped and compared."
     )
+    output_digest: str = Field(
+        description="SHA-256 of the canonical JSON of this response without its metadata "
+        "(keys sorted, no whitespace). Equal digests mean bit-identical outputs; anyone can "
+        "recompute it from the response."
+    )
     simforge_version: str
+    git_commit: str = Field(
+        description="Commit of the code that ran ('-dirty' if the checkout had changes; "
+        "'unknown' if it could not be determined)."
+    )
+    python_implementation: str
     python_version: str
     numpy_version: str
     scipy_version: str
