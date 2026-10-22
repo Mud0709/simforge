@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from simforge.api.dependencies import Repository
-from simforge.api.runs import ModelEntry, execute
+from simforge.api.runs import ModelEntry, Tolerance, execute
 from simforge.core.schemas import RunMetadata
 from simforge.quant.profiling import model as profiling
 from simforge.quant.profiling.schemas import (
@@ -97,6 +97,11 @@ DATASET_PROFILE = ModelEntry(
     respond=_profile_response,
     elapsed_ms=lambda r: r.elapsed_ms,
     rebuild=_profile_rebuild,
+    # Every stored value is a count or a label: a profile involves no floating-point result
+    # in its summary, so any change is a real change.
+    tolerances=lambda inputs, summary: {
+        "*": Tolerance.exact("Counts and labels: exact, by definition of a profile.")
+    },
 )
 
 

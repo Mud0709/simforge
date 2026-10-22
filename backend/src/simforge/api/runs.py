@@ -13,13 +13,27 @@ from typing import Any
 
 from fastapi import HTTPException, status
 from fastapi.concurrency import run_in_threadpool
+from pydantic import Field
 
 from simforge.api.recording import record_run
 from simforge.core.errors import ModelDomainError, SolverError
-from simforge.core.reproducibility import output_digest
+from simforge.core.reproducibility import input_hash, output_digest
 from simforge.core.schemas import ModelInfo, RunMetadata, StrictModel
 from simforge.persistence.experiments import ExperimentRepository
 from simforge.quant.profiling.parsing import DatasetError
+
+
+class Tolerance(StrictModel):
+    """Two values agree if ``|a - b| <= absolute + relative * max(|a|, |b|)``. Both zero means
+    exact equality, which is also how non-numbers (counts, names, None) are compared."""
+
+    relative: float = Field(ge=0)
+    absolute: float = Field(ge=0)
+    reason: str = Field(min_length=1)
+
+    @classmethod
+    def exact(cls, reason: str) -> Tolerance:
+        return cls(relative=0.0, absolute=0.0, reason=reason)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +54,13 @@ class ModelEntry[Req: StrictModel, Res: StrictModel, Result]:
     #: Rebuilds a request from stored inputs (and, for an uploaded dataset, its bytes).
     #: The rebuilt request never saves to the log by itself.
     rebuild: Callable[[dict[str, Any], bytes | None], Req]
+    #: Declared agreement rules for replay: summary field pattern (fnmatch, nested names
+    #: joined by dots) -> tolerance. May depend on the stored inputs and summary. Every
+    #: summary field must match exactly one pattern.
+    tolerances: Callable[[dict[str, Any], dict[str, Any]], dict[str, Tolerance]]
+    #: Response fields left out of the output digest besides ``metadata``: echoes of inputs
+    #: that do not affect the result (and so are not stored, and cannot be replayed).
+    digest_exclude: dict[str, Any] | None = None
 
 
 def compute_or_explain[Req: StrictModel, Res: StrictModel, Result](
@@ -89,14 +110,23 @@ async def execute_run[Req: StrictModel, Res: StrictModel, Result](
     *,
     save: bool,
     replay_of: str | None = None,
+    expected_input_hash: str | None = None,
 ) -> Outcome[Res]:
     """Compute, fingerprint the outputs, record, respond. CPU work and SQLite I/O run in
-    worker threads, so the event loop stays responsive."""
+    worker threads, so the event loop stays responsive. With ``expected_input_hash`` (a
+    replay), a computation that no longer hashes to the original is refused before anything
+    is recorded."""
     result = await run_in_threadpool(compute_or_explain, entry, request)
+    inputs, summary = entry.inputs(request, result), entry.summary(result)
+    if expected_input_hash is not None and input_hash(inputs) != expected_input_hash:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "The stored inputs no longer describe the same computation (their hash changed).",
+        )
     # The response is built once without real metadata, to fingerprint everything else in it.
     draft = entry.respond(request, result, _DRAFT_METADATA)
-    digest = output_digest(draft.model_dump(mode="json", exclude={"metadata"}))
-    inputs, summary = entry.inputs(request, result), entry.summary(result)
+    exclude: dict[str, Any] = {"metadata": True, **(entry.digest_exclude or {})}
+    digest = output_digest(draft.model_dump(mode="json", exclude=exclude))
     metadata = await run_in_threadpool(
         record_run,
         repo,

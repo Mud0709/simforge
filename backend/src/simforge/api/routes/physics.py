@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from simforge.api.dependencies import Repository
-from simforge.api.runs import ModelEntry, execute
+from simforge.api.runs import ModelEntry, Tolerance, execute
 from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.physics.projectile import integrator_model
 from simforge.physics.projectile import model as projectile
@@ -43,6 +43,68 @@ def _projectile_response(
     )
 
 
+_QUANTITIES = ("flight_time", "impact_speed", "max_height", "range")
+_ROUNDING = (
+    "Closed-form expressions (the flight time from Brent's method, converged to about "
+    "1e-15). Another machine changes them by a few rounding errors of about 1e-16 each; "
+    "1e-12 relative leaves a wide margin."
+)
+
+
+def _projectile_tolerances(inputs: dict[str, Any], summary: dict[str, Any]) -> dict[str, Tolerance]:
+    rtol, atol = inputs["solver"]["rtol"], inputs["solver"]["atol"]
+    exact = summary["analytical"]
+    scale = max(1.0, *(abs(exact[q]) for q in _QUANTITIES))
+    solver = (
+        "The adaptive solver controls its error to about rtol*|x| + atol. Rounding on another "
+        "machine can change one accept/reject decision and so move a result by up to that "
+        "much; a factor of 10 is the margin."
+    )
+    rules: dict[str, Tolerance] = {
+        "analytical.*": Tolerance(relative=1e-12, absolute=0.0, reason=_ROUNDING),
+        "numerical.method": Tolerance.exact("The chosen solver, copied from the inputs."),
+        "numerical.rtol": Tolerance.exact("A solver setting, copied from the inputs."),
+        "numerical.atol": Tolerance.exact("A solver setting, copied from the inputs."),
+        "numerical.n_steps": Tolerance.exact(
+            "A count: a different number of steps is a different computation."
+        ),
+        "numerical.n_rhs_evaluations": Tolerance.exact(
+            "A count: a different number of evaluations is a different computation."
+        ),
+        "numerical.apex_time": Tolerance(relative=10 * rtol, absolute=10 * atol, reason=solver),
+        "comparison.max_position_error": Tolerance(
+            relative=0.0,
+            absolute=10 * (rtol * max(abs(exact["range"]), abs(exact["max_height"])) + atol),
+            reason="An error estimate, itself near rounding size, so only an absolute "
+            "tolerance makes sense: it may move by the solver's error control, "
+            "rtol x max(range, height) + atol (m), with a factor of 10 margin.",
+        ),
+        "comparison.max_energy_balance_residual": Tolerance(
+            relative=0.0,
+            absolute=10 * (rtol + atol / scale),
+            reason="A relative energy error near rounding size: absolute tolerance "
+            "10*(rtol + atol/S), S = the largest of range, height, speed and time (at least 1).",
+        ),
+    }
+    for q in _QUANTITIES:
+        size = max(abs(exact[q]), atol)
+        rules[f"numerical.{q}"] = Tolerance(relative=10 * rtol, absolute=10 * atol, reason=solver)
+        rules[f"comparison.{q}.absolute"] = Tolerance(
+            relative=0.0,
+            absolute=10 * (rtol * size + atol),
+            reason="An error estimate, itself near rounding size, so only an absolute "
+            "tolerance makes sense (2e-11 becoming 3e-11 is a 50% change and still correct): "
+            "10*(rtol*|x| + atol), the solver's error control with a factor of 10.",
+        )
+        rules[f"comparison.{q}.relative"] = Tolerance(
+            relative=0.0,
+            absolute=10 * (rtol + atol / size),
+            reason="The same error estimate divided by |x|: absolute tolerance "
+            "10*(rtol + atol/|x|).",
+        )
+    return rules
+
+
 PROJECTILE = ModelEntry(
     info=projectile.MODEL_INFO,
     request_type=ProjectileRequest,
@@ -59,6 +121,7 @@ PROJECTILE = ModelEntry(
     rebuild=lambda inputs, _: ProjectileRequest.model_validate(
         {**inputs, "save_experiment": False}
     ),
+    tolerances=_projectile_tolerances,
 )
 
 
@@ -114,6 +177,34 @@ def _study_response(
     )
 
 
+_STUDY_TOLERANCES = {
+    "horizon": Tolerance(relative=1e-12, absolute=0.0, reason=_ROUNDING),
+    "methods.*.theoretical_order": Tolerance.exact("A fixed property of the method."),
+    "methods.*.position_fit_points": Tolerance.exact(
+        "A count. If rounding moved a step size across the fit rule's boundary, the fit "
+        "would use different points: a different result, reported as such."
+    ),
+    "methods.*.position_order": Tolerance(
+        relative=1e-6,
+        absolute=0.0,
+        reason="Fitted only over steps whose errors are far above rounding (the fit rule), "
+        "so rounding moves the slope by far less than 1e-9; 1e-6 relative is the margin.",
+    ),
+    "methods.*.velocity_order": Tolerance(
+        relative=1e-6,
+        absolute=0.0,
+        reason="As for the position order: fitted only where errors are far above rounding.",
+    ),
+    "methods.*.finest_max_position_error": Tolerance(
+        relative=0.0,
+        absolute=1e-9,
+        reason="At the finest step this error can be rounding-dominated (RK4 reaches about "
+        "1e-13 m). Rounding of about 1e-14 m per step over at most 5e4 steps stays below "
+        "about 5e-10 m, so 1e-9 m absolute.",
+    ),
+}
+
+
 INTEGRATOR_STUDY = ModelEntry(
     info=integrator_model.MODEL_INFO,
     request_type=IntegratorStudyRequest,
@@ -125,6 +216,7 @@ INTEGRATOR_STUDY = ModelEntry(
     rebuild=lambda inputs, _: IntegratorStudyRequest.model_validate(
         {**inputs, "save_experiment": False}
     ),
+    tolerances=lambda inputs, summary: _STUDY_TOLERANCES,
 )
 
 
@@ -160,6 +252,23 @@ def _sweep_response(
     )
 
 
+_SWEEP_TOLERANCES = {
+    "best_angle_deg": Tolerance(
+        relative=0.0,
+        absolute=1e-5,
+        reason="Brent's method finds the best angle to about 1e-6 degrees (the maximum is "
+        "flat, so rounding hides smaller moves); 1e-5 degrees absolute is the margin.",
+    ),
+    "best_range": Tolerance(
+        relative=1e-10,
+        absolute=0.0,
+        reason="At a flat maximum the range changes only with the square of the angle error "
+        "(about 1e-16 relative for 1e-6 degrees), plus rounding; 1e-10 is the margin.",
+    ),
+    "vacuum_best_*": Tolerance(relative=1e-12, absolute=0.0, reason=_ROUNDING),
+}
+
+
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
     request_type=AngleSweepRequest,
@@ -181,6 +290,9 @@ ANGLE_SWEEP = ModelEntry(
     rebuild=lambda inputs, _: AngleSweepRequest.model_validate(
         {**inputs, "save_experiment": False}
     ),
+    tolerances=lambda inputs, summary: _SWEEP_TOLERANCES,
+    # The response echoes the request's launch angle, which a sweep does not use.
+    digest_exclude={"parameters": {"launch_angle_deg": True}},
 )
 
 

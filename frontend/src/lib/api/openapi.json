@@ -532,6 +532,21 @@
         "title": "DatasetIdentity",
         "type": "object"
       },
+      "DatasetSupply": {
+        "additionalProperties": false,
+        "properties": {
+          "content_base64": {
+            "description": "The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this replay only and never stored.",
+            "title": "Content Base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_base64"
+        ],
+        "title": "DatasetSupply",
+        "type": "object"
+      },
       "DateSummary": {
         "additionalProperties": false,
         "properties": {
@@ -600,6 +615,45 @@
           "examples"
         ],
         "title": "DuplicateSummary",
+        "type": "object"
+      },
+      "EnvironmentDifference": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "original": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None if the original run did not record it.",
+            "title": "Original"
+          },
+          "replay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replay"
+          }
+        },
+        "required": [
+          "key",
+          "original",
+          "replay"
+        ],
+        "title": "EnvironmentDifference",
         "type": "object"
       },
       "ErrorMetric": {
@@ -733,6 +787,85 @@
           "environment"
         ],
         "title": "ExperimentRecord",
+        "type": "object"
+      },
+      "FieldComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_difference": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when not both numbers.",
+            "title": "Absolute Difference"
+          },
+          "field": {
+            "description": "Summary field, nested names joined by dots.",
+            "title": "Field",
+            "type": "string"
+          },
+          "original": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original"
+          },
+          "replay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replay"
+          },
+          "tolerance": {
+            "$ref": "#/components/schemas/Tolerance"
+          },
+          "within_tolerance": {
+            "title": "Within Tolerance",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "field",
+          "original",
+          "replay",
+          "absolute_difference",
+          "tolerance",
+          "within_tolerance"
+        ],
+        "title": "FieldComparison",
         "type": "object"
       },
       "FitRule": {
@@ -1943,6 +2076,130 @@
         "title": "ReferenceLine",
         "type": "object"
       },
+      "ReplayRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DatasetSupply"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for a dataset profile of an uploaded file."
+          },
+          "save_experiment": {
+            "default": false,
+            "description": "Store the replay as a new record linked to the original (replay_of). The original record is never changed.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          }
+        },
+        "title": "ReplayRequest",
+        "type": "object"
+      },
+      "ReplayResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "description": "output_digest: the digests were compared (every output value). summary: the digests differ, so the stored summary was compared with tolerances; outputs not in the summary (such as time series) are not compared. summary_only: a v1 record with no digest, so only its summary could be compared.",
+            "enum": [
+              "output_digest",
+              "summary",
+              "summary_only"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "environment_differences": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentDifference"
+            },
+            "title": "Environment Differences",
+            "type": "array"
+          },
+          "environment_matches": {
+            "title": "Environment Matches",
+            "type": "boolean"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "fields": {
+            "description": "Every summary field, compared.",
+            "items": {
+              "$ref": "#/components/schemas/FieldComparison"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "largest_difference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The field furthest from agreement, relative to its tolerance; None if every field is exactly equal."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata",
+            "description": "The replay's own run metadata."
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "original_output_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Output Digest"
+          },
+          "original_run_id": {
+            "title": "Original Run Id",
+            "type": "string"
+          },
+          "replay_output_digest": {
+            "title": "Replay Output Digest",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "identical",
+              "within_tolerance",
+              "differs"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original_run_id",
+          "model",
+          "verdict",
+          "basis",
+          "explanation",
+          "original_output_digest",
+          "replay_output_digest",
+          "environment_matches",
+          "environment_differences",
+          "fields",
+          "largest_difference",
+          "metadata"
+        ],
+        "title": "ReplayResponse",
+        "type": "object"
+      },
       "RunMetadata": {
         "additionalProperties": false,
         "description": "Everything needed to reproduce (or audit) a single run.",
@@ -2415,6 +2672,34 @@
         "title": "SteadyState",
         "type": "object"
       },
+      "Tolerance": {
+        "additionalProperties": false,
+        "description": "Two values agree if ``|a - b| <= absolute + relative * max(|a|, |b|)``. Both zero means\nexact equality, which is also how non-numbers (counts, names, None) are compared.",
+        "properties": {
+          "absolute": {
+            "minimum": 0.0,
+            "title": "Absolute",
+            "type": "number"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "relative": {
+            "minimum": 0.0,
+            "title": "Relative",
+            "type": "number"
+          }
+        },
+        "required": [
+          "relative",
+          "absolute",
+          "reason"
+        ],
+        "title": "Tolerance",
+        "type": "object"
+      },
       "TrajectorySample": {
         "additionalProperties": false,
         "properties": {
@@ -2772,6 +3057,59 @@
           }
         },
         "summary": "Get Experiment",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/experiments/{run_id}/replay": {
+      "post": {
+        "description": "Rerun a stored run with the same inputs and the same model version, and say whether\nthe same answer came back: identical, within tolerance, or differs.",
+        "operationId": "replay_experiment_api_v1_experiments__run_id__replay_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replay Experiment",
         "tags": [
           "experiments"
         ]
