@@ -19,6 +19,7 @@ export type SolowRequest = Schemas["SolowRequest"];
 export type SolowResponse = Schemas["SolowResponse"];
 export type SolowPath = Schemas["SolowPathResponse"];
 export type ValidationCheck = Schemas["ValidationCheck"];
+export type Assumption = Schemas["Assumption"];
 export type ProfileRequest = Schemas["ProfileRequest"];
 export type ProfileResponse = Schemas["ProfileResponse"];
 export type ParseOptions = Schemas["ParseOptions"];

@@ -1,10 +1,11 @@
 "use client";
 
 import type { Data, Layout } from "plotly.js";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import type { SolowResponse } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
+import { AssumptionsList } from "./AssumptionsList";
 import { ChecksTable } from "./ChecksTable";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -48,7 +49,7 @@ function policyLine(year: number): Partial<Layout> {
   };
 }
 
-export function SolowCharts({ result }: Props) {
+function SolowChartsView({ result }: Props) {
   const { years, baseline, scenario, policy } = result;
 
   const capital = useMemo<Data[]>(
@@ -236,11 +237,7 @@ export function SolowSummary({ result }: Props) {
 export function SolowAssumptions({ result }: Props) {
   return (
     <>
-      <ul className="assumptions">
-        {result.assumptions.map((a) => (
-          <li key={a.id}>{a.statement}</li>
-        ))}
-      </ul>
+      <AssumptionsList assumptions={result.assumptions} />
       <h3>How it is computed</h3>
       <p className="note">{result.method_note}</p>
     </>
@@ -259,3 +256,9 @@ export function SolowValidation({ result }: Props) {
     </>
   );
 }
+
+/**
+ * Memoised: the charts redraw only when the result changes, not on every keystroke in the
+ * form (which re-renders the page but leaves the result object the same).
+ */
+export const SolowCharts = memo(SolowChartsView);

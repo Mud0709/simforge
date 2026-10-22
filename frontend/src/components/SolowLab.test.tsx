@@ -145,6 +145,61 @@ describe("SolowLab", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("refuses rates with no useful steady state before calling the server", async () => {
+    const fetchMock = mockFetch(200, RESPONSE);
+    render(<SolowLab />);
+    const set = async (label: RegExp, v: string) => {
+      const input = screen.getByLabelText(label);
+      await userEvent.clear(input);
+      await userEvent.type(input, v);
+    };
+    // n + g + ng + delta = -0.05 + 0 + 0 + 0.05 = 0: every field is fine on its own.
+    await set(/^Population growth/, "-0.05");
+    await set(/^Technology growth/, "0");
+    await set(/^Depreciation/, "0.05");
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    expect(screen.getByText(/n \+ g \+ ng \+ δ = 0 is below 0\.001/)).toBeInTheDocument();
+    // 5e-4: positive, but still below the bound.
+    await set(/^Depreciation/, "0.0505");
+    expect(screen.getByText(/= 0\.0005 is below 0\.001/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Exactly at the bound (sum 0.001, a few ulps below in floating point) is accepted.
+    await set(/^Depreciation/, "0.051");
+    expect(screen.queryByText(/is below 0\.001/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes a failed count check as a whole number", async () => {
+    const failing = {
+      ...RESPONSE,
+      checks: [{ ...RESPONSE.checks[0]!, value: 3, passed: false }],
+    };
+    mockFetch(200, failing);
+    render(<SolowLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    const row = await screen.findByTestId("check-identical_before_policy");
+    expect(within(row).getByText("3")).toBeInTheDocument();
+    expect(within(row).queryByText("3e0")).not.toBeInTheDocument();
+  });
+
+  it("marks the results as out of date when an input changes or a re-run fails", async () => {
+    mockFetch(200, RESPONSE);
+    render(<SolowLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    await screen.findByTestId("steady-state-baseline");
+    const s1 = screen.getByLabelText(/^New savings rate/);
+    await userEvent.clear(s1);
+    await userEvent.type(s1, "0.5");
+    mockFetch(422, { detail: [{ loc: ["body"], msg: "refused" }] });
+    await userEvent.click(screen.getByRole("button", { name: "Run model" }));
+    await screen.findByRole("alert");
+    expect(
+      within(screen.getByRole("region", { name: "Results" })).getByText(/inputs have changed/),
+    ).toBeInTheDocument();
+  });
+
   it("shows the server's explanation when the API rejects a run", async () => {
     mockFetch(422, {
       detail: [

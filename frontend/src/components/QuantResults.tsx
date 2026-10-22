@@ -1,11 +1,12 @@
 "use client";
 
 import type { Data } from "plotly.js";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import type { ColumnProfile, ProfileResponse } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
 import { binGeometry } from "@/lib/quant/histogram";
+import { AssumptionsList } from "./AssumptionsList";
 import { ChecksTable } from "./ChecksTable";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -84,7 +85,7 @@ function DistributionChart({ column }: { column: ColumnProfile }) {
 }
 
 /** Visualisation: where values are missing or invalid, and the distribution of one column. */
-export function QuantCharts({ result }: Props) {
+function QuantChartsView({ result }: Props) {
   const [chosen, setChosen] = useState<number>(() => defaultColumn(result.columns));
   const column = result.columns.find((c) => c.index === chosen) ?? result.columns[0]!;
   const names = result.columns.map((c) => c.name);
@@ -392,11 +393,7 @@ export function QuantAssumptions({ result }: Props) {
   const o = result.options;
   return (
     <>
-      <ul className="assumptions">
-        {result.assumptions.map((a) => (
-          <li key={a.id}>{a.statement}</li>
-        ))}
-      </ul>
+      <AssumptionsList assumptions={result.assumptions} />
       <h3>Settings used</h3>
       <p className="note">
         Delimiter: {DELIMITER_LABEL[o.delimiter ?? "comma"]}. Missing-value markers (besides empty
@@ -456,3 +453,9 @@ export function QuantValidation({ result }: Props) {
     </>
   );
 }
+
+/**
+ * Memoised: the charts redraw only when the result changes, not on every keystroke in the
+ * form (which re-renders the page but leaves the result object the same).
+ */
+export const QuantCharts = memo(QuantChartsView);

@@ -51,9 +51,9 @@ test("upload a CSV, read its profile, override a type and find it in the log", a
 
   // Override temp_c to categorical: the stale notice appears until the profile is redone.
   await page.getByLabel("temp_c", { exact: true }).selectOption("categorical");
-  await expect(results.getByRole("status")).toContainText("have changed since this profile");
+  await expect(results.getByText(/have changed since this profile/)).toBeVisible();
   await page.getByRole("button", { name: "Profile again" }).click();
-  await expect(results.getByRole("status")).toHaveCount(0);
+  await expect(results.getByText(/have changed since this profile/)).toHaveCount(0);
   await expect(results.getByTestId("categorical-1")).toContainText("-3.5 (2)");
 
   await page.getByRole("link", { name: "Experiments" }).click();

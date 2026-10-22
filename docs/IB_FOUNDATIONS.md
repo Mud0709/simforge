@@ -5,8 +5,8 @@
 > in scope, content and order. No Track B item may be removed, downgraded, merged away or
 > postponed indefinitely because of this track. See "Preservation rule" below.
 
-**Status:** proposed, awaiting review (revised 2026-10-16 against the official guides supplied by
-the author). Nothing in this catalogue is implemented.
+**Status:** recorded plan, merged in PR #4 (2026-10-16; mapping revised that day against the
+official guides supplied by the author). Nothing in this catalogue is implemented yet.
 
 ## Purpose
 Track A adds simpler, interactive simulations aligned with the IB Diploma Programme courses the
@@ -19,15 +19,18 @@ labelled as such.
 ## Preservation rule (non-negotiable)
 1. Track B (Phases 0-7 and every item in the capability map) stays exactly as written in
    `ROADMAP.md`. Track A is listed in its own section and never edits Track B's phases.
-2. Where a Track A module covers a topic that Track B also covers (collisions, oscillators,
-   AD-AS, the multiplier, orbits, kinetic theory, regression), the Track A module is an
+2. Where a Track A module covers a topic that Track B also covers (supply and demand,
+   collisions, oscillators, AD-AS, the multiplier, orbits, kinetic theory, regression), the
+   Track A module is an
    **introductory precursor**. The Track B item remains planned in full.
 3. **No dependency between the tracks.** Track B is the primary sequence and progresses on
    its own. Track A modules are additional milestones that may be interleaved when practical.
    No Track A module is ever a prerequisite for, or a gate on, any Track B step, and Track B
    never waits for Track A.
-4. Shared code is extracted only when real modules from both tracks need it (the existing
-   two-examples rule).
+4. Shared code follows the project rule in `CLAUDE.md`: a shared abstraction is extracted
+   only when real models from **at least two labs** need it. Later Track A modules may reuse
+   an earlier module's engine *within the same lab* (E2, E3, E6 and E7 build on the E1 market
+   engine); that is reuse of one model's code, not a new cross-lab abstraction.
 
 ## Syllabus sources and their limits
 | Course | Guide that applies | Confidence |
@@ -119,7 +122,9 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Inquiry:** demand and supply both rise. Can you predict the change in price? Find
   settings where it rises, falls and stays the same.
 - **Extension:** derive P* and Q* yourself; consumer and producer surplus as triangle areas.
-- **Track B link:** none directly; becomes the engine for E3, E4, E7 and E8.
+- **Track B link:** a **precursor** to the Economy Lab's "Later" item, a micro
+  supply-and-demand market, which stays planned in full. Within Track A, E1 is the engine
+  that E2, E3, E6 and E7 build on (E4 through E3).
 
 #### E2. Elasticity and total revenue (cost S, built on E1)
 - **Syllabus:** Econ 2.5 Elasticities of demand (PED and its relationship with total revenue;
@@ -136,7 +141,11 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   `|PED| = 1` at `P = a/(2b)`, where `TR = a²/(4b)` is greatest. `YED = %ΔQ/%ΔY`,
   `PES = %ΔQs/%ΔP`.
 - **Assumptions:** as E1; YED uses a demand intercept that varies linearly with income.
-- **Validation:** TR maximum found numerically equals the closed form `a/(2b)`; the IB
+- **Validation:** a bounded numerical maximiser (Brent's method) finds the TR-maximising
+  price within its tolerance of the closed form `a/(2b)`: about `√ε·a/(2b)` relative
+  (`ε = 2.2 × 10⁻¹⁶`), because near a maximum TR changes only with the *square* of the price
+  error, so rounding of order `ε·TR` hides price errors up to about `√ε`. The maximum value
+  itself is compared with `a²/(4b)` to a few `ε`. The IB
   percentage formula depends on the direction of the change, and a test documents this
   (the app shows the midpoint version as an extension, labelled as a different convention);
   sign tests for normal and inferior goods.
@@ -144,7 +153,8 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   why PED changes along a straight-line demand curve even though its slope is constant.
 - **Inquiry:** is it ever possible for a price cut to leave revenue unchanged? Where?
 - **Extension:** prove TR is maximal where `|PED| = 1` using calculus.
-- **Track B link:** elasticities reappear in Phase 3 sensitivity analysis.
+- **Track B link:** none directly (Phase 3's sensitivity analysis varies macro parameters; it
+  has no elasticity content).
 
 #### E3. Taxes, subsidies and price controls (cost M, built on E1)
 - **Syllabus:** Econ 2.7 Role of government in microeconomics (indirect taxes, subsidies,
@@ -203,7 +213,8 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   cost?
 - **Extension:** common-pool resources with a simple stock-and-harvest dynamic (a difference
   equation, like Solow), showing overuse.
-- **Track B link:** policy experiments in Phase 3; the extension reuses Solow-style dynamics.
+- **Track B link:** none directly (Phase 3 is macro policy; it has no externality content). The
+  extension's difference equation is the same kind of dynamics as the Economy Lab's Solow model.
 
 #### E5. AD-AS diagram explorer (cost M)
 - **Syllabus:** Econ 3.2 (AD and its components; SRAS; monetarist/new classical LRAS and
@@ -296,8 +307,8 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Inquiry:** two balls are released at the same time, one dropped and one thrown sideways.
   Which lands first? Then switch drag on.
 - **Track B link:** reuses Phase 0 projectile code; leads into the existing projectile,
-  angle-sweep and integrator pages. Those pages' quantitative drag goes beyond A.1 and is
-  labelled as an extension there.
+  angle-sweep and integrator pages. Those pages' quantitative drag goes beyond A.1; they do
+  not label it as an extension yet, and building P1 should add that label.
 
 #### P2. Forces and Newton's laws: free-body diagrams on a slope (cost S-M)
 - **Syllabus:** Physics A.2 Forces and momentum (SL and HL): Newton's three laws; free-body
@@ -342,8 +353,8 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
   conservation plus the chosen collision type.
 - **HL view:** two-dimensional collisions (momentum conserved in each component), since the
   guide expects them quantitatively at HL.
-- **Assumptions:** one dimension, no external horizontal force during the collision, rigid
-  bodies with constant mass.
+- **Assumptions:** one dimension in the core (SL) view and two in the HL view; no external
+  force during the collision; rigid bodies with constant mass.
 - **Validation (model identities):** total momentum conserved to rounding for all e;
   kinetic-energy loss matches the formula; for e = 1 the relative velocity exactly reverses;
   the centre-of-mass velocity is unchanged; the kinetic-energy loss is the same in every
@@ -441,12 +452,19 @@ question, a deeper extension, and links to Track B. Cost is a rough size (S, M o
 - **Objective:** see how uncertainties propagate and how a best-fit line with maximum and
   minimum gradients works.
 - **Equations:** the IB rules (absolute uncertainties add for sums; fractional ones add for
-  products; powers multiply the fractional uncertainty). These rules give **worst-case
-  linear approximations**. The app compares them with a Monte Carlo propagation and labels
-  the difference.
-- **Validation:** Monte Carlo agrees with the linear rules for small uncertainties and
-  diverges, as expected, for large ones (a statistical check, labelled as such); least squares
-  checked against a closed form. The app notes that the guide's max/min-gradient method is
+  products; powers multiply the fractional uncertainty). These rules give a **worst-case
+  bound**: exact for sums and differences, and correct to first order for products (the
+  neglected term is `Δx·Δy`). A Monte Carlo propagation answers a *different* question, the
+  typical spread, which for independent errors is close to the root-sum-square (quadrature),
+  not the IB sum. Example: `x ± 1` plus `y ± 1` has IB bound ± 2, while the Monte Carlo
+  standard deviation is about 1.41 for Gaussian errors and 0.82 for uniform ones. The app
+  shows both and labels which question each answers.
+- **Validation:** for sums, every Monte Carlo sample with errors drawn inside the stated
+  uncertainties lies inside the IB bound; for products, inside it up to the `Δx·Δy` term
+  (a sampled check: 10⁶ draws for `(10 ± 0.1)(5 ± 0.2)` reached 2.518 against the IB value
+  2.5 and the exact worst case 2.52); the Monte Carlo standard deviation matches the
+  quadrature formula for small uncertainties within its statistical error (labelled as a
+  statistical check); least squares checked against a closed form. The app notes that the guide's max/min-gradient method is
   done "by eye", while least squares is an extension.
 - **Track B link:** a **precursor** to Phase 5 regression and uncertainty in the Quant Lab.
   Phase 5 remains unchanged.
@@ -463,7 +481,7 @@ and reuse of existing code.
 
 | Rank | Module | Why now | Cost | Reuse |
 |---|---|---|---|---|
-| 1 | **E1 + E2** Market equilibrium and elasticity | Core early microeconomics; the engine for E3, E4, E6 and E7 | S-M | Workspace, `record_run`, schema-driven fields |
+| 1 | **E1 + E2** Market equilibrium and elasticity | Core early microeconomics; the engine for E2, E3, E6 and E7 (E4 through E3) | S-M | Workspace, `record_run`, schema-driven fields |
 | 2 | **P3** Momentum and collisions | Core A.2 (1-D SL, 2-D HL); momentum vs kinetic energy is a classic confusion; exact validation; precursor to Phase 4 | M | Workspace, Plotly |
 | 3 | **E3** Taxes, subsidies, price controls | Builds directly on rank 1; welfare accounting is an exact test | M | E1 engine |
 | 4 | **P1 + P2** Kinematics graphs and slope forces | A.1-A.2; P1 reuses the projectile engine | S-M | projectile engine |
@@ -472,8 +490,8 @@ and reuse of existing code.
 Next wave: E4, P4, P5, P10, E5, P6. Later: E6, E7, E8, P7, P8, P9, E9.
 
 ## How the two tracks coexist
-- **Track B is the primary sequence.** It proceeds in its own order (1.2 → 1.3 → 1.4 → 1.5 →
-  1.6 → Phases 2-7) whether or not any Track A module has been built. Every original
+- **Track B is the primary sequence.** It proceeds in its own order (the remaining steps of
+  Phase 1, then Phases 2-7) whether or not any Track A module has been built. Every original
   milestone stays, in its original order.
 - **Track A is additional and optional in timing.** Its modules may be interleaved between
   Track B steps *when practical*. A reasonable rhythm is at most one Track A module between
@@ -481,7 +499,8 @@ Next wave: E4, P4, P5, P10, E5, P6. Later: E6, E7, E8, P7, P8, P9, E9.
 - **No cross-track prerequisites, in either direction.** No Track B step requires a Track A
   module, and no Track A module is allowed to block the next Track B step. If a Track A module
   is unfinished, Track B continues.
-- **Inside Track A**, some modules build on others (E2, E3, E6 and E7 reuse the E1 engine).
+- **Inside Track A**, some modules build on others (E2, E3, E6 and E7 build on the E1 engine;
+  E4 builds on E3).
   Those dependencies stay within Track A.
 - **What Track A uses from Track B:** only what already exists (the workspace, `record_run`,
   schema-driven fields). If later Track B steps add replay or a generic log, Track A runs
@@ -493,9 +512,10 @@ Next wave: E4, P4, P5, P10, E5, P6. Later: E6, E7, E8, P7, P8, P9, E9.
   `/foundations` index listing every module by subject and syllabus topic. It is not a
   fourth lab.
 - Pages reuse the existing `Workspace`. If the first module needs an "Explain" or "Check
-  yourself" panel, it is added then, and generalised only when a second module needs it.
-- Engines stay in the Python core, like Track B, so every module gets the same validation,
-  run records and replay. Slider updates call the API; revisit only if measured latency is a
+  yourself" panel, it is added then, and becomes a shared component only when models in at
+  least two labs need it (the `CLAUDE.md` rule).
+- Engines stay in the Python core, like Track B, so every module gets the same validation and
+  run records, and replay once Track B step 1.4 provides it (Track A does not wait for it). Slider updates call the API; revisit only if measured latency is a
   problem.
 - Learning material goes into the existing lab guides (a "Foundations" part in
   `docs/LEARNING_GUIDE.md` and `docs/ECONOMY_LEARNING_GUIDE.md`).

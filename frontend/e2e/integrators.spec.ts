@@ -9,25 +9,29 @@ test("integrator study shows fitted orders near theory and log-log plots", async
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Run study" }).click();
-  for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
-    await expect(page.getByRole("region", { name })).toBeVisible();
-  }
+  // Each part is checked inside its own region (the regions exist before the run).
+  const region = (name: string) => page.getByRole("region", { name });
+  const results = region("Results");
+  const vis = region("Visualisation");
 
   for (const [method, order] of [
     ["euler", 1],
     ["rk4", 4],
     ["verlet", 2],
   ] as const) {
-    const fitted = await page.getByTestId(`order-${method}`).locator("td").nth(1).innerText();
+    const fitted = await results.getByTestId(`order-${method}`).locator("td").nth(1).innerText();
     expect(Math.abs(Number.parseFloat(fitted) - order)).toBeLessThan(0.1);
   }
 
   // Both convergence plots rendered with logarithmic axes and labelled units.
-  const plot = page.getByRole("img", { name: /maximum position error against time step/ });
+  const plot = vis.getByRole("img", { name: /maximum position error against time step/ });
   await expect(plot.locator(".main-svg").first()).toBeVisible();
   await expect(plot).toContainText("Time step h (s)");
   await expect(plot).toContainText("Max position error over grid nodes (m)");
+  await expect(vis.locator(".chart")).toHaveCount(3);
   await expect(page.locator(".chart")).toHaveCount(3);
+  // One heading per method (outside its <summary>, so every screen reader lists it).
+  await expect(region("Validation").getByRole("heading", { name: /^All runs:/ })).toHaveCount(3);
 
   await page.getByRole("link", { name: "Experiments" }).click();
   // Other E2E tests share this database and may run in parallel: find this study's row.

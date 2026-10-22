@@ -4,17 +4,16 @@ import { type FormEvent, useState } from "react";
 
 import {
   ApiError,
-  type ProjectileParameters,
   type ProjectileResponse,
   type SolverSettings,
   simulateProjectile,
 } from "@/lib/api/client";
+import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import {
-  type NumericFieldSpec,
   PARAMETER_FIELDS,
   SOLVER_FIELDS,
   SOLVER_METHODS,
-  validateField,
+  toProjectileParameters,
 } from "@/lib/projectile/fields";
 import { NumberField } from "./NumberField";
 import {
@@ -23,7 +22,7 @@ import {
   ProjectileSummary,
   ProjectileValidation,
 } from "./ProjectileResults";
-import { Workspace } from "./Workspace";
+import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
 
 type FormValues = Record<string, string>;
 
@@ -39,6 +38,10 @@ export function ProjectileLab() {
   const [status, setStatus] = useState<"idle" | "running">("idle");
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<ProjectileResponse | null>(null);
+  // Everything the result depends on, as one string: the result is current only while the
+  // form still matches the inputs it was computed from.
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  const currentKey = JSON.stringify([values, method]);
 
   const errors = Object.fromEntries(
     ALL_FIELDS.map((f) => [f.name, validateField(f, values[f.name] ?? "")]),
@@ -50,18 +53,17 @@ export function ProjectileLab() {
     setTouched(true);
     if (hasErrors) return;
     const num = (name: string) => Number(values[name]);
+    const key = currentKey;
     setStatus("running");
     setApiError(null);
     try {
-      const parameters = Object.fromEntries(
-        PARAMETER_FIELDS.map((f) => [f.name, num(f.name)]),
-      ) as unknown as ProjectileParameters;
       setResult(
         await simulateProjectile({
-          parameters,
+          parameters: toProjectileParameters(values),
           solver: { method, rtol: num("rtol"), atol: num("atol") },
         }),
       );
+      setResultKey(key);
     } catch (err) {
       setApiError(err instanceof ApiError ? err.message : "Unexpected error");
     } finally {
@@ -114,45 +116,26 @@ export function ProjectileLab() {
     </form>
   );
 
-  const empty = (text: string) => <p className="empty">{text}</p>;
-
   return (
     <Workspace
       parameters={form}
-      visualisation={
-        result ? (
-          <ProjectileCharts result={result} />
-        ) : (
-          empty(
-            "Set the parameters and run the simulation. The trajectory and energy budget appear " +
-              "here.",
-          )
-        )
-      }
-      results={
-        result ? (
-          <ProjectileSummary result={result} />
-        ) : (
-          empty("Flight time, range, maximum height and impact speed from the exact solution.")
-        )
-      }
-      assumptions={
-        result ? (
-          <ProjectileAssumptions result={result} />
-        ) : (
-          empty("The model's assumptions are listed with every run.")
-        )
-      }
-      validation={
-        result ? (
-          <ProjectileValidation result={result} />
-        ) : (
-          empty(
-            "SimForge solves the motion twice, exactly and with an adaptive Runge–Kutta solver, " +
-              "and reports here how far apart the two are.",
-          )
-        )
-      }
+      status={runStatus(status, result)}
+      staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
+      visualisation={result && <ProjectileCharts result={result} />}
+      results={result && <ProjectileSummary result={result} />}
+      assumptions={result && <ProjectileAssumptions result={result} />}
+      validation={result && <ProjectileValidation result={result} />}
+      placeholders={{
+        visualisation:
+          "Set the parameters and run the simulation. The trajectory and energy budget appear " +
+          "here.",
+        results:
+          "Flight time, range, maximum height and impact speed from the analytical solution.",
+        assumptions: "The model's assumptions are listed with every run.",
+        validation:
+          "SimForge solves the motion twice, analytically and with an adaptive Runge–Kutta " +
+          "solver, and reports here how far apart the two are.",
+      }}
     />
   );
 }

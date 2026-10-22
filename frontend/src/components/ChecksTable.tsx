@@ -13,7 +13,9 @@ function status(c: ValidationCheck) {
   return <span className="check-status">Info</span>;
 }
 
-const defaultFormat = (v: number) => (v === 0 ? "0" : formatExp(v));
+/** Whole numbers (counts, such as a number of mismatches) as integers; the rest in e-notation. */
+const defaultFormat = (v: number) =>
+  Number.isInteger(v) && Math.abs(v) < 1e6 ? String(v) : formatExp(v);
 
 /**
  * Per-run checks, as returned by any model (shared by the Economy and Quant labs). Each row
