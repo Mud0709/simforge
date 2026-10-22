@@ -115,12 +115,30 @@ frontend's types *and* its form bounds come from this file. A CI job regenerates
 and fails if they differ from what is committed, so the frontend and backend cannot drift
 apart without anyone noticing.
 
-### 5. The experiment log stores inputs, not outputs
+### 5. The experiment log stores inputs, not outputs (plus a fingerprint of the outputs)
 Each saved run records validated inputs, a SHA-256 hash of their canonical JSON, the model
 version, library versions and summary metrics. Time series are deliberately not stored:
 models are deterministic, so the inputs together with the versions are the reproducible
 record. The stdlib `sqlite3` module is used because there is one table and no ORM is
 needed yet. A `schema_version` table guards against silent incompatibility.
+
+**Run record v2 (roadmap 1.4).** Two hashes answer two different questions:
+- the **input hash** says the same *question* was asked;
+- the **output digest** (SHA-256 of the canonical JSON of the full response without its run
+  metadata) says the same *answer* came back. JSON writes each float in its shortest exact
+  form, so equal digests mean every output value is bit-identical. It is returned with every
+  run, so anyone can recompute it from the response.
+
+v2 records also store the git commit of the code that ran (`SIMFORGE_GIT_COMMIT` if the
+deployment sets it, else the checkout's commit with `-dirty` if it has changes, else
+`unknown`) and the Python implementation, plus `record_version` and `replay_of` (the run a
+replay reproduced). **Migration:** a v1 log is copied to `<name>.v1.bak`, then three columns
+are added in one real transaction (Python's `sqlite3` would otherwise commit before each
+`ALTER TABLE`; a test shows a failed migration leaves nothing half done). Old rows are never
+rewritten: they read as v1 records with no digest. A log newer than the code is refused.
+**Golden digests** (`tests/api/test_golden_digests.py`) pin the outputs of fixed inputs for
+each model version, so outputs cannot change without a version bump. They guard against
+regressions; they are not evidence of correctness.
 
 ### 6. The browser talks only to Next.js
 Next.js rewrites `/api/*` to FastAPI. This avoids CORS configuration in normal use and keeps

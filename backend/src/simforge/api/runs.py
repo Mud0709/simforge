@@ -16,6 +16,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from simforge.api.recording import record_run
 from simforge.core.errors import ModelDomainError, SolverError
+from simforge.core.reproducibility import output_digest
 from simforge.core.schemas import ModelInfo, RunMetadata, StrictModel
 from simforge.persistence.experiments import ExperimentRepository
 from simforge.quant.profiling.parsing import DatasetError
@@ -54,6 +55,62 @@ def compute_or_explain[Req: StrictModel, Res: StrictModel, Result](
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)) from exc
 
 
+# Stands in for the run metadata while the outputs are fingerprinted; it never leaves here.
+_DRAFT_METADATA = RunMetadata(
+    run_id="draft",
+    created_at="",
+    input_hash="",
+    output_digest="",
+    simforge_version="",
+    git_commit="",
+    python_implementation="",
+    python_version="",
+    numpy_version="",
+    scipy_version="",
+    platform="",
+    elapsed_ms=0.0,
+    experiment_saved=False,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class Outcome[Res: StrictModel]:
+    """A finished run: its response (with metadata) and what was hashed and stored."""
+
+    response: Res
+    inputs: dict[str, Any]
+    summary: dict[str, Any]
+
+
+async def execute_run[Req: StrictModel, Res: StrictModel, Result](
+    entry: ModelEntry[Req, Res, Result],
+    request: Req,
+    repo: ExperimentRepository,
+    *,
+    save: bool,
+    replay_of: str | None = None,
+) -> Outcome[Res]:
+    """Compute, fingerprint the outputs, record, respond. CPU work and SQLite I/O run in
+    worker threads, so the event loop stays responsive."""
+    result = await run_in_threadpool(compute_or_explain, entry, request)
+    # The response is built once without real metadata, to fingerprint everything else in it.
+    draft = entry.respond(request, result, _DRAFT_METADATA)
+    digest = output_digest(draft.model_dump(mode="json", exclude={"metadata"}))
+    inputs, summary = entry.inputs(request, result), entry.summary(result)
+    metadata = await run_in_threadpool(
+        record_run,
+        repo,
+        entry.info,
+        inputs,
+        summary,
+        output_digest=digest,
+        save=save,
+        elapsed_ms=entry.elapsed_ms(result),
+        replay_of=replay_of,
+    )
+    return Outcome(draft.model_copy(update={"metadata": metadata}), inputs, summary)
+
+
 async def execute[Req: StrictModel, Res: StrictModel, Result](
     entry: ModelEntry[Req, Res, Result],
     request: Req,
@@ -61,16 +118,5 @@ async def execute[Req: StrictModel, Res: StrictModel, Result](
     *,
     save: bool,
 ) -> Res:
-    """What every model endpoint does. CPU work and SQLite I/O run in worker threads, so
-    the event loop stays responsive."""
-    result = await run_in_threadpool(compute_or_explain, entry, request)
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        entry.info,
-        entry.inputs(request, result),
-        entry.summary(result),
-        save=save,
-        elapsed_ms=entry.elapsed_ms(result),
-    )
-    return entry.respond(request, result, metadata)
+    """What every model endpoint does."""
+    return (await execute_run(entry, request, repo, save=save)).response

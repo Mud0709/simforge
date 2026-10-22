@@ -511,6 +511,22 @@ export interface components {
       model_id: string;
       /** Model Version */
       model_version: string;
+      /**
+       * Output Digest
+       * @description SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.
+       */
+      output_digest?: string | null;
+      /**
+       * Record Version
+       * @description 1: before roadmap 1.4 (no output digest); 2: current.
+       * @default 1
+       */
+      record_version?: number;
+      /**
+       * Replay Of
+       * @description run_id of the run this record replayed, if it is a replay.
+       */
+      replay_of?: string | null;
       /** Run Id */
       run_id: string;
       /**
@@ -1038,14 +1054,26 @@ export interface components {
       /** Experiment Saved */
       experiment_saved: boolean;
       /**
+       * Git Commit
+       * @description Commit of the code that ran ('-dirty' if the checkout had changes; 'unknown' if it could not be determined).
+       */
+      git_commit: string;
+      /**
        * Input Hash
        * @description SHA-256 of the canonical JSON of the validated inputs. Identical inputs produce identical hashes, so repeated runs can be grouped and compared.
        */
       input_hash: string;
       /** Numpy Version */
       numpy_version: string;
+      /**
+       * Output Digest
+       * @description SHA-256 of the canonical JSON of this response without its metadata (keys sorted, no whitespace). Equal digests mean bit-identical outputs; anyone can recompute it from the response.
+       */
+      output_digest: string;
       /** Platform */
       platform: string;
+      /** Python Implementation */
+      python_implementation: string;
       /** Python Version */
       python_version: string;
       /**
