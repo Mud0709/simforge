@@ -41,9 +41,11 @@ simforge/
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
-│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments),
-│   │   │                              recording.py (run metadata + experiment log), errors,
-│   │   │                              body_limit.py (request-size guard)
+│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments; each
+│   │   │                              model's registry entry sits next to its route),
+│   │   │                              runs.py (ModelEntry + the shared run path), registry.py
+│   │   │                              (every model by id), recording.py (run metadata +
+│   │   │                              experiment log), errors, body_limit.py (request-size guard)
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
 │   │   └── main.py                  App factory
 │   ├── tests/                       pytest: physics/, economy/, quant/ (reference tests), api/,
@@ -144,11 +146,21 @@ problem; velocity Verlet with implicitly solved linear drag, for example, lives 
 `physics/projectile/integrator_study.py`, because its exact implicit solve depends on the
 force law. Future models, such as a harmonic oscillator or orbits, reuse `numerics/` directly.
 
-### 10. One experiment-log path for every model
+### 10. One experiment-log path for every model, and a model registry
 Every endpoint, in every lab, records runs through one helper (`record_run` in
 `api/recording.py`). It moved there from the physics routes when the Economy Lab became the
 second lab to need it. Each model hashes exactly the inputs that affect its numbers and
-stores a small, model-specific summary. The frontend's experiment log renders a one-line
+stores a small, model-specific summary.
+
+Since roadmap step 1.4 each model describes itself once, as a `ModelEntry` (`api/runs.py`)
+placed next to its route: how to compute it, which inputs are hashed, what summary is stored,
+how the response is built, and how to **rebuild a request from stored inputs**. Every model
+endpoint is one call to `execute(entry, ...)`, and `api/registry.py` lists the entries by
+model id. Replay looks a stored run's model up in the registry and goes through the same
+entry, so a replay asks exactly the question the original asked, computed by the same code.
+The registry is a plain tuple and a lookup function, not a plugin framework; all five models
+in all three labs needed it. Introducing it changed no response: every endpoint's full
+response was compared byte for byte before and after. The frontend's experiment log renders a one-line
 "key result" per model (step 1.5 on the roadmap replaces the per-model branches with
 headlines supplied by a model registry).
 
@@ -244,7 +256,9 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
    (or `simulation.py`), plus `schemas.py` and `model.py` (`MODEL_INFO`, `UNITS`,
    `ASSUMPTIONS`, `run()`).
 2. Write reference tests *first*. List them in `SCIENTIFIC_VALIDATION.md`.
-3. Add a route in `api/routes/`. Record runs with `record_run` (`api/recording.py`).
+3. Add a route in `api/routes/` with the model's `ModelEntry` next to it, call
+   `execute(entry, ...)` from the endpoint, and add the entry to `api/registry.py`. The
+   registry test then checks that stored inputs rebuild the same computation.
 4. Run `make api-types`, then build the UI in `frontend/src/components/` inside `Workspace`,
    with form fields declared through `spec()` in `lib/fields.ts`.
 5. Add a chapter to the lab's learning guide (`docs/`).

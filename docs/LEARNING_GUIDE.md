@@ -1909,7 +1909,7 @@ with the default settings.
 | Schema | `physics/projectile/integrator_schemas.py` | the *contract*: field types, bounds, units, validation | Pydantic |
 | Engine | `physics/projectile/integrator_study.py`, `numerics/*`, `analytical.py` | the science | NumPy and SciPy only |
 | Orchestration | `physics/projectile/integrator_model.py` | converts between API objects and the engine; refuses runs that are too expensive | schema + engine |
-| HTTP | `api/routes/physics.py` | threading, error codes, run metadata, persistence | everything above |
+| HTTP | `api/routes/physics.py`, `api/runs.py` | the model's registry entry; threading, error codes, run metadata, persistence | everything above |
 | Frontend | `frontend/src/components/Integrator*.tsx`, `lib/api/client.ts` | form, request, plots, tables | generated types |
 
 The engine never imports FastAPI or Pydantic. You could run `run_study` from a notebook
@@ -2031,27 +2031,56 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:68-75`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:131-135`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:70-77 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:131-135 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
     request: IntegratorStudyRequest, repo: Repository
 ) -> IntegratorStudyResponse:
-    try:
-        result = await run_in_threadpool(integrator_model.run, request)
-    except ModelDomainError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    return await execute(INTEGRATOR_STUDY, request, repo, save=request.save_experiment)
 ```
 
 | Line | Meaning |
 |---|---|
-| 68 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
-| 70 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 71 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 73 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
-| 74-75 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
+| 131 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
+| 133 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 134 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 135 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
+
+The shared path, `execute` (`backend/src/simforge/api/runs.py:57-76`), is the same for all
+five models, and replay (roadmap 1.4) uses it too:
+
+<!-- src: backend/src/simforge/api/runs.py:57-76 -->
+```python
+async def execute[Req: StrictModel, Res: StrictModel, Result](
+    entry: ModelEntry[Req, Res, Result],
+    request: Req,
+    repo: ExperimentRepository,
+    *,
+    save: bool,
+) -> Res:
+    """What every model endpoint does. CPU work and SQLite I/O run in worker threads, so
+    the event loop stays responsive."""
+    result = await run_in_threadpool(compute_or_explain, entry, request)
+    metadata = await run_in_threadpool(
+        record_run,
+        repo,
+        entry.info,
+        entry.inputs(request, result),
+        entry.summary(result),
+        save=save,
+        elapsed_ms=entry.elapsed_ms(result),
+    )
+    return entry.respond(request, result, metadata)
+```
+
+| Line | Meaning |
+|---|---|
+| 66 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 44-54) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
+| 67-75 | Builds the run metadata (input hash, versions) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
+| 76 | Builds the full JSON response. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2514,22 +2543,22 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:123-132 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:163-172 -->
 ```python
-    computation = await run_in_threadpool(projectile.run_angle_sweep, request)
-    r = computation.result
-    # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
-    params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    # SQLite I/O runs in a worker thread so it never blocks the event loop.
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        projectile.ANGLE_SWEEP_INFO,
-        {"parameters": params, "n_angles": request.n_angles},
+ANGLE_SWEEP = ModelEntry(
+    info=projectile.ANGLE_SWEEP_INFO,
+    request_type=AngleSweepRequest,
+    compute=projectile.run_angle_sweep,
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs (and a
+    # rebuilt request uses the default angle).
+    inputs=lambda req, _: {
+        "parameters": req.parameters.model_dump(exclude={"launch_angle_deg"}),
+        "n_angles": req.n_angles,
+    },
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 126). Otherwise, two identical computations that differ
+is removed before hashing (line 170). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 

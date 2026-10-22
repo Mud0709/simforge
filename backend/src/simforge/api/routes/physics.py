@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
-from fastapi.concurrency import run_in_threadpool
+from typing import Any
+
+from fastapi import APIRouter
 
 from simforge.api.dependencies import Repository
-from simforge.api.recording import record_run
-from simforge.core.errors import ModelDomainError, SolverError
-from simforge.core.schemas import ModelInfo
+from simforge.api.runs import ModelEntry, execute
+from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.physics.projectile import integrator_model
 from simforge.physics.projectile import model as projectile
 from simforge.physics.projectile.integrator_schemas import (
@@ -23,36 +23,12 @@ from simforge.physics.projectile.schemas import (
 router = APIRouter(prefix="/physics", tags=["physics"])
 
 
-@router.get("/projectile/info")
-def projectile_info() -> ModelInfo:
-    return projectile.MODEL_INFO
+# --- Projectile ---------------------------------------------------------------------------
 
 
-@router.post("/projectile/simulate")
-async def simulate_projectile(request: ProjectileRequest, repo: Repository) -> ProjectileResponse:
-    try:
-        # CPU-bound work runs in a worker thread so the event loop stays responsive.
-        result = await run_in_threadpool(projectile.run, request)
-    except ModelDomainError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
-    except SolverError as exc:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)) from exc
-
-    # SQLite I/O runs in a worker thread so it never blocks the event loop.
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        projectile.MODEL_INFO,
-        # Only the inputs that affect the numbers are hashed (not save_experiment).
-        request.model_dump(include={"parameters", "solver", "n_samples"}),
-        {
-            "analytical": result.analytical.model_dump(exclude={"method_note"}),
-            "numerical": result.numerical.model_dump(),
-            "comparison": result.comparison.model_dump(),
-        },
-        save=request.save_experiment,
-        elapsed_ms=result.elapsed_ms,
-    )
+def _projectile_response(
+    request: ProjectileRequest, result: projectile.ProjectileComputation, metadata: RunMetadata
+) -> ProjectileResponse:
     return ProjectileResponse(
         model=projectile.MODEL_INFO,
         parameters=request.parameters,
@@ -67,37 +43,59 @@ async def simulate_projectile(request: ProjectileRequest, repo: Repository) -> P
     )
 
 
-@router.post("/projectile/integrators")
-async def integrator_study(
-    request: IntegratorStudyRequest, repo: Repository
-) -> IntegratorStudyResponse:
-    try:
-        result = await run_in_threadpool(integrator_model.run, request)
-    except ModelDomainError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+PROJECTILE = ModelEntry(
+    info=projectile.MODEL_INFO,
+    request_type=ProjectileRequest,
+    compute=projectile.run,
+    # Only the inputs that affect the numbers are hashed (not save_experiment).
+    inputs=lambda req, _: req.model_dump(include={"parameters", "solver", "n_samples"}),
+    summary=lambda r: {
+        "analytical": r.analytical.model_dump(exclude={"method_note"}),
+        "numerical": r.numerical.model_dump(),
+        "comparison": r.comparison.model_dump(),
+    },
+    respond=_projectile_response,
+    elapsed_ms=lambda r: r.elapsed_ms,
+    rebuild=lambda inputs, _: ProjectileRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+)
 
-    # SQLite I/O runs in a worker thread so it never blocks the event loop.
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        integrator_model.MODEL_INFO,
-        request.model_dump(include={"parameters", "dt_values", "methods"}),
-        {
-            "horizon": result.horizon,
-            "methods": {
-                m.method: {
-                    "theoretical_order": m.theoretical_order,
-                    "position_order": m.position_fit.order if m.position_fit else None,
-                    "position_fit_points": m.position_fit.n_points if m.position_fit else 0,
-                    "velocity_order": m.velocity_fit.order if m.velocity_fit else None,
-                    "finest_max_position_error": m.runs[-1].max_position_error,
-                }
-                for m in result.results
-            },
+
+@router.get("/projectile/info")
+def projectile_info() -> ModelInfo:
+    return projectile.MODEL_INFO
+
+
+@router.post("/projectile/simulate")
+async def simulate_projectile(request: ProjectileRequest, repo: Repository) -> ProjectileResponse:
+    return await execute(PROJECTILE, request, repo, save=request.save_experiment)
+
+
+# --- Integrator study ---------------------------------------------------------------------
+
+
+def _study_summary(result: integrator_model.StudyComputation) -> dict[str, Any]:
+    return {
+        "horizon": result.horizon,
+        "methods": {
+            m.method: {
+                "theoretical_order": m.theoretical_order,
+                "position_order": m.position_fit.order if m.position_fit else None,
+                "position_fit_points": m.position_fit.n_points if m.position_fit else 0,
+                "velocity_order": m.velocity_fit.order if m.velocity_fit else None,
+                "finest_max_position_error": m.runs[-1].max_position_error,
+            }
+            for m in result.results
         },
-        save=request.save_experiment,
-        elapsed_ms=result.elapsed_ms,
-    )
+    }
+
+
+def _study_response(
+    request: IntegratorStudyRequest,
+    result: integrator_model.StudyComputation,
+    metadata: RunMetadata,
+) -> IntegratorStudyResponse:
     return IntegratorStudyResponse(
         model=integrator_model.MODEL_INFO,
         parameters=request.parameters,
@@ -116,29 +114,34 @@ async def integrator_study(
     )
 
 
-@router.post("/projectile/angle-sweep")
-async def projectile_angle_sweep(
-    request: AngleSweepRequest, repo: Repository
+INTEGRATOR_STUDY = ModelEntry(
+    info=integrator_model.MODEL_INFO,
+    request_type=IntegratorStudyRequest,
+    compute=integrator_model.run,
+    inputs=lambda req, _: req.model_dump(include={"parameters", "dt_values", "methods"}),
+    summary=_study_summary,
+    respond=_study_response,
+    elapsed_ms=lambda r: r.elapsed_ms,
+    rebuild=lambda inputs, _: IntegratorStudyRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+)
+
+
+@router.post("/projectile/integrators")
+async def integrator_study(
+    request: IntegratorStudyRequest, repo: Repository
+) -> IntegratorStudyResponse:
+    return await execute(INTEGRATOR_STUDY, request, repo, save=request.save_experiment)
+
+
+# --- Angle sweep --------------------------------------------------------------------------
+
+
+def _sweep_response(
+    request: AngleSweepRequest, computation: projectile.AngleSweepComputation, metadata: RunMetadata
 ) -> AngleSweepResponse:
-    computation = await run_in_threadpool(projectile.run_angle_sweep, request)
     r = computation.result
-    # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
-    params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    # SQLite I/O runs in a worker thread so it never blocks the event loop.
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        projectile.ANGLE_SWEEP_INFO,
-        {"parameters": params, "n_angles": request.n_angles},
-        {
-            "best_angle_deg": r.best_angle_deg,
-            "best_range": r.best_range,
-            "vacuum_best_angle_deg": r.vacuum_best_angle_deg,
-            "vacuum_best_range": r.vacuum_best_range,
-        },
-        save=request.save_experiment,
-        elapsed_ms=computation.elapsed_ms,
-    )
     return AngleSweepResponse(
         model=projectile.ANGLE_SWEEP_INFO,
         parameters=request.parameters,
@@ -155,3 +158,34 @@ async def projectile_angle_sweep(
         method_note=projectile.ANGLE_SWEEP_NOTE,
         metadata=metadata,
     )
+
+
+ANGLE_SWEEP = ModelEntry(
+    info=projectile.ANGLE_SWEEP_INFO,
+    request_type=AngleSweepRequest,
+    compute=projectile.run_angle_sweep,
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs (and a
+    # rebuilt request uses the default angle).
+    inputs=lambda req, _: {
+        "parameters": req.parameters.model_dump(exclude={"launch_angle_deg"}),
+        "n_angles": req.n_angles,
+    },
+    summary=lambda c: {
+        "best_angle_deg": c.result.best_angle_deg,
+        "best_range": c.result.best_range,
+        "vacuum_best_angle_deg": c.result.vacuum_best_angle_deg,
+        "vacuum_best_range": c.result.vacuum_best_range,
+    },
+    respond=_sweep_response,
+    elapsed_ms=lambda c: c.elapsed_ms,
+    rebuild=lambda inputs, _: AngleSweepRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+)
+
+
+@router.post("/projectile/angle-sweep")
+async def projectile_angle_sweep(
+    request: AngleSweepRequest, repo: Repository
+) -> AngleSweepResponse:
+    return await execute(ANGLE_SWEEP, request, repo, save=request.save_experiment)
