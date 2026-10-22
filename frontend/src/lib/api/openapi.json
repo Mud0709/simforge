@@ -2105,7 +2105,8 @@
           }
         },
         "title": "SolowParameters",
-        "type": "object"
+        "type": "object",
+        "x-min-effective-depreciation": 0.001
       },
       "SolowPathResponse": {
         "additionalProperties": false,

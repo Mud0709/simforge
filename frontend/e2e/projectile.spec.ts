@@ -14,22 +14,24 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
   await page.getByLabel(/^Drag coefficient/).fill("0");
   await page.getByRole("button", { name: "Run simulation" }).click();
 
-  // The shared workspace: the comparison with the exact solution lives under Validation.
-  for (const name of ["Parameters", "Visualisation", "Results", "Assumptions", "Validation"]) {
-    await expect(page.getByRole("region", { name })).toBeVisible();
-  }
-  const rangeRow = page
-    .getByRole("region", { name: "Validation" })
-    .getByRole("row", { name: /Range/ });
+  // The shared workspace: each part of the result is checked inside its own region, after
+  // the run (the regions exist, with placeholders, before it).
+  const region = (name: string) => page.getByRole("region", { name });
+  const validation = region("Validation");
+  const rangeRow = validation.getByRole("row", { name: /Range/ });
   const expectedRange = (10 ** 2 * Math.sin((60 * Math.PI) / 180)) / 9.80665; // 8.83100...
   await expect(rangeRow).toContainText(expectedRange.toPrecision(8));
 
   // Error is reported in scientific notation and is tiny.
-  const maxError = await page.getByTestId("max-position-error").innerText();
+  const maxError = await validation.getByTestId("max-position-error").innerText();
   expect(Number.parseFloat(maxError)).toBeLessThan(1e-6);
+  await expect(region("Results").getByText("Range (analytical)")).toBeVisible();
+  await expect(region("Assumptions").locator("li").first()).toBeVisible();
 
-  // Plotly rendered both charts.
-  await expect(page.locator(".chart .main-svg").first()).toBeVisible();
+  // Plotly rendered both charts, in Visualisation and nowhere else.
+  const vis = region("Visualisation");
+  await expect(vis.locator(".chart .main-svg").first()).toBeVisible();
+  await expect(vis.locator(".chart")).toHaveCount(2);
   await expect(page.locator(".chart")).toHaveCount(2);
 
   await page.getByRole("link", { name: "Experiments" }).click();
@@ -42,6 +44,28 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
     .first();
   await expect(row).toContainText("DOP853");
   await expect(row).toContainText(`range ${Number(expectedRange.toPrecision(6))} m`);
+});
+
+test("the run button stays reachable on a short window after a run", async ({ page }) => {
+  // A 768 px-high laptop window: the form is taller than the screen, and the panel is sticky.
+  await page.setViewportSize({ width: 1280, height: 768 });
+  await page.goto("/physics/projectile");
+  await page.getByRole("button", { name: "Run simulation" }).click();
+  await expect(page.getByTestId("max-position-error")).toBeVisible();
+  // Scroll part-way down, where the panel is stuck to the top (near the very bottom of the
+  // page it scrolls away with its container, and would look fine either way).
+  await page.evaluate(() => window.scrollTo(0, 400));
+  const panel = page.getByRole("region", { name: "Parameters" });
+  await expect.poll(async () => (await panel.boundingBox())!.y).toBeCloseTo(16, 0);
+
+  // The stuck panel fits inside the window, so nothing in it is cut off below the screen...
+  const box = (await panel.boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(768);
+  // ...and the button is reached by scrolling inside the panel, not by moving the page.
+  const button = page.getByRole("button", { name: "Run simulation" });
+  await button.scrollIntoViewIfNeeded();
+  await expect(button).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(400);
 });
 
 test("invalid input is rejected without calling the API", async ({ page }) => {

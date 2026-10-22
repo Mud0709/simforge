@@ -1928,25 +1928,28 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 `frontend/src/**/*.test.ts(x)` (UI logic, with the network faked), and `frontend/e2e/`
 (the whole stack in a real browser).
 
-### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:58-78`
+### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:60-83`
 
-<!-- src: frontend/src/components/IntegratorLab.tsx:58-78 -->
+<!-- src: frontend/src/components/IntegratorLab.tsx:60-83 -->
 ```tsx
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setTouched(true);
     if (hasErrors || !steps.ok) return;
+    const key = currentKey;
     setRunning(true);
     setApiError(null);
     try {
-      const parameters = Object.fromEntries(
-        PARAMETER_FIELDS.map((f) => [f.name, Number(values[f.name])]),
-      ) as unknown as ProjectileParameters;
       // Keep the canonical method order regardless of click order.
       const ordered = METHODS.filter((m) => methods.includes(m));
       setResult(
-        await runIntegratorStudy({ parameters, dt_values: steps.values, methods: ordered }),
+        await runIntegratorStudy({
+          parameters: toProjectileParameters(values),
+          dt_values: steps.values,
+          methods: ordered,
+        }),
       );
+      setResultKey(key);
     } catch (err) {
       setApiError(err instanceof ApiError ? err.message : "Unexpected error");
     } finally {
@@ -1957,16 +1960,17 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 
 | Line | Meaning |
 |---|---|
-| 58 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
-| 59 | Stops the browser's default form behaviour, which would reload the page. |
-| 60 | Marks the form as "touched", so validation messages appear. |
-| 61 | **Client-side validation gate.** `hasErrors` (lines 47-56) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
-| 62-63 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
-| 65-67 | Converts the text boxes (strings) into numbers and builds an object such as `{initial_speed: 20, launch_angle_deg: 45, …}`. |
+| 60 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
+| 61 | Stops the browser's default form behaviour, which would reload the page. |
+| 62 | Marks the form as "touched", so validation messages appear. |
+| 63 | **Client-side validation gate.** `hasErrors` (lines 49-58) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
+| 64 | Remembers exactly which inputs this run is for (`currentKey`, all the form's values as one string). While the form still matches it, the results are current; once you edit anything, every input-dependent section says the results are out of date. |
+| 65-66 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
 | 69 | Keeps the methods in a fixed order (Euler, RK4, Verlet), whatever order you ticked them in. Identical choices then produce identical requests, and identical input hashes ([8]). |
-| 70-72 | Sends the request (step [2]) and stores the response in state, which makes the results appear. |
-| 73-74 | If the server refused the request, show its explanation. |
-| 75-77 | `finally` runs whether it succeeded or failed: turn off "Running…". |
+| 70-76 | Sends the request (step [2]) and stores the response in state, which makes the results appear. `toProjectileParameters` turns the text boxes (strings) into numbers, field by field, so TypeScript checks every name against the API contract. |
+| 77 | Only after a successful reply: the shown results now belong to the remembered inputs. |
+| 78-79 | If the server refused the request, show its explanation (the old results stay, marked out of date if the inputs changed). |
+| 80-82 | `finally` runs whether it succeeded or failed: turn off "Running…". |
 
 The time-step text is parsed by `parseSteps` (`frontend/src/lib/integrators/steps.ts:20-38`).
 It splits on commas and spaces, then rejects non-numbers, non-positive values, values over
@@ -1974,9 +1978,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:61-91`
+### [2] Sending it: `frontend/src/lib/api/client.ts:62-92`
 
-<!-- src: frontend/src/lib/api/client.ts:61-76 -->
+<!-- src: frontend/src/lib/api/client.ts:62-77 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2675,7 +2679,7 @@ session's dependencies differed from CI's?
 
 ## Part 14 — What reviewing the merged work taught us
 
-Every merged PR was reviewed again against the current code. Four lessons stand out.
+Every merged PR was reviewed again against the current code. Six lessons stand out.
 
 **1. A boundary value can fool event detection.** Launched from the ground, the height is
 exactly 0 at `t = 0`. With a shallow angle the solver's first step can already overshoot the
@@ -2705,10 +2709,31 @@ landing point is interpolated, so the error it shows includes interpolation erro
 corrections of the same kind: the best angle is known to about 10⁻⁶°, not 10⁻⁷°, and the
 `φ` function is accurate to 2 × 10⁻¹⁵ on a dense grid, not 10⁻¹⁵.
 
+**5. Old results must say they are old.** Run with `b = 0.1`, change `b` to 5, and the page
+used to keep showing the `b = 0.1` trajectory and errors as if they belonged to the form.
+Now each page remembers the inputs of the run it shows; as soon as the form differs, the
+Visualisation, Results and Validation sections say the results are out of date. Change the
+value back and the note disappears, because the results are current again. The shared
+`Workspace` does the marking, so every lab behaves the same (ARCHITECTURE decision 11).
+
+**6. Test the thing that is built.** The end-to-end tests run against the *production build*
+(`npm run build`, then `npm run start`). While fixing the sticky Parameters panel, a test
+passed even with the fix deliberately removed. First reason: the build was old, so the test
+never saw the change. Second reason, after rebuilding: the test scrolled to the very bottom
+of the page, where a sticky element scrolls away with its container and looks fine either
+way. The test now scrolls part-way down, where the panel is stuck, and fails without the fix
+(the panel's bottom edge lands at 937 px in a 768 px window). Not every review finding
+survived this kind of check: headings inside a `<summary>` were said to be hidden from
+screen readers, but Chromium's own accessibility tree lists them either way. The headings
+moved out of `<summary>` anyway, which works in every screen reader, but that finding stays
+unconfirmed.
+
 ### 14.1 Checkpoint
 1. Why did the flight-time-0 bug report a *perfect* accuracy instead of a large error?
 2. Give an input where checking `mass` and `drag_coefficient` separately passes but the
    model still breaks.
+3. A test passes. Name two different reasons it might pass even though the bug is still
+   there, and the experiment that rules each one out.
 
 ---
 
@@ -2752,7 +2777,14 @@ corrections of the same kind: the best angle is known to about 10⁻⁶°, not 1
 
 ## Changes from the previous version of this guide
 
-**This version (review of the merged PRs):**
+**This version (Workspace UI review fixes):**
+- **Added lessons 5 and 6 to Part 14** (old results must say they are old; test the thing
+  that is built) and checkpoint question 3.
+- **Updated** the Part 8 step [1] excerpt and line table for `IntegratorLab.tsx` (the handler
+  remembers which inputs a result belongs to, and builds the parameters field by field) and
+  the step [2] reference for `client.ts`.
+
+**The previous version (review of the merged PRs):**
 - **Added Part 14:** lessons from the review (event at a boundary, combination limits,
   tests that cannot fail, honest labels), with a checkpoint.
 - **Updated** the line references and excerpts for `analytical.py` (exact 90°),
@@ -2760,7 +2792,7 @@ corrections of the same kind: the best angle is known to about 10⁻⁶°, not 1
   `routes/physics.py` (the experiment log is written off the event loop); the precision of the
   best angle (11, about 10⁻⁶°); the 25°/65° values (1 ulp apart); the 11.6 test table.
 
-**The previous version (working tools):**
+**An earlier version (working tools):**
 - **Added Part 13**, on the project's Claude Code skills, the cloud-session hook and where
   "memory" lives (`CLAUDE.md`, the docs, `docs/LEARNING_LOG.md`).
 

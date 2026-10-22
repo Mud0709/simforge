@@ -129,7 +129,24 @@ describe("IntegratorLab", () => {
     const validation = within(region("Validation"));
     expect(validation.getByText(/Rule text\./)).toBeInTheDocument();
     expect(validation.getAllByText(/All runs:/).length).toBeGreaterThan(0);
+    expect(validation.getByText(RESPONSE.metadata.run_id)).toBeInTheDocument();
+    expect(
+      within(region("Visualisation")).getByRole("img", { name: /^Trajectories from each method/ }),
+    ).toBeInTheDocument();
+    expect(within(region("Results")).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(region("Visualisation")).queryByTestId("order-euler")).not.toBeInTheDocument();
     expect(within(region("Assumptions")).getByText("Fixed horizon.")).toBeInTheDocument();
+  });
+
+  it("marks the study as out of date when the time steps change", async () => {
+    mockFetch(200, RESPONSE);
+    render(<IntegratorLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run study" }));
+    await screen.findByTestId("order-euler");
+    await userEvent.type(screen.getByLabelText(/^Time steps/), ", 0.5");
+    expect(
+      within(screen.getByRole("region", { name: "Results" })).getByText(/inputs have changed/),
+    ).toBeInTheDocument();
   });
 
   it("sends the study request and renders orders and plots", async () => {
