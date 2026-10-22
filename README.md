@@ -64,6 +64,13 @@ typed) and a few counts.
 
 ![Dataset profile workspace: missing values, a histogram, column types and accounting checks](docs/images/quant-lab.png)
 
+**Experiment log and replay** (API; the log page and a replay button follow in roadmap 1.5).
+Saved runs record their inputs, versions, the git commit and a SHA-256 fingerprint of the
+outputs. `POST /api/v1/experiments/{run_id}/replay` reruns one and says whether the same
+answer came back: **identical** (bit for bit), **within tolerance** (each model declares how
+far each stored value may move, and why) or **differs**. A dataset profile of an uploaded file
+is replayed by sending the same file again; its SHA-256 is checked before it is read.
+
 Details, measured results and caveats are in [SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
 
 **Learning guides.** [docs/LEARNING_GUIDE.md](docs/LEARNING_GUIDE.md) covers the Physics Lab

@@ -23,6 +23,7 @@ build/
 backend/data/
 *.sqlite3
 *.sqlite3-journal
+*.sqlite3.v1.bak
 
 # Node / Next.js
 node_modules/

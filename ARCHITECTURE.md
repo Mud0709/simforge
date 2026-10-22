@@ -253,6 +253,16 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
 (a test confirms it). The guard is added before the CORS middleware, so CORS wraps it and a
 413 still carries the CORS headers a browser needs to read the message.
 
+### 15. Replay compares answers, not just questions
+`api/replay.py` reruns a stored run through its registry entry (decision 10). It refuses
+anything that would not be a reproduction (a changed model version, inputs that no longer
+validate or hash the same, a re-supplied file whose SHA-256 differs, which is checked before
+the file is read), then compares output digests. When digests are missing (v1 records) or
+differ, it compares the stored summary field by field against tolerances each model declares
+next to its entry, with a reason for each; a test makes sure every stored field has exactly
+one rule. A saved replay is a **new** record with `replay_of` pointing to the original, so the
+log stays append-only. The API comes first (1.4); the log page and replay button are 1.5.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -267,6 +277,7 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |
 | POST | `/api/v1/quant/datasets/profile` | Profile an uploaded CSV (base64) or a bundled sample |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
+| POST | `/api/v1/experiments/{run_id}/replay` | Rerun a stored run; verdict identical / within tolerance / differs |
 
 ## Adding a new model (the intended pattern)
 

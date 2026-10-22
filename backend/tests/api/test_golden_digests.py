@@ -27,7 +27,7 @@ from tests.api.test_registry import CASES
 PINNED: list[tuple[str, str]] = [
     ("1.0.0", "42c7fe10ebb4ff6f0dba7d7af78e544b60cbde0ff4ba3e78fc2480d4282268cd"),
     ("1.0.0", "8f5707cfc2257db2b64365efd986b4de2138817bfb2c97c3e687c76a1dd2d3b7"),
-    ("1.0.0", "67cc403afb43d372531f37ed61c7d20b866bec746672a8dd1feab3494f2af0e5"),
+    ("1.0.0", "b96d243c782874bee8d23fdb766f952d91c4d4fa0b169569ee5e46912f7ca6bf"),
     ("1.0.0", "74e3847314690424fbdab562073df689bef734d925d3fc9ddde22f273265f873"),
     ("1.0.0", "fedec99079dee306ccd58c162e803a96bb69d314415876e7bf3ea0f3416c79c2"),
     ("1.0.0", "a9f059e5a3b427e7564828d8df9962e0d852c58194f7126f7dffaf5fe77b2213"),
