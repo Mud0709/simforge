@@ -63,6 +63,8 @@ class ModelEntry[Req: StrictModel, Res: StrictModel, Result]:
     #: Response fields left out of the output digest besides ``metadata``: echoes of inputs
     #: that do not affect the result (and so are not stored, and cannot be replayed).
     digest_exclude: dict[str, Any] | None = None
+    #: Whether replaying a run needs a file the user must supply again (from stored inputs).
+    replay_needs_file: Callable[[dict[str, Any]], bool] = lambda inputs: False
 
 
 def compute_or_explain[Req: StrictModel, Res: StrictModel, Result](

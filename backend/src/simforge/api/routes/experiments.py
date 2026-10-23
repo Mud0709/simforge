@@ -21,6 +21,9 @@ class LoggedRun(ExperimentRecord):
 
     lab: str = Field(description="The lab, from the model id: physics, economy or quant.")
     headline: str = Field(description="One line written by the model; '—' if unavailable.")
+    replay_needs_file: bool = Field(
+        description="True if replaying needs the user to supply a file again (an upload)."
+    )
 
 
 def _headline(record: ExperimentRecord) -> str:
@@ -33,11 +36,20 @@ def _headline(record: ExperimentRecord) -> str:
         return "—"
 
 
+def _needs_file(record: ExperimentRecord) -> bool:
+    entry = get_entry(record.model_id)
+    try:
+        return entry is not None and entry.replay_needs_file(record.inputs)
+    except (KeyError, TypeError):  # an older inputs shape
+        return False
+
+
 def _logged(record: ExperimentRecord) -> LoggedRun:
     return LoggedRun(
         **record.model_dump(),
         lab=record.model_id.split(".", 1)[0],
         headline=_headline(record),
+        replay_needs_file=_needs_file(record),
     )
 
 

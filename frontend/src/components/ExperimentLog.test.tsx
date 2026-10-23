@@ -85,3 +85,122 @@ describe("ExperimentLog", () => {
     expect(await screen.findByText(/No saved runs/)).toBeInTheDocument();
   });
 });
+
+/** GET /experiments returns `runs`; POST …/replay answers with `replay(body)`. */
+function mockReplayApi(
+  runs: unknown[],
+  replay: (body: Record<string, unknown>) => { status: number; body: unknown },
+) {
+  const posts: { url: string; body: Record<string, unknown> }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+        posts.push({ url, body });
+        const answer = replay(body);
+        return Promise.resolve(
+          new Response(JSON.stringify(answer.body), {
+            status: answer.status,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify(runs), { headers: { "Content-Type": "application/json" } }),
+      );
+    }),
+  );
+  return posts;
+}
+
+function verdict(extra: Record<string, unknown> = {}) {
+  return {
+    original_run_id: "run-1",
+    model: { id: "economy.solow", version: "1.0.0", name: "Solow", description: "" },
+    verdict: "identical",
+    basis: "output_digest",
+    explanation: "Every output value is bit-identical (the output digests match).",
+    original_output_digest: "b".repeat(64),
+    replay_output_digest: "b".repeat(64),
+    environment_matches: true,
+    environment_differences: [],
+    fields: [],
+    largest_difference: null,
+    metadata: { run_id: "replay-1" },
+    ...extra,
+  };
+}
+
+describe("replaying from the log", () => {
+  it("shows the verdict next to the run, without saving by default", async () => {
+    const posts = mockReplayApi([run(1)], () => ({ status: 200, body: verdict() }));
+    render(<ExperimentLog />);
+    const row = await screen.findByRole("row", { name: /headline 1/ });
+    await userEvent.click(within(row).getByRole("button", { name: "Replay" }));
+    expect(await screen.findByText(/Identical/)).toBeInTheDocument();
+    expect(screen.getByText(/bit-identical/)).toBeInTheDocument();
+    expect(posts[0]!.url).toBe("/api/v1/experiments/run-1/replay");
+    expect(posts[0]!.body).toEqual({ save_experiment: false });
+  });
+
+  it("names the field furthest from agreement and any environment change", async () => {
+    mockReplayApi([run(1)], () => ({
+      status: 200,
+      body: verdict({
+        verdict: "within_tolerance",
+        basis: "summary",
+        explanation: "Every summary value agrees within its declared tolerance.",
+        environment_matches: false,
+        environment_differences: [{ key: "cpu", original: "Intel", replay: "AMD" }],
+        largest_difference: {
+          field: "final_capital",
+          original: 6.539483386104942,
+          replay: 6.539483386104943,
+          absolute_difference: 8.9e-16,
+          tolerance: { relative: 1e-12, absolute: 0, reason: "r" },
+          within_tolerance: true,
+        },
+      }),
+    }));
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByRole("button", { name: "Replay" }));
+    expect(await screen.findByText(/Within tolerance/)).toBeInTheDocument();
+    expect(screen.getByText(/final_capital/)).toBeInTheDocument();
+    expect(screen.getByText(/Environment differs: cpu/)).toBeInTheDocument();
+  });
+
+  it("sends the file again for an uploaded dataset", async () => {
+    const posts = mockReplayApi(
+      [run(1, { model_id: "quant.dataset_profile", lab: "quant", replay_needs_file: true })],
+      () => ({ status: 200, body: verdict() }),
+    );
+    render(<ExperimentLog />);
+    const input = await screen.findByLabelText("Replay with file");
+    await userEvent.upload(input, new File(["a,b\n1,2\n"], "data.csv", { type: "text/csv" }));
+    await screen.findByText(/Identical/);
+    expect(posts[0]!.body).toEqual({
+      save_experiment: false,
+      dataset: { content_base64: btoa("a,b\n1,2\n") },
+    });
+  });
+
+  it("explains a refused replay", async () => {
+    mockReplayApi([run(1)], () => ({
+      status: 409,
+      body: { detail: "This run used economy.solow v0.9.0; the current version is v1.0.0." },
+    }));
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByRole("button", { name: "Replay" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("v0.9.0");
+  });
+
+  it("saves replays when asked", async () => {
+    const posts = mockReplayApi([run(1)], () => ({ status: 200, body: verdict() }));
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByLabelText(/Save replays/));
+    await userEvent.click(screen.getByRole("button", { name: "Replay" }));
+    await screen.findByText(/Identical/);
+    expect(posts[0]!.body).toEqual({ save_experiment: true });
+  });
+});

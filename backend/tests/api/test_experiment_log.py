@@ -121,3 +121,27 @@ def test_the_log_pages_newest_first(client: TestClient) -> None:
 def test_a_single_run_has_its_headline_too(client: TestClient) -> None:
     run_id = store(client, "economy.solow", {"half_life_years": 1.0})
     assert client.get(f"{LOG}/{run_id}").json()["headline"] == "—"
+
+
+def test_the_log_says_which_runs_need_their_file_to_replay(client: TestClient) -> None:
+    import base64
+
+    upload = base64.b64encode(b"a,b\n1,2\n").decode()
+    runs = {
+        "upload": (
+            "/api/v1/quant/datasets/profile",
+            {"source": {"kind": "upload", "content_base64": upload}},
+        ),
+        "sample": (
+            "/api/v1/quant/datasets/profile",
+            {"source": {"kind": "sample", "sample_id": "messy_survey"}},
+        ),
+        "solow": ("/api/v1/economy/solow/simulate", {}),
+    }
+    needs = {}
+    for name, (url, body) in runs.items():
+        run_id = client.post(url, json={**body, "save_experiment": True}).json()["metadata"][
+            "run_id"
+        ]
+        needs[name] = client.get(f"{LOG}/{run_id}").json()["replay_needs_file"]
+    assert needs == {"upload": True, "sample": False, "solow": False}

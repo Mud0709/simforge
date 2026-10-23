@@ -1,12 +1,63 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
-import { ApiError, type Lab, type LoggedRun, listExperiments } from "@/lib/api/client";
+import {
+  ApiError,
+  type Lab,
+  type LoggedRun,
+  type ReplayRequest,
+  type ReplayResponse,
+  listExperiments,
+  replayExperiment,
+} from "@/lib/api/client";
+import { fileToBase64 } from "@/lib/quant/upload";
 import { reopenLink } from "@/lib/runs/pages";
 
 /** Runs fetched at a time. A shorter page means there are no more. */
 export const PAGE_SIZE = 50;
+
+const VERDICT_LABEL: Record<ReplayResponse["verdict"], string> = {
+  identical: "Identical",
+  within_tolerance: "Within tolerance",
+  differs: "Differs",
+};
+
+type ReplayState =
+  | { status: "running" }
+  | { status: "done"; result: ReplayResponse }
+  | { status: "failed"; message: string };
+
+/** The verdict of one replay, in words. */
+function ReplayOutcome({ state }: { state: ReplayState }) {
+  if (state.status === "running") return <p className="note">Replaying…</p>;
+  if (state.status === "failed")
+    return (
+      <p className="api-error" role="alert">
+        {state.message}
+      </p>
+    );
+  const r = state.result;
+  const d = r.largest_difference;
+  return (
+    <div className="replay-outcome" data-verdict={r.verdict}>
+      <p>
+        <strong>{VERDICT_LABEL[r.verdict]}.</strong> {r.explanation}
+      </p>
+      {d && (
+        <p className="note">
+          Largest difference: <code>{d.field}</code> {String(d.original)} → {String(d.replay)}
+          {d.within_tolerance ? " (within its tolerance)" : " (outside its tolerance)"}.
+        </p>
+      )}
+      {!r.environment_matches && (
+        <p className="note">
+          Environment differs: {r.environment_differences.map((e) => e.key).join(", ")}.
+        </p>
+      )}
+    </div>
+  );
+}
 
 const LABS: { id: Lab | null; label: string }[] = [
   { id: null, label: "All" },
@@ -21,6 +72,23 @@ export function ExperimentLog() {
   const [more, setMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveReplays, setSaveReplays] = useState(false);
+  const [replays, setReplays] = useState<Record<string, ReplayState>>({});
+
+  async function replay(run: LoggedRun, file?: File) {
+    const set = (state: ReplayState) => setReplays((prev) => ({ ...prev, [run.run_id]: state }));
+    set({ status: "running" });
+    try {
+      const body: ReplayRequest = { save_experiment: saveReplays };
+      if (file) body.dataset = { content_base64: await fileToBase64(file) };
+      set({ status: "done", result: await replayExperiment(run.run_id, body) });
+    } catch (err) {
+      set({
+        status: "failed",
+        message: err instanceof ApiError ? err.message : "Could not replay this run.",
+      });
+    }
+  }
 
   const fail = (err: unknown) =>
     setError(err instanceof ApiError ? err.message : "Unexpected error");
@@ -79,6 +147,14 @@ export function ExperimentLog() {
           </button>
         ))}
       </div>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={saveReplays}
+          onChange={(e) => setSaveReplays(e.target.checked)}
+        />
+        Save replays to the log (each as a new run linked to the original)
+      </label>
       {error && (
         <p className="api-error" role="alert">
           {error}
@@ -104,26 +180,59 @@ export function ExperimentLog() {
             </thead>
             <tbody>
               {runs.map((r) => (
-                <tr key={r.run_id}>
-                  <td>{r.created_at.slice(0, 19).replace("T", " ")}</td>
-                  <td>
-                    {r.model_id} <span className="unit">v{r.model_version}</span>
-                  </td>
-                  <td>
-                    {r.headline}
-                    {r.replay_of && (
-                      <span className="check-kind">replay of {r.replay_of.slice(0, 8)}</span>
-                    )}
-                  </td>
-                  <td>
-                    <code title={r.run_id}>{r.run_id.slice(0, 8)}</code>
-                  </td>
-                  <td>
-                    {reopenLink(r.model_id, r.run_id) && (
-                      <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={r.run_id}>
+                  <tr>
+                    <td>{r.created_at.slice(0, 19).replace("T", " ")}</td>
+                    <td>
+                      {r.model_id} <span className="unit">v{r.model_version}</span>
+                    </td>
+                    <td>
+                      {r.headline}
+                      {r.replay_of && (
+                        <span className="check-kind">replay of {r.replay_of.slice(0, 8)}</span>
+                      )}
+                    </td>
+                    <td>
+                      <code title={r.run_id}>{r.run_id.slice(0, 8)}</code>
+                    </td>
+                    <td className="actions">
+                      {reopenLink(r.model_id, r.run_id) && (
+                        <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
+                      )}
+                      {r.replay_needs_file ? (
+                        <label className="button secondary">
+                          Replay with file
+                          <input
+                            type="file"
+                            accept=".csv,text/csv,text/plain"
+                            className="sr-only"
+                            disabled={replays[r.run_id]?.status === "running"}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) void replay(r, file);
+                            }}
+                          />
+                        </label>
+                      ) : (
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={replays[r.run_id]?.status === "running"}
+                          onClick={() => void replay(r)}
+                        >
+                          Replay
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {replays[r.run_id] && (
+                    <tr className="replay-row">
+                      <td colSpan={5}>
+                        <ReplayOutcome state={replays[r.run_id]!} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
