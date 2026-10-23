@@ -225,48 +225,50 @@ export function ExperimentLog() {
                     <td>
                       <code title={r.run_id}>{r.run_id.slice(0, 8)}</code>
                     </td>
-                    <td className="actions">
-                      {reopenLink(r.model_id, r.run_id) && (
-                        <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
-                      )}
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() =>
-                          setEditing({
-                            runId: r.run_id,
-                            name: r.name ?? "",
-                            note: r.note ?? "",
-                            error: null,
-                          })
-                        }
-                      >
-                        Edit labels
-                      </button>
-                      {r.replay_needs_file ? (
-                        <label className="button secondary">
-                          Replay with file
-                          <input
-                            type="file"
-                            accept=".csv,text/csv,text/plain"
-                            className="sr-only"
-                            disabled={replays[r.run_id]?.status === "running"}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) void replay(r, file);
-                            }}
-                          />
-                        </label>
-                      ) : (
+                    <td>
+                      <div className="actions-inner">
+                        {reopenLink(r.model_id, r.run_id) && (
+                          <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
+                        )}
                         <button
                           type="button"
                           className="secondary"
-                          disabled={replays[r.run_id]?.status === "running"}
-                          onClick={() => void replay(r)}
+                          onClick={() =>
+                            setEditing({
+                              runId: r.run_id,
+                              name: r.name ?? "",
+                              note: r.note ?? "",
+                              error: null,
+                            })
+                          }
                         >
-                          Replay
+                          Edit labels
                         </button>
-                      )}
+                        {r.replay_needs_file ? (
+                          <label className="button secondary">
+                            Replay with file
+                            <input
+                              type="file"
+                              accept=".csv,text/csv,text/plain"
+                              className="sr-only"
+                              disabled={replays[r.run_id]?.status === "running"}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) void replay(r, file);
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={replays[r.run_id]?.status === "running"}
+                            onClick={() => void replay(r)}
+                          >
+                            Replay
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {editing?.runId === r.run_id && (
