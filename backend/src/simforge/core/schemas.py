@@ -61,6 +61,7 @@ class RunMetadata(StrictModel):
     numpy_version: str
     scipy_version: str
     platform: str
+    cpu: str = Field(description="Processor model; another CPU can change the last bits.")
     elapsed_ms: float = Field(description="Wall-clock compute time. Not reproducible by nature.")
     experiment_saved: bool
 

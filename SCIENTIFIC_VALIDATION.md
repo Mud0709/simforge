@@ -626,8 +626,8 @@ the replay is refused (409) before anything is recorded.
 | `within_tolerance` | `summary` or `summary_only` | Every summary value agrees within its declared tolerance; the field furthest from agreement is reported. Outputs outside the summary (time series) are **not** compared |
 | `differs` | either | A summary value is outside its tolerance, or the summaries have different fields |
 
-Every verdict also lists any environment differences (library versions, platform, git
-commit, Python implementation). Refusals, each with its own test: unknown run (404), unknown
+Every verdict also lists any environment differences (library versions, platform, CPU model,
+git commit, Python implementation). Refusals, each with its own test: unknown run (404), unknown
 model (422), model version changed since the run (409; a rerun would be a different model, so
 it would not be a reproduction), stored inputs no longer valid (422), inputs no longer hashing
 the same (409), uploaded dataset not re-supplied (422), re-supplied file with a different
@@ -652,12 +652,19 @@ between environments. A test checks that every stored field matches exactly one 
 | Solow | golden-rule rate; half-life | exact; 1e-12 rel | a copy of α; a closed form |
 | dataset profile | every field | exact | counts and labels |
 
-**What is and is not established.** Measured: every model's runs replay **bit-identically**
-in this environment (the locked library versions on linux-x86_64; a test runs all six cases).
-**Not measured:** whether results differ on other machines or library versions, so the
-tolerances are reasoned from each method's error control and the empirical rounding bounds
-above, not from cross-machine data. They are a declared contract, to be revised if real
-cross-environment replays show otherwise.
+**What is and is not established.** Measured: on one machine, every model's runs replay
+**bit-identically** (a test runs all six cases, locally and in CI). **Across machines they do
+not**: with the same code and the same locked libraries, GitHub's CI runners gave different
+output digests for the four floating-point models (the dataset profile, all counts, matched).
+Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specific routines
+changed the projectile and integrator digests the same way, because those routines add
+numbers in a different order; the largest summary change was about 1e-15 relative
+(`max_height` 4.250749496135367 → …371), far inside the declared tolerance (5e-9 m). The
+sweep and Solow digests also differ in CI for a CPU-specific reason not pinned down here.
+So the tolerances are reasoned from each method's error control and the empirical rounding
+bounds above; they are now checked against real cross-machine differences on every CI run
+(the golden test below), but that is one other machine type, not a proof. Every run records
+its CPU model so a replay can say when the processor changed.
 
 **Observed (2026-10-22), on a real migrated log.** The end-to-end test database had been
 written by earlier sessions under schema v1 (41 runs). Starting the app migrated it (backup
@@ -672,9 +679,9 @@ newer schema refused untouched, a failed migration rolls back completely: withou
 transaction it does not, which the test caught), `tests/api/test_registry.py` (one entry per
 model; stored inputs rebuild the same input hash), `tests/api/test_run_record_v2.py` (the
 digest is recomputable from the response alone; it ignores run metadata),
-`tests/api/test_golden_digests.py` (fixed inputs keep their pinned digest per model version: a
-regression guard, not evidence of correctness; a 1-ulp change in Solow's initial capital fails
-it) and `tests/api/test_replay.py` (every verdict, every refusal, saving and linking). Mutation
+`tests/api/test_golden_digests.py` (fixed inputs per model version: the pinned digest must
+match, or, on a different machine, every summary value must lie within its declared tolerance,
+with a warning saying only that was checked; a regression guard, not evidence of correctness) and `tests/api/test_replay.py` (every verdict, every refusal, saving and linking). Mutation
 checks: ignoring the digest, a tolerance made 10¹² times looser, and dropping the replay link
 each fail a test.
 

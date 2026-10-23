@@ -129,16 +129,19 @@ needed yet. A `schema_version` table guards against silent incompatibility.
   form, so equal digests mean every output value is bit-identical. It is returned with every
   run, so anyone can recompute it from the response.
 
-v2 records also store the git commit of the code that ran (`SIMFORGE_GIT_COMMIT` if the
+v2 records also store the CPU model (another processor can round the last bits differently,
+which CI showed) and the git commit of the code that ran (`SIMFORGE_GIT_COMMIT` if the
 deployment sets it, else the checkout's commit with `-dirty` if it has changes, else
 `unknown`) and the Python implementation, plus `record_version` and `replay_of` (the run a
 replay reproduced). **Migration:** a v1 log is copied to `<name>.v1.bak`, then three columns
 are added in one real transaction (Python's `sqlite3` would otherwise commit before each
 `ALTER TABLE`; a test shows a failed migration leaves nothing half done). Old rows are never
 rewritten: they read as v1 records with no digest. A log newer than the code is refused.
-**Golden digests** (`tests/api/test_golden_digests.py`) pin the outputs of fixed inputs for
-each model version, so outputs cannot change without a version bump. They guard against
-regressions; they are not evidence of correctness.
+**Golden runs** (`tests/api/golden_runs.json`, checked by `tests/api/test_golden_digests.py`)
+pin the outputs of fixed inputs for each model version, so outputs cannot change without a
+version bump. On the pinning machine the digest must match; elsewhere the summary must agree
+within the declared replay tolerances. They guard against regressions; they are not evidence
+of correctness.
 
 ### 6. The browser talks only to Next.js
 Next.js rewrites `/api/*` to FastAPI. This avoids CORS configuration in normal use and keeps
