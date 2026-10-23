@@ -7,6 +7,7 @@ export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
 export type ReplayRequest = Schemas["ReplayRequest"];
+export type RunLabels = Schemas["RunLabels"];
 export type ReplayResponse = Schemas["ReplayResponse"];
 export type Lab = "physics" | "economy" | "quant";
 export type ErrorMetric = Schemas["ErrorMetric"];
@@ -109,6 +110,14 @@ export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
 /** One saved run. */
 export function getExperiment(runId: string): Promise<LoggedRun> {
   return request(`/experiments/${encodeURIComponent(runId)}`);
+}
+
+/** Set a run's name and note (omitted: kept; "" or null: cleared). Results never change. */
+export function labelExperiment(runId: string, labels: RunLabels): Promise<LoggedRun> {
+  return request(`/experiments/${encodeURIComponent(runId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(labels),
+  });
 }
 
 /** Rerun a saved run and get the reproducibility verdict. */

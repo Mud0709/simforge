@@ -24,7 +24,7 @@ from pydantic import Field
 from simforge.core.reproducibility import canonical_json
 from simforge.core.schemas import StrictModel
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 #: Version of the record written by this code. v1 records (before roadmap 1.4) have no output
 #: digest; they are kept as they were and read as record_version 1.
 RECORD_VERSION = 2
@@ -42,20 +42,27 @@ CREATE TABLE experiments (
     environment    TEXT NOT NULL,  -- canonical JSON
     record_version INTEGER NOT NULL DEFAULT 1,
     output_digest  TEXT,           -- NULL for v1 records
-    replay_of      TEXT            -- run_id of the run this one replayed, if any
+    replay_of      TEXT,           -- run_id of the run this one replayed, if any
+    name           TEXT,           -- user label (never part of the scientific record)
+    note           TEXT            -- user note (likewise)
 );
 CREATE INDEX idx_experiments_created ON experiments (created_at DESC);
 CREATE INDEX idx_experiments_hash ON experiments (input_hash);
 """
 
-# v1 -> v2: three added columns. Existing rows are never rewritten; the defaults make them
-# read as v1 records with no output digest that replayed nothing.
-_MIGRATE_V1_TO_V2 = (
-    "ALTER TABLE experiments ADD COLUMN record_version INTEGER NOT NULL DEFAULT 1",
-    "ALTER TABLE experiments ADD COLUMN output_digest TEXT",
-    "ALTER TABLE experiments ADD COLUMN replay_of TEXT",
-    "UPDATE schema_version SET version = 2",
-)
+# Each step only adds columns. Existing rows are never rewritten: the defaults make old rows
+# read as records with no output digest, no replay link and no labels.
+_MIGRATIONS: dict[int, tuple[str, ...]] = {
+    1: (  # -> v2, roadmap 1.4: run record v2
+        "ALTER TABLE experiments ADD COLUMN record_version INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE experiments ADD COLUMN output_digest TEXT",
+        "ALTER TABLE experiments ADD COLUMN replay_of TEXT",
+    ),
+    2: (  # -> v3, roadmap 1.5: names and notes
+        "ALTER TABLE experiments ADD COLUMN name TEXT",
+        "ALTER TABLE experiments ADD COLUMN note TEXT",
+    ),
+}
 
 
 class ExperimentRecord(StrictModel):
@@ -78,13 +85,16 @@ class ExperimentRecord(StrictModel):
     replay_of: str | None = Field(
         default=None, description="run_id of the run this record replayed, if it is a replay."
     )
+    name: str | None = Field(default=None, description="User label; not part of the results.")
+    note: str | None = Field(default=None, description="User note; not part of the results.")
 
 
 def init_db(path: Path) -> None:
     """Create the experiment log, or bring an existing one up to the current schema.
 
-    A v1 log is copied to ``<name>.v1.bak`` first, then migrated in one transaction: either
-    every step applies or none does. A log newer than this code is refused untouched.
+    An older log is copied to ``<name>.v<N>.bak`` first, then migrated through every step to
+    the current version in one transaction: either every step applies or none does. A log
+    newer than this code is refused untouched.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     version = _schema_version(path)
@@ -94,13 +104,15 @@ def init_db(path: Path) -> None:
                 if statement.strip():
                     conn.execute(statement)
             conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
-    elif version == 1:
-        backup = path.with_name(path.name + ".v1.bak")
+    elif version < SCHEMA_VERSION:
+        backup = path.with_name(f"{path.name}.v{version}.bak")
         if not backup.exists():
             shutil.copy2(path, backup)
         with _transaction(path) as conn:
-            for statement in _MIGRATE_V1_TO_V2:
-                conn.execute(statement)
+            for step in range(version, SCHEMA_VERSION):
+                for statement in _MIGRATIONS[step]:
+                    conn.execute(statement)
+            conn.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
     elif version != SCHEMA_VERSION:
         raise RuntimeError(
             f"Database {path} has schema v{version}, but this SimForge reads up to "
@@ -156,7 +168,7 @@ class ExperimentRepository:
             conn.execute(
                 "INSERT INTO experiments (run_id, model_id, model_version, created_at, "
                 "input_hash, inputs, summary, environment, record_version, output_digest, "
-                "replay_of) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "replay_of, name, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     record.run_id,
                     record.model_id,
@@ -169,8 +181,21 @@ class ExperimentRepository:
                     record.record_version,
                     record.output_digest,
                     record.replay_of,
+                    record.name,
+                    record.note,
                 ),
             )
+
+    def set_labels(
+        self, run_id: str, *, name: str | None, note: str | None
+    ) -> ExperimentRecord | None:
+        """Set a run's name and note (None clears). Only these two columns can change."""
+        with _connect(self._path) as conn:
+            cursor = conn.execute(
+                "UPDATE experiments SET name = ?, note = ? WHERE run_id = ?",
+                (name, note, run_id),
+            )
+        return self.get(run_id) if cursor.rowcount else None
 
     def get(self, run_id: str) -> ExperimentRecord | None:
         with _connect(self._path) as conn:
@@ -216,4 +241,6 @@ def _to_record(row: sqlite3.Row) -> ExperimentRecord:
         record_version=row["record_version"],
         output_digest=row["output_digest"],
         replay_of=row["replay_of"],
+        name=row["name"],
+        note=row["note"],
     )

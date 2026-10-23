@@ -9,6 +9,7 @@ from pydantic import Field
 from simforge.api.dependencies import Repository
 from simforge.api.registry import get_entry
 from simforge.api.replay import ReplayRequest, ReplayResponse, replay_run
+from simforge.core.schemas import StrictModel
 from simforge.persistence.experiments import ExperimentRecord
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
@@ -71,6 +72,35 @@ def get_experiment(run_id: str, repo: Repository) -> LoggedRun:
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
     return _logged(record)
+
+
+class RunLabels(StrictModel):
+    """A run's name and note. Omitted fields are kept; null or "" clears. Nothing else about
+    a run can be changed: its inputs, results and fingerprints are the scientific record."""
+
+    name: str | None = Field(default=None, max_length=80)
+    note: str | None = Field(default=None, max_length=2000)
+
+
+@router.patch("/{run_id}")
+def label_experiment(run_id: str, labels: RunLabels, repo: Repository) -> LoggedRun:
+    record = repo.get(run_id)
+    if record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    sent = labels.model_fields_set
+
+    def pick(field: str, current: str | None) -> str | None:
+        if field not in sent:
+            return current
+        value: str | None = getattr(labels, field)
+        return value or None
+
+    updated = repo.set_labels(
+        run_id, name=pick("name", record.name), note=pick("note", record.note)
+    )
+    if updated is None:  # removed meanwhile
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    return _logged(updated)
 
 
 @router.post("/{run_id}/replay")

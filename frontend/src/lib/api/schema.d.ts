@@ -69,7 +69,8 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /** Label Experiment */
+    patch: operations["label_experiment_api_v1_experiments__run_id__patch"];
     trace?: never;
   };
   "/api/v1/experiments/{run_id}/replay": {
@@ -764,6 +765,16 @@ export interface components {
       /** Model Version */
       model_version: string;
       /**
+       * Name
+       * @description User label; not part of the results.
+       */
+      name?: string | null;
+      /**
+       * Note
+       * @description User note; not part of the results.
+       */
+      note?: string | null;
+      /**
        * Output Digest
        * @description SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.
        */
@@ -1161,6 +1172,17 @@ export interface components {
        * @enum {string}
        */
       verdict: "identical" | "within_tolerance" | "differs";
+    };
+    /**
+     * RunLabels
+     * @description A run's name and note. Omitted fields are kept; null or "" clears. Nothing else about
+     *     a run can be changed: its inputs, results and fingerprints are the scientific record.
+     */
+    RunLabels: {
+      /** Name */
+      name?: string | null;
+      /** Note */
+      note?: string | null;
     };
     /**
      * RunMetadata
@@ -1598,6 +1620,41 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LoggedRun"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  label_experiment_api_v1_experiments__run_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunLabels"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
