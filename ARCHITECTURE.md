@@ -41,9 +41,11 @@ simforge/
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
-│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments),
-│   │   │                              recording.py (run metadata + experiment log), errors,
-│   │   │                              body_limit.py (request-size guard)
+│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments; each
+│   │   │                              model's registry entry sits next to its route),
+│   │   │                              runs.py (ModelEntry + the shared run path), registry.py
+│   │   │                              (every model by id), recording.py (run metadata +
+│   │   │                              experiment log), errors, body_limit.py (request-size guard)
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
 │   │   └── main.py                  App factory
 │   ├── tests/                       pytest: physics/, economy/, quant/ (reference tests), api/,
@@ -113,12 +115,33 @@ frontend's types *and* its form bounds come from this file. A CI job regenerates
 and fails if they differ from what is committed, so the frontend and backend cannot drift
 apart without anyone noticing.
 
-### 5. The experiment log stores inputs, not outputs
+### 5. The experiment log stores inputs, not outputs (plus a fingerprint of the outputs)
 Each saved run records validated inputs, a SHA-256 hash of their canonical JSON, the model
 version, library versions and summary metrics. Time series are deliberately not stored:
 models are deterministic, so the inputs together with the versions are the reproducible
 record. The stdlib `sqlite3` module is used because there is one table and no ORM is
 needed yet. A `schema_version` table guards against silent incompatibility.
+
+**Run record v2 (roadmap 1.4).** Two hashes answer two different questions:
+- the **input hash** says the same *question* was asked;
+- the **output digest** (SHA-256 of the canonical JSON of the full response without its run
+  metadata) says the same *answer* came back. JSON writes each float in its shortest exact
+  form, so equal digests mean every output value is bit-identical. It is returned with every
+  run, so anyone can recompute it from the response.
+
+v2 records also store the CPU model (another processor can round the last bits differently,
+which CI showed) and the git commit of the code that ran (`SIMFORGE_GIT_COMMIT` if the
+deployment sets it, else the checkout's commit with `-dirty` if it has changes, else
+`unknown`) and the Python implementation, plus `record_version` and `replay_of` (the run a
+replay reproduced). **Migration:** a v1 log is copied to `<name>.v1.bak`, then three columns
+are added in one real transaction (Python's `sqlite3` would otherwise commit before each
+`ALTER TABLE`; a test shows a failed migration leaves nothing half done). Old rows are never
+rewritten: they read as v1 records with no digest. A log newer than the code is refused.
+**Golden runs** (`tests/api/golden_runs.json`, checked by `tests/api/test_golden_digests.py`)
+pin the outputs of fixed inputs for each model version, so outputs cannot change without a
+version bump. On the pinning machine the digest must match; elsewhere the summary must agree
+within the declared replay tolerances. They guard against regressions; they are not evidence
+of correctness.
 
 ### 6. The browser talks only to Next.js
 Next.js rewrites `/api/*` to FastAPI. This avoids CORS configuration in normal use and keeps
@@ -144,11 +167,21 @@ problem; velocity Verlet with implicitly solved linear drag, for example, lives 
 `physics/projectile/integrator_study.py`, because its exact implicit solve depends on the
 force law. Future models, such as a harmonic oscillator or orbits, reuse `numerics/` directly.
 
-### 10. One experiment-log path for every model
+### 10. One experiment-log path for every model, and a model registry
 Every endpoint, in every lab, records runs through one helper (`record_run` in
 `api/recording.py`). It moved there from the physics routes when the Economy Lab became the
 second lab to need it. Each model hashes exactly the inputs that affect its numbers and
-stores a small, model-specific summary. The frontend's experiment log renders a one-line
+stores a small, model-specific summary.
+
+Since roadmap step 1.4 each model describes itself once, as a `ModelEntry` (`api/runs.py`)
+placed next to its route: how to compute it, which inputs are hashed, what summary is stored,
+how the response is built, and how to **rebuild a request from stored inputs**. Every model
+endpoint is one call to `execute(entry, ...)`, and `api/registry.py` lists the entries by
+model id. Replay looks a stored run's model up in the registry and goes through the same
+entry, so a replay asks exactly the question the original asked, computed by the same code.
+The registry is a plain tuple and a lookup function, not a plugin framework; all five models
+in all three labs needed it. Introducing it changed no response: every endpoint's full
+response was compared byte for byte before and after. The frontend's experiment log renders a one-line
 "key result" per model (step 1.5 on the roadmap replaces the per-model branches with
 headlines supplied by a model registry).
 
@@ -223,6 +256,16 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
 (a test confirms it). The guard is added before the CORS middleware, so CORS wraps it and a
 413 still carries the CORS headers a browser needs to read the message.
 
+### 15. Replay compares answers, not just questions
+`api/replay.py` reruns a stored run through its registry entry (decision 10). It refuses
+anything that would not be a reproduction (a changed model version, inputs that no longer
+validate or hash the same, a re-supplied file whose SHA-256 differs, which is checked before
+the file is read), then compares output digests. When digests are missing (v1 records) or
+differ, it compares the stored summary field by field against tolerances each model declares
+next to its entry, with a reason for each; a test makes sure every stored field has exactly
+one rule. A saved replay is a **new** record with `replay_of` pointing to the original, so the
+log stays append-only. The API comes first (1.4); the log page and replay button are 1.5.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -237,6 +280,7 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |
 | POST | `/api/v1/quant/datasets/profile` | Profile an uploaded CSV (base64) or a bundled sample |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
+| POST | `/api/v1/experiments/{run_id}/replay` | Rerun a stored run; verdict identical / within tolerance / differs |
 
 ## Adding a new model (the intended pattern)
 
@@ -244,7 +288,9 @@ decode to 1 byte more. Every other endpoint's body is under a kilobyte, so they 
    (or `simulation.py`), plus `schemas.py` and `model.py` (`MODEL_INFO`, `UNITS`,
    `ASSUMPTIONS`, `run()`).
 2. Write reference tests *first*. List them in `SCIENTIFIC_VALIDATION.md`.
-3. Add a route in `api/routes/`. Record runs with `record_run` (`api/recording.py`).
+3. Add a route in `api/routes/` with the model's `ModelEntry` next to it, call
+   `execute(entry, ...)` from the endpoint, and add the entry to `api/registry.py`. The
+   registry test then checks that stored inputs rebuild the same computation.
 4. Run `make api-types`, then build the UI in `frontend/src/components/` inside `Workspace`,
    with form fields declared through `spec()` in `lib/fields.ts`.
 5. Add a chapter to the lab's learning guide (`docs/`).
