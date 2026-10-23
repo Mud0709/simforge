@@ -5,7 +5,8 @@ export type ProjectileParameters = Schemas["ProjectileParameters"];
 export type SolverSettings = Schemas["SolverSettings"];
 export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
-export type ExperimentRecord = Schemas["ExperimentRecord"];
+export type LoggedRun = Schemas["LoggedRun"];
+export type Lab = "physics" | "economy" | "quant";
 export type ErrorMetric = Schemas["ErrorMetric"];
 export type AngleSweepRequest = Schemas["AngleSweepRequest"];
 export type AngleSweepResponse = Schemas["AngleSweepResponse"];
@@ -103,6 +104,14 @@ export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
   return request("/quant/datasets/profile", { method: "POST", body: JSON.stringify(body) });
 }
 
-export function listExperiments(limit = 50): Promise<ExperimentRecord[]> {
-  return request(`/experiments?limit=${limit}`);
+/** Saved runs, newest first; optionally one lab, one page at a time. */
+export function listExperiments(
+  options: { lab?: Lab; limit?: number; offset?: number } = {},
+): Promise<LoggedRun[]> {
+  const query = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+  });
+  if (options.lab) query.set("lab", options.lab);
+  return request(`/experiments?${query.toString()}`);
 }

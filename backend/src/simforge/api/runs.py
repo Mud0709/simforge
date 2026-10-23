@@ -58,6 +58,8 @@ class ModelEntry[Req: StrictModel, Res: StrictModel, Result]:
     #: joined by dots) -> tolerance. May depend on the stored inputs and summary. Every
     #: summary field must match exactly one pattern.
     tolerances: Callable[[dict[str, Any], dict[str, Any]], dict[str, Tolerance]]
+    #: One line for the experiment log, from a stored summary (may raise on an old shape).
+    headline: Callable[[dict[str, Any]], str]
     #: Response fields left out of the output digest besides ``metadata``: echoes of inputs
     #: that do not affect the result (and so are not stored, and cannot be replayed).
     digest_exclude: dict[str, Any] | None = None

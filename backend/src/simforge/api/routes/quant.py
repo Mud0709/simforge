@@ -102,6 +102,10 @@ DATASET_PROFILE = ModelEntry(
     tolerances=lambda inputs, summary: {
         "*": Tolerance.exact("Counts and labels: exact, by definition of a profile.")
     },
+    headline=lambda s: (
+        f"{s['rows']} rows \N{MULTIPLICATION SIGN} {s['columns']} columns, "
+        f"{s['missing_cells']} missing cells, {s['duplicate_rows']} duplicate rows"
+    ),
 )
 
 

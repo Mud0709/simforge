@@ -2,114 +2,134 @@
 
 import { useEffect, useState } from "react";
 
-import { ApiError, type ExperimentRecord, listExperiments } from "@/lib/api/client";
-import { formatExp, formatSig } from "@/lib/format";
+import { ApiError, type Lab, type LoggedRun, listExperiments } from "@/lib/api/client";
 
-type Summary = {
-  baseline_steady_state_capital?: number;
-  scenario_steady_state_capital?: number;
-  half_life_years?: number;
-  analytical?: { range?: number };
-  comparison?: { max_position_error?: number };
-  methods?: Record<string, { position_order?: number | null }>;
-  rows?: number;
-  columns?: number;
-  missing_cells?: number;
-  duplicate_rows?: number;
-};
-type Inputs = {
-  parameters?: Record<string, number>;
-  solver?: { method?: string };
-  methods?: string[];
-};
+/** Runs fetched at a time. A shorter page means there are no more. */
+export const PAGE_SIZE = 50;
 
-/** One-line headline for a saved run; each model stores a different summary shape. */
-export function keyResult(modelId: string, summary: Summary): string {
-  if (modelId === "physics.projectile.integrators") {
-    return Object.entries(summary.methods ?? {})
-      .map(([m, s]) => `${m} p≈${s.position_order == null ? "n/a" : s.position_order.toFixed(2)}`)
-      .join(", ");
-  }
-  if (modelId === "economy.solow") {
-    const k0 = summary.baseline_steady_state_capital ?? NaN;
-    const k1 = summary.scenario_steady_state_capital ?? NaN;
-    const half = summary.half_life_years ?? NaN;
-    return `k* ${formatSig(k0, 4)} → ${formatSig(k1, 4)}, half-life ${formatSig(half, 3)} y`;
-  }
-  if (modelId === "quant.dataset_profile") {
-    const n = (x: number | undefined) => (x === undefined ? "?" : String(x));
-    return (
-      `${n(summary.rows)} rows × ${n(summary.columns)} columns, ` +
-      `${n(summary.missing_cells)} missing cells, ${n(summary.duplicate_rows)} duplicate rows`
-    );
-  }
-  const range = summary.analytical?.range;
-  const err = summary.comparison?.max_position_error;
-  if (range === undefined) return "—";
-  return `range ${formatSig(range)} m, error ${formatExp(err ?? NaN)} m`;
-}
+const LABS: { id: Lab | null; label: string }[] = [
+  { id: null, label: "All" },
+  { id: "physics", label: "Physics" },
+  { id: "economy", label: "Economy" },
+  { id: "quant", label: "Quant" },
+];
 
 export function ExperimentLog() {
-  const [records, setRecords] = useState<ExperimentRecord[] | null>(null);
+  const [lab, setLab] = useState<Lab | null>(null);
+  const [runs, setRuns] = useState<LoggedRun[] | null>(null);
+  const [more, setMore] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    listExperiments()
-      .then(setRecords)
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : "Unexpected error"),
-      );
-  }, []);
+  const fail = (err: unknown) =>
+    setError(err instanceof ApiError ? err.message : "Unexpected error");
 
-  if (error)
-    return (
-      <p className="api-error" role="alert">
-        {error}
-      </p>
-    );
-  if (!records) return <p className="note">Loading…</p>;
-  if (records.length === 0)
-    return <p className="card empty">No saved runs yet. Run a simulation to create one.</p>;
+  // The first page of the chosen lab. State is set only when the reply arrives, and a reply
+  // for a lab that is no longer chosen is dropped.
+  useEffect(() => {
+    let current = true;
+    listExperiments({ lab: lab ?? undefined, limit: PAGE_SIZE })
+      .then((page) => {
+        if (!current) return;
+        setRuns(page);
+        setMore(page.length === PAGE_SIZE);
+      })
+      .catch((err: unknown) => current && fail(err));
+    return () => {
+      current = false;
+    };
+  }, [lab]);
+
+  function chooseLab(next: Lab | null) {
+    setLab(next);
+    setRuns(null);
+    setError(null);
+  }
+
+  async function loadMore() {
+    setLoading(true);
+    try {
+      const page = await listExperiments({
+        lab: lab ?? undefined,
+        limit: PAGE_SIZE,
+        offset: runs?.length ?? 0,
+      });
+      setRuns((prev) => [...(prev ?? []), ...page]);
+      setMore(page.length === PAGE_SIZE);
+    } catch (err) {
+      fail(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="card table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Created (UTC)</th>
-            <th scope="col">Model</th>
-            <th scope="col">v₀ (m/s)</th>
-            <th scope="col">θ (°)</th>
-            <th scope="col">b (kg/s)</th>
-            <th scope="col">Solver(s)</th>
-            <th scope="col">Key result</th>
-            <th scope="col">Input hash</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((r) => {
-            const inputs = r.inputs as Inputs;
-            const summary = r.summary as Summary;
-            const p = inputs.parameters ?? {};
-            return (
-              <tr key={r.run_id}>
-                <td>{r.created_at.slice(0, 19).replace("T", " ")}</td>
-                <td>
-                  {r.model_id} <span className="unit">v{r.model_version}</span>
-                </td>
-                <td className="num">{formatSig(p.initial_speed ?? NaN)}</td>
-                <td className="num">{formatSig(p.launch_angle_deg ?? NaN)}</td>
-                <td className="num">{formatSig(p.drag_coefficient ?? NaN)}</td>
-                <td>{inputs.solver?.method ?? inputs.methods?.join(", ") ?? "—"}</td>
-                <td>{keyResult(r.model_id, summary)}</td>
-                <td>
-                  <code title={r.input_hash}>{r.input_hash.slice(0, 10)}</code>
-                </td>
+    <div className="card">
+      <div className="lab-filter" role="group" aria-label="Show runs from">
+        {LABS.map((l) => (
+          <button
+            key={l.label}
+            type="button"
+            className="secondary"
+            aria-pressed={lab === l.id}
+            onClick={() => chooseLab(l.id)}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <p className="api-error" role="alert">
+          {error}
+        </p>
+      )}
+      {runs === null ? (
+        <p className="note">Loading…</p>
+      ) : runs.length === 0 ? (
+        <p className="empty">No saved runs here yet. Run a model with saving switched on.</p>
+      ) : (
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Created (UTC)</th>
+                <th scope="col">Model</th>
+                <th scope="col">Result</th>
+                <th scope="col">Run</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.run_id}>
+                  <td>{r.created_at.slice(0, 19).replace("T", " ")}</td>
+                  <td>
+                    {r.model_id} <span className="unit">v{r.model_version}</span>
+                  </td>
+                  <td>
+                    {r.headline}
+                    {r.replay_of && (
+                      <span className="check-kind">replay of {r.replay_of.slice(0, 8)}</span>
+                    )}
+                  </td>
+                  <td>
+                    <code title={r.run_id}>{r.run_id.slice(0, 8)}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {more && (
+        <button
+          type="button"
+          className="secondary"
+          disabled={loading}
+          onClick={() => void loadMore()}
+        >
+          Load more
+        </button>
+      )}
     </div>
   );
 }
