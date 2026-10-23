@@ -539,3 +539,11 @@ td.actions {
 .replay-outcome[data-verdict="differs"] strong {
   color: var(--danger);
 }
+
+.run-name {
+  display: block;
+}
+
+.run-note {
+  white-space: pre-wrap;
+}

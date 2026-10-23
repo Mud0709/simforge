@@ -1243,6 +1243,30 @@
             "title": "Model Version",
             "type": "string"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User label; not part of the results.",
+            "title": "Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User note; not part of the results.",
+            "title": "Note"
+          },
           "output_digest": {
             "anyOf": [
               {
@@ -2219,6 +2243,38 @@
         "title": "ReplayResponse",
         "type": "object"
       },
+      "RunLabels": {
+        "additionalProperties": false,
+        "description": "A run's name and note. Omitted fields are kept; null or \"\" clears. Nothing else about\na run can be changed: its inputs, results and fingerprints are the scientific record.",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "RunLabels",
+        "type": "object"
+      },
       "RunMetadata": {
         "additionalProperties": false,
         "description": "Everything needed to reproduce (or audit) a single run.",
@@ -3114,6 +3170,56 @@
           }
         },
         "summary": "Get Experiment",
+        "tags": [
+          "experiments"
+        ]
+      },
+      "patch": {
+        "operationId": "label_experiment_api_v1_experiments__run_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunLabels"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggedRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Label Experiment",
         "tags": [
           "experiments"
         ]

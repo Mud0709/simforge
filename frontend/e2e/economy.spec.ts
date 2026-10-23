@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { logRow, shownRunId } from "./helpers";
+
 // Full stack for the Economy Lab: browser -> Next.js -> FastAPI -> NumPy -> SQLite.
 test("run the Solow model and find it in the experiment log", async ({ page }) => {
   await page.goto("/");
@@ -33,11 +35,9 @@ test("run the Solow model and find it in the experiment log", async ({ page }) =
   await expect(vis.locator(".chart .main-svg").first()).toBeVisible();
   await expect(vis.locator(".chart")).toHaveCount(3);
 
+  const runId = await shownRunId(page);
   await page.getByRole("link", { name: "Experiments" }).click();
-  const row = page
-    .getByRole("row")
-    .filter({ hasText: /economy\.solow v1/ })
-    .first();
+  const row = logRow(page, runId);
   await expect(row).toContainText(
     `k* ${Number(kStar(0.2).toPrecision(4))} → ${Number(kStar(0.3).toPrecision(4))}`,
   );

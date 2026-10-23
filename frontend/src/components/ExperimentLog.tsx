@@ -8,14 +8,28 @@ import {
   type LoggedRun,
   type ReplayRequest,
   type ReplayResponse,
+  labelExperiment,
   listExperiments,
   replayExperiment,
 } from "@/lib/api/client";
+import openapi from "@/lib/api/openapi.json";
 import { fileToBase64 } from "@/lib/quant/upload";
 import { reopenLink } from "@/lib/runs/pages";
 
 /** Runs fetched at a time. A shorter page means there are no more. */
 export const PAGE_SIZE = 50;
+
+// The server's limits, read from the API contract so the two cannot disagree.
+const LABEL_LIMITS = openapi.components.schemas.RunLabels.properties as {
+  name: { anyOf: { maxLength?: number }[] };
+  note: { anyOf: { maxLength?: number }[] };
+};
+const maxLength = (field: { anyOf: { maxLength?: number }[] }) =>
+  field.anyOf.find((t) => t.maxLength !== undefined)?.maxLength;
+const NAME_MAX = maxLength(LABEL_LIMITS.name);
+const NOTE_MAX = maxLength(LABEL_LIMITS.note);
+
+type Editing = { runId: string; name: string; note: string; error: string | null };
 
 const VERDICT_LABEL: Record<ReplayResponse["verdict"], string> = {
   identical: "Identical",
@@ -74,6 +88,20 @@ export function ExperimentLog() {
   const [error, setError] = useState<string | null>(null);
   const [saveReplays, setSaveReplays] = useState(false);
   const [replays, setReplays] = useState<Record<string, ReplayState>>({});
+  const [editing, setEditing] = useState<Editing | null>(null);
+
+  async function saveLabels(edit: Editing) {
+    try {
+      const updated = await labelExperiment(edit.runId, { name: edit.name, note: edit.note });
+      setRuns((prev) => prev?.map((r) => (r.run_id === updated.run_id ? updated : r)) ?? prev);
+      setEditing(null);
+    } catch (err) {
+      setEditing({
+        ...edit,
+        error: err instanceof ApiError ? err.message : "Could not save the labels.",
+      });
+    }
+  }
 
   async function replay(run: LoggedRun, file?: File) {
     const set = (state: ReplayState) => setReplays((prev) => ({ ...prev, [run.run_id]: state }));
@@ -187,7 +215,9 @@ export function ExperimentLog() {
                       {r.model_id} <span className="unit">v{r.model_version}</span>
                     </td>
                     <td>
+                      {r.name && <strong className="run-name">{r.name}</strong>}
                       {r.headline}
+                      {r.note && <span className="check-kind run-note">{r.note}</span>}
                       {r.replay_of && (
                         <span className="check-kind">replay of {r.replay_of.slice(0, 8)}</span>
                       )}
@@ -199,6 +229,20 @@ export function ExperimentLog() {
                       {reopenLink(r.model_id, r.run_id) && (
                         <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
                       )}
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() =>
+                          setEditing({
+                            runId: r.run_id,
+                            name: r.name ?? "",
+                            note: r.note ?? "",
+                            error: null,
+                          })
+                        }
+                      >
+                        Edit labels
+                      </button>
                       {r.replay_needs_file ? (
                         <label className="button secondary">
                           Replay with file
@@ -225,6 +269,58 @@ export function ExperimentLog() {
                       )}
                     </td>
                   </tr>
+                  {editing?.runId === r.run_id && (
+                    <tr className="replay-row">
+                      <td colSpan={5}>
+                        <form
+                          className="label-form"
+                          aria-label={`Labels for run ${r.run_id.slice(0, 8)}`}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void saveLabels(editing);
+                          }}
+                        >
+                          <div className="field">
+                            <label htmlFor={`name-${r.run_id}`}>Name</label>
+                            <input
+                              id={`name-${r.run_id}`}
+                              type="text"
+                              maxLength={NAME_MAX}
+                              value={editing.name}
+                              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`note-${r.run_id}`}>Note</label>
+                            <textarea
+                              id={`note-${r.run_id}`}
+                              rows={2}
+                              maxLength={NOTE_MAX}
+                              value={editing.note}
+                              onChange={(e) => setEditing({ ...editing, note: e.target.value })}
+                            />
+                          </div>
+                          <p className="note">
+                            Labels help you find runs; they never change a run&rsquo;s inputs or
+                            results.
+                          </p>
+                          <button type="submit">Save labels</button>{" "}
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => setEditing(null)}
+                          >
+                            Cancel
+                          </button>
+                          {editing.error && (
+                            <p className="api-error" role="alert">
+                              {editing.error}
+                            </p>
+                          )}
+                        </form>
+                      </td>
+                    </tr>
+                  )}
                   {replays[r.run_id] && (
                     <tr className="replay-row">
                       <td colSpan={5}>

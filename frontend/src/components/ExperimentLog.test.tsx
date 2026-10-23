@@ -204,3 +204,68 @@ describe("replaying from the log", () => {
     expect(posts[0]!.body).toEqual({ save_experiment: true });
   });
 });
+
+describe("naming and annotating runs", () => {
+  it("shows a run's name and note as plain text", async () => {
+    mockLog([run(1, { name: "Golden rule", note: "<b>not bold</b>" })]);
+    const { container } = render(<ExperimentLog />);
+    expect(await screen.findByText("Golden rule")).toBeInTheDocument();
+    expect(screen.getByText("<b>not bold</b>")).toBeInTheDocument(); // shown, not interpreted
+    expect(container.querySelector("td b")).toBeNull();
+  });
+
+  it("edits the labels in place and keeps the server's answer", async () => {
+    const patches: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          const body = JSON.parse(String(init.body)) as Record<string, string>;
+          patches.push({ url, body });
+          return Promise.resolve(
+            new Response(JSON.stringify(run(1, { name: body.name, note: body.note })), {
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify([run(1, { name: "Old", note: null })]), {
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }),
+    );
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByRole("button", { name: "Edit labels" }));
+    const name = screen.getByLabelText("Name");
+    expect(name).toHaveValue("Old");
+    await userEvent.clear(name);
+    await userEvent.type(name, "Baseline");
+    await userEvent.type(screen.getByLabelText("Note"), "first try");
+    await userEvent.click(screen.getByRole("button", { name: "Save labels" }));
+    expect(await screen.findByText("Baseline")).toBeInTheDocument();
+    expect(screen.getByText("first try")).toBeInTheDocument();
+    expect(patches).toEqual([
+      { url: "/api/v1/experiments/run-1", body: { name: "Baseline", note: "first try" } },
+    ]);
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+  });
+
+  it("cancelling an edit changes nothing", async () => {
+    mockLog([run(1, { name: "Old" })]);
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByRole("button", { name: "Edit labels" }));
+    await userEvent.type(screen.getByLabelText("Name"), " changed");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Old")).toBeInTheDocument();
+    expect(screen.queryByText("Old changed")).not.toBeInTheDocument();
+  });
+
+  it("limits the lengths the server accepts", async () => {
+    mockLog([run(1)]);
+    render(<ExperimentLog />);
+    await userEvent.click(await screen.findByRole("button", { name: "Edit labels" }));
+    expect(screen.getByLabelText("Name")).toHaveAttribute("maxLength", "80");
+    expect(screen.getByLabelText("Note")).toHaveAttribute("maxLength", "2000");
+  });
+});
