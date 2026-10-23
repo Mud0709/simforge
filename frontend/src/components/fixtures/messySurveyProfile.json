@@ -492,6 +492,7 @@
     "numpy_version": "fixture",
     "scipy_version": "fixture",
     "platform": "fixture",
+    "cpu": "fixture",
     "elapsed_ms": 1.0,
     "experiment_saved": false
   }

@@ -2204,6 +2204,11 @@
         "additionalProperties": false,
         "description": "Everything needed to reproduce (or audit) a single run.",
         "properties": {
+          "cpu": {
+            "description": "Processor model; another CPU can change the last bits.",
+            "title": "Cpu",
+            "type": "string"
+          },
           "created_at": {
             "description": "UTC timestamp, ISO 8601.",
             "title": "Created At",
@@ -2275,6 +2280,7 @@
           "numpy_version",
           "scipy_version",
           "platform",
+          "cpu",
           "elapsed_ms",
           "experiment_saved"
         ],

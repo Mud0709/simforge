@@ -89,6 +89,7 @@ _DRAFT_METADATA = RunMetadata(
     numpy_version="",
     scipy_version="",
     platform="",
+    cpu="",
     elapsed_ms=0.0,
     experiment_saved=False,
 )

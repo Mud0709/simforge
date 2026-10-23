@@ -2050,10 +2050,10 @@ async def integrator_study(
 | 227 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
 
 The endpoint's `execute` hands over to the shared path, `execute_run`
-(`backend/src/simforge/api/runs.py:106-141`). It is the same for all five models, and replay
+(`backend/src/simforge/api/runs.py:107-142`). It is the same for all five models, and replay
 (roadmap 1.4, Part 15) uses it too:
 
-<!-- src: backend/src/simforge/api/runs.py:106-141 -->
+<!-- src: backend/src/simforge/api/runs.py:107-142 -->
 ```python
 async def execute_run[Req: StrictModel, Res: StrictModel, Result](
     entry: ModelEntry[Req, Res, Result],
@@ -2095,12 +2095,12 @@ async def execute_run[Req: StrictModel, Res: StrictModel, Result](
 
 | Line | Meaning |
 |---|---|
-| 119 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 66-76) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
-| 120 | The inputs that are hashed and the summary that is stored, both from the model's entry. |
-| 121-125 | Only for a replay: if the rebuilt request no longer hashes like the original, stop before anything is saved (Part 15). |
-| 127-129 | Builds the response once with placeholder metadata, to take the **output digest**: a SHA-256 fingerprint of everything in the response except the run's own metadata (Part 15). |
-| 130-140 | Builds the run metadata (input hash, output digest, versions, git commit) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
-| 141 | Returns the response with its real metadata. |
+| 120 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 66-76) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
+| 121 | The inputs that are hashed and the summary that is stored, both from the model's entry. |
+| 122-126 | Only for a replay: if the rebuilt request no longer hashes like the original, stop before anything is saved (Part 15). |
+| 128-130 | Builds the response once with placeholder metadata, to take the **output digest**: a SHA-256 fingerprint of everything in the response except the run's own metadata (Part 15). |
+| 131-141 | Builds the run metadata (input hash, output digest, versions, git commit) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
+| 142 | Returns the response with its real metadata. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2859,13 +2859,30 @@ the default, 45°. But the response *echoes* the request's angle, so the fingerp
 difference that has no effect on any result. The digest now leaves out echoes of inputs a
 model does not use (only this one), declared next to the model's entry.
 
-### 15.6 Checkpoint
+### 15.6 What CI found: same code, different CPU, different last bits
+The first CI run failed: the golden test's pinned digests did not match on GitHub's machines
+for the four models that compute with floats (the dataset profile, which only counts,
+matched). Same code, same Python, same locked NumPy and SciPy. The cause is the processor.
+Libraries such as OpenBLAS pick routines tuned for each CPU, and those routines add numbers
+in a different order. Floating-point addition is not associative, so the last bits change.
+Forcing other OpenBLAS routines on the development machine reproduced the effect: the
+largest change was in the 15th significant figure.
+
+This is exactly why the reproducibility contract has two levels: bit-identical on the same
+machine type, and agreement within declared tolerances elsewhere. The golden test now uses
+both levels, every run records its CPU model, and each CI run is a real check of the
+tolerances on another machine. The first test of a reproducibility tool was a test of
+reproducibility itself.
+
+### 15.7 Checkpoint
 1. A replay has the same input hash but a different output digest. Give two different
    explanations, and say which extra fact (from the replay's response) would tell them apart.
 2. Why is a 409 the right answer when the model version has changed, rather than a rerun
    labelled "not a reproduction"?
+3. Show with three numbers that `(a + b) + c` can differ from `a + (b + c)` in floating point.
+   (Try `a = 1e16`, `b = -1e16`, `c = 1.0`.)
 
-### 15.7 Exercises
+### 15.8 Exercises
 - **E15.1** A Quant profile of an uploaded file is replayed with the right file, but saved
   with Windows line endings instead of Unix ones. Predict the response, then explain why the
   file is refused before it is read.
@@ -2919,8 +2936,8 @@ model does not use (only this one), declared next to the model's entry.
 
 **This version (roadmap 1.4, run record v2 and replay):**
 - **Added Part 15:** two hashes (question and answer), the model registry, the migration and
-  its transaction trap, declared tolerances, what the first replay found; checkpoint and
-  exercises.
+  its transaction trap, declared tolerances, what the first replay found, what CI found
+  (different CPUs, different last bits); checkpoint and exercises.
 - **Updated** Part 8 step [4] (the endpoint is one call to the shared run path; the
   `execute_run` excerpt and table) and Part 11.5 (the sweep's hashed inputs now live in its
   registry entry).

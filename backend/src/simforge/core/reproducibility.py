@@ -60,6 +60,20 @@ def code_version() -> str:
     return f"{commit}-dirty" if dirty else commit
 
 
+@functools.cache
+def cpu_model() -> str:
+    """The processor model. Different CPUs can round the last bits of the same calculation
+    differently (libraries pick CPU-specific routines that add numbers in another order), so
+    a replay must know whether the CPU changed."""
+    try:
+        for line in Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return platform.processor() or "unknown"
+
+
 def environment_info() -> dict[str, str]:
     """Versions of everything that can change a numerical result, and the code that ran."""
     return {
@@ -70,4 +84,5 @@ def environment_info() -> dict[str, str]:
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
         "platform": f"{sys.platform}-{platform.machine()}",
+        "cpu": cpu_model(),
     }

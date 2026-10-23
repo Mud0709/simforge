@@ -1150,6 +1150,11 @@ export interface components {
      */
     RunMetadata: {
       /**
+       * Cpu
+       * @description Processor model; another CPU can change the last bits.
+       */
+      cpu: string;
+      /**
        * Created At
        * @description UTC timestamp, ISO 8601.
        */
