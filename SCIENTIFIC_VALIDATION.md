@@ -660,7 +660,10 @@ Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specif
 changed the projectile and integrator digests the same way, because those routines add
 numbers in a different order; the largest summary change was about 1e-15 relative
 (`max_height` 4.250749496135367 → …371), far inside the declared tolerance (5e-9 m). The
-sweep and Solow digests also differ in CI for a CPU-specific reason not pinned down here.
+sweep and Solow digests also differ in CI for a CPU-specific reason not pinned down here. On
+CI's AMD EPYC 7763 (pinned on an Intel Xeon), the projectile summary agreed within its
+declared tolerances; its largest change was `analytical.range` 24.751641053406477 →
+…466, about 4e-16 relative.
 So the tolerances are reasoned from each method's error control and the empirical rounding
 bounds above; they are now checked against real cross-machine differences on every CI run
 (the golden test below), but that is one other machine type, not a proof. Every run records

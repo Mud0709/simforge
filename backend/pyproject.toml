@@ -34,7 +34,12 @@ packages = ["src/simforge"]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 xfail_strict = true
-filterwarnings = ["error"]
+# Every warning is an error, except the golden test's deliberate notice that outputs were
+# compared within tolerance only (expected on a CPU other than the pinning one).
+filterwarnings = [
+    "error",
+    "default:.*outputs not bit-identical to the pinned run:UserWarning",
+]
 
 [tool.coverage.run]
 source = ["simforge"]
