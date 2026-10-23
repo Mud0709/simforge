@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from simforge.api.dependencies import Repository
 from simforge.api.runs import ModelEntry, Tolerance, execute
+from simforge.core import formatting as fmt
 from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.physics.projectile import integrator_model
 from simforge.physics.projectile import model as projectile
@@ -122,6 +123,10 @@ PROJECTILE = ModelEntry(
         {**inputs, "save_experiment": False}
     ),
     tolerances=_projectile_tolerances,
+    headline=lambda s: (
+        f"range {fmt.sig(s['analytical']['range'])} m, "
+        f"error {fmt.exp(s['comparison']['max_position_error'])} m"
+    ),
 )
 
 
@@ -217,6 +222,10 @@ INTEGRATOR_STUDY = ModelEntry(
         {**inputs, "save_experiment": False}
     ),
     tolerances=lambda inputs, summary: _STUDY_TOLERANCES,
+    headline=lambda s: ", ".join(
+        f"{method} p≈{'n/a' if m['position_order'] is None else f'{m["position_order"]:.2f}'}"
+        for method, m in s["methods"].items()
+    ),
 )
 
 
@@ -293,6 +302,7 @@ ANGLE_SWEEP = ModelEntry(
     tolerances=lambda inputs, summary: _SWEEP_TOLERANCES,
     # The response echoes the request's launch angle, which a sweep does not use.
     digest_exclude={"parameters": {"launch_angle_deg": True}},
+    headline=lambda s: f"best angle {s['best_angle_deg']:.2f}°, range {fmt.sig(s['best_range'])} m",
 )
 
 

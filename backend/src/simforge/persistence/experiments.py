@@ -177,15 +177,29 @@ class ExperimentRepository:
             row = conn.execute("SELECT * FROM experiments WHERE run_id = ?", (run_id,)).fetchone()
         return _to_record(row) if row else None
 
-    def list(self, *, model_id: str | None = None, limit: int = 50) -> list[ExperimentRecord]:
+    def list(
+        self,
+        *,
+        model_id: str | None = None,
+        lab: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[ExperimentRecord]:
+        """Newest first. ``lab`` keeps models whose id starts with ``<lab>.``."""
         query = "SELECT * FROM experiments"
-        params: tuple[Any, ...] = ()
+        clauses: list[str] = []
+        params: list[Any] = []
         if model_id is not None:
-            query += " WHERE model_id = ?"
-            params = (model_id,)
-        query += " ORDER BY created_at DESC, rowid DESC LIMIT ?"
+            clauses.append("model_id = ?")
+            params.append(model_id)
+        if lab is not None:
+            clauses.append("substr(model_id, 1, ?) = ?")
+            params += [len(lab) + 1, f"{lab}."]
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?"
         with _connect(self._path) as conn:
-            rows = conn.execute(query, (*params, limit)).fetchall()
+            rows = conn.execute(query, (*params, limit, offset)).fetchall()
         return [_to_record(r) for r in rows]
 
 

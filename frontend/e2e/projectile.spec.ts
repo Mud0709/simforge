@@ -42,7 +42,6 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
     .getByRole("row")
     .filter({ hasText: /physics\.projectile v1/ })
     .first();
-  await expect(row).toContainText("DOP853");
   await expect(row).toContainText(`range ${Number(expectedRange.toPrecision(6))} m`);
 });
 

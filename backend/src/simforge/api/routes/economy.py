@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from simforge.api.dependencies import Repository
 from simforge.api.runs import ModelEntry, Tolerance, execute
+from simforge.core import formatting as fmt
 from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.economy.solow import model as solow
 from simforge.economy.solow import simulation as sim
@@ -88,6 +89,11 @@ SOLOW = ModelEntry(
     elapsed_ms=lambda r: r.elapsed_ms,
     rebuild=lambda inputs, _: SolowRequest.model_validate({**inputs, "save_experiment": False}),
     tolerances=_solow_tolerances,
+    headline=lambda s: (
+        f"k* {fmt.sig(s['baseline_steady_state_capital'], 4)} → "
+        f"{fmt.sig(s['scenario_steady_state_capital'], 4)}, "
+        f"half-life {fmt.sig(s['half_life_years'], 3)} y"
+    ),
 )
 
 

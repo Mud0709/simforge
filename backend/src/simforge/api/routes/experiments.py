@@ -1,32 +1,64 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.concurrency import run_in_threadpool
+from pydantic import Field
 
 from simforge.api.dependencies import Repository
+from simforge.api.registry import get_entry
 from simforge.api.replay import ReplayRequest, ReplayResponse, replay_run
 from simforge.persistence.experiments import ExperimentRecord
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
+
+Lab = Literal["physics", "economy", "quant"]
+
+
+class LoggedRun(ExperimentRecord):
+    """A stored run as the log shows it: the record plus its lab and a one-line headline."""
+
+    lab: str = Field(description="The lab, from the model id: physics, economy or quant.")
+    headline: str = Field(description="One line written by the model; '—' if unavailable.")
+
+
+def _headline(record: ExperimentRecord) -> str:
+    entry = get_entry(record.model_id)
+    if entry is None:
+        return "—"
+    try:
+        return entry.headline(record.summary)
+    except (KeyError, TypeError, ValueError):  # an older summary shape
+        return "—"
+
+
+def _logged(record: ExperimentRecord) -> LoggedRun:
+    return LoggedRun(
+        **record.model_dump(),
+        lab=record.model_id.split(".", 1)[0],
+        headline=_headline(record),
+    )
 
 
 @router.get("")
 def list_experiments(
     repo: Repository,
     model_id: str | None = None,
+    lab: Lab | None = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
-) -> list[ExperimentRecord]:
-    return repo.list(model_id=model_id, limit=limit)
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[LoggedRun]:
+    records = repo.list(model_id=model_id, lab=lab, limit=limit, offset=offset)
+    return [_logged(r) for r in records]
 
 
 @router.get("/{run_id}")
-def get_experiment(run_id: str, repo: Repository) -> ExperimentRecord:
+def get_experiment(run_id: str, repo: Repository) -> LoggedRun:
     record = repo.get(run_id)
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
-    return record
+    return _logged(record)
 
 
 @router.post("/{run_id}/replay")

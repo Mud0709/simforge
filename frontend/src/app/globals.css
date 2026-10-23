@@ -505,3 +505,22 @@ td.reason {
   overflow-wrap: anywhere;
   max-width: 16em;
 }
+
+/* Experiment log */
+.lab-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border);
+}
+
+button.secondary[aria-pressed="true"] {
+  border-color: currentColor;
+  font-weight: 600;
+}

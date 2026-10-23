@@ -531,53 +531,6 @@ export interface components {
       /** Value */
       value: string;
     };
-    /** ExperimentRecord */
-    ExperimentRecord: {
-      /** Created At */
-      created_at: string;
-      /** Environment */
-      environment: {
-        [key: string]: string;
-      };
-      /** Input Hash */
-      input_hash: string;
-      /**
-       * Inputs
-       * @description Validated inputs exactly as used by the run.
-       */
-      inputs: {
-        [key: string]: unknown;
-      };
-      /** Model Id */
-      model_id: string;
-      /** Model Version */
-      model_version: string;
-      /**
-       * Output Digest
-       * @description SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.
-       */
-      output_digest?: string | null;
-      /**
-       * Record Version
-       * @description 1: before roadmap 1.4 (no output digest); 2: current.
-       * @default 1
-       */
-      record_version?: number;
-      /**
-       * Replay Of
-       * @description run_id of the run this record replayed, if it is a replay.
-       */
-      replay_of?: string | null;
-      /** Run Id */
-      run_id: string;
-      /**
-       * Summary
-       * @description Headline metrics; series are not stored.
-       */
-      summary: {
-        [key: string]: unknown;
-      };
-    };
     /** FieldComparison */
     FieldComparison: {
       /**
@@ -775,6 +728,66 @@ export interface components {
       number: number;
       /** Text */
       text: number;
+    };
+    /**
+     * LoggedRun
+     * @description A stored run as the log shows it: the record plus its lab and a one-line headline.
+     */
+    LoggedRun: {
+      /** Created At */
+      created_at: string;
+      /** Environment */
+      environment: {
+        [key: string]: string;
+      };
+      /**
+       * Headline
+       * @description One line written by the model; '—' if unavailable.
+       */
+      headline: string;
+      /** Input Hash */
+      input_hash: string;
+      /**
+       * Inputs
+       * @description Validated inputs exactly as used by the run.
+       */
+      inputs: {
+        [key: string]: unknown;
+      };
+      /**
+       * Lab
+       * @description The lab, from the model id: physics, economy or quant.
+       */
+      lab: string;
+      /** Model Id */
+      model_id: string;
+      /** Model Version */
+      model_version: string;
+      /**
+       * Output Digest
+       * @description SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.
+       */
+      output_digest?: string | null;
+      /**
+       * Record Version
+       * @description 1: before roadmap 1.4 (no output digest); 2: current.
+       * @default 1
+       */
+      record_version?: number;
+      /**
+       * Replay Of
+       * @description run_id of the run this record replayed, if it is a replay.
+       */
+      replay_of?: string | null;
+      /** Run Id */
+      run_id: string;
+      /**
+       * Summary
+       * @description Headline metrics; series are not stored.
+       */
+      summary: {
+        [key: string]: unknown;
+      };
     };
     /** MethodStudyResult */
     MethodStudyResult: {
@@ -1540,7 +1553,9 @@ export interface operations {
     parameters: {
       query?: {
         model_id?: string | null;
+        lab?: ("physics" | "economy" | "quant") | null;
         limit?: number;
+        offset?: number;
       };
       header?: never;
       path?: never;
@@ -1554,7 +1569,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ExperimentRecord"][];
+          "application/json": components["schemas"]["LoggedRun"][];
         };
       };
       /** @description Validation Error */
@@ -1585,7 +1600,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ExperimentRecord"];
+          "application/json": components["schemas"]["LoggedRun"];
         };
       };
       /** @description Validation Error */
