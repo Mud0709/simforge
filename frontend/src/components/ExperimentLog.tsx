@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ApiError, type Lab, type LoggedRun, listExperiments } from "@/lib/api/client";
+import { reopenLink } from "@/lib/runs/pages";
 
 /** Runs fetched at a time. A shorter page means there are no more. */
 export const PAGE_SIZE = 50;
@@ -96,6 +97,9 @@ export function ExperimentLog() {
                 <th scope="col">Model</th>
                 <th scope="col">Result</th>
                 <th scope="col">Run</th>
+                <th scope="col">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -113,6 +117,11 @@ export function ExperimentLog() {
                   </td>
                   <td>
                     <code title={r.run_id}>{r.run_id.slice(0, 8)}</code>
+                  </td>
+                  <td>
+                    {reopenLink(r.model_id, r.run_id) && (
+                      <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
+                    )}
                   </td>
                 </tr>
               ))}

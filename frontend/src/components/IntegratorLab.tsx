@@ -19,6 +19,7 @@ import {
 } from "./IntegratorResults";
 import { NumberField } from "./NumberField";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReopenedRun } from "./useReopenedRun";
 
 export const METHOD_LABELS: Record<IntegratorMethod, string> = {
   euler: "Forward Euler (order 1)",
@@ -45,6 +46,24 @@ export function IntegratorLab() {
   const [result, setResult] = useState<IntegratorStudyResponse | null>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify([values, stepsText, [...methods].sort()]);
+
+  const reopened = useReopenedRun(["physics.projectile.integrators"], (run) => {
+    const inputs = run.inputs as {
+      parameters: Record<string, number>;
+      dt_values: number[];
+      methods: IntegratorMethod[];
+    };
+    setValues((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([k, v]) => [
+          k,
+          inputs.parameters[k] === undefined ? v : String(inputs.parameters[k]),
+        ]),
+      ),
+    );
+    setStepsText(inputs.dt_values.join(", "));
+    setMethods(inputs.methods);
+  });
 
   const fieldErrors = Object.fromEntries(
     PARAMETER_FIELDS.map((f) => [f.name, validateField(f, values[f.name] ?? "")]),
@@ -84,6 +103,12 @@ export function IntegratorLab() {
 
   const form = (
     <form onSubmit={onSubmit} noValidate aria-label="Study inputs">
+      {reopened.note && <p className="note">{reopened.note}</p>}
+      {reopened.error && (
+        <p className="api-error" role="alert">
+          {reopened.error}
+        </p>
+      )}
       <fieldset>
         <legend>Physical parameters</legend>
         {PARAMETER_FIELDS.map((f) => (

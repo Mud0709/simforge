@@ -104,6 +104,11 @@ export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
   return request("/quant/datasets/profile", { method: "POST", body: JSON.stringify(body) });
 }
 
+/** One saved run. */
+export function getExperiment(runId: string): Promise<LoggedRun> {
+  return request(`/experiments/${encodeURIComponent(runId)}`);
+}
+
 /** Saved runs, newest first; optionally one lab, one page at a time. */
 export function listExperiments(
   options: { lab?: Lab; limit?: number; offset?: number } = {},
