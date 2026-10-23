@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 from typing import Any
 
@@ -62,12 +63,17 @@ def _profile_response(
     )
 
 
+@functools.cache
+def _sample_hashes() -> dict[str, SampleId]:
+    return {
+        hashlib.sha256(profiling.sample_bytes(sample_id)).hexdigest(): sample_id
+        for sample_id in profiling.SAMPLES
+    }
+
+
 def sample_with_hash(sha256: str) -> SampleId | None:
     """The bundled sample whose bytes have this SHA-256, if any."""
-    for sample_id in profiling.SAMPLES:
-        if hashlib.sha256(profiling.sample_bytes(sample_id)).hexdigest() == sha256:
-            return sample_id
-    return None
+    return _sample_hashes().get(sha256)
 
 
 def _profile_rebuild(inputs: dict[str, Any], dataset: bytes | None) -> ProfileRequest:
@@ -102,6 +108,8 @@ DATASET_PROFILE = ModelEntry(
     tolerances=lambda inputs, summary: {
         "*": Tolerance.exact("Counts and labels: exact, by definition of a profile.")
     },
+    # A bundled sample is found again by its hash; an uploaded file must be supplied.
+    replay_needs_file=lambda inputs: sample_with_hash(inputs["dataset"]["sha256"]) is None,
     headline=lambda s: (
         f"{s['rows']} rows \N{MULTIPLICATION SIGN} {s['columns']} columns, "
         f"{s['missing_cells']} missing cells, {s['duplicate_rows']} duplicate rows"

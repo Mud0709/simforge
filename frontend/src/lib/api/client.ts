@@ -6,6 +6,8 @@ export type SolverSettings = Schemas["SolverSettings"];
 export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
+export type ReplayRequest = Schemas["ReplayRequest"];
+export type ReplayResponse = Schemas["ReplayResponse"];
 export type Lab = "physics" | "economy" | "quant";
 export type ErrorMetric = Schemas["ErrorMetric"];
 export type AngleSweepRequest = Schemas["AngleSweepRequest"];
@@ -107,6 +109,14 @@ export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
 /** One saved run. */
 export function getExperiment(runId: string): Promise<LoggedRun> {
   return request(`/experiments/${encodeURIComponent(runId)}`);
+}
+
+/** Rerun a saved run and get the reproducibility verdict. */
+export function replayExperiment(runId: string, body: ReplayRequest): Promise<ReplayResponse> {
+  return request(`/experiments/${encodeURIComponent(runId)}/replay`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 /** Saved runs, newest first; optionally one lab, one page at a time. */

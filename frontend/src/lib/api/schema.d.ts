@@ -775,6 +775,11 @@ export interface components {
        */
       record_version?: number;
       /**
+       * Replay Needs File
+       * @description True if replaying needs the user to supply a file again (an upload).
+       */
+      replay_needs_file: boolean;
+      /**
        * Replay Of
        * @description run_id of the run this record replayed, if it is a replay.
        */

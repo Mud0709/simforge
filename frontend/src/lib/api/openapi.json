@@ -1261,6 +1261,11 @@
             "title": "Record Version",
             "type": "integer"
           },
+          "replay_needs_file": {
+            "description": "True if replaying needs the user to supply a file again (an upload).",
+            "title": "Replay Needs File",
+            "type": "boolean"
+          },
           "replay_of": {
             "anyOf": [
               {
@@ -1294,7 +1299,8 @@
           "summary",
           "environment",
           "lab",
-          "headline"
+          "headline",
+          "replay_needs_file"
         ],
         "title": "LoggedRun",
         "type": "object"
