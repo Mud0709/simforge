@@ -514,7 +514,8 @@ td.reason {
   margin-bottom: 12px;
 }
 
-button.secondary {
+button.secondary,
+.button.secondary {
   background: transparent;
   color: inherit;
   border: 1px solid var(--border);
@@ -525,7 +526,8 @@ button.secondary[aria-pressed="true"] {
   font-weight: 600;
 }
 
-td.actions {
+/* A flex box inside the cell: a flex <td> stops being a table cell and breaks row lines. */
+.actions-inner {
   display: flex;
   gap: 8px;
   align-items: center;
