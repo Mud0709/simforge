@@ -72,6 +72,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/experiments/{run_id}/replay": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Replay Experiment
+     * @description Rerun a stored run with the same inputs and the same model version, and say whether
+     *     the same answer came back: identical, within tolerance, or differs.
+     */
+    post: operations["replay_experiment_api_v1_experiments__run_id__replay_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/health": {
     parameters: {
       query?: never;
@@ -443,6 +464,14 @@ export interface components {
        */
       source: "upload" | "sample";
     };
+    /** DatasetSupply */
+    DatasetSupply: {
+      /**
+       * Content Base64
+       * @description The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this replay only and never stored.
+       */
+      content_base64: string;
+    };
     /** DateSummary */
     DateSummary: {
       /** Count */
@@ -469,6 +498,18 @@ export interface components {
       examples: number[][];
       /** Groups */
       groups: number;
+    };
+    /** EnvironmentDifference */
+    EnvironmentDifference: {
+      /** Key */
+      key: string;
+      /**
+       * Original
+       * @description None if the original run did not record it.
+       */
+      original: string | null;
+      /** Replay */
+      replay: string | null;
     };
     /** ErrorMetric */
     ErrorMetric: {
@@ -511,6 +552,22 @@ export interface components {
       model_id: string;
       /** Model Version */
       model_version: string;
+      /**
+       * Output Digest
+       * @description SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.
+       */
+      output_digest?: string | null;
+      /**
+       * Record Version
+       * @description 1: before roadmap 1.4 (no output digest); 2: current.
+       * @default 1
+       */
+      record_version?: number;
+      /**
+       * Replay Of
+       * @description run_id of the run this record replayed, if it is a replay.
+       */
+      replay_of?: string | null;
       /** Run Id */
       run_id: string;
       /**
@@ -520,6 +577,26 @@ export interface components {
       summary: {
         [key: string]: unknown;
       };
+    };
+    /** FieldComparison */
+    FieldComparison: {
+      /**
+       * Absolute Difference
+       * @description None when not both numbers.
+       */
+      absolute_difference: number | null;
+      /**
+       * Field
+       * @description Summary field, nested names joined by dots.
+       */
+      field: string;
+      /** Original */
+      original: number | string | boolean | null;
+      /** Replay */
+      replay: number | string | boolean | null;
+      tolerance: components["schemas"]["Tolerance"];
+      /** Within Tolerance */
+      within_tolerance: boolean;
     };
     /** FitRule */
     FitRule: {
@@ -1020,11 +1097,63 @@ export interface components {
       /** Order */
       order: number;
     };
+    /** ReplayRequest */
+    ReplayRequest: {
+      /** @description Only for a dataset profile of an uploaded file. */
+      dataset?: components["schemas"]["DatasetSupply"] | null;
+      /**
+       * Save Experiment
+       * @description Store the replay as a new record linked to the original (replay_of). The original record is never changed.
+       * @default false
+       */
+      save_experiment?: boolean;
+    };
+    /** ReplayResponse */
+    ReplayResponse: {
+      /**
+       * Basis
+       * @description output_digest: the digests were compared (every output value). summary: the digests differ, so the stored summary was compared with tolerances; outputs not in the summary (such as time series) are not compared. summary_only: a v1 record with no digest, so only its summary could be compared.
+       * @enum {string}
+       */
+      basis: "output_digest" | "summary" | "summary_only";
+      /** Environment Differences */
+      environment_differences: components["schemas"]["EnvironmentDifference"][];
+      /** Environment Matches */
+      environment_matches: boolean;
+      /** Explanation */
+      explanation: string;
+      /**
+       * Fields
+       * @description Every summary field, compared.
+       */
+      fields: components["schemas"]["FieldComparison"][];
+      /** @description The field furthest from agreement, relative to its tolerance; None if every field is exactly equal. */
+      largest_difference: components["schemas"]["FieldComparison"] | null;
+      /** @description The replay's own run metadata. */
+      metadata: components["schemas"]["RunMetadata"];
+      model: components["schemas"]["ModelInfo"];
+      /** Original Output Digest */
+      original_output_digest: string | null;
+      /** Original Run Id */
+      original_run_id: string;
+      /** Replay Output Digest */
+      replay_output_digest: string;
+      /**
+       * Verdict
+       * @enum {string}
+       */
+      verdict: "identical" | "within_tolerance" | "differs";
+    };
     /**
      * RunMetadata
      * @description Everything needed to reproduce (or audit) a single run.
      */
     RunMetadata: {
+      /**
+       * Cpu
+       * @description Processor model; another CPU can change the last bits.
+       */
+      cpu: string;
       /**
        * Created At
        * @description UTC timestamp, ISO 8601.
@@ -1038,14 +1167,26 @@ export interface components {
       /** Experiment Saved */
       experiment_saved: boolean;
       /**
+       * Git Commit
+       * @description Commit of the code that ran ('-dirty' if the checkout had changes; 'unknown' if it could not be determined).
+       */
+      git_commit: string;
+      /**
        * Input Hash
        * @description SHA-256 of the canonical JSON of the validated inputs. Identical inputs produce identical hashes, so repeated runs can be grouped and compared.
        */
       input_hash: string;
       /** Numpy Version */
       numpy_version: string;
+      /**
+       * Output Digest
+       * @description SHA-256 of the canonical JSON of this response without its metadata (keys sorted, no whitespace). Equal digests mean bit-identical outputs; anyone can recompute it from the response.
+       */
+      output_digest: string;
       /** Platform */
       platform: string;
+      /** Python Implementation */
+      python_implementation: string;
       /** Python Version */
       python_version: string;
       /**
@@ -1249,6 +1390,19 @@ export interface components {
       /** Savings Rate */
       savings_rate: number;
     };
+    /**
+     * Tolerance
+     * @description Two values agree if ``|a - b| <= absolute + relative * max(|a|, |b|)``. Both zero means
+     *     exact equality, which is also how non-numbers (counts, names, None) are compared.
+     */
+    Tolerance: {
+      /** Absolute */
+      absolute: number;
+      /** Reason */
+      reason: string;
+      /** Relative */
+      relative: number;
+    };
     /** TrajectorySample */
     TrajectorySample: {
       /**
@@ -1432,6 +1586,41 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ExperimentRecord"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  replay_experiment_api_v1_experiments__run_id__replay_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReplayRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReplayResponse"];
         };
       };
       /** @description Validation Error */

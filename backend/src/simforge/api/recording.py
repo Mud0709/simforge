@@ -8,7 +8,11 @@ from typing import Any
 
 from simforge.core.reproducibility import environment_info, input_hash
 from simforge.core.schemas import ModelInfo, RunMetadata
-from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
+from simforge.persistence.experiments import (
+    RECORD_VERSION,
+    ExperimentRecord,
+    ExperimentRepository,
+)
 
 
 def record_run(
@@ -17,8 +21,10 @@ def record_run(
     inputs: dict[str, Any],
     summary: dict[str, Any],
     *,
+    output_digest: str,
     save: bool,
     elapsed_ms: float,
+    replay_of: str | None = None,
 ) -> RunMetadata:
     """Build run metadata and, if requested, store the run in the experiment log.
 
@@ -40,12 +46,16 @@ def record_run(
                 inputs=inputs,
                 summary=summary,
                 environment=env,
+                record_version=RECORD_VERSION,
+                output_digest=output_digest,
+                replay_of=replay_of,
             )
         )
     return RunMetadata(
         run_id=run_id,
         created_at=created_at,
         input_hash=digest,
+        output_digest=output_digest,
         elapsed_ms=elapsed_ms,
         experiment_saved=save,
         **env,

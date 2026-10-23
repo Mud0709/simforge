@@ -508,11 +508,12 @@ It does **not** show the data are accurate. A file of invented numbers hashes pe
 A profile depends on more than the file: the delimiter, the markers and the overrides change
 the result. So the run's identity (`input_hash`) covers all of them:
 
-<!-- src: backend/src/simforge/api/routes/quant.py:29-34 -->
+<!-- src: backend/src/simforge/api/routes/quant.py:23-29 -->
 ```python
+def _profile_inputs(_: ProfileRequest, result: profiling.ProfileComputation) -> dict[str, Any]:
     # Identity of the computation: the file's bytes (by hash and size) and every option.
     # No rows, file name or column names: overrides use positions; markers are typed settings.
-    inputs = {
+    return {
         "dataset": {"sha256": result.dataset.sha256, "byte_size": result.dataset.byte_size},
         "options": result.options.model_dump(mode="json"),
     }

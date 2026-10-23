@@ -1909,7 +1909,7 @@ with the default settings.
 | Schema | `physics/projectile/integrator_schemas.py` | the *contract*: field types, bounds, units, validation | Pydantic |
 | Engine | `physics/projectile/integrator_study.py`, `numerics/*`, `analytical.py` | the science | NumPy and SciPy only |
 | Orchestration | `physics/projectile/integrator_model.py` | converts between API objects and the engine; refuses runs that are too expensive | schema + engine |
-| HTTP | `api/routes/physics.py` | threading, error codes, run metadata, persistence | everything above |
+| HTTP | `api/routes/physics.py`, `api/runs.py` | the model's registry entry; threading, error codes, run metadata, persistence | everything above |
 | Frontend | `frontend/src/components/Integrator*.tsx`, `lib/api/client.ts` | form, request, plots, tables | generated types |
 
 The engine never imports FastAPI or Pydantic. You could run `run_study` from a notebook
@@ -2031,27 +2031,76 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:68-75`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:223-227`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:70-77 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:223-227 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
     request: IntegratorStudyRequest, repo: Repository
 ) -> IntegratorStudyResponse:
-    try:
-        result = await run_in_threadpool(integrator_model.run, request)
-    except ModelDomainError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    return await execute(INTEGRATOR_STUDY, request, repo, save=request.save_experiment)
 ```
 
 | Line | Meaning |
 |---|---|
-| 68 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
-| 70 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 71 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 73 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. |
-| 74-75 | If the inputs are valid but the job is unreasonable (too many steps), the model raises `ModelDomainError`, and that becomes an HTTP **422** with the explanation. |
+| 223 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
+| 225 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 226 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 227 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
+
+The endpoint's `execute` hands over to the shared path, `execute_run`
+(`backend/src/simforge/api/runs.py:107-142`). It is the same for all five models, and replay
+(roadmap 1.4, Part 15) uses it too:
+
+<!-- src: backend/src/simforge/api/runs.py:107-142 -->
+```python
+async def execute_run[Req: StrictModel, Res: StrictModel, Result](
+    entry: ModelEntry[Req, Res, Result],
+    request: Req,
+    repo: ExperimentRepository,
+    *,
+    save: bool,
+    replay_of: str | None = None,
+    expected_input_hash: str | None = None,
+) -> Outcome[Res]:
+    """Compute, fingerprint the outputs, record, respond. CPU work and SQLite I/O run in
+    worker threads, so the event loop stays responsive. With ``expected_input_hash`` (a
+    replay), a computation that no longer hashes to the original is refused before anything
+    is recorded."""
+    result = await run_in_threadpool(compute_or_explain, entry, request)
+    inputs, summary = entry.inputs(request, result), entry.summary(result)
+    if expected_input_hash is not None and input_hash(inputs) != expected_input_hash:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "The stored inputs no longer describe the same computation (their hash changed).",
+        )
+    # The response is built once without real metadata, to fingerprint everything else in it.
+    draft = entry.respond(request, result, _DRAFT_METADATA)
+    exclude: dict[str, Any] = {"metadata": True, **(entry.digest_exclude or {})}
+    digest = output_digest(draft.model_dump(mode="json", exclude=exclude))
+    metadata = await run_in_threadpool(
+        record_run,
+        repo,
+        entry.info,
+        inputs,
+        summary,
+        output_digest=digest,
+        save=save,
+        elapsed_ms=entry.elapsed_ms(result),
+        replay_of=replay_of,
+    )
+    return Outcome(draft.model_copy(update={"metadata": metadata}), inputs, summary)
+```
+
+| Line | Meaning |
+|---|---|
+| 120 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 66-76) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
+| 121 | The inputs that are hashed and the summary that is stored, both from the model's entry. |
+| 122-126 | Only for a replay: if the rebuilt request no longer hashes like the original, stop before anything is saved (Part 15). |
+| 128-130 | Builds the response once with placeholder metadata, to take the **output digest**: a SHA-256 fingerprint of everything in the response except the run's own metadata (Part 15). |
+| 131-141 | Builds the run metadata (input hash, output digest, versions, git commit) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
+| 142 | Returns the response with its real metadata. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2514,22 +2563,22 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:123-132 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:272-281 -->
 ```python
-    computation = await run_in_threadpool(projectile.run_angle_sweep, request)
-    r = computation.result
-    # The launch angle does not affect a sweep, so it is left out of the hashed inputs.
-    params = request.parameters.model_dump(exclude={"launch_angle_deg"})
-    # SQLite I/O runs in a worker thread so it never blocks the event loop.
-    metadata = await run_in_threadpool(
-        record_run,
-        repo,
-        projectile.ANGLE_SWEEP_INFO,
-        {"parameters": params, "n_angles": request.n_angles},
+ANGLE_SWEEP = ModelEntry(
+    info=projectile.ANGLE_SWEEP_INFO,
+    request_type=AngleSweepRequest,
+    compute=projectile.run_angle_sweep,
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs (and a
+    # rebuilt request uses the default angle).
+    inputs=lambda req, _: {
+        "parameters": req.parameters.model_dump(exclude={"launch_angle_deg"}),
+        "n_angles": req.n_angles,
+    },
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 126). Otherwise, two identical computations that differ
+is removed before hashing (line 279). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 
@@ -2735,6 +2784,114 @@ unconfirmed.
 3. A test passes. Name two different reasons it might pass even though the bug is still
    there, and the experiment that rules each one out.
 
+## Part 15 — Replay: asking the same question twice
+
+Roadmap step 1.4 lets SimForge rerun a saved experiment and say whether the same answer came
+back. It is what turns "we logged it" into "we can show it reproduces".
+
+### 15.1 Two hashes, two questions
+- The **input hash** proves you asked the **same question**: the same validated inputs.
+- The **output digest** proves you got the **same answer**: a SHA-256 of the whole response
+  except its run metadata (`run_id`, time, versions).
+
+A matching input hash alone proves nothing about the answer. If someone changed the code, the
+same question would get a different answer with the same input hash. That is why a replay
+compares the output digest, and why every run now records the git commit too.
+
+Why "bit-identical" is the right word: the response is written as canonical JSON, and JSON
+writes each float in its **shortest exact form** (`0.1` is written `0.1`, but a float one unit
+in the last place away is written with 17 digits). So two digests are equal only if every
+output float is equal in every bit. You can check a digest yourself: take a response, drop
+`metadata`, write it with sorted keys and no spaces, and hash it. A test does exactly that.
+
+### 15.2 The model registry
+To replay, SimForge must find, from a stored `model_id`, how to rebuild the request, run it
+and compare. Each model now describes itself once as a `ModelEntry` next to its route, and
+`api/registry.py` lists them. The live endpoint and the replay use the **same** entry and the
+same `execute_run`, so they cannot drift apart. Introducing it was a pure refactor: every
+endpoint's full response was compared byte for byte before and after.
+
+### 15.3 Migrating the experiment log without losing anything
+Old logs (v1) need three new columns. The migration copies the file to `.v1.bak`, then adds
+the columns in **one transaction**, so a failure leaves the log exactly as it was. A test
+caught a trap here: in its default mode, Python's `sqlite3` quietly **commits before** an
+`ALTER TABLE`, so a migration failing halfway would have left a half-migrated file. The fix
+opens the connection with `autocommit=False`, which keeps schema changes inside the
+transaction. Old rows are never rewritten; they read as v1 records with no digest.
+
+### 15.4 When the answers are not bit-identical: declared tolerances
+On another machine or library version, floats can differ in the last bits, because
+`(a + b) + c` and `a + (b + c)` round differently. So when digests differ (or a v1 record has
+none), the stored summary is compared field by field, with a tolerance each model declares
+**in advance** and a reason:
+
+<!-- src: backend/src/simforge/api/replay.py:112-126 -->
+```python
+def compare_field(field: str, a: Any, b: Any, tolerance: Tolerance) -> FieldComparison:
+    if _is_number(a) and _is_number(b):
+        diff = abs(float(a) - float(b))
+        allowed = tolerance.absolute + tolerance.relative * max(abs(float(a)), abs(float(b)))
+        within = diff <= allowed and math.isfinite(diff)
+    else:
+        diff, within = None, a == b and type(a) is type(b)
+    return FieldComparison(
+        field=field,
+        original=a,
+        replay=b,
+        absolute_difference=diff,
+        tolerance=tolerance,
+        within_tolerance=within,
+    )
+```
+
+Two values agree if `|a − b| ≤ absolute + relative × max(|a|, |b|)`. Counts and labels have
+both set to 0, so they must match exactly. One number cannot fit every field: a range of
+36 m can be held to 1 part in 10¹², but an error estimate of 2 × 10⁻¹¹ m is itself rounding-
+sized, and becoming 3 × 10⁻¹¹ m (a 50% change) would still be correct. So error estimates get
+an absolute tolerance, and the Solow tolerances are twice the rounding bounds already
+measured for that model. These tolerances are **reasoned, not measured** on other machines:
+the only measured fact is that every model replays bit-identically here.
+
+### 15.5 What the first replay found
+The angle sweep replayed "within tolerance", not "identical", although every number matched.
+The sweep ignores the launch angle, so the angle is not stored, and a rebuilt request uses
+the default, 45°. But the response *echoes* the request's angle, so the fingerprint saw a
+difference that has no effect on any result. The digest now leaves out echoes of inputs a
+model does not use (only this one), declared next to the model's entry.
+
+### 15.6 What CI found: same code, different CPU, different last bits
+The first CI run failed: the golden test's pinned digests did not match on GitHub's machines
+for the four models that compute with floats (the dataset profile, which only counts,
+matched). Same code, same Python, same locked NumPy and SciPy. The cause is the processor.
+Libraries such as OpenBLAS pick routines tuned for each CPU, and those routines add numbers
+in a different order. Floating-point addition is not associative, so the last bits change.
+Forcing other OpenBLAS routines on the development machine reproduced the effect: the
+largest change was in the 15th significant figure.
+
+This is exactly why the reproducibility contract has two levels: bit-identical on the same
+machine type, and agreement within declared tolerances elsewhere. The golden test now uses
+both levels, every run records its CPU model, and each CI run is a real check of the
+tolerances on another machine. The first test of a reproducibility tool was a test of
+reproducibility itself.
+
+### 15.7 Checkpoint
+1. A replay has the same input hash but a different output digest. Give two different
+   explanations, and say which extra fact (from the replay's response) would tell them apart.
+2. Why is a 409 the right answer when the model version has changed, rather than a rerun
+   labelled "not a reproduction"?
+3. Show with three numbers that `(a + b) + c` can differ from `a + (b + c)` in floating point.
+   (Try `a = 1e16`, `b = -1e16`, `c = 1.0`.)
+
+### 15.8 Exercises
+- **E15.1** A Quant profile of an uploaded file is replayed with the right file, but saved
+  with Windows line endings instead of Unix ones. Predict the response, then explain why the
+  file is refused before it is read.
+- **E15.2** Using the projectile's tolerance rule `10·(rtol·|x| + atol)`, work out how far the
+  numerical range of a 36.4 m flight may move with the default `rtol = atol = 1e-10`. Is a
+  change in the 10th significant figure inside it?
+- **E15.3** Find the line in `tests/test_migration.py` that makes the second `ALTER TABLE`
+  fail. Why does the test need the *second* one to fail, not the first?
+
 ---
 
 ## Appendix — Symbol table
@@ -2777,14 +2934,22 @@ unconfirmed.
 
 ## Changes from the previous version of this guide
 
-**This version (Workspace UI review fixes):**
+**This version (roadmap 1.4, run record v2 and replay):**
+- **Added Part 15:** two hashes (question and answer), the model registry, the migration and
+  its transaction trap, declared tolerances, what the first replay found, what CI found
+  (different CPUs, different last bits); checkpoint and exercises.
+- **Updated** Part 8 step [4] (the endpoint is one call to the shared run path; the
+  `execute_run` excerpt and table) and Part 11.5 (the sweep's hashed inputs now live in its
+  registry entry).
+
+**The previous version (Workspace UI review fixes):**
 - **Added lessons 5 and 6 to Part 14** (old results must say they are old; test the thing
   that is built) and checkpoint question 3.
 - **Updated** the Part 8 step [1] excerpt and line table for `IntegratorLab.tsx` (the handler
   remembers which inputs a result belongs to, and builds the parameters field by field) and
   the step [2] reference for `client.ts`.
 
-**The previous version (review of the merged PRs):**
+**An earlier version (review of the merged PRs):**
 - **Added Part 14:** lessons from the review (event at a boundary, combination limits,
   tests that cannot fail, honest labels), with a checkpoint.
 - **Updated** the line references and excerpts for `analytical.py` (exact 90°),

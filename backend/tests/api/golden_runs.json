@@ -1,0 +1,254 @@
+[
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_samples": 400,
+   "parameters": {
+    "drag_coefficient": 0.3,
+    "gravity": 9.80665,
+    "initial_speed": 20.0,
+    "launch_angle_deg": 30.0,
+    "launch_height": 0.0,
+    "mass": 1.0
+   },
+   "solver": {
+    "atol": 1e-10,
+    "method": "DOP853",
+    "rtol": 1e-10
+   }
+  },
+  "model_id": "physics.projectile",
+  "model_version": "1.0.0",
+  "output_digest": "42c7fe10ebb4ff6f0dba7d7af78e544b60cbde0ff4ba3e78fc2480d4282268cd",
+  "summary": {
+   "analytical": {
+    "apex_time": 0.8896794676211058,
+    "flight_time": 1.8662002186163749,
+    "impact_speed": 12.915912653202657,
+    "max_height": 4.250749496178273,
+    "range": 24.751641053406477
+   },
+   "comparison": {
+    "flight_time": {
+     "absolute": 6.505906924303417e-14,
+     "relative": 3.486178417194154e-14
+    },
+    "impact_speed": {
+     "absolute": 2.0961010704922955e-13,
+     "relative": 1.622882661700675e-14
+    },
+    "max_energy_balance_residual": 9.93054527498316e-13,
+    "max_height": {
+     "absolute": 4.290523492045395e-11,
+     "relative": 1.00935693714788e-11
+    },
+    "max_position_error": 2.139663106134858e-12,
+    "range": {
+     "absolute": 8.668621376273222e-13,
+     "relative": 3.502241066589883e-14
+    }
+   },
+   "numerical": {
+    "apex_time": 0.8896794676224195,
+    "atol": 1e-10,
+    "flight_time": 1.86620021861644,
+    "impact_speed": 12.915912653202867,
+    "max_height": 4.250749496135367,
+    "method": "DOP853",
+    "n_rhs_evaluations": 92,
+    "n_steps": 6,
+    "range": 24.751641053407344,
+    "rtol": 1e-10
+   }
+  }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "dt_values": [
+    0.1,
+    0.05,
+    0.025
+   ],
+   "methods": [
+    "rk4",
+    "euler"
+   ],
+   "parameters": {
+    "drag_coefficient": 1.0,
+    "gravity": 9.80665,
+    "initial_speed": 20.0,
+    "launch_angle_deg": 45.0,
+    "launch_height": 0.0,
+    "mass": 1.0
+   }
+  },
+  "model_id": "physics.projectile.integrators",
+  "model_version": "1.0.0",
+  "output_digest": "8f5707cfc2257db2b64365efd986b4de2138817bfb2c97c3e687c76a1dd2d3b7",
+  "summary": {
+   "horizon": 2.160642244407215,
+   "methods": {
+    "euler": {
+     "finest_max_position_error": 0.12838587678853097,
+     "position_fit_points": 3,
+     "position_order": 1.0233034399091856,
+     "theoretical_order": 1,
+     "velocity_order": 1.0233034399091918
+    },
+    "rk4": {
+     "finest_max_position_error": 3.3113309112020924e-08,
+     "position_fit_points": 3,
+     "position_order": 4.044478845995405,
+     "theoretical_order": 4,
+     "velocity_order": 4.044478898499326
+    }
+   }
+  }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_angles": 31,
+   "parameters": {
+    "drag_coefficient": 0.2,
+    "gravity": 9.80665,
+    "initial_speed": 20.0,
+    "launch_height": 0.0,
+    "mass": 1.0
+   }
+  },
+  "model_id": "physics.projectile.angle_sweep",
+  "model_version": "1.0.0",
+  "output_digest": "b96d243c782874bee8d23fdb766f952d91c4d4fa0b169569ee5e46912f7ca6bf",
+  "summary": {
+   "best_angle_deg": 40.3510006620548,
+   "best_range": 29.45427692230627,
+   "vacuum_best_angle_deg": 45.0,
+   "vacuum_best_range": 40.78864851911713
+  }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "horizon_years": 40,
+   "parameters": {
+    "capital_share": 0.3,
+    "depreciation": 0.05,
+    "initial_capital_ratio": 0.5,
+    "population_growth": 0.01,
+    "savings_rate": 0.2,
+    "technology_growth": 0.02
+   },
+   "policy": {
+    "new_savings_rate": 0.25,
+    "policy_year": 5
+   }
+  },
+  "model_id": "economy.solow",
+  "model_version": "1.0.0",
+  "output_digest": "74e3847314690424fbdab562073df689bef734d925d3fc9ddde22f273265f873",
+  "summary": {
+   "baseline_steady_state_capital": 3.689237466703935,
+   "final_capital": 4.636096698579133,
+   "golden_rule_savings_rate": 0.3,
+   "half_life_years": 12.369823364170164,
+   "scenario_steady_state_capital": 5.074339100704069
+  }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "dataset": {
+    "byte_size": 349,
+    "sha256": "a6e388e91d3d69462d01581e0db05cd095828d48cba09546a09283077ba4245a"
+   },
+   "options": {
+    "column_types": [],
+    "delimiter": "comma",
+    "missing_markers": [
+     "NA"
+    ]
+   }
+  },
+  "model_id": "quant.dataset_profile",
+  "model_version": "1.0.0",
+  "output_digest": "fedec99079dee306ccd58c162e803a96bb69d314415876e7bf3ea0f3416c79c2",
+  "summary": {
+   "columns": 6,
+   "duplicate_rows": 1,
+   "missing_cells": 7,
+   "mixed_columns": 2,
+   "rows": 10,
+   "sample_id": "messy_survey",
+   "source": "sample"
+  }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "dataset": {
+    "byte_size": 42,
+    "sha256": "6350a7e12e04b9995dc2e9c1354f57af530d50ae46bd94499084f10ebfd87d46"
+   },
+   "options": {
+    "column_types": [
+     {
+      "column": 0,
+      "type": "categorical"
+     }
+    ],
+    "delimiter": "comma",
+    "missing_markers": [
+     "N/A",
+     "NA",
+     "NaN",
+     "None",
+     "null"
+    ]
+   }
+  },
+  "model_id": "quant.dataset_profile",
+  "model_version": "1.0.0",
+  "output_digest": "a9f059e5a3b427e7564828d8df9962e0d852c58194f7126f7dffaf5fe77b2213",
+  "summary": {
+   "columns": 3,
+   "duplicate_rows": 0,
+   "missing_cells": 2,
+   "mixed_columns": 0,
+   "rows": 3,
+   "sample_id": null,
+   "source": "upload"
+  }
+ }
+]

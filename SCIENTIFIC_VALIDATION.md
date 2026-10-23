@@ -604,3 +604,94 @@ through the API in-process, with a response of about 9 KB. The end-to-end test u
   they are accurate.
 - Multi-user isolation is not claimed: there is no authentication, and the experiment log
   (when used) is visible to everyone on the deployment. The server stores no dataset.
+
+## Reproducibility and replay (run record v2, roadmap 1.4)
+
+`POST /api/v1/experiments/{run_id}/replay` reruns a stored run with its stored inputs and the
+same model version, and returns a verdict. Two hashes answer two questions:
+
+| Hash | Question | Definition |
+|---|---|---|
+| `input_hash` | Same question? | SHA-256 of the canonical JSON of the inputs that affect the numbers |
+| `output_digest` | Same answer? | SHA-256 of the canonical JSON of the full response without its run metadata (and, for the angle sweep, without the echoed launch angle, which a sweep does not use) |
+
+Canonical JSON writes every float in its shortest exact form, so **equal digests mean every
+output value is bit-identical**. A rebuilt request must reproduce the stored input hash, or
+the replay is refused (409) before anything is recorded.
+
+| Verdict | Basis | Meaning |
+|---|---|---|
+| `identical` | `output_digest` | The digests match: every output value is bit-identical |
+| `identical` | `summary_only` | A v1 record (no digest): every stored summary value is identical; other outputs could not be compared |
+| `within_tolerance` | `summary` or `summary_only` | Every summary value agrees within its declared tolerance; the field furthest from agreement is reported. Outputs outside the summary (time series) are **not** compared |
+| `differs` | either | A summary value is outside its tolerance, or the summaries have different fields |
+
+Every verdict also lists any environment differences (library versions, platform, CPU model,
+git commit, Python implementation). Refusals, each with its own test: unknown run (404), unknown
+model (422), model version changed since the run (409; a rerun would be a different model, so
+it would not be a reproduction), stored inputs no longer valid (422), inputs no longer hashing
+the same (409), uploaded dataset not re-supplied (422), re-supplied file with a different
+SHA-256 or size (422, refused **before** it is read), a file for a model that takes none
+(422), a domain error (422), a body over the size limit (413).
+
+### Declared tolerances (used only when the digests are unavailable or differ)
+Each model declares, in advance and with a reason, how far each stored summary value may move
+between environments. A test checks that every stored field matches exactly one rule.
+
+| Model | Fields | Rule | Reason (short) |
+|---|---|---|---|
+| projectile | `analytical.*` | 1e-12 relative | closed forms; a few rounding errors of ~1e-16 |
+| projectile | `numerical.*` values | `10·(rtol·|x| + atol)` | an adaptive solver's step decisions can flip, moving results by up to its error control |
+| projectile | step and evaluation counts, solver settings | exact | counts and copies of inputs |
+| projectile | `comparison.*` (error estimates) | absolute, `10·(rtol·|x| + atol)` or `10·(rtol + atol/|x|)` | error estimates are rounding-sized, so only an absolute tolerance makes sense |
+| integrators | horizon; orders; fit points; theoretical order | 1e-12 rel; 1e-6 rel; exact; exact | fits use only points far above rounding |
+| integrators | finest max position error | 1e-9 m absolute | rounding-dominated at the finest RK4 step; ≲5e-10 m over 5e4 steps |
+| angle sweep | best angle; best range; vacuum values | 1e-5° abs; 1e-10 rel; 1e-12 rel | Brent's ~1e-6° tolerance at a flat maximum |
+| Solow | k\*(s₀), k\*(s₁) | `2 × 8u·(1/(1−α)+2)` relative | twice the empirical k\* bound above |
+| Solow | final capital | `2 × 64u/(1−ρ)` relative | twice the empirical path bound above |
+| Solow | golden-rule rate; half-life | exact; 1e-12 rel | a copy of α; a closed form |
+| dataset profile | every field | exact | counts and labels |
+
+**What is and is not established.** Measured: on one machine, every model's runs replay
+**bit-identically** (a test runs all six cases, locally and in CI). **Across machines they do
+not**: with the same code and the same locked libraries, GitHub's CI runners gave different
+output digests for the four floating-point models (the dataset profile, all counts, matched).
+Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specific routines
+changed the projectile and integrator digests the same way, because those routines add
+numbers in a different order; the largest summary change was about 1e-15 relative
+(`max_height` 4.250749496135367 → …371), far inside the declared tolerance (5e-9 m). The
+sweep and Solow digests also differ in CI for a CPU-specific reason not pinned down here. On
+CI's AMD EPYC 7763 (pinned on an Intel Xeon), the projectile summary agreed within its
+declared tolerances; its largest change was `analytical.range` 24.751641053406477 →
+…466, about 4e-16 relative.
+So the tolerances are reasoned from each method's error control and the empirical rounding
+bounds above; they are now checked against real cross-machine differences on every CI run
+(the golden test below), but that is one other machine type, not a proof. Every run records
+its CPU model so a replay can say when the processor changed.
+
+**Observed (2026-10-22), on a real migrated log.** The end-to-end test database had been
+written by earlier sessions under schema v1 (41 runs). Starting the app migrated it (backup
+kept; all 41 rows preserved as v1). Replaying every run in a copy: all 39 physics and economy
+runs came back `identical`: 33 v1 runs compared on their summaries, 6 v2 runs on their output
+digests. The 10 dataset profiles were all of uploaded files, and each replay was refused with
+a request to supply the same file again.
+
+### Tests
+`tests/test_migration.py` (a real v1 log: backup, exact preservation of old rows, idempotent,
+newer schema refused untouched, a failed migration rolls back completely: without a real
+transaction it does not, which the test caught), `tests/api/test_registry.py` (one entry per
+model; stored inputs rebuild the same input hash), `tests/api/test_run_record_v2.py` (the
+digest is recomputable from the response alone; it ignores run metadata),
+`tests/api/test_golden_digests.py` (fixed inputs per model version: the pinned digest must
+match, or, on a different machine, every summary value must lie within its declared tolerance,
+with a warning saying only that was checked; a regression guard, not evidence of correctness) and `tests/api/test_replay.py` (every verdict, every refusal, saving and linking). Mutation
+checks: ignoring the digest, a tolerance made 10¹² times looser, and dropping the replay link
+each fail a test.
+
+### Known limitations
+- Replays of v1 records (before 1.4) compare only the stored summary.
+- `within_tolerance` covers the summary only; time series are not stored, so not compared.
+- Model versions were not bumped when PRs #8 and #9 changed some outputs (the t = 0 landing
+  fix, check notes). A v1 record affected by those fixes replays as `differs`, which is true.
+- Deleting runs is deferred: with no authentication, a delete endpoint would let anyone
+  delete anyone's runs. To remove runs, stop the server and edit or delete the SQLite file.
