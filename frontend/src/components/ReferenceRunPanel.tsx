@@ -2,6 +2,7 @@
 
 import type { ModelResponse } from "@/lib/api/client";
 import type { ModelId } from "@/lib/api/models";
+import { ComparisonTable } from "./ComparisonTable";
 import type { Provenance, ReferenceRun } from "./useReferenceRun";
 
 /** How the reference's curves were obtained, in the words shown next to it. */
@@ -39,8 +40,9 @@ export function versionWarning(
 const withArticle = (word: string) => `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
 
 /**
- * The reference run of a lab page: what it is and where its curves came from, and the
- * controls to pin the run on screen or unpin the reference. `modelIds` are the models this
+ * The reference run of a lab page: what it is and where its curves came from, how the run on
+ * screen differs from it (inputs and summary), and the controls to pin the run on screen or
+ * unpin the reference. `modelIds` are the models this
  * page draws; a reference from any other model is kept but never overlaid.
  */
 export function ReferenceRunPanel({
@@ -96,6 +98,7 @@ export function ReferenceRunPanel({
         <p className="note">A dataset profile has no curves to overlay: the reference is kept.</p>
       )}
       {warning && <p className="api-error">{warning}</p>}
+      {ready && current && <ComparisonTable reference={ready.response} current={current} />}
       {(pinnable || ref) && (
         <div className="download-buttons" role="group" aria-label="Reference run">
           {pinnable && current && (
