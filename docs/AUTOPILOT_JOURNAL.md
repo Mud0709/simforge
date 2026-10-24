@@ -7,6 +7,52 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 21:05 UTC: Phase 2 authorised; self-grilling with defaults; every 4 hours (author)
+- **Did:** opened PR #12 (roadmap 1.6) at the author's request. Changed the protocol: a new
+  step's design decisions are settled by running `grilling` on itself and accepting its own
+  recommended answers (each recorded and reversible); `tdd` seams likewise; the 🔜 may move to
+  the next step inside the authorised phase (Phase 2) once the previous PR is merged; an
+  authorised phase without a step table is first split into steps, keeping every item and its
+  order. Schedule: every 4 hours. Status `running`.
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** 4 hours rather than 3 (fewer ticks, less usage; reverse in
+  chat).
+- **Waiting for you:** merge PR #12.
+- **What this means for you:** the autopilot no longer waits for you on design choices; you
+  review its defaults afterwards in `docs/plans/` and this journal, and can reverse any.
+- **Learning checkpoint:** which kinds of decision does it still refuse to take alone, and why?
+- **Next:** plan Phase 2 into steps and grill 2.1 (docs only until #12 is merged).
+
+## 2026-10-24 ~20:30 UTC: roadmap 1.6 built in chat (author's session, not a tick)
+- **Did:** slices S1-S5 of `docs/plans/ROADMAP_1_6_PLAN.md` and the docs, one commit each
+  (8bb7cb7, 25c0d35, d35464c, 4dfc72a, d83c07a, then docs); learning-log entries for PRs
+  #9-#11 (32d956c). Each slice: a builder subagent (medium or high effort, same model), then
+  a fresh reviewer, then checks here. Status `waiting-review`; the 6-hourly task is paused.
+- **Checks run:** `scripts/check.sh --e2e` on the final tree: exit 0; pytest 1234 passed,
+  Vitest 195 passed, Playwright 19 passed. Guide excerpts: all three guides ALL OK.
+- **Decisions taken for you:** the "not bit-identical" label no longer claims the environment
+  differs (nothing checks that); it now says the cause is not checked. `digest_match` is null
+  for old records without a digest. Reverse either in `ReferenceRunPanel.tsx` / `outputs.py`.
+- **Waiting for you:** a PR for 1.6; the next roadmap step.
+- **What this means for you:** every run can now be compared and exported; old runs are
+  recomputed and the digest says whether the recomputation is exact.
+- **Learning checkpoint:** why are negative numbers exempt from the CSV formula guard?
+- **Next:** your choice of the next step, then `grilling` for its decisions.
+
+## 2026-10-24 18:40 UTC: new rule, pick up from the latest conversation (author's request)
+- **Did:** the skill's reorient step now reads the session's latest exchange (the author's last
+  message and the final response) before choosing work, so a tick continues from work the
+  author did in chat between ticks instead of from the previous tick. CLAUDE.md notes it.
+  The 18:26 tick was skipped (7-day status `allowed_warning`, 77%).
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** it reads conversation events back to your last message
+  (alternative: only STATE; reverse by deleting the paragraph in step 1.1).
+- **Waiting for you:** nothing.
+- **What this means for you:** you and the autopilot share one thread of work, so working
+  between ticks never makes it redo or undo your session.
+- **Learning checkpoint:** why is STATE alone not enough for a tick to know where work stands?
+- **Next:** roadmap 1.6, slices S1-S5 (in progress in chat).
+
 ## 2026-10-24 12:58 UTC: 1.6 decisions answered; resumed (author's request, not a tick)
 - **Did:** recorded the author's answers (yes to all 10, tree confirmed) in the plan and
   STATE; status `running`; 6-hourly task re-enabled (next 18:26 UTC). Work-limit count reset.

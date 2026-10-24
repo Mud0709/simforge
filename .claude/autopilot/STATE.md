@@ -5,9 +5,11 @@ edit it too: change `status` to `paused`, or answer a question under "Waiting fo
 
 status: running
 session: session_01KiMGHphJdZSjdXKDzmfkvm
-scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
+scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
 branch: claude/laughing-brahmagupta-50jkiy
+Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
+2026-10-24. Defaults: the autopilot grills itself and takes its recommended answers.
 
 ## Budget (the author may edit these numbers)
 - weekly cap: 0.76 (raised from 0.70 by the author on 2026-10-24 for a test tick). A tick never starts if it would take the 7-day window above this. The
@@ -25,17 +27,16 @@ branch: claude/laughing-brahmagupta-50jkiy
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 1.6 is planned and decided: `docs/plans/ROADMAP_1_6_PLAN.md` (all recommendations
-accepted by the author on 2026-10-24). Next: slice 1 (backend recompute route), on a new PR,
-once PR #11 is merged. Until then there is nothing to build: pause again.
+Plan Phase 2: split its ROADMAP paragraph into steps (every item, same order, 🔜 on 2.1), then
+grill 2.1's design decisions with defaults into `docs/plans/ROADMAP_2_1_PLAN.md`. Docs and plan
+only, no code, until PR #12 (roadmap 1.6) is merged; then build 2.1 with `tdd` on a new PR.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-- Merge PR #11, so 1.6 can start on a fresh PR. (The 1.6 decisions are answered.)
+Nothing.
 
 ## For your daily review (not blocking)
-- Learning-log drafts for PRs #9 and #10 (in chat on 2026-10-23): approve or edit.
-- PR #11 (roadmap 1.5) is green and waiting for your review and merge. The autopilot's commits
-  land on the same branch, so they appear in #11 until it is merged.
+- Merge PR #12 (roadmap 1.6). After the merge, approve or edit the 1.6 learning-log draft.
+- The weekly cap is 0.76 (your test setting); the default was 0.70.

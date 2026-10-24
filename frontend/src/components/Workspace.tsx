@@ -34,6 +34,7 @@ export function Workspace({
   placeholders,
   status = "",
   staleNote = null,
+  reference = null,
   ...regions
 }: {
   parameters: ReactNode;
@@ -48,6 +49,8 @@ export function Workspace({
   status?: string;
   /** When set, the shown results no longer match the inputs; marked in each region. */
   staleNote?: string | null;
+  /** The reference run (pinned or loading), shown above the charts; omitted when absent. */
+  reference?: ReactNode;
 }) {
   const region = (id: OutputRegion, title: string) => {
     const content = regions[id];
@@ -70,6 +73,11 @@ export function Workspace({
         <p className="sr-only" role="status" aria-live="polite">
           {status}
         </p>
+        {reference !== null && reference !== undefined && reference !== false && (
+          <Section id="reference" title="Reference run">
+            {reference}
+          </Section>
+        )}
         {region("visualisation", "Visualisation")}
         {region("results", "Results")}
         {/* Full width: validation tables (exact vs numerical, per-run checks) need the room. */}

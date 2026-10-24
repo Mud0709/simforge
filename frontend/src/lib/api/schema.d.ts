@@ -73,6 +73,45 @@ export interface paths {
     patch: operations["label_experiment_api_v1_experiments__run_id__patch"];
     trace?: never;
   };
+  "/api/v1/experiments/{run_id}/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Export Experiment */
+    get: operations["export_experiment_api_v1_experiments__run_id__export_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/experiments/{run_id}/outputs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Recompute Experiment Outputs
+     * @description Compute a stored run again and return its full response (series included), with
+     *     whether it is bit-identical to the original. Refuses exactly what replay refuses; never
+     *     saves anything.
+     */
+    post: operations["recompute_experiment_outputs_api_v1_experiments__run_id__outputs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/experiments/{run_id}/replay": {
     parameters: {
       query?: never;
@@ -469,7 +508,7 @@ export interface components {
     DatasetSupply: {
       /**
        * Content Base64
-       * @description The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this replay only and never stored.
+       * @description The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this rerun only and never stored.
        */
       content_base64: string;
     };
@@ -1113,6 +1152,31 @@ export interface components {
       /** Y Numerical */
       y_numerical: number[];
     };
+    /** RecomputeRequest */
+    RecomputeRequest: {
+      /** @description Only for a dataset profile of an uploaded file. */
+      dataset?: components["schemas"]["DatasetSupply"] | null;
+    };
+    /** RecomputedOutputs */
+    RecomputedOutputs: {
+      /**
+       * Digest Match
+       * @description True if every recomputed output value is bit-identical to the stored run's (the output digests are equal). False if both digests exist and differ (another CPU or library can round the last bits differently). Null if the stored record is v1 and has no output digest, so bit-identity cannot be checked.
+       */
+      digest_match: boolean | null;
+      /** Original Run Id */
+      original_run_id: string;
+      /**
+       * Response
+       * @description The model's normal response, computed again from the stored inputs. Its metadata describes this recomputation (a new run id); it is never saved.
+       */
+      response:
+        | components["schemas"]["ProjectileResponse"]
+        | components["schemas"]["IntegratorStudyResponse"]
+        | components["schemas"]["AngleSweepResponse"]
+        | components["schemas"]["SolowResponse"]
+        | components["schemas"]["ProfileResponse"];
+    };
     /**
      * ReferenceLine
      * @description A line of the *theoretical* slope through the finest point in the fit range.
@@ -1172,6 +1236,28 @@ export interface components {
        * @enum {string}
        */
       verdict: "identical" | "within_tolerance" | "differs";
+    };
+    /**
+     * RunExport
+     * @description A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The
+     *     version lets a future import or report check what it reads. No series: the log stores
+     *     inputs, not curves (ARCHITECTURE decision 5).
+     */
+    RunExport: {
+      /**
+       * Export Version
+       * @description The export format version.
+       * @constant
+       */
+      export_version: 1;
+      /**
+       * Exported At
+       * Format: date-time
+       * @description When this export was made (UTC).
+       */
+      exported_at: string;
+      /** @description The run exactly as GET /experiments/{run_id} shows it. */
+      record: components["schemas"]["LoggedRun"];
     };
     /**
      * RunLabels
@@ -1663,6 +1749,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LoggedRun"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_experiment_api_v1_experiments__run_id__export_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunExport"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  recompute_experiment_outputs_api_v1_experiments__run_id__outputs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecomputeRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RecomputedOutputs"];
         };
       };
       /** @description Validation Error */

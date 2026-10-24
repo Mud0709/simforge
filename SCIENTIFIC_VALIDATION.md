@@ -695,3 +695,129 @@ each fail a test.
   fix, check notes). A v1 record affected by those fixes replays as `differs`, which is true.
 - Deleting runs is deferred: with no authentication, a delete endpoint would let anyone
   delete anyone's runs. To remove runs, stop the server and edit or delete the SQLite file.
+
+## Comparison and export (roadmap 1.6)
+
+Roadmap 1.6 adds three things that move numbers out of a run: recomputed outputs for a stored
+run (`POST /api/v1/experiments/{run_id}/outputs`), CSV downloads made in the browser, and a
+versioned JSON export of a run record (`GET /api/v1/experiments/{run_id}/export`). It also
+adds a comparison of two runs of the same model. None of them computes anything new about
+the science; what has to be established is that the numbers they show or write are the
+model's numbers, unchanged.
+
+### Recomputed series: the digest says whether they are exact
+The log stores no series (ARCHITECTURE decision 5), so a stored run's curves are obtained by
+computing it again from its stored inputs, with the same refusals as replay (one shared
+helper). The response carries `digest_match`: **true** if the recomputation's output digest
+equals the one stored with the original run, which means every output value is
+bit-identical (see "Reproducibility and replay" above for why equal digests imply that);
+**false** if both digests exist and differ; **null** for a v1 record with no digest. The page
+shows these as "recomputed, bit-identical", "recomputed, not bit-identical (cause not checked;
+usually another CPU or library version)" and "recomputed; cannot be checked". The false label
+names the usual cause but does not claim it: nothing compares the environments at this
+point (a replay does).
+
+**Tested** (`backend/tests/api/test_run_outputs.py`):
+- All five models (six cases: the dataset profile both as a bundled sample and as an upload
+  sent again) recompute with `digest_match` true. The expected digest is the one stored with
+  the original run, recorded before the recomputation. As an independent check, the test also
+  hashes the response it received with a canonical-JSON function written in the test from the
+  definition (sorted keys, no spaces, finite floats), not imported from the code, and gets the
+  stored digest.
+- A stored digest that differs is reported as false, not hidden; a v1 record gives null.
+- Recomputing saves nothing (the log has the same number of runs before and after), and a
+  request to save is refused by the schema.
+- Every refusal: unknown run 404, unknown model 422, changed model version 409, stored inputs
+  no longer valid 422, an upload without its file 422, a different file 422 (refused before it
+  is read), a file for a model that takes none 422, a domain error 422, a body that is not
+  base64 422, an oversized body 413. A further test sends the same bad requests to replay and
+  to recompute and requires the same status and message from both.
+
+**Observed (2026-10-24, one machine).** Recomputing the slowest model, the integrator study at
+its total-step cap (150,000 steps, summed over the three methods and all step sizes), took a
+median of about **1.47 s** over 5 repeats, on an Intel Xeon 2.10 GHz cloud container. It was
+timed in-process through FastAPI's test client, so it includes the HTTP layer but no network
+or browser time. This is one measurement on one machine, not a bound: a slower computer, or a
+busy one, will take longer. The page shows "Recomputing reference run …" while it waits.
+
+### CSV: what is written is the number that was computed
+**Guaranteed by the language specification, and tested.** Each number is written with
+JavaScript's `String(x)`, which the ECMAScript specification defines as the shortest decimal
+string that converts back to exactly the same double. So `0.1 + 0.2` is written
+`0.30000000000000004`, not `0.3` (which would be a different double). The tests
+(`frontend/src/lib/export/csv.test.ts`) check that exact output and that each of `1e-300`,
+`5e-324` (the smallest positive double), `1/3`, `0.1 + 0.2`, the largest double and
+`2^53 + 2` round-trips exactly through `Number(cell)` (compared with `Object.is`, which also
+tells `0` from `-0`). `-0` is written `-0`, because `String(-0)` gives `"0"` and would lose the
+sign. A non-finite number makes the export fail instead of writing `NaN` or `Infinity` (the
+models never return one; the schemas reject them).
+
+Also tested there: RFC 4180 quoting (a field with a comma, quote, CR or LF is quoted, quotes
+doubled; CRLF line endings), `name [unit]` headers (quoted when a unit contains a comma),
+`null` and the end of a shorter column as empty cells, and the formula guard below.
+`frontend/src/lib/export/tables.test.ts` checks, for each model, which columns are exported,
+with which units, and specific rows against the fixture's values; the dataset profile
+exports per-column statistics only, never rows. `e2e/reference.spec.ts` downloads a real
+Solow CSV and checks its filename and header line.
+
+What is **not** claimed: a spreadsheet program may still display or re-save a number with
+fewer digits; the guarantee is about the file as written.
+
+**The formula guard (a safety rule, tested).** Text starting with `=`, `+`, `-`, `@`, a tab or
+a carriage return gets a leading `'`, so a spreadsheet treats it as text rather than a
+formula. It applies to headers too, because Quant column names come from the user's file.
+Numbers are never prefixed: a negative number starts with `-`, and prefixing it would turn a
+number into text. A test checks that `-3.2` stays `-3.2`.
+
+### JSON export
+`RunExport` is `{export_version: 1, exported_at, record}`. **Tested**
+(`backend/tests/api/test_run_export.py`): `record` equals `GET /experiments/{run_id}`
+unchanged; `exported_at` is a UTC time between the request's start and end; an unknown run is
+404; the download filename contains the model id and run id only, never a run's name or note
+(the record inside the file does include them, as `GET` shows them). It holds the record, not
+series: a full run is reproduced by recomputing it, as above.
+
+### The comparison: differences, not verdicts
+For each stored summary value of two runs of the same model, the table shows the reference
+value `a`, the new value `b`, the change `b − a`, and the **relative change**
+`(b − a) / |a|`. The absolute value in the denominator keeps the sign meaning "went up" or
+"went down" even when `a` is negative. When `a = 0` the relative change is **undefined** and
+shown as "—": any change from 0 is infinitely large relative to 0, and `0 → 0` would be
+`0/0`. It is never shown as `Infinity`. A change too large to represent (a ratio to a tiny
+reference that overflows) is also shown as "—". Values are rounded to 6 significant figures
+for display only; the changes are worked out from the full values. Non-numeric values (text,
+booleans, null, a field present in one run only) are shown as "equal" or "changed", with no
+arithmetic; `null` against a number is "changed", never treated as 0.
+
+**Tested** (`frontend/src/lib/reference/compare.test.ts`, `components/ComparisonTable.test.tsx`):
+the two formulas on hand-worked values, the reference-0 case, overflow, non-numeric rows, only
+the differing inputs listed, nothing shown for two different models or a run compared with
+itself. **Drift check (end-to-end):** the browser rebuilds the inputs and summary a run record
+stores. `e2e/stored-fields.spec.ts` saves one real run per model (two for the dataset profile)
+through the real API and requires the browser's fields to equal the stored record's exactly.
+Both sides come from the same run on the same machine, so exact equality is the right test.
+
+**Why there is no significance verdict.** The table never says that a change is "significant"
+or "within tolerance". Two reasons:
+- The replay tolerances (above) answer a different question: did a *recomputation of the same
+  run* reproduce it, allowing for rounding on another machine? Applied to two *different*
+  scenarios, "within tolerance" would only say the difference is about as small as rounding
+  noise, and would read as "no real difference", which is not what was tested.
+- Statistical significance needs a model of random variation (sampling, measurement noise,
+  random shocks). Today's models are deterministic: the same inputs give the same numbers, so
+  a difference between two runs is exactly the model's response to the changed inputs.
+  Whether that response *matters* is a scientific judgement about the question being asked,
+  which the table cannot make. When models with random shocks arrive (Phase 3 Monte Carlo
+  runs, Phase 5-6 statistics), their uncertainty will be reported by those models, with
+  their own validation.
+
+### Limitations
+- A reference with a different time grid (a projectile with a different flight time) is
+  overlaid, but curves are not subtracted point by point.
+- Overlays are same-model only; a reference from another model is kept but not drawn.
+- Across machines, `digest_match` false is expected (see the CI findings above); the
+  recomputed curves are then the current machine's, not the original's.
+- A profile of an uploaded file can only be a reference in the tab that holds the file; it is
+  lost on reload, because the server never stores the file.
+- Assumed, not tested: Plotly's built-in PNG download is enough for chart images, and large
+  responses pass the frontend proxy.

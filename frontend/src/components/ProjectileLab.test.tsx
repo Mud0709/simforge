@@ -113,6 +113,10 @@ describe("ProjectileLab", () => {
     const results = within(region("Results"));
     expect(results.getByText("Range (analytical)")).toBeInTheDocument();
     expect(results.getByRole("button", { name: "Sweep launch angle" })).toBeInTheDocument();
+    expect(results.getByRole("button", { name: "Download trajectory (CSV)" })).toBeInTheDocument();
+    expect(
+      results.getByRole("button", { name: "Download energy budget (CSV)" }),
+    ).toBeInTheDocument();
     // Validation: the exact-vs-numerical comparison and the run record.
     const validation = within(region("Validation"));
     expect(validation.getByText("Analytical vs numerical")).toBeInTheDocument();

@@ -593,6 +593,19 @@ break the bit-identity check?
 **Checkpoint 8b:** the identity check compares k and y up to year T_c, but c and i only up to
 T_c − 1. Why? What would the check report for T_c = 0?
 
+### 8.8 A reference run is not the baseline (roadmap 1.6)
+Two different comparisons now exist on the Solow page, and the names keep them apart:
+- **Baseline vs scenario** is *inside one run*: the same economy with and without the savings
+  change. It is the policy experiment of Part 5.
+- **Reference run vs this run** compares *two runs*: you pin a run, change any input (α, δ, the
+  policy year…) and run again. Its curves are drawn faded under the new ones, and a table shows
+  each changed input and how each summary value moved, absolutely and relatively. How that
+  works, and why the table never says a change is "significant", is in Part 17 of the main
+  guide. The CSV download gives both paths year by year, with the units in the headers.
+
+**Checkpoint 8c:** you pin a run and then change only the new savings rate s₁. Which summary
+values must have a change of exactly 0, and which part of the model guarantees it?
+
 ---
 
 ## Part 9 — Proofs, tests and evidence

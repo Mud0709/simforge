@@ -9,31 +9,20 @@ tolerances each model declares in advance, with a reason for each.
 
 from __future__ import annotations
 
-import base64
-import binascii
 import fnmatch
-import hashlib
 import math
 from dataclasses import dataclass
 from typing import Any, Literal, TypeGuard
 
-from fastapi import HTTPException, status
-from pydantic import Field, ValidationError
+from pydantic import Field
 
-from simforge.api.registry import get_entry
+from simforge.api.rerun import DatasetSupply, prepare_rerun
 from simforge.api.runs import Tolerance, execute_run
 from simforge.core.reproducibility import environment_info
 from simforge.core.schemas import ModelInfo, RunMetadata, StrictModel
 from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
 
 Verdict = Literal["identical", "within_tolerance", "differs"]
-
-
-class DatasetSupply(StrictModel):
-    content_base64: str = Field(
-        description="The same file the run profiled, base64-encoded. Checked by SHA-256 and "
-        "size before it is read; it is used for this replay only and never stored."
-    )
 
 
 class ReplayRequest(StrictModel):
@@ -179,55 +168,10 @@ def environment_differences(
 # --- replay -------------------------------------------------------------------------------
 
 
-def _unprocessable(message: str) -> HTTPException:
-    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, message)
-
-
-def _supplied_dataset(record: ExperimentRecord, supply: DatasetSupply | None) -> bytes | None:
-    """The re-supplied file, checked against the stored identity *before* it is read."""
-    stored = record.inputs.get("dataset")
-    if supply is None:
-        return None
-    if not isinstance(stored, dict):
-        raise _unprocessable(f"{record.model_id} takes no dataset; send no file to replay it.")
-    try:
-        data = base64.b64decode(supply.content_base64, validate=True)
-    except binascii.Error as exc:
-        raise _unprocessable("The supplied file is not valid base64.") from exc
-    digest = hashlib.sha256(data).hexdigest()
-    if digest != stored.get("sha256") or len(data) != stored.get("byte_size"):
-        raise _unprocessable(
-            "The supplied file is not the one this run profiled: its SHA-256 or size differs "
-            f"(supplied {len(data)} bytes, SHA-256 {digest[:12]}…; the run used "
-            f"{stored.get('byte_size')} bytes, SHA-256 {str(stored.get('sha256'))[:12]}…). "
-            "It was not read."
-        )
-    return data
-
-
 async def replay_run(
     record: ExperimentRecord, body: ReplayRequest, repo: ExperimentRepository
 ) -> ReplayResponse:
-    entry = get_entry(record.model_id)
-    if entry is None:
-        raise _unprocessable(f"SimForge has no model {record.model_id!r} any more.")
-    if record.model_version != entry.info.version:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            f"This run used {record.model_id} v{record.model_version}; the current version is "
-            f"v{entry.info.version}. A rerun would use different code, so it would not be a "
-            "reproduction. Run the model again instead.",
-        )
-    dataset = _supplied_dataset(record, body.dataset)
-    try:
-        request = entry.rebuild(record.inputs, dataset)
-    except ValidationError as exc:
-        raise _unprocessable(
-            "The stored inputs are no longer valid for the current model: "
-            + "; ".join(str(e["msg"]) for e in exc.errors(include_input=False))
-        ) from exc
-    except LookupError as exc:
-        raise _unprocessable(f"To replay {record.model_id}, {exc}.") from exc
+    entry, request = prepare_rerun(record, body.dataset)
 
     outcome = await execute_run(
         entry,

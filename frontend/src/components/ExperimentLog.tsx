@@ -8,6 +8,7 @@ import {
   type LoggedRun,
   type ReplayRequest,
   type ReplayResponse,
+  exportUrl,
   labelExperiment,
   listExperiments,
   replayExperiment,
@@ -230,6 +231,10 @@ export function ExperimentLog() {
                         {reopenLink(r.model_id, r.run_id) && (
                           <a href={reopenLink(r.model_id, r.run_id)!}>Open</a>
                         )}
+                        {/* The server names the file <model>_<run8>.json; labels never appear. */}
+                        <a href={exportUrl(r.run_id)} download>
+                          Export JSON
+                        </a>
                         <button
                           type="button"
                           className="secondary"

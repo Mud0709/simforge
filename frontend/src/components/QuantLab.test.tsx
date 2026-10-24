@@ -56,6 +56,9 @@ describe("QuantLab", () => {
     expect(within(results).getByTestId("profile-columns")).toHaveTextContent("6");
     expect(within(results).getByTestId("profile-missing")).toHaveTextContent("7 of 60 (11.7%)");
     expect(within(results).getByTestId("profile-duplicates")).toHaveTextContent("1");
+    expect(
+      within(results).getByRole("button", { name: "Download column statistics (CSV)" }),
+    ).toBeInTheDocument();
     expect(within(results).getByText(/rows 3, 7/)).toBeInTheDocument();
     expect(within(results).getByTestId("column-1")).toHaveTextContent("3 (30.0%)");
     expect(within(results).getByTestId("numeric-1")).toHaveTextContent("38.2857");

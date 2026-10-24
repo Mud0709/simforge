@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.concurrency import run_in_threadpool
-from pydantic import Field
+from pydantic import AwareDatetime, Field
 
 from simforge.api.dependencies import Repository
+from simforge.api.outputs import RecomputedOutputs, RecomputeRequest, recompute_outputs
 from simforge.api.registry import get_entry
 from simforge.api.replay import ReplayRequest, ReplayResponse, replay_run
 from simforge.core.schemas import StrictModel
-from simforge.persistence.experiments import ExperimentRecord
+from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -74,6 +76,27 @@ def get_experiment(run_id: str, repo: Repository) -> LoggedRun:
     return _logged(record)
 
 
+class RunExport(StrictModel):
+    """A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The
+    version lets a future import or report check what it reads. No series: the log stores
+    inputs, not curves (ARCHITECTURE decision 5)."""
+
+    export_version: Literal[1] = Field(description="The export format version.")
+    exported_at: AwareDatetime = Field(description="When this export was made (UTC).")
+    record: LoggedRun = Field(description="The run exactly as GET /experiments/{run_id} shows it.")
+
+
+@router.get("/{run_id}/export")
+def export_experiment(run_id: str, repo: Repository, response: Response) -> RunExport:
+    record = repo.get(run_id)
+    if record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    # Model id and run id only: user labels never go in a filename (safety rule, 1.6 plan).
+    filename = f"{record.model_id}_{record.run_id[:8]}.json"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return RunExport(export_version=1, exported_at=datetime.now(UTC), record=_logged(record))
+
+
 class RunLabels(StrictModel):
     """A run's name and note. Omitted fields are kept; null or "" clears. Nothing else about
     a run can be changed: its inputs, results and fingerprints are the scientific record."""
@@ -103,11 +126,26 @@ def label_experiment(run_id: str, labels: RunLabels, repo: Repository) -> Logged
     return _logged(updated)
 
 
+async def _stored(run_id: str, repo: ExperimentRepository) -> ExperimentRecord:
+    """The stored run a rerun starts from (replay or recomputed outputs), or 404."""
+    record = await run_in_threadpool(repo.get, run_id)
+    if record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    return record
+
+
 @router.post("/{run_id}/replay")
 async def replay_experiment(run_id: str, body: ReplayRequest, repo: Repository) -> ReplayResponse:
     """Rerun a stored run with the same inputs and the same model version, and say whether
     the same answer came back: identical, within tolerance, or differs."""
-    record = await run_in_threadpool(repo.get, run_id)
-    if record is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
-    return await replay_run(record, body, repo)
+    return await replay_run(await _stored(run_id, repo), body, repo)
+
+
+@router.post("/{run_id}/outputs")
+async def recompute_experiment_outputs(
+    run_id: str, body: RecomputeRequest, repo: Repository
+) -> RecomputedOutputs:
+    """Compute a stored run again and return its full response (series included), with
+    whether it is bit-identical to the original. Refuses exactly what replay refuses; never
+    saves anything."""
+    return await recompute_outputs(await _stored(run_id, repo), body, repo)

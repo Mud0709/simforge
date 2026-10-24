@@ -6,7 +6,9 @@ code well enough to explain it and change it, not just run it.
 **What it covers:** Parts 1-10 cover the foundation and the integrator study. Part 11
 covers the angle sweep (added in `cf3a870`). Part 12 points to the **Economy Lab guide**,
 [ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md), which covers the Solow growth model.
-This guide stays the home of the Physics Lab and of the engineering shared by every lab. Every line number points at the code as it is
+This guide stays the home of the Physics Lab and of the engineering shared by every lab:
+Parts 13-17 cover the working tools, the review lessons, replay, the experiment log, and
+comparison and export. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -42,6 +44,8 @@ Don't read straight through in one sitting. Each stage depends on the one before
    any time after stage 2.
 9. **The Economy Lab:** Part 12, then the Economy Lab guide. It is independent of Parts 2-6
    and 11, but uses 1.7 (floating point) and Part 7 (tests as evidence).
+10. **The shared studio:** Parts 15-17 (replay, the experiment log, comparison and export), in
+   order. Part 17 builds on 15.1 (the output digest) and 1.7 (floating point).
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -61,6 +65,9 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 12 — The Economy Lab: the Solow growth model](#part-12--the-economy-lab-the-solow-growth-model)
 - [Part 13 — Working tools: Claude Code skills and the session hook](#part-13--working-tools-claude-code-skills-and-the-session-hook)
 - [Part 14 — What reviewing the merged work taught us](#part-14--what-reviewing-the-merged-work-taught-us)
+- [Part 15 — Replay: asking the same question twice](#part-15--replay-asking-the-same-question-twice)
+- [Part 16 — The experiment log: find, reopen, replay, label](#part-16--the-experiment-log-find-reopen-replay-label)
+- [Part 17 — Comparison and export: a reference run, CSV and JSON](#part-17--comparison-and-export-a-reference-run-csv-and-json)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -1930,7 +1937,7 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 
 ### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
 
-<!-- src: frontend/src/components/IntegratorLab.tsx:79-102 -->
+<!-- src: frontend/src/components/IntegratorLab.tsx:83-106 -->
 ```tsx
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -1980,7 +1987,7 @@ what's allowed.
 
 ### [2] Sending it: `frontend/src/lib/api/client.ts:66-96`
 
-<!-- src: frontend/src/lib/api/client.ts:66-81 -->
+<!-- src: frontend/src/lib/api/client.ts:70-85 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2825,7 +2832,7 @@ On another machine or library version, floats can differ in the last bits, becau
 none), the stored summary is compared field by field, with a tolerance each model declares
 **in advance** and a reason:
 
-<!-- src: backend/src/simforge/api/replay.py:112-126 -->
+<!-- src: backend/src/simforge/api/replay.py:101-115 -->
 ```python
 def compare_field(field: str, a: Any, b: Any, tolerance: Tolerance) -> FieldComparison:
     if _is_number(a) and _is_number(b):
@@ -2915,7 +2922,7 @@ Clicking "Physics" and then quickly "Economy" sends two requests. If the Physics
 second, it must not overwrite the Economy list. Each request remembers whether it is still
 wanted:
 
-<!-- src: frontend/src/components/ExperimentLog.tsx:126-138 -->
+<!-- src: frontend/src/components/ExperimentLog.tsx:127-139 -->
 ```tsx
   useEffect(() => {
     let current = true;
@@ -2963,6 +2970,254 @@ code into the page.
 
 ---
 
+## Part 17 — Comparison and export: a reference run, CSV and JSON
+
+Roadmap 1.6 answers two everyday questions: "what changed when I changed this input?" and
+"can I take these numbers somewhere else?" On any lab page you can **pin** a run as the
+**reference run**, change the inputs and run again: the reference's curves are drawn faded
+under the new ones, and a table shows which inputs changed and how each summary value moved.
+You can download the data behind the charts as CSV, and a saved run's record as JSON. The
+decisions, with their alternatives, are in `docs/plans/ROADMAP_1_6_PLAN.md` and
+ARCHITECTURE decision 17. (It is called a *reference* run, not a *baseline*, because the
+Solow page already uses "baseline" for its no-policy path.)
+
+### 17.1 Why recompute instead of store, and how the digest proves it **[Beyond IB idea]**
+**Intuition first.** Imagine a recipe and a photo of the cake. The experiment log keeps the
+recipe (the inputs and the model version) and a fingerprint of the cake (the output digest,
+Part 15.1), not the cake itself. To see the cake again, you bake it again. Then you
+fingerprint the new cake: if the fingerprints match, it is not "a similar cake", it is the
+same cake to the last crumb.
+
+That is exactly what `POST /experiments/{id}/outputs` does. The log never stored the series
+(ARCHITECTURE decision 5: a projectile run has thousands of numbers, its inputs a dozen), so
+the curves of a stored run exist only after computing it again:
+
+<!-- src: backend/src/simforge/api/outputs.py:69-81 -->
+```python
+async def recompute_outputs(
+    record: ExperimentRecord, body: RecomputeRequest, repo: ExperimentRepository
+) -> RecomputedOutputs:
+    entry, request = prepare_rerun(record, body.dataset)
+    outcome = await execute_run(
+        entry, request, repo, save=False, expected_input_hash=record.input_hash
+    )
+    digest = outcome.response.metadata.output_digest
+    return RecomputedOutputs(
+        original_run_id=record.run_id,
+        digest_match=None if record.output_digest is None else record.output_digest == digest,
+        response=outcome.response,
+    )
+```
+
+| Line | Meaning |
+|---|---|
+| 72 | `prepare_rerun` is the **same** refusal helper replay uses (`api/rerun.py`): unknown model, changed model version (409), inputs that no longer validate, an uploaded file missing or different. One helper means the two routes cannot drift apart; a test sends the same bad requests to both and requires the same answer. |
+| 73-75 | The rebuilt request goes through the same `execute_run` as a live run, with `save=False`: nothing is written to the log. `expected_input_hash` refuses a rebuilt request that no longer asks the same question. |
+| 76 | The new response's output digest. |
+| 79 | Three answers, not two: `True` (bit-identical), `False` (both digests exist and differ), `None` (a v1 record has no digest, so nothing can be proved). |
+
+On the page these become three labels. The `False` label is deliberately careful:
+"recomputed, not bit-identical (cause not checked; usually another CPU or library version)".
+It names the *usual* cause (Part 15.6) without claiming it, because this route does not
+compare environments. A replay does.
+
+**Is it fast enough?** The slowest model is the integrator study. At its largest allowed size
+(150,000 steps in total), recomputing it took a median of about 1.47 s over 5 repeats on the
+cloud machine used for development (observed once, on one machine, not a guarantee). So the
+page shows "Recomputing reference run …" while it waits.
+
+### 17.2 CSV, RFC 4180, and why `0.1 + 0.2` is written `0.30000000000000004` **[IB CS-ish]**
+CSV looks too simple to need rules, until a value contains a comma. **RFC 4180** is the short
+document most programs follow: fields are separated by commas, lines end with CR LF, and a
+field that contains a comma, a quote, CR or LF is wrapped in double quotes, with any quote
+inside written twice. So the text `say "hi", then go` becomes `"say ""hi"", then go"`. The
+Quant guide's Part 2.2 is the same format read from the other side.
+
+The harder question is how to write a **number**. A double has about 15-17 significant
+digits. Write too few and you change the number; write too many and the file is long and
+ugly. JavaScript's `String(x)` writes the **shortest** decimal that converts back to exactly
+the same double. That is a rule of the language specification, not of SimForge, and the
+tests check it on hard cases (`1/3`, `5e-324`, the largest double, `-0`):
+
+| Value | `String(x)` | Why |
+|---|---|---|
+| `0.1 + 0.2` | `0.30000000000000004` | not the same double as `0.3`; writing `0.3` would change it |
+| `1/3` | `0.3333333333333333` | 16 digits are needed to come back to the same double |
+| `-0` | `"0"`, so SimForge writes `-0` | `String` drops the sign of minus zero |
+
+Check it yourself in a browser console: `0.1 + 0.2 === 0.3` is `false`. So the CSV holds
+exactly the numbers the model computed, and so does the JSON (Python writes floats the same
+shortest way, Part 15.1). The page rounds numbers for *display*; the export never does.
+
+### 17.3 CSV formula injection, and why numbers are exempt **[Security]**
+A spreadsheet treats a cell starting with `=` as a formula. If a CSV contains the text
+`=HYPERLINK("http://evil.example","Click")`, opening it can create a live link, and some
+formulas can do worse. Where could such text come from? Not from a model's numbers, but from
+**user data**: a Quant column name is whatever the first line of your file says. So text is
+guarded:
+
+<!-- src: frontend/src/lib/export/csv.ts:18-33 -->
+```ts
+const NEEDS_QUOTES = /[",\r\n]/;
+// Text starting with one of these can be run as a formula by a spreadsheet.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+/** A number written as the shortest string that parses back to exactly the same double. */
+function formatNumber(x: number): string {
+  if (!Number.isFinite(x)) throw new Error(`Cannot export a non-finite number (${x})`);
+  // String(-0) is "0", which would lose the sign; "-0" parses back to -0.
+  return Object.is(x, -0) ? "-0" : String(x);
+}
+
+/** Text with a leading `'` if a spreadsheet could read it as a formula, then quoted. */
+function formatText(s: string): string {
+  const safe = FORMULA_START.test(s) ? `'${s}` : s;
+  return NEEDS_QUOTES.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+}
+```
+
+| Line | Meaning |
+|---|---|
+| 18 | The four characters that force quotes (RFC 4180). |
+| 20 | The characters a spreadsheet may read as the start of a formula: `=`, `+`, `-`, `@`, tab, CR. |
+| 23-27 | A number is written as the shortest exact string (17.2). A non-finite number stops the export instead of writing `NaN`. |
+| 31 | Text that could be a formula gets a leading `'`, which spreadsheets read as "this is text". |
+| 32 | Then RFC 4180 quoting, in that order, so a guarded value with a comma is still one field. |
+
+Why are numbers **never** prefixed? Because `-3.2` starts with `-`. Prefixing it would turn a
+number into the text `'-3.2`, and every negative value in a Solow growth column or an energy
+column would stop being a number. A number is also safe by construction: it is written by
+`String(x)` from a double, so it can only contain digits, a sign, a point and an exponent, and
+never a formula. The guard goes where the risk is (text that may come from a user) and nowhere
+else. For the same reason, run names and notes never appear in a CSV or a filename; the
+filename is `<model>_<first 8 characters of the run id>_<table>.csv`.
+
+### 17.4 The reference run lives in the URL, not the database
+Where should "I pinned run 3f2a…" be remembered? Four places were considered (the plan's D6):
+React state (lost on reload), the URL, the browser's localStorage, or a database flag.
+
+- A **database flag** would be global: there is no login, so pinning a run would pin it for
+  everyone using the deployment. A pinned run is one person's working choice, not part of the
+  scientific record.
+- The **URL** (`?ref=<run_id>`) survives a reload, can be copied to a friend, and mirrors
+  `?run=` for reopening a run (Part 16.2). On load, the page recomputes the run (17.1).
+
+But a run id is only useful if the run can be computed again from the log:
+
+<!-- src: frontend/src/components/useReferenceRun.ts:38-45 -->
+```ts
+/** Why a run cannot be pinned by its id (and so is kept in memory), or null if it can. */
+function heldInMemory(response: ModelResponse): Provenance | null {
+  // A saved upload profile has a record, but recomputing it needs the file again.
+  if (isModelResponse(response, "quant.dataset_profile") && response.dataset.source === "upload")
+    return { kind: "memory", why: "upload" };
+  if (!response.metadata.experiment_saved) return { kind: "memory", why: "unsaved" };
+  return null;
+}
+```
+
+An **unsaved** run has no record. A saved profile of an **uploaded file** has a record, but
+recomputing it needs the file, which the server never keeps (Quant guide, Part 6.4). Both are
+held in the tab's memory only, and the page says so: "held in this tab, lost on reload". The
+page tells you where the reference's curves came from, every time.
+
+A reference is drawn only over runs of the **same model** (projectile over projectile), with a
+warning when the two used different model versions, since different code could explain part
+of the difference. The dataset profile has no curves to overlay; it is compared in the table.
+
+### 17.5 Relative change, and why a reference of 0 is undefined **[IB Maths]**
+For each summary value, with reference value `a` and new value `b`, the table shows:
+- the **change** `b − a`, in the value's own units;
+- the **relative change** `(b − a) / |a|`, as a percentage.
+
+<!-- src: frontend/src/lib/reference/compare.ts:191-209 -->
+```ts
+export function summaryDiff(reference: ModelResponse, current: ModelResponse): SummaryRow[] {
+  const [a, b] = [summaryFields(reference), summaryFields(current)];
+  return fieldNames(a, b).map((field): SummaryRow => {
+    const [ref, cur] = [a[field], b[field]];
+    if (isNumber(ref) && isNumber(cur)) {
+      const absolute = cur - ref;
+      return {
+        field,
+        kind: "number",
+        reference: ref,
+        current: cur,
+        absolute,
+        relative: ref === 0 ? null : absolute / Math.abs(ref),
+      };
+    }
+    const equal = field in a && field in b && same(ref, cur);
+    return { field, kind: "other", reference: ref, current: cur, equal };
+  });
+}
+```
+
+Why `|a|` and not `a`? Take `a = −4` and `b = −5`: the value went *down* by 1. With `|a|`,
+`(−5 − (−4)) / 4 = −25%`, a decrease, as it should read. With `a` you would get `+25%`.
+
+Why is it **undefined** when `a = 0` (line 203)? Relative change asks "how big is the change
+compared with where you started?" If you started at 0, any change, however small, is
+infinitely many times 0, and `0 → 0` gives `0/0`, which has no value at all. So the code
+stores `null` and the table shows "—", never `Infinity`. A finite but enormous ratio (a tiny
+reference such as 1e-300) can overflow to `Infinity` too; that is also shown as "—". Values
+that are not numbers (text, true/false, a missing value) are only marked "equal" or
+"changed": a `null` is never treated as 0.
+
+### 17.6 Why replay tolerances are not significance tests **[IB Physics/Econ: uncertainty]**
+Replay (Part 15.4) has tolerances: "the range may move by 1 part in 10¹² between machines".
+It would be easy to reuse them here and print "within tolerance" next to each change. The
+table deliberately does not, for two reasons:
+- **Different question.** A replay tolerance asks: did *the same run*, computed again,
+  reproduce itself, allowing for rounding? Two pinned runs are *different scenarios*. Saying
+  their difference is "within tolerance" would only mean "as small as rounding noise", and it
+  would read as "no real difference", which nobody tested.
+- **No randomness to test against.** "Significant" in statistics means "larger than random
+  variation would plausibly produce". These models are deterministic: the same inputs always
+  give the same numbers, so a difference between two runs is exactly the model's response to
+  the changed inputs. Whether a 3% change in steady-state capital *matters* is a judgement
+  about your question (an IB Economics evaluation point), not something a table can compute.
+
+When models with random shocks arrive (Phase 3 Monte Carlo runs, the Phase 5-6 statistics),
+they will report their own uncertainty, validated in their own way.
+
+Finally, the table rebuilds in the browser the field names the backend stores. A copy can
+drift, so a Playwright test (`e2e/stored-fields.spec.ts`) saves one real run of each model and
+requires the browser's fields to equal the stored record's exactly.
+
+### 17.7 The JSON export
+`GET /experiments/{id}/export` gives `{export_version: 1, exported_at, record}`, where
+`record` is exactly what the experiment log shows for that run. The **version number** is
+the important part: if a future SimForge reads exports back in (or builds reports from
+them), it can check which format it was given, instead of guessing. The export holds the
+record, not the series: the series can always be recomputed (17.1).
+
+### 17.8 Checkpoint
+1. A reference run loads with "recomputed, not bit-identical". Is that a bug? What two extra
+   facts would you look up to decide, and which route gives them?
+2. Why can the server not make the CSV of an unsaved run?
+3. Explain in one sentence each why `=1+1` in a column name is prefixed, but `-1` in a data
+   column is not.
+4. A summary value goes from 0 to 0.002. What does the table show in each change column, and
+   why?
+
+### 17.9 Exercises
+- **E17.1** Write the RFC 4180 CSV line (three fields) for: the text `a,b`, the number
+  `-2.5`, and the text `He said "no"`. Then add a fourth field, the text `@SUM(A1)`, and write
+  it as SimForge would.
+- **E17.2** In a browser console, find a decimal number with at most 3 digits after the point
+  that `String` writes with more digits after a single addition (like `0.1 + 0.2`). Explain
+  why writing it with 15 significant digits would change the value.
+- **E17.3** Pin a Solow run, change only the policy year and run again. Before looking,
+  predict which summary values have a change of exactly 0, and explain why using the model
+  (Economy guide).
+- **E17.4** Open a page with `?ref=` set to a run id that does not exist. Predict what the
+  page shows and whether the rest of the page still works, then check.
+- **E17.5** (stretch) Suggest a case where a relative change based on `|a|` is misleading
+  even though `a ≠ 0`. What would you show instead?
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -3003,11 +3258,18 @@ code into the page.
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap 1.5, the experiment log):**
+**This version (roadmap 1.6, comparison and export):**
+- **Added Part 17:** recomputing instead of storing (and the digest's three answers), RFC 4180
+  and exact number round-trip, CSV formula injection and why numbers are exempt, the
+  reference run in the URL, relative change and the reference-0 case, why replay tolerances
+  are not significance tests, the JSON export; checkpoint and exercises.
+- **Added** Parts 15-17 to the contents (15 and 16 were missing) and a reading-order stage.
+
+**The previous version (roadmap 1.5, the experiment log):**
 - **Added Part 16:** model-written headlines, reopening a run, a race condition and how the
   log avoids it, labels versus results; checkpoint and exercises.
 
-**The previous version (roadmap 1.4, run record v2 and replay):**
+**An earlier version (roadmap 1.4, run record v2 and replay):**
 - **Added Part 15:** two hashes (question and answer), the model registry, the migration and
   its transaction trap, declared tolerances, what the first replay found, what CI found
   (different CPUs, different last bits); checkpoint and exercises.

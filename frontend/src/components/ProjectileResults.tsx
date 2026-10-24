@@ -3,11 +3,14 @@
 import type { Data } from "plotly.js";
 import { memo, useMemo } from "react";
 
-import type { ErrorMetric, ProjectileResponse } from "@/lib/api/client";
+import type { ErrorMetric, ModelResponse, ProjectileResponse } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
+import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { AssumptionsList } from "./AssumptionsList";
 import { AngleSweepPanel } from "./AngleSweepPanel";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
+import type { ReferenceRun } from "./useReferenceRun";
 
 const ANALYTICAL = "#2563eb";
 const NUMERICAL = "#ea580c";
@@ -26,12 +29,17 @@ function relError(e: ErrorMetric): string {
 
 type Props = { result: ProjectileResponse };
 
-/** Visualisation: the trajectory and the energy budget. */
-function ProjectileChartsView({ result }: Props) {
+/** Visualisation: the trajectory and the energy budget, over any reference run's (faded). */
+function ProjectileChartsView({
+  result,
+  reference = null,
+}: Props & { reference?: ModelResponse | null }) {
   const { numerical, series } = result;
+  const overlay = useMemo(() => overlayFor(reference, "physics.projectile"), [reference]);
 
   const trajectory = useMemo<Data[]>(
     () => [
+      ...referenceTraces(overlay.trajectory),
       {
         x: series.x_analytical,
         y: series.y_analytical,
@@ -48,7 +56,7 @@ function ProjectileChartsView({ result }: Props) {
         marker: { color: NUMERICAL, size: 7, symbol: "circle-open", line: { width: 2 } },
       },
     ],
-    [series, numerical.method],
+    [series, numerical.method, overlay],
   );
 
   const energy = useMemo<Data[]>(() => {
@@ -56,6 +64,7 @@ function ProjectileChartsView({ result }: Props) {
       (ke, i) => ke + series.potential_energy[i]! + series.drag_work[i]!,
     );
     return [
+      ...referenceTraces(overlay.energy),
       { x: series.t, y: series.kinetic_energy, name: "Kinetic", mode: "lines" },
       { x: series.t, y: series.potential_energy, name: "Potential", mode: "lines" },
       { x: series.t, y: series.drag_work, name: "Work against drag", mode: "lines" },
@@ -67,7 +76,7 @@ function ProjectileChartsView({ result }: Props) {
         line: { dash: "dash", color: "#64748b" },
       },
     ];
-  }, [series]);
+  }, [series, overlay]);
 
   return (
     <>
@@ -99,7 +108,10 @@ function ProjectileChartsView({ result }: Props) {
 }
 
 /** Results: the exact flight quantities, and the launch-angle sweep built on them. */
-export function ProjectileSummary({ result }: Props) {
+export function ProjectileSummary({
+  result,
+  referenceRun,
+}: Props & { referenceRun?: ReferenceRun }) {
   const { analytical, metadata } = result;
   return (
     <>
@@ -114,8 +126,13 @@ export function ProjectileSummary({ result }: Props) {
         ))}
       </dl>
       <p className="note">{analytical.method_note}</p>
+      <CsvDownloads response={result} />
       {/* Keyed by run, so a new simulation clears any earlier sweep. */}
-      <AngleSweepPanel key={metadata.run_id} parameters={result.parameters} />
+      <AngleSweepPanel
+        key={metadata.run_id}
+        parameters={result.parameters}
+        referenceRun={referenceRun}
+      />
     </>
   );
 }

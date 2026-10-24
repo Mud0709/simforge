@@ -10,13 +10,25 @@ import {
   runAngleSweep,
 } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
+import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
+import { ComparisonTable } from "./ComparisonTable";
+import { versionWarning } from "./ReferenceRunPanel";
+import type { ReferenceRun } from "./useReferenceRun";
 
 /**
  * Range against launch angle for the current settings, and the angle that maximises it.
- * Uses the parameters of the simulation already on screen; only the angle is varied.
+ * Uses the parameters of the simulation already on screen; only the angle is varied. A
+ * reference sweep, if the page has one, is drawn faded under it, and a sweep can be pinned.
  */
-export function AngleSweepPanel({ parameters }: { parameters: ProjectileParameters }) {
+export function AngleSweepPanel({
+  parameters,
+  referenceRun,
+}: {
+  parameters: ProjectileParameters;
+  referenceRun?: ReferenceRun;
+}) {
   const [sweep, setSweep] = useState<AngleSweepResponse | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +45,11 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
     }
   }
 
+  const reference = referenceRun?.response ?? null;
   const data = useMemo<Data[]>(() => {
     if (!sweep) return [];
     return [
+      ...referenceTraces(overlayFor(reference, "physics.projectile.angle_sweep").range),
       {
         x: sweep.angles_deg,
         y: sweep.ranges,
@@ -51,7 +65,7 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
         marker: { color: "#ea580c", size: 10 },
       },
     ];
-  }, [sweep]);
+  }, [sweep, reference]);
 
   const drag = (parameters.drag_coefficient ?? 0) > 0;
 
@@ -102,8 +116,41 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
             }}
           />
           <p className="note">{sweep.method_note}</p>
+          {referenceRun && <SweepReference referenceRun={referenceRun} sweep={sweep} />}
+          <CsvDownloads response={sweep} />
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The sweep's own pin control, a warning if a reference sweep ran on another version, and how
+ * this sweep differs from a reference sweep.
+ */
+function SweepReference({
+  referenceRun,
+  sweep,
+}: {
+  referenceRun: ReferenceRun;
+  sweep: AngleSweepResponse;
+}) {
+  const ref = referenceRun.reference;
+  const pinned = ref?.status === "ready" && ref.runId === sweep.metadata.run_id;
+  const warning = versionWarning(referenceRun.response, sweep);
+  return (
+    <>
+      {warning && <p className="api-error">{warning}</p>}
+      {referenceRun.response && (
+        <ComparisonTable reference={referenceRun.response} current={sweep} />
+      )}
+      {pinned ? (
+        <p className="note">This sweep is the reference run.</p>
+      ) : (
+        <button type="button" className="secondary" onClick={() => referenceRun.pin(sweep)}>
+          Pin sweep as reference run
+        </button>
+      )}
+    </>
   );
 }

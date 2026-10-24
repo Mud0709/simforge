@@ -28,6 +28,9 @@ const RESPONSE = {
   vacuum_best_angle_deg: 45,
   vacuum_best_range: 40.7886,
   method_note: "Exact solution.",
+  model: { id: "physics.projectile.angle_sweep" },
+  metadata: { run_id: "0123abcd-0000-0000-0000-000000000000" },
+  units: { angle: "deg", range: "m", flight_time: "s", max_height: "m" },
 } as unknown as AngleSweepResponse;
 
 function mockFetch(status: number, body: unknown) {
@@ -53,6 +56,9 @@ describe("AngleSweepPanel", () => {
     expect(screen.getByTestId("best-range")).toHaveTextContent("13.8929 m");
     expect(screen.getByTestId("vacuum-angle")).toHaveTextContent("45.00°");
     expect(screen.getByRole("img", { name: "Range against launch angle" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download range against angle (CSV)" }),
+    ).toBeInTheDocument();
 
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe("/api/v1/physics/projectile/angle-sweep");

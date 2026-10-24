@@ -73,6 +73,17 @@ answer came back: **identical** (bit for bit), **within tolerance** (each model 
 far each stored value may move, and why) or **differs**. A dataset profile of an uploaded file
 is replayed by sending the same file again; its SHA-256 is checked before it is read.
 
+**Comparison and export.** On any lab page, pin a run as the **reference run**, change the
+inputs and run again: the charts draw the reference's curves faded under the new ones, and a
+table lists the inputs that changed and how each summary value moved (absolute and relative
+change, with no "significant" verdict). A saved reference stays in the address (`?ref=<run_id>`),
+so a reload recomputes it from the experiment log, labelled "bit-identical" when its output
+fingerprint matches the original's. The data behind each model's charts downloads as CSV (made in
+your browser, numbers at full precision, units in the headers; the dataset profile exports
+column statistics, never your rows), and every saved run's record downloads as versioned JSON
+from the experiment log. The API routes are `POST /api/v1/experiments/{run_id}/outputs`
+(recompute a stored run, never saved) and `GET /api/v1/experiments/{run_id}/export`.
+
 Details, measured results and caveats are in [SCIENTIFIC_VALIDATION.md](SCIENTIFIC_VALIDATION.md).
 
 **Learning guides.** [docs/LEARNING_GUIDE.md](docs/LEARNING_GUIDE.md) covers the Physics Lab

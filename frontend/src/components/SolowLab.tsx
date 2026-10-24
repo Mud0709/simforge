@@ -12,8 +12,10 @@ import {
 } from "@/lib/economy/solowFields";
 import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import { NumberField } from "./NumberField";
+import { ReferenceRunPanel } from "./ReferenceRunPanel";
 import { SolowAssumptions, SolowCharts, SolowSummary, SolowValidation } from "./SolowResults";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReferenceRun } from "./useReferenceRun";
 import { useReopenedRun } from "./useReopenedRun";
 
 type FormValues = Record<string, string>;
@@ -21,6 +23,7 @@ type FormValues = Record<string, string>;
 const INITIAL_VALUES: FormValues = Object.fromEntries(
   ALL_SOLOW_FIELDS.map((f) => [f.name, String(f.default)]),
 );
+const PAGE_MODELS = ["economy.solow"] as const;
 
 function fieldErrors(values: FormValues): Record<string, string | null> {
   const errors = Object.fromEntries(
@@ -50,6 +53,7 @@ export function SolowLab() {
   const [result, setResult] = useState<SolowResponse | null>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify(values);
+  const referenceRun = useReferenceRun();
 
   const reopened = useReopenedRun(["economy.solow"], (run) => {
     const inputs = run.inputs as {
@@ -150,7 +154,12 @@ export function SolowLab() {
       parameters={form}
       status={runStatus(status, result)}
       staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
-      visualisation={result && <SolowCharts result={result} />}
+      reference={
+        (result || referenceRun.reference) && (
+          <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
+        )
+      }
+      visualisation={result && <SolowCharts result={result} reference={referenceRun.response} />}
       results={result && <SolowSummary result={result} />}
       assumptions={result && <SolowAssumptions result={result} />}
       validation={result && <SolowValidation result={result} />}
