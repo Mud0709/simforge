@@ -13,6 +13,7 @@ import { formatSig } from "@/lib/format";
 import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
+import { ComparisonTable } from "./ComparisonTable";
 import { versionWarning } from "./ReferenceRunPanel";
 import type { ReferenceRun } from "./useReferenceRun";
 
@@ -123,7 +124,10 @@ export function AngleSweepPanel({
   );
 }
 
-/** The sweep's own pin control, and a warning if a reference sweep ran on another version. */
+/**
+ * The sweep's own pin control, a warning if a reference sweep ran on another version, and how
+ * this sweep differs from a reference sweep.
+ */
 function SweepReference({
   referenceRun,
   sweep,
@@ -137,6 +141,9 @@ function SweepReference({
   return (
     <>
       {warning && <p className="api-error">{warning}</p>}
+      {referenceRun.response && (
+        <ComparisonTable reference={referenceRun.response} current={sweep} />
+      )}
       {pinned ? (
         <p className="note">This sweep is the reference run.</p>
       ) : (
