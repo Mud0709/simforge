@@ -1,8 +1,11 @@
-# Roadmap 1.6 plan: comparison and export (proposals, waiting for the author)
+# Roadmap 1.6 plan: comparison and export (decided)
 
 Written by the autopilot on 2026-10-24 (planning subagent, effort high; key claims re-checked
-against the code). **Nothing here is built.** Each decision needs your yes, no or change
-before its slice starts; reply in chat (e.g. "1.6: yes to all" or "D6: use localStorage").
+against the code). **Decided on 2026-10-24** in a two-round `grilling` session: the author accepted every
+recommendation below (D1-D8, the safety rule) and the name "reference run" (not "baseline",
+which Solow already uses), and confirmed the whole tree. Added at the author's request: slice 1
+times a recomputation of the slowest model (integrator study) before the export button ships.
+Building starts once PR #11 (roadmap 1.5) is merged.
 
 **The fact that drives most choices:** full series are *not* stored. A run record keeps inputs,
 summary, output digest, environment and labels (`backend/src/simforge/persistence/experiments.py:1-7`;
