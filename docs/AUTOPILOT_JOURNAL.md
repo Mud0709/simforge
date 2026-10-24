@@ -7,6 +7,20 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 18:40 UTC: new rule, pick up from the latest conversation (author's request)
+- **Did:** the skill's reorient step now reads the session's latest exchange (the author's last
+  message and the final response) before choosing work, so a tick continues from work the
+  author did in chat between ticks instead of from the previous tick. CLAUDE.md notes it.
+  The 18:26 tick was skipped (7-day status `allowed_warning`, 77%).
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** it reads conversation events back to your last message
+  (alternative: only STATE; reverse by deleting the paragraph in step 1.1).
+- **Waiting for you:** nothing.
+- **What this means for you:** you and the autopilot share one thread of work, so working
+  between ticks never makes it redo or undo your session.
+- **Learning checkpoint:** why is STATE alone not enough for a tick to know where work stands?
+- **Next:** roadmap 1.6, slices S1-S5 (in progress in chat).
+
 ## 2026-10-24 12:58 UTC: 1.6 decisions answered; resumed (author's request, not a tick)
 - **Did:** recorded the author's answers (yes to all 10, tree confirmed) in the plan and
   STATE; status `running`; 6-hourly task re-enabled (next 18:26 UTC). Work-limit count reset.

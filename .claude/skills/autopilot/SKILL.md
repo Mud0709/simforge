@@ -56,6 +56,15 @@ cost something. So each tick first decides whether it may run at all.
 ## 1. Reorient (every tick)
 1. `git fetch origin`, then `git status -sb`; if the branch is behind its remote, pull
    (fast-forward only). Then read `.claude/autopilot/STATE.md`.
+   **Pick up from the latest conversation, not the latest tick.** The author also works in this
+   session between ticks. Read the session's recent conversation (`list_events` with
+   `kinds: ["user", "assistant", "result"]`; page back until you reach the author's last
+   human message and the final response to it). If it is newer than the last tick, that
+   exchange is where work stands: continue from what it left (an unfinished slice, a stated
+   next step, a decision the author just made), never redo or contradict it, and update STATE
+   to match before choosing a unit. Work done in chat counts as done even if STATE lagged.
+   An instruction the author gave there still applies; a question the response asked them
+   and they have not answered is a stop for that branch of work.
 2. If `status` is `blocked`, `paused` or `waiting-review`: look for an answer from the author
    since the status was set (a human chat message, or the author's edit to "Waiting for you"
    in STATE on the remote). None: end the tick with one line ("Autopilot: waiting for you on
