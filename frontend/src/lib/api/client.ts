@@ -128,6 +128,11 @@ export function replayExperiment(runId: string, body: ReplayRequest): Promise<Re
   });
 }
 
+/** Where a saved run's versioned JSON record downloads from (a plain link, not a fetch). */
+export function exportUrl(runId: string): string {
+  return `${API_BASE}/experiments/${encodeURIComponent(runId)}/export`;
+}
+
 /** Saved runs, newest first; optionally one lab, one page at a time. */
 export function listExperiments(
   options: { lab?: Lab; limit?: number; offset?: number } = {},

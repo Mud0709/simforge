@@ -10,6 +10,7 @@ import {
   runAngleSweep,
 } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 /**
@@ -102,6 +103,7 @@ export function AngleSweepPanel({ parameters }: { parameters: ProjectileParamete
             }}
           />
           <p className="note">{sweep.method_note}</p>
+          <CsvDownloads response={sweep} />
         </>
       )}
     </section>

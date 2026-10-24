@@ -7,6 +7,7 @@ import type { ErrorMetric, ProjectileResponse } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
 import { AssumptionsList } from "./AssumptionsList";
 import { AngleSweepPanel } from "./AngleSweepPanel";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 const ANALYTICAL = "#2563eb";
@@ -114,6 +115,7 @@ export function ProjectileSummary({ result }: Props) {
         ))}
       </dl>
       <p className="note">{analytical.method_note}</p>
+      <CsvDownloads response={result} />
       {/* Keyed by run, so a new simulation clears any earlier sweep. */}
       <AngleSweepPanel key={metadata.run_id} parameters={result.parameters} />
     </>

@@ -115,6 +115,9 @@ describe("SolowLab", () => {
     expect(await screen.findByTestId("steady-state-baseline")).toHaveTextContent("3.68924");
     expect(screen.getByTestId("golden-rule-rate")).toHaveTextContent("0.3");
     expect(screen.getByTestId("half-life")).toHaveTextContent("12.37 years");
+    expect(
+      screen.getByRole("button", { name: "Download baseline and scenario paths (CSV)" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Production is Cobb-Douglas.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Capital per effective worker/ })).toBeInTheDocument();
     const check = screen.getByTestId("check-identical_before_policy");
