@@ -10,7 +10,7 @@ failures: none
 branch: claude/laughing-brahmagupta-50jkiy
 
 ## Budget (the author may edit these numbers)
-- weekly cap: 0.70. A tick never starts if it would take the 7-day window above this. The
+- weekly cap: 0.76 (raised from 0.70 by the author on 2026-10-24 for a test tick). A tick never starts if it would take the 7-day window above this. The
   other 30% is kept for the author.
 - weekly cap near reset: 0.90. Applies when the 7-day window resets within 12 hours (what is
   left at the reset is lost anyway).
