@@ -26,7 +26,7 @@ which exports its per-column statistics, never your file's rows).
 - **D1. Where exported/overlaid series come from.** (a) the page's in-memory response; (b)
   recompute stored runs and check the digest; (c) store series (breaks decision 5).
   **a + b**: use the response on screen, otherwise recompute, labelled "recomputed,
-  bit-identical" or "recomputed, not bit-identical: environment differs"; 409 if the model
+  bit-identical" or "recomputed, not bit-identical (cause not checked; usually another CPU or library version)"; 409 if the model
   version changed; an upload needs its file again, as in replay.
 - **D2. Recompute API.** (a) an `include_outputs` flag on replay (mixes a verdict with a data
   download); (b) a new `POST /experiments/{id}/outputs` → `{original_run_id, digest_match,

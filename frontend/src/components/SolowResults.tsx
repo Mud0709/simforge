@@ -3,10 +3,12 @@
 import type { Data, Layout } from "plotly.js";
 import { memo, useMemo } from "react";
 
-import type { SolowResponse } from "@/lib/api/client";
+import type { ModelResponse, SolowResponse } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
+import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { AssumptionsList } from "./AssumptionsList";
 import { ChecksTable } from "./ChecksTable";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 const BASELINE = "#64748b";
@@ -49,20 +51,27 @@ function policyLine(year: number): Partial<Layout> {
   };
 }
 
-function SolowChartsView({ result }: Props) {
+/** Capital, consumption and output per worker, over any reference run's paths (faded). */
+function SolowChartsView({
+  result,
+  reference = null,
+}: Props & { reference?: ModelResponse | null }) {
   const { years, baseline, scenario, policy } = result;
+  const overlay = useMemo(() => overlayFor(reference, "economy.solow"), [reference]);
 
   const capital = useMemo<Data[]>(
     () => [
+      ...referenceTraces(overlay.capital),
       { x: years, y: baseline.capital, name: "Baseline", mode: "lines", line: { color: BASELINE } },
       { x: years, y: scenario.capital, name: "Scenario", mode: "lines", line: { color: SCENARIO } },
       hline(result.baseline_steady_state.capital, "k*(s₀)", years, BASELINE),
       hline(result.scenario_steady_state.capital, "k*(s₁)", years, SCENARIO),
     ],
-    [result, years, baseline, scenario],
+    [result, years, baseline, scenario, overlay],
   );
   const consumption = useMemo<Data[]>(
     () => [
+      ...referenceTraces(overlay.consumption),
       {
         x: years,
         y: baseline.consumption,
@@ -79,10 +88,11 @@ function SolowChartsView({ result }: Props) {
       },
       hline(result.golden_rule.consumption, "Golden-rule c*", years, REFERENCE),
     ],
-    [result, years, baseline, scenario],
+    [result, years, baseline, scenario, overlay],
   );
   const perWorker = useMemo<Data[]>(
     () => [
+      ...referenceTraces(overlay.output_per_worker),
       {
         x: years,
         y: baseline.output_per_worker_index,
@@ -98,7 +108,7 @@ function SolowChartsView({ result }: Props) {
         line: { color: SCENARIO },
       },
     ],
-    [years, baseline, scenario],
+    [years, baseline, scenario, overlay],
   );
 
   const shared = policyLine(present(policy.policy_year, "policy_year"));
@@ -230,6 +240,7 @@ export function SolowSummary({ result }: Props) {
         {formatSig(s.capital_output_ratio, 4)} years (s₁). Capital, output and consumption are per
         effective worker, in model units.
       </p>
+      <CsvDownloads response={result} />
     </>
   );
 }

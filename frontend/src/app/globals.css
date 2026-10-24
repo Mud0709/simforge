@@ -526,6 +526,13 @@ button.secondary[aria-pressed="true"] {
   font-weight: 600;
 }
 
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 /* A flex box inside the cell: a flex <td> stops being a table cell and breaks row lines. */
 .actions-inner {
   display: flex;

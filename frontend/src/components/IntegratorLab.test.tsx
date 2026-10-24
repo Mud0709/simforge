@@ -122,6 +122,9 @@ describe("IntegratorLab", () => {
     await screen.findByTestId("order-euler");
     expect(within(region("Results")).getByTestId("order-euler")).toBeInTheDocument();
     expect(
+      within(region("Results")).getByRole("button", { name: "Download trajectories (CSV)" }),
+    ).toBeInTheDocument();
+    expect(
       within(region("Visualisation")).getByRole("img", {
         name: /maximum position error against time step/,
       }),

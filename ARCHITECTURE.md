@@ -45,7 +45,9 @@ simforge/
 │   │   │                              model's registry entry sits next to its route),
 │   │   │                              runs.py (ModelEntry + the shared run path), registry.py
 │   │   │                              (every model by id), recording.py (run metadata +
-│   │   │                              experiment log), errors, body_limit.py (request-size guard)
+│   │   │                              experiment log), errors, body_limit.py (request-size guard),
+│   │   │                              rerun.py (the refusals shared by replay and recompute),
+│   │   │                              replay.py, outputs.py (recomputed outputs, roadmap 1.6)
 │   │   ├── config.py                Settings from SIMFORGE_* environment variables
 │   │   └── main.py                  App factory
 │   ├── tests/                       pytest: physics/, economy/, quant/ (reference tests), api/,
@@ -57,8 +59,15 @@ simforge/
 │   ├── src/components/              Workspace (shared layout, used by every model page),
 │   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel,
 │   │                                IntegratorLab/Results, QuantLab/Results, ChecksTable,
-│   │                                NumberField, PlotlyChart, ExperimentLog
-│   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client
+│   │                                NumberField, PlotlyChart, ExperimentLog; the reference run
+│   │                                and export pieces: useReferenceRun, ReferenceRunPanel,
+│   │                                ComparisonTable, CsvDownloads
+│   ├── src/lib/api/                 openapi.json + generated schema.d.ts + typed client;
+│   │                                models.ts narrows a response to one model by its id
+│   ├── src/lib/export/              csv.ts (RFC 4180 writer, formula guard), tables.ts (what
+│   │                                each model exports as CSV)
+│   ├── src/lib/reference/           overlay.ts (a reference run's curves per chart),
+│   │                                compare.ts (input and summary differences)
 │   ├── src/lib/fields.ts            Schema-driven form fields for every lab (bounds and integer
 │   │                                types read from openapi.json); lib/projectile and lib/economy
 │   │                                list each model's fields; lib/quant encodes uploads
@@ -278,6 +287,73 @@ labels, not part of the scientific record: `PATCH` can change only them, and the
 them as plain text. With no authentication, anyone using the deployment can edit labels;
 deletion stays deferred because it could destroy records.
 
+### 17. Comparison and export (roadmap 1.6)
+A lab page can pin a run as its **reference run**: the charts draw the reference's curves
+faded under the new run's, and a table shows what changed. Any chart's data downloads as CSV,
+and any saved run's record as JSON. The plan and its decisions (D1-D8) are in
+`docs/plans/ROADMAP_1_6_PLAN.md`; the choices that shape the code are:
+
+- **Series are recomputed, not stored, and the digest says whether the recomputation is
+  exact.** Decision 5 stands: the log keeps no curves. `POST /experiments/{id}/outputs`
+  (`api/outputs.py`) rebuilds the stored request, runs it through the same registry entry as
+  the original, saves nothing, and returns `{original_run_id, digest_match, response}`.
+  `digest_match` is true when the new output digest equals the stored one (every value
+  bit-identical), false when both exist and differ, and null for a v1 record with no digest.
+  The page labels a recomputed reference "recomputed, bit-identical", "recomputed, not
+  bit-identical (cause not checked; usually another CPU or library version)" or "cannot be
+  checked". The response is a union of the five models' responses, told apart by
+  `model.id` (adding a literal field to tell them apart would have changed every digest).
+- **One refusal helper for every rerun.** Replay and recompute both start with
+  `prepare_rerun` (`api/rerun.py`), so they refuse exactly the same cases with the same
+  status and message (unknown model 422, changed model version 409, stored inputs no longer
+  valid 422, an uploaded file missing or different 422, checked before it is read); a test
+  sends the same bad cases to both routes. Both then pass the stored input hash to
+  `execute_run`, which refuses (409) a rebuilt request that no longer hashes the same.
+- **CSV is made in the browser.** `lib/export/tables.ts` turns each model's response into
+  wide tables (one column per quantity, `name [unit]` headers from the response's own `units`
+  map), and `lib/export/csv.ts` writes them as plain RFC 4180 (comma, CRLF, quoting) with each
+  number in its shortest round-trip form. Only the browser has an unsaved run or an uploaded
+  file's profile, so a server-side CSV route could not serve those. Provenance lives in the
+  filename, `<model>_<first 8 characters of the run id>_<table>.csv`, not in comment lines,
+  which break ordinary CSV readers. The dataset profile exports its per-column statistics,
+  never the file's rows.
+- **The CSV formula guard.** Text that starts with `=`, `+`, `-`, `@`, a tab or a carriage
+  return gets a leading `'`, so a spreadsheet shows it as text instead of running it as a
+  formula (CSV or formula injection). Headers are guarded too, because Quant column names come
+  from the user's file. Numbers are never prefixed: a negative number starts with `-`, and a
+  number is written by the code, not taken from the user. Run names and notes never appear in
+  CSVs or filenames.
+- **A versioned JSON export.** `GET /experiments/{id}/export` returns `RunExport
+  {export_version: 1, exported_at, record}`, where `record` is exactly what
+  `GET /experiments/{id}` shows, as a download named `<model>_<run8>.json`. The version lets a
+  future import or report check what it reads. It holds the record only, no series; an
+  unsaved run has no record to export.
+- **The reference run lives in the URL.** Pinning a saved run sets `?ref=<run_id>` (like
+  `?run=` for reopening), so a reload, or a copied link, recomputes it from the log. An unsaved
+  run, or a profile of an uploaded file (whose recomputation needs the file), is held in the
+  tab's memory only and labelled as lost on reload. Not a database flag: a pinned run is one
+  person's working choice, and with no authentication a flag would be global for everyone.
+  A refused reference (409, 422, 404) is shown as a message and the page works without one.
+- **Same-model overlay only.** `lib/reference/overlay.ts` keeps each model's curves as named
+  series with units, and draws a reference only over runs of the same model, with a warning
+  when the model versions differ. The dataset profile is compared in the table only. Named
+  series with units leave room for a later cross-model overlay.
+- **A comparison without verdicts.** `ComparisonTable` lists the inputs that differ and,
+  for every stored summary value, the reference value, the new value, the change
+  (new − reference) and the relative change ((new − reference) / |reference|, shown as "—"
+  when the reference is 0). It says nothing about whether a change matters: replay
+  tolerances measure whether a recomputation reproduced a run, not whether two different
+  scenarios differ meaningfully.
+- **A drift check for the copied field lists.** The comparison rebuilds, in the browser,
+  the inputs and summary a run record stores (`lib/reference/compare.ts`). The Playwright test
+  `e2e/stored-fields.spec.ts` saves one real run per model (two for the dataset profile) and
+  requires the browser's fields to equal the stored record's exactly, so a change to what the
+  backend stores cannot silently desynchronise the table.
+
+On the page, the reference run is one more `Workspace` section, "Reference run", above
+Visualisation; the CSV buttons sit in each model's Results (the angle sweep's in its own panel),
+and the experiment log has an "Export JSON" link per run.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -295,6 +371,8 @@ deletion stays deferred because it could destroy records.
 | GET | `/api/v1/experiments?lab=&limit=&offset=` | The log, newest first, with each model's one-line headline |
 | PATCH | `/api/v1/experiments/{run_id}` | Set a run's name and note (nothing else can change) |
 | POST | `/api/v1/experiments/{run_id}/replay` | Rerun a stored run; verdict identical / within tolerance / differs |
+| POST | `/api/v1/experiments/{run_id}/outputs` | Recompute a stored run's full response, with whether it is bit-identical; saves nothing |
+| GET | `/api/v1/experiments/{run_id}/export` | The run record as a versioned JSON download (`export_version: 1`) |
 
 ## Adding a new model (the intended pattern)
 
@@ -306,7 +384,10 @@ deletion stays deferred because it could destroy records.
    `execute(entry, ...)` from the endpoint, and add the entry to `api/registry.py`. The
    registry test then checks that stored inputs rebuild the same computation.
 4. Run `make api-types`, then build the UI in `frontend/src/components/` inside `Workspace`,
-   with form fields declared through `spec()` in `lib/fields.ts`.
+   with form fields declared through `spec()` in `lib/fields.ts`. Add the model to the
+   response union in `api/outputs.py` and `lib/api/models.ts`, give it CSV tables
+   (`lib/export/tables.ts`), reference curves (`lib/reference/overlay.ts`) and its stored
+   fields (`lib/reference/compare.ts`), and add a case to `e2e/stored-fields.spec.ts`.
 5. Add a chapter to the lab's learning guide (`docs/`).
 
 ## Deliberately not included (yet)

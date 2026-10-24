@@ -13,6 +13,17 @@ interface Props {
 
 const CONFIG: Partial<Config> = { responsive: true, displaylogo: false };
 
+// Every chart on a page shares one import of Plotly. (Vitest's module mock also needs this:
+// several imports of a mocked module started at the same moment can get the real one.)
+let plotly: Promise<typeof import("plotly.js-dist-min")> | null = null;
+function loadPlotly() {
+  plotly ??= import("plotly.js-dist-min").catch((err: unknown) => {
+    plotly = null; // let a later chart try again
+    throw err;
+  });
+  return plotly;
+}
+
 /**
  * Thin wrapper around Plotly. Plotly touches `window`, so it is imported lazily on the
  * client inside an effect; `Plotly.react` diffs against the previous figure for cheap updates.
@@ -23,7 +34,7 @@ export function PlotlyChart({ data, layout, title, height }: Props) {
   useEffect(() => {
     let cancelled = false;
     const el = ref.current;
-    void import("plotly.js-dist-min").then(({ default: Plotly }) => {
+    void loadPlotly().then(({ default: Plotly }) => {
       if (cancelled || !el) return;
       const styles = getComputedStyle(document.documentElement);
       const fg = styles.getPropertyValue("--fg").trim() || "#1a1d24";
@@ -52,7 +63,7 @@ export function PlotlyChart({ data, layout, title, height }: Props) {
   useEffect(() => {
     const el = ref.current;
     return () => {
-      if (el) void import("plotly.js-dist-min").then(({ default: Plotly }) => Plotly.purge(el));
+      if (el) void loadPlotly().then(({ default: Plotly }) => Plotly.purge(el));
     };
   }, []);
 

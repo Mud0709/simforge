@@ -8,6 +8,47 @@ approves it, in the branch of their next change (never directly on `main`).
 
 ---
 
+## Roadmap 1.5: a usable experiment log; the autopilot
+- **Merged:** PR #11, `d949170` (2026-10-24).
+- **What it does:** the experiment log gets headlines written by each model, a lab filter and
+  paging; a saved run reopens on its page with its inputs; Replay from the log shows the
+  verdict; runs can have a name and a note (schema v3). Also adds the autopilot protocol,
+  state and journal, and records the 1.6 plan (comparison and export).
+- **Key concepts:** labels vs results (PATCH may change only the name and note); migrations
+  that chain v1 → v2 → v3 in one transaction; a race condition in parallel e2e tests ("the
+  newest row" was another test's run).
+- **Decisions and trade-offs:** reopening fills the form but runs nothing; replays are saved
+  only when asked; the autopilot never merges and pauses after 6 commits without the author.
+- **Revisit:** why an uploaded file has to be supplied again to reopen or replay its run.
+- **Next:** roadmap 1.6, run comparison and export.
+
+## Roadmap 1.4: model registry, run record v2 and replay
+- **Merged:** PR #10, `9ed5c21` (2026-10-23).
+- **What it does:** one registry entry per model and one shared run path; run record v2 with
+  an output digest, code identity and a backed-up migration of v1 logs; golden runs; replay
+  with a verdict: identical, within tolerance or differs.
+- **Key concepts:** a digest (SHA-256 of canonical JSON) shows bit-identity, not correctness;
+  tolerances declared in advance, each with a reason; CI's CPUs changed the last bits
+  (summation order), about 1e-15 relative.
+- **Decisions and trade-offs:** golden runs pass on a matching digest, otherwise only within
+  tolerance, with a warning saying so; each run records its CPU model; the original run is
+  never changed, a replay is a new linked record.
+- **Revisit:** why the same code and libraries gave different digests on another machine.
+- **Next:** 1.5, a usable experiment log.
+
+## Review fixes: Economy, Workspace UI and docs
+- **Merged:** PR #9, `41ee90e` (2026-10-22).
+- **What it does:** fixes the remaining review findings: the Solow convergence note's real
+  reason, a fuller bit-identity check; a Workspace out-of-date note and status line, a
+  Parameters panel never taller than the window; IB Foundations and roadmap wording.
+- **Key concepts:** results marked out of date when the form no longer matches them; a
+  worst-case uncertainty bound (IB rules) vs a typical spread (Monte Carlo).
+- **Decisions and trade-offs:** the ROADMAP no longer says "verified" for what was not
+  checked; a shared AssumptionsList replaces four copies.
+- **Revisit:** why IB's uncertainty rules are exact for sums but only first order for
+  products.
+- **Next:** roadmap 1.4.
+
 ## Review fixes: Physics and Quant labs
 - **Merged:** PR #8, `c80fd6d` (2026-10-21).
 - **What it does:** fixes bugs found by reviewing all merged work: a false t = 0 landing,

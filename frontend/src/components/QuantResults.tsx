@@ -8,6 +8,7 @@ import { formatSig } from "@/lib/format";
 import { binGeometry } from "@/lib/quant/histogram";
 import { AssumptionsList } from "./AssumptionsList";
 import { ChecksTable } from "./ChecksTable";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 const MISSING = "#64748b";
@@ -350,6 +351,11 @@ export function QuantSummary({ result }: Props) {
           </div>
         </>
       )}
+
+      <CsvDownloads response={result} />
+      <p className="note">
+        The CSV holds these per-column statistics only, never the rows of your file.
+      </p>
 
       <h3>Preview</h3>
       <p className="note">

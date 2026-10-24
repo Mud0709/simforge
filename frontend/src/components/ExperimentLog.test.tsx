@@ -79,6 +79,15 @@ describe("ExperimentLog", () => {
     expect(await screen.findByText(/replay of 01234567/)).toBeInTheDocument();
   });
 
+  it("links each saved run to its JSON export", async () => {
+    mockLog([run(1, { run_id: "0123abcd-ef" })]);
+    render(<ExperimentLog />);
+    const row = await screen.findByRole("row", { name: /economy\.solow/ });
+    const link = within(row).getByRole("link", { name: "Export JSON" });
+    expect(link).toHaveAttribute("href", "/api/v1/experiments/0123abcd-ef/export");
+    expect(link).toHaveAttribute("download");
+  });
+
   it("says when there are no runs in a lab yet", async () => {
     mockLog([]);
     render(<ExperimentLog />);

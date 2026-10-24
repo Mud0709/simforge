@@ -536,7 +536,7 @@
         "additionalProperties": false,
         "properties": {
           "content_base64": {
-            "description": "The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this replay only and never stored.",
+            "description": "The same file the run profiled, base64-encoded. Checked by SHA-256 and size before it is read; it is used for this rerun only and never stored.",
             "title": "Content Base64",
             "type": "string"
           }
@@ -2088,6 +2088,73 @@
         "title": "ProjectileSeries",
         "type": "object"
       },
+      "RecomputeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DatasetSupply"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for a dataset profile of an uploaded file."
+          }
+        },
+        "title": "RecomputeRequest",
+        "type": "object"
+      },
+      "RecomputedOutputs": {
+        "additionalProperties": false,
+        "properties": {
+          "digest_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "True if every recomputed output value is bit-identical to the stored run's (the output digests are equal). False if both digests exist and differ (another CPU or library can round the last bits differently). Null if the stored record is v1 and has no output digest, so bit-identity cannot be checked.",
+            "title": "Digest Match"
+          },
+          "original_run_id": {
+            "title": "Original Run Id",
+            "type": "string"
+          },
+          "response": {
+            "description": "The model's normal response, computed again from the stored inputs. Its metadata describes this recomputation (a new run id); it is never saved.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectileResponse"
+              },
+              {
+                "$ref": "#/components/schemas/IntegratorStudyResponse"
+              },
+              {
+                "$ref": "#/components/schemas/AngleSweepResponse"
+              },
+              {
+                "$ref": "#/components/schemas/SolowResponse"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileResponse"
+              }
+            ],
+            "title": "Response"
+          }
+        },
+        "required": [
+          "original_run_id",
+          "digest_match",
+          "response"
+        ],
+        "title": "RecomputedOutputs",
+        "type": "object"
+      },
       "ReferenceLine": {
         "additionalProperties": false,
         "description": "A line of the *theoretical* slope through the finest point in the fit range.\nIt is a visual guide, not a fit.",
@@ -2241,6 +2308,35 @@
           "metadata"
         ],
         "title": "ReplayResponse",
+        "type": "object"
+      },
+      "RunExport": {
+        "additionalProperties": false,
+        "description": "A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The\nversion lets a future import or report check what it reads. No series: the log stores\ninputs, not curves (ARCHITECTURE decision 5).",
+        "properties": {
+          "export_version": {
+            "const": 1,
+            "description": "The export format version.",
+            "title": "Export Version",
+            "type": "integer"
+          },
+          "exported_at": {
+            "description": "When this export was made (UTC).",
+            "format": "date-time",
+            "title": "Exported At",
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/LoggedRun",
+            "description": "The run exactly as GET /experiments/{run_id} shows it."
+          }
+        },
+        "required": [
+          "export_version",
+          "exported_at",
+          "record"
+        ],
+        "title": "RunExport",
         "type": "object"
       },
       "RunLabels": {
@@ -3220,6 +3316,101 @@
           }
         },
         "summary": "Label Experiment",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/experiments/{run_id}/export": {
+      "get": {
+        "operationId": "export_experiment_api_v1_experiments__run_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunExport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Experiment",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/experiments/{run_id}/outputs": {
+      "post": {
+        "description": "Compute a stored run again and return its full response (series included), with\nwhether it is bit-identical to the original. Refuses exactly what replay refuses; never\nsaves anything.",
+        "operationId": "recompute_experiment_outputs_api_v1_experiments__run_id__outputs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecomputeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecomputedOutputs"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recompute Experiment Outputs",
         "tags": [
           "experiments"
         ]

@@ -542,7 +542,7 @@ The page applies the same idea so that changed settings can never pass as fresh 
 remembers the exact settings each result was computed with, and shows a "settings have
 changed" notice the moment they differ:
 
-<!-- src: frontend/src/components/QuantLab.tsx:37-48 -->
+<!-- src: frontend/src/components/QuantLab.tsx:41-52 -->
 ```tsx
 function settingsKey(
   source: string,
@@ -574,6 +574,22 @@ started, so a slow old reply can never overwrite a newer result.
 
 **Checkpoint 6:** someone suggests storing every uploaded file "so replay is easier". Give two
 reasons against, and describe how replay can work without storing the file (hint: the hash).
+
+### 6.5 Exporting and comparing a profile (roadmap 1.6)
+The profile page has a CSV download, made in your browser. It holds the **per-column
+statistics** (counts, percentages, mean, quartiles and so on), never your file's rows: no
+preview, no example values, no top categories. Column names do go in it, and they come from
+your file, so they are untrusted text. A name such as `=HYPERLINK(...)` could run as a
+formula when the CSV is opened in a spreadsheet, so any text starting with `=`, `+`, `-`, `@`,
+a tab or CR gets a leading `'` (main guide, Part 17.3). Numbers are not touched.
+
+A profile can also be the **reference run** of the page: the comparison table then shows how
+the counts changed (rows, missing cells, duplicates, mixed columns). A profile of an uploaded
+file is held in the browser tab only, because recomputing it would need the file, which the
+server never keeps (6.4); it is lost on reload, and the page says so.
+
+**Checkpoint 6b:** why is a column name such as `-income` guarded in the CSV, but a mean of
+`-3.2` is not? And what would be lost, and what risked, if the CSV included the file's rows?
 
 ---
 
@@ -635,6 +651,8 @@ statistics.
 ---
 
 ## Changelog
+- **2026-10-24 (roadmap 1.6):** 6.5 added: the profile's CSV export (statistics only, never
+  rows; column names guarded against formula injection) and a profile as a reference run.
 - **2026-10-21 (review of the merged PRs):**
   - 6.2 corrected: base64's 3-byte groups allow 1 extra byte, not 2, and the parser's
     size check is the one that catches it; a duplicate check was removed.

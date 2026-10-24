@@ -56,6 +56,15 @@ cost something. So each tick first decides whether it may run at all.
 ## 1. Reorient (every tick)
 1. `git fetch origin`, then `git status -sb`; if the branch is behind its remote, pull
    (fast-forward only). Then read `.claude/autopilot/STATE.md`.
+   **Pick up from the latest conversation, not the latest tick.** The author also works in this
+   session between ticks. Read the session's recent conversation (`list_events` with
+   `kinds: ["user", "assistant", "result"]`; page back until you reach the author's last
+   human message and the final response to it). If it is newer than the last tick, that
+   exchange is where work stands: continue from what it left (an unfinished slice, a stated
+   next step, a decision the author just made), never redo or contradict it, and update STATE
+   to match before choosing a unit. Work done in chat counts as done even if STATE lagged.
+   An instruction the author gave there still applies; a question the response asked them
+   and they have not answered is a stop for that branch of work.
 2. If `status` is `blocked`, `paused` or `waiting-review`: look for an answer from the author
    since the status was set (a human chat message, or the author's edit to "Waiting for you"
    in STATE on the remote). None: end the tick with one line ("Autopilot: waiting for you on
@@ -63,8 +72,10 @@ cost something. So each tick first decides whether it may run at all.
 3. Check the open PR for the branch and the check runs on its head commit.
 4. **The work limit.** Count the autopilot's commits since the author's last chat message (the
    journal records them). At **6 commits**, or once the current roadmap step is complete, set
-   `status: waiting-review`, pause (step 6), journal it, and stop. Never move the 🔜 marker in
-   `ROADMAP.md` to a new step without the author.
+   `status: waiting-review`, pause (step 6), journal it, and stop. Move the 🔜 marker in
+   `ROADMAP.md` only within a phase the author has authorised (STATE, "Authorised phase"):
+   to the next step of that phase, in Track B order, once the previous step's PR is merged.
+   A new phase, or any change of scope or order, still needs the author.
 
 ## 2. Choose the unit of work (first match wins)
 1. **Red CI or a merge conflict** on the open PR: root-cause and fix (`systematic-debugging`).
@@ -76,8 +87,10 @@ cost something. So each tick first decides whether it may run at all.
 5. **The 🔜 roadmap step**, Track B order. Do not start a new step while the branch's PR still
    holds an earlier, unmerged step: one capability per PR (`CLAUDE.md`). Then, until it is
    merged, only finish or fix that PR, or plan the next step in the journal (no code).
-   A new step starts with a plan and its decisions (step 3); then it is built test-first
-   (`tdd`), one slice per tick.
+   A new step starts with a plan: run the `grilling` skill on yourself (step 3), then build it
+   test-first with the `tdd` skill, one slice per tick. If the authorised phase has no step
+   table yet, the first unit is to split its ROADMAP paragraph into steps, keeping every item
+   and its order (adding nothing, dropping nothing), with 🔜 on the first.
 
 Size: one tick = one commit that leaves the app working and fully checked. If a unit cannot
 finish in a tick, commit what is green, record the remainder in STATE, and continue next tick.
@@ -88,11 +101,18 @@ layout, test cases, UI wording, small refactors. Take the answer you would have 
 and record it under "Decisions taken for you" in the journal, with the alternative and how to
 reverse it.
 
-**Proposals: journal them, build around them.** `CLAUDE.md` asks that significant decisions
-go to the author *before* implementing. So API contracts, database schemas, architecture and
-scientific-method choices at the start of a step are written as proposals (options and your
-recommendation, as in the `grilling` skill) under "Waiting for you". Build only slices that do
-not depend on them. If nothing else can be built, set `status: waiting-review` and pause.
+**Design decisions: grill yourself and take the defaults.** The author has delegated these
+(2026-10-24: "make it agree to defaults"). For API contracts, schemas, architecture and
+scientific-method choices at the start of a step, follow the `grilling` skill with yourself
+as the one answering: map the design tree, ask each frontier round, and **accept your own
+recommended answer** for every question (the default), round by round, until the frontier is
+empty. Have a planning subagent (effort `high`) draft the tree and recommendations, then check
+them yourself against the code and `CLAUDE.md`'s standards before accepting. Write the result
+as a plan in `docs/plans/` (decisions, options, the default taken and why, slices, risks) and
+list every decision under "Decisions taken for you" in the journal, with how to reverse it.
+The `tdd` skill's "confirm the seams with the user" works the same way: propose the seams,
+accept your own recommendation, and record them in the plan. A default never overrides a
+genuine stop below: if a question is one of those, stop instead of answering it.
 
 **Genuine stops: these need the author now.**
 - changing the roadmap's scope or order, or Track A/B (the preservation rule);
