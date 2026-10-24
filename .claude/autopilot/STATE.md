@@ -4,11 +4,13 @@ Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). 
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
 status: running
-scheduled task: SimForge autopilot (id recorded below once created)
+scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 2 hours at :20, UTC)
+failures: none
 branch: claude/laughing-brahmagupta-50jkiy
 
 ## Current unit
-None yet. The next roadmap step is 1.6 (comparison and export).
+None. The next roadmap step is 1.6 (comparison and export). PR #11 (roadmap 1.5) is not
+merged yet, so until it is, the autopilot only plans 1.6 (proposals in the journal, no code).
 
 ## Remainder of the current unit
 —
