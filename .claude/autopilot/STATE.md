@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: paused
+status: running
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
 failures: none
