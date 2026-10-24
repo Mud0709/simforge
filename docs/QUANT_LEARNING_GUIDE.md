@@ -542,7 +542,7 @@ The page applies the same idea so that changed settings can never pass as fresh 
 remembers the exact settings each result was computed with, and shows a "settings have
 changed" notice the moment they differ:
 
-<!-- src: frontend/src/components/QuantLab.tsx:37-48 -->
+<!-- src: frontend/src/components/QuantLab.tsx:41-52 -->
 ```tsx
 function settingsKey(
   source: string,

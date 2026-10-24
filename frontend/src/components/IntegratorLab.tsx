@@ -18,7 +18,9 @@ import {
   IntegratorValidation,
 } from "./IntegratorResults";
 import { NumberField } from "./NumberField";
+import { ReferenceRunPanel } from "./ReferenceRunPanel";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReferenceRun } from "./useReferenceRun";
 import { useReopenedRun } from "./useReopenedRun";
 
 export const METHOD_LABELS: Record<IntegratorMethod, string> = {
@@ -27,6 +29,7 @@ export const METHOD_LABELS: Record<IntegratorMethod, string> = {
   verlet: "Velocity Verlet, implicit drag (order 2)",
 };
 const METHODS = Object.keys(METHOD_LABELS) as IntegratorMethod[];
+const PAGE_MODELS = ["physics.projectile.integrators"] as const;
 
 // The study defaults to stronger drag (b = 1 kg/s) than the simulator, matching the
 // backend's default: with weak drag the exponential part of the solution is too small for
@@ -46,6 +49,7 @@ export function IntegratorLab() {
   const [result, setResult] = useState<IntegratorStudyResponse | null>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify([values, stepsText, [...methods].sort()]);
+  const referenceRun = useReferenceRun();
 
   const reopened = useReopenedRun(["physics.projectile.integrators"], (run) => {
     const inputs = run.inputs as {
@@ -173,7 +177,14 @@ export function IntegratorLab() {
       parameters={form}
       status={runStatus(running ? "running" : "idle", result)}
       staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
-      visualisation={result && <IntegratorCharts result={result} />}
+      reference={
+        (result || referenceRun.reference) && (
+          <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
+        )
+      }
+      visualisation={
+        result && <IntegratorCharts result={result} reference={referenceRun.response} />
+      }
       results={result && <IntegratorOrders result={result} />}
       assumptions={result && <IntegratorAssumptions result={result} />}
       validation={result && <IntegratorValidation result={result} />}

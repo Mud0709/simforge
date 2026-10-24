@@ -3,8 +3,9 @@
 import type { Data } from "plotly.js";
 import { memo, useMemo } from "react";
 
-import type { IntegratorStudyResponse, MethodStudyResult } from "@/lib/api/client";
+import type { IntegratorStudyResponse, MethodStudyResult, ModelResponse } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
+import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { AssumptionsList } from "./AssumptionsList";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
@@ -83,12 +84,32 @@ const logAxes = (yTitle: string) => ({
   yaxis: { type: "log" as const, title: { text: yTitle }, exponentformat: "power" as const },
 });
 
-/** Visualisation: convergence plots and trajectories. */
-function IntegratorChartsView({ result }: Props) {
-  const position = useMemo(() => convergenceTraces(result.results, "position"), [result]);
-  const velocity = useMemo(() => convergenceTraces(result.results, "velocity"), [result]);
+/** Visualisation: convergence plots and trajectories, over any reference run's (faded). */
+function IntegratorChartsView({
+  result,
+  reference = null,
+}: Props & { reference?: ModelResponse | null }) {
+  const overlay = useMemo(
+    () => overlayFor(reference, "physics.projectile.integrators"),
+    [reference],
+  );
+  const position = useMemo(
+    () => [
+      ...referenceTraces(overlay.position_error),
+      ...convergenceTraces(result.results, "position"),
+    ],
+    [result, overlay],
+  );
+  const velocity = useMemo(
+    () => [
+      ...referenceTraces(overlay.velocity_error),
+      ...convergenceTraces(result.results, "velocity"),
+    ],
+    [result, overlay],
+  );
   const trajectories = useMemo<Data[]>(
     () => [
+      ...referenceTraces(overlay.trajectories),
       {
         x: result.exact_trajectory.x,
         y: result.exact_trajectory.y,
@@ -106,7 +127,7 @@ function IntegratorChartsView({ result }: Props) {
           line: { color: COLORS[m.method], width: 1.5, dash: "dash" },
         })),
     ],
-    [result],
+    [result, overlay],
   );
 
   return (
