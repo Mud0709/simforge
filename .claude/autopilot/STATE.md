@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: waiting-review
+status: running
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
 failures: none
@@ -25,16 +25,15 @@ branch: claude/laughing-brahmagupta-50jkiy
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 1.6 is planned: `docs/plans/ROADMAP_1_6_PLAN.md` (8 decisions, 5 slices). No code
-until PR #11 is merged and you answer the decisions.
+Roadmap 1.6 is planned and decided: `docs/plans/ROADMAP_1_6_PLAN.md` (all recommendations
+accepted by the author on 2026-10-24). Next: slice 1 (backend recompute route), on a new PR,
+once PR #11 is merged. Until then there is nothing to build: pause again.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-- The 8 decisions for roadmap 1.6 (D1-D8 in `docs/plans/ROADMAP_1_6_PLAN.md`), each with a
-  recommendation. Reply in chat, e.g. "1.6: yes to all".
-- Merge PR #11, so 1.6 can start on a fresh PR.
+- Merge PR #11, so 1.6 can start on a fresh PR. (The 1.6 decisions are answered.)
 
 ## For your daily review (not blocking)
 - Learning-log drafts for PRs #9 and #10 (in chat on 2026-10-23): approve or edit.

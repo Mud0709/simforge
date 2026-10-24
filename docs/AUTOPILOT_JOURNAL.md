@@ -7,6 +7,16 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 12:58 UTC: 1.6 decisions answered; resumed (author's request, not a tick)
+- **Did:** recorded the author's answers (yes to all 10, tree confirmed) in the plan and
+  STATE; status `running`; 6-hourly task re-enabled (next 18:26 UTC). Work-limit count reset.
+- **Checks run:** none needed (docs only).
+- **Decisions taken for you:** none.
+- **Waiting for you:** merge PR #11; the weekly cap is still 0.76 (your test setting).
+- **What this means for you:** the design is settled, so ticks after the merge can build.
+- **Learning checkpoint:** why does the plan pin the reference run in the URL, not the database?
+- **Next:** after the merge, slice 1 (recompute route) with `tdd`, on a new PR.
+
 ## 2026-10-24 12:44 UTC: planned roadmap 1.6 as proposals (test tick 2)
 - **Did:** wrote `docs/plans/ROADMAP_1_6_PLAN.md`: what 1.6 builds, 8 decisions with
   recommendations, 5 test-first slices, risks. No code (PR #11 is not merged). Autopilot
