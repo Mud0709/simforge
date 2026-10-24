@@ -16,6 +16,7 @@ import {
   toProjectileParameters,
 } from "@/lib/projectile/fields";
 import { NumberField } from "./NumberField";
+import { ReferenceRunPanel } from "./ReferenceRunPanel";
 import {
   ProjectileAssumptions,
   ProjectileCharts,
@@ -23,6 +24,7 @@ import {
   ProjectileValidation,
 } from "./ProjectileResults";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReferenceRun } from "./useReferenceRun";
 import { useReopenedRun } from "./useReopenedRun";
 
 type FormValues = Record<string, string>;
@@ -31,6 +33,8 @@ const ALL_FIELDS: readonly NumericFieldSpec[] = [...PARAMETER_FIELDS, ...SOLVER_
 const INITIAL_VALUES: FormValues = Object.fromEntries(
   ALL_FIELDS.map((f) => [f.name, String(f.default)]),
 );
+// The page shows the simulation and, under its results, the launch-angle sweep.
+const PAGE_MODELS = ["physics.projectile", "physics.projectile.angle_sweep"] as const;
 
 export function ProjectileLab() {
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
@@ -43,6 +47,7 @@ export function ProjectileLab() {
   // form still matches the inputs it was computed from.
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify([values, method]);
+  const referenceRun = useReferenceRun();
 
   // A sweep's stored parameters have no launch angle (it does not use one): keep the current.
   const reopened = useReopenedRun(
@@ -155,8 +160,15 @@ export function ProjectileLab() {
       parameters={form}
       status={runStatus(status, result)}
       staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
-      visualisation={result && <ProjectileCharts result={result} />}
-      results={result && <ProjectileSummary result={result} />}
+      reference={
+        (result || referenceRun.reference) && (
+          <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
+        )
+      }
+      visualisation={
+        result && <ProjectileCharts result={result} reference={referenceRun.response} />
+      }
+      results={result && <ProjectileSummary result={result} referenceRun={referenceRun} />}
       assumptions={result && <ProjectileAssumptions result={result} />}
       validation={result && <ProjectileValidation result={result} />}
       placeholders={{

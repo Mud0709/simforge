@@ -32,6 +32,10 @@ export type ColumnType = Schemas["ColumnOverride"]["type"];
 export type Delimiter = NonNullable<ParseOptions["delimiter"]>;
 export type SampleInfo = Schemas["SampleInfo"];
 export type SampleId = SampleInfo["id"];
+export type RecomputeRequest = Schemas["RecomputeRequest"];
+export type RecomputedOutputs = Schemas["RecomputedOutputs"];
+/** Any model's response: the union the recompute route returns. */
+export type ModelResponse = RecomputedOutputs["response"];
 
 const API_BASE = "/api/v1";
 
@@ -123,6 +127,21 @@ export function labelExperiment(runId: string, labels: RunLabels): Promise<Logge
 /** Rerun a saved run and get the reproducibility verdict. */
 export function replayExperiment(runId: string, body: ReplayRequest): Promise<ReplayResponse> {
   return request(`/experiments/${encodeURIComponent(runId)}/replay`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Compute a saved run again from its stored inputs, for its full outputs (never saved). The
+ * answer says whether they are bit-identical to the original's. Refused with 409 if the
+ * model's version has changed, and 422 for an uploaded file's profile sent without its file.
+ */
+export function recomputeOutputs(
+  runId: string,
+  body: RecomputeRequest = {},
+): Promise<RecomputedOutputs> {
+  return request(`/experiments/${encodeURIComponent(runId)}/outputs`, {
     method: "POST",
     body: JSON.stringify(body),
   });

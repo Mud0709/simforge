@@ -15,7 +15,9 @@ import {
 } from "@/lib/api/client";
 import { fileSizeProblem, fileToBase64, parseMarkers } from "@/lib/quant/upload";
 import { QuantAssumptions, QuantCharts, QuantSummary, QuantValidation } from "./QuantResults";
+import { ReferenceRunPanel } from "./ReferenceRunPanel";
 import { Workspace, runStatus } from "./Workspace";
+import { useReferenceRun } from "./useReferenceRun";
 import { useReopenedRun } from "./useReopenedRun";
 
 /** The chosen file could not be read (moved, deleted or changed since it was chosen). */
@@ -24,6 +26,8 @@ class FileReadError extends Error {
     super("Could not read the file. It may have been moved or changed; choose it again.");
   }
 }
+
+const PAGE_MODELS = ["quant.dataset_profile"] as const;
 
 /** Mirrors the server's default missing-value markers (which remain the authority). */
 const DEFAULT_MARKERS = "NA, N/A, NaN, None, null";
@@ -63,6 +67,7 @@ export function QuantLab() {
   const [resultKey, setResultKey] = useState<string | null>(null);
   const [resultSource, setResultSource] = useState<string | null>(null);
   const latestRequest = useRef(0);
+  const referenceRun = useReferenceRun();
 
   const reopened = useReopenedRun(["quant.dataset_profile"], (run) => {
     const inputs = run.inputs as {
@@ -324,6 +329,11 @@ export function QuantLab() {
           ? "The settings or the data have changed since this profile was made. Press " +
             "\u201cProfile again\u201d to update it; the results below are for the previous settings."
           : null
+      }
+      reference={
+        (result || referenceRun.reference) && (
+          <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
+        )
       }
       visualisation={result && <QuantCharts key={result.metadata.run_id} result={result} />}
       results={result && <QuantSummary result={result} />}

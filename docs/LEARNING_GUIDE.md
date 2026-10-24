@@ -1930,7 +1930,7 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 
 ### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
 
-<!-- src: frontend/src/components/IntegratorLab.tsx:79-102 -->
+<!-- src: frontend/src/components/IntegratorLab.tsx:83-106 -->
 ```tsx
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -1980,7 +1980,7 @@ what's allowed.
 
 ### [2] Sending it: `frontend/src/lib/api/client.ts:66-96`
 
-<!-- src: frontend/src/lib/api/client.ts:66-81 -->
+<!-- src: frontend/src/lib/api/client.ts:70-85 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2825,7 +2825,7 @@ On another machine or library version, floats can differ in the last bits, becau
 none), the stored summary is compared field by field, with a tolerance each model declares
 **in advance** and a reason:
 
-<!-- src: backend/src/simforge/api/replay.py:112-126 -->
+<!-- src: backend/src/simforge/api/replay.py:101-115 -->
 ```python
 def compare_field(field: str, a: Any, b: Any, tolerance: Tolerance) -> FieldComparison:
     if _is_number(a) and _is_number(b):
@@ -2915,7 +2915,7 @@ Clicking "Physics" and then quickly "Economy" sends two requests. If the Physics
 second, it must not overwrite the Economy list. Each request remembers whether it is still
 wanted:
 
-<!-- src: frontend/src/components/ExperimentLog.tsx:126-138 -->
+<!-- src: frontend/src/components/ExperimentLog.tsx:127-139 -->
 ```tsx
   useEffect(() => {
     let current = true;
