@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
 
+import { logRow, shownRunId } from "./helpers";
+
 // Full stack for the Quant Lab: browser -> Next.js -> FastAPI -> parser/profile -> SQLite.
 const CSV = [
   "station,temp_c,reading_date",
@@ -56,11 +58,9 @@ test("upload a CSV, read its profile, override a type and find it in the log", a
   await expect(results.getByText(/have changed since this profile/)).toHaveCount(0);
   await expect(results.getByTestId("categorical-1")).toContainText("-3.5 (2)");
 
+  const runId = await shownRunId(page);
   await page.getByRole("link", { name: "Experiments" }).click();
-  const row = page
-    .getByRole("row")
-    .filter({ hasText: /quant\.dataset_profile v1/ })
-    .first();
+  const row = logRow(page, runId);
   await expect(row).toContainText("5 rows × 3 columns, 2 missing cells, 1 duplicate rows");
   await expect(page.getByText("Oslo")).toHaveCount(0); // no data in the log
 });

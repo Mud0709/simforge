@@ -64,7 +64,9 @@ typed) and a few counts.
 
 ![Dataset profile workspace: missing values, a histogram, column types and accounting checks](docs/images/quant-lab.png)
 
-**Experiment log and replay** (API; the log page and a replay button follow in roadmap 1.5).
+**Experiment log and replay** (`/experiments`). Every saved run from all three labs, newest
+first and filterable by lab, each with a one-line result written by its model. Open a run to
+load its inputs back into its page, give it a name and a note, or replay it.
 Saved runs record their inputs, versions, the git commit and a SHA-256 fingerprint of the
 outputs. `POST /api/v1/experiments/{run_id}/replay` reruns one and says whether the same
 answer came back: **identical** (bit for bit), **within tolerance** (each model declares how

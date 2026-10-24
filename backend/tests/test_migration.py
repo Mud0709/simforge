@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from simforge.persistence.experiments import (
+    SCHEMA_VERSION,
     ExperimentRecord,
     ExperimentRepository,
     init_db,
@@ -72,7 +73,7 @@ def test_v1_log_is_migrated_and_old_rows_are_kept_exactly(tmp_path: Path) -> Non
 
     init_db(db)
 
-    assert version_of(db) == 2
+    assert version_of(db) == 3
     # A backup of the untouched v1 file is kept next to it.
     assert (tmp_path / "simforge.sqlite3.v1.bak").read_bytes() == original_bytes
     record = ExperimentRepository(db).get("run-1")
@@ -99,7 +100,7 @@ def test_migrating_twice_changes_nothing(tmp_path: Path) -> None:
     init_db(db)
     backup = (tmp_path / "simforge.sqlite3.v1.bak").read_bytes()
     init_db(db)
-    assert version_of(db) == 2
+    assert version_of(db) == 3
     assert (tmp_path / "simforge.sqlite3.v1.bak").read_bytes() == backup
     assert len(ExperimentRepository(db).list()) == 1
 
@@ -123,20 +124,23 @@ def test_a_newer_log_is_refused_untouched(tmp_path: Path) -> None:
     db = tmp_path / "simforge.sqlite3"
     make_v1_db(db)
     conn = sqlite3.connect(db)
-    conn.execute("UPDATE schema_version SET version = 3")
+    newer = SCHEMA_VERSION + 1
+    conn.execute("UPDATE schema_version SET version = ?", (newer,))
     conn.commit()
     conn.close()
     before = db.read_bytes()
-    with pytest.raises(RuntimeError, match="schema v3"):
+    with pytest.raises(RuntimeError, match=f"schema v{newer}"):
         init_db(db)
     assert db.read_bytes() == before
     assert not (tmp_path / "simforge.sqlite3.v1.bak").exists()
 
 
-def test_a_new_log_starts_at_v2_and_stores_the_new_fields(tmp_path: Path) -> None:
+def test_a_new_log_starts_at_the_current_version_and_stores_the_new_fields(
+    tmp_path: Path,
+) -> None:
     db = tmp_path / "new.sqlite3"
     init_db(db)
-    assert version_of(db) == 2
+    assert version_of(db) == 3
     assert not (tmp_path / "new.sqlite3.v1.bak").exists()
     repo = ExperimentRepository(db)
     record = ExperimentRecord(
@@ -154,3 +158,60 @@ def test_a_new_log_starts_at_v2_and_stores_the_new_fields(tmp_path: Path) -> Non
     )
     repo.add(record)
     assert repo.get("run-2") == record
+
+
+# --- v2 -> v3: names and notes (roadmap 1.5) ----------------------------------------------
+
+
+def make_v2_db(path: Path) -> None:
+    """A v2 log as roadmap 1.4 wrote it (v1 layout plus three columns)."""
+    make_v1_db(path)
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        """
+        ALTER TABLE experiments ADD COLUMN record_version INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE experiments ADD COLUMN output_digest TEXT;
+        ALTER TABLE experiments ADD COLUMN replay_of TEXT;
+        UPDATE schema_version SET version = 2;
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_a_v2_log_gains_names_and_notes_and_keeps_everything_else(tmp_path: Path) -> None:
+    db = tmp_path / "simforge.sqlite3"
+    make_v2_db(db)
+    original = db.read_bytes()
+    init_db(db)
+    assert version_of(db) == 3
+    assert (tmp_path / "simforge.sqlite3.v2.bak").read_bytes() == original
+    record = ExperimentRepository(db).get("run-1")
+    assert record is not None
+    assert record.summary == json.loads(V1_ROW[6])
+    assert (record.name, record.note) == (None, None)
+
+
+def test_a_v1_log_is_migrated_all_the_way(tmp_path: Path) -> None:
+    db = tmp_path / "simforge.sqlite3"
+    make_v1_db(db)
+    init_db(db)
+    assert version_of(db) == 3
+    assert (tmp_path / "simforge.sqlite3.v1.bak").exists()
+    record = ExperimentRepository(db).get("run-1")
+    assert record is not None
+    assert (record.record_version, record.name) == (1, None)
+
+
+def test_labels_change_and_nothing_else_does(tmp_path: Path) -> None:
+    db = tmp_path / "simforge.sqlite3"
+    make_v1_db(db)
+    init_db(db)
+    repo = ExperimentRepository(db)
+    before = repo.get("run-1")
+    assert before is not None
+    after = repo.set_labels("run-1", name="Baseline", note="first try")
+    assert after is not None
+    assert (after.name, after.note) == ("Baseline", "first try")
+    assert after.model_copy(update={"name": None, "note": None}) == before
+    assert repo.set_labels("no-such-run", name="x", note=None) is None

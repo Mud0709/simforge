@@ -23,6 +23,7 @@ import {
   ProjectileValidation,
 } from "./ProjectileResults";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReopenedRun } from "./useReopenedRun";
 
 type FormValues = Record<string, string>;
 
@@ -42,6 +43,33 @@ export function ProjectileLab() {
   // form still matches the inputs it was computed from.
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify([values, method]);
+
+  // A sweep's stored parameters have no launch angle (it does not use one): keep the current.
+  const reopened = useReopenedRun(
+    ["physics.projectile", "physics.projectile.angle_sweep"],
+    (run) => {
+      const inputs = run.inputs as {
+        parameters: Record<string, number>;
+        solver?: { method: SolverSettings["method"]; rtol: number; atol: number };
+      };
+      const stored: Record<string, number | undefined> = {
+        ...inputs.parameters,
+        rtol: inputs.solver?.rtol,
+        atol: inputs.solver?.atol,
+      };
+      setValues((prev) =>
+        Object.fromEntries(
+          Object.entries(prev).map(([k, v]) => [
+            k,
+            stored[k] === undefined ? v : String(stored[k]),
+          ]),
+        ),
+      );
+      if (inputs.solver) setMethod(inputs.solver.method);
+      if (run.model_id === "physics.projectile.angle_sweep")
+        return "Run the simulation, then sweep the launch angle.";
+    },
+  );
 
   const errors = Object.fromEntries(
     ALL_FIELDS.map((f) => [f.name, validateField(f, values[f.name] ?? "")]),
@@ -83,6 +111,12 @@ export function ProjectileLab() {
 
   const form = (
     <form onSubmit={onSubmit} noValidate aria-label="Simulation inputs">
+      {reopened.note && <p className="note">{reopened.note}</p>}
+      {reopened.error && (
+        <p className="api-error" role="alert">
+          {reopened.error}
+        </p>
+      )}
       <fieldset>
         <legend>Physical parameters</legend>
         {PARAMETER_FIELDS.map(field)}

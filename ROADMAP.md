@@ -84,8 +84,8 @@ vs adaptive), from-scratch integrator convergence study, range-against-angle swe
 | 1.2 | **Physics moves into the workspace.** Projectile, integrator and angle-sweep pages use the same layout; exact-vs-numerical comparison shown under Validation | ✅ |
 | 1.3 | **Quant Lab's first feature.** CSV upload and bundled synthetic datasets, identified by content hash (the file itself is not stored); column types with overrides, missing values, duplicates and summary statistics. Built on the standard `csv` module and NumPy; pandas arrives in Phase 5 | ✅ |
 | 1.4 | **Run record v2, model registry and replay.** Migration of the experiment log; `POST /experiments/{id}/replay` with an identical / within tolerance / differs verdict (a dataset profile is replayed by supplying the file again; its SHA-256 must match) | ✅ |
-| 1.5 | **Generic experiment log.** Runs by lab with model-supplied headlines; reopen a run (parameters in the URL), replay, name and annotate it | 🔜 |
-| 1.6 | **Comparison and export.** Pin a baseline run and overlay another; export series as CSV and the run record as JSON | ⏳ |
+| 1.5 | **Generic experiment log.** Runs by lab with model-supplied headlines; reopen a run (parameters in the URL), replay, name and annotate it | ✅ |
+| 1.6 | **Comparison and export.** Pin a baseline run and overlay another; export series as CSV and the run record as JSON | 🔜 |
 
 Done when each lab has a real, validated feature in the same workspace and every run can be
 saved, reopened, replayed, compared and exported.

@@ -14,6 +14,7 @@ import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import { NumberField } from "./NumberField";
 import { SolowAssumptions, SolowCharts, SolowSummary, SolowValidation } from "./SolowResults";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
+import { useReopenedRun } from "./useReopenedRun";
 
 type FormValues = Record<string, string>;
 
@@ -49,6 +50,24 @@ export function SolowLab() {
   const [result, setResult] = useState<SolowResponse | null>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify(values);
+
+  const reopened = useReopenedRun(["economy.solow"], (run) => {
+    const inputs = run.inputs as {
+      parameters: Record<string, number>;
+      policy: Record<string, number>;
+      horizon_years: number;
+    };
+    const stored: Record<string, number | undefined> = {
+      ...inputs.parameters,
+      ...inputs.policy,
+      horizon_years: inputs.horizon_years,
+    };
+    setValues((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([k, v]) => [k, stored[k] === undefined ? v : String(stored[k])]),
+      ),
+    );
+  });
 
   const errors = fieldErrors(values);
   const hasErrors = Object.values(errors).some((e) => e !== null);
@@ -96,6 +115,12 @@ export function SolowLab() {
 
   const form = (
     <form onSubmit={onSubmit} noValidate aria-label="Solow model inputs">
+      {reopened.note && <p className="note">{reopened.note}</p>}
+      {reopened.error && (
+        <p className="api-error" role="alert">
+          {reopened.error}
+        </p>
+      )}
       <fieldset>
         <legend>Economy</legend>
         {ECONOMY_FIELDS.map(field)}

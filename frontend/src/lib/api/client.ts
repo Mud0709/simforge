@@ -5,7 +5,11 @@ export type ProjectileParameters = Schemas["ProjectileParameters"];
 export type SolverSettings = Schemas["SolverSettings"];
 export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
-export type ExperimentRecord = Schemas["ExperimentRecord"];
+export type LoggedRun = Schemas["LoggedRun"];
+export type ReplayRequest = Schemas["ReplayRequest"];
+export type RunLabels = Schemas["RunLabels"];
+export type ReplayResponse = Schemas["ReplayResponse"];
+export type Lab = "physics" | "economy" | "quant";
 export type ErrorMetric = Schemas["ErrorMetric"];
 export type AngleSweepRequest = Schemas["AngleSweepRequest"];
 export type AngleSweepResponse = Schemas["AngleSweepResponse"];
@@ -103,6 +107,35 @@ export function profileDataset(body: ProfileRequest): Promise<ProfileResponse> {
   return request("/quant/datasets/profile", { method: "POST", body: JSON.stringify(body) });
 }
 
-export function listExperiments(limit = 50): Promise<ExperimentRecord[]> {
-  return request(`/experiments?limit=${limit}`);
+/** One saved run. */
+export function getExperiment(runId: string): Promise<LoggedRun> {
+  return request(`/experiments/${encodeURIComponent(runId)}`);
+}
+
+/** Set a run's name and note (omitted: kept; "" or null: cleared). Results never change. */
+export function labelExperiment(runId: string, labels: RunLabels): Promise<LoggedRun> {
+  return request(`/experiments/${encodeURIComponent(runId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(labels),
+  });
+}
+
+/** Rerun a saved run and get the reproducibility verdict. */
+export function replayExperiment(runId: string, body: ReplayRequest): Promise<ReplayResponse> {
+  return request(`/experiments/${encodeURIComponent(runId)}/replay`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Saved runs, newest first; optionally one lab, one page at a time. */
+export function listExperiments(
+  options: { lab?: Lab; limit?: number; offset?: number } = {},
+): Promise<LoggedRun[]> {
+  const query = new URLSearchParams({
+    limit: String(options.limit ?? 50),
+    offset: String(options.offset ?? 0),
+  });
+  if (options.lab) query.set("lab", options.lab);
+  return request(`/experiments?${query.toString()}`);
 }

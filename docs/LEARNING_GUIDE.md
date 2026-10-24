@@ -1928,9 +1928,9 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 `frontend/src/**/*.test.ts(x)` (UI logic, with the network faked), and `frontend/e2e/`
 (the whole stack in a real browser).
 
-### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:60-83`
+### [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
 
-<!-- src: frontend/src/components/IntegratorLab.tsx:60-83 -->
+<!-- src: frontend/src/components/IntegratorLab.tsx:79-102 -->
 ```tsx
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -1960,17 +1960,17 @@ differ from what's committed, so the two sides can't silently drift apart. (Run
 
 | Line | Meaning |
 |---|---|
-| 60 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
-| 61 | Stops the browser's default form behaviour, which would reload the page. |
-| 62 | Marks the form as "touched", so validation messages appear. |
-| 63 | **Client-side validation gate.** `hasErrors` (lines 49-58) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
-| 64 | Remembers exactly which inputs this run is for (`currentKey`, all the form's values as one string). While the form still matches it, the results are current; once you edit anything, every input-dependent section says the results are out of date. |
-| 65-66 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
-| 69 | Keeps the methods in a fixed order (Euler, RK4, Verlet), whatever order you ticked them in. Identical choices then produce identical requests, and identical input hashes ([8]). |
-| 70-76 | Sends the request (step [2]) and stores the response in state, which makes the results appear. `toProjectileParameters` turns the text boxes (strings) into numbers, field by field, so TypeScript checks every name against the API contract. |
-| 77 | Only after a successful reply: the shown results now belong to the remembered inputs. |
-| 78-79 | If the server refused the request, show its explanation (the old results stay, marked out of date if the inputs changed). |
-| 80-82 | `finally` runs whether it succeeded or failed: turn off "Running…". |
+| 79 | `async` means the function can `await` a slow operation (the network) without freezing the page. |
+| 80 | Stops the browser's default form behaviour, which would reload the page. |
+| 81 | Marks the form as "touched", so validation messages appear. |
+| 82 | **Client-side validation gate.** `hasErrors` (lines 68-77) checks every field, including *drag must be > 0 for this study*. `steps` is the parsed time-step list. If anything is invalid, stop *without* contacting the server. |
+| 83 | Remembers exactly which inputs this run is for (`currentKey`, all the form's values as one string). While the form still matches it, the results are current; once you edit anything, every input-dependent section says the results are out of date. |
+| 84-85 | Shows "Running…" and clears any old error message. `setX(...)` functions update React *state*, which makes the page re-render. |
+| 88 | Keeps the methods in a fixed order (Euler, RK4, Verlet), whatever order you ticked them in. Identical choices then produce identical requests, and identical input hashes ([8]). |
+| 89-95 | Sends the request (step [2]) and stores the response in state, which makes the results appear. `toProjectileParameters` turns the text boxes (strings) into numbers, field by field, so TypeScript checks every name against the API contract. |
+| 96 | Only after a successful reply: the shown results now belong to the remembered inputs. |
+| 97-98 | If the server refused the request, show its explanation (the old results stay, marked out of date if the inputs changed). |
+| 99-101 | `finally` runs whether it succeeded or failed: turn off "Running…". |
 
 The time-step text is parsed by `parseSteps` (`frontend/src/lib/integrators/steps.ts:20-38`).
 It splits on commas and spaces, then rejects non-numbers, non-positive values, values over
@@ -1978,9 +1978,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:62-92`
+### [2] Sending it: `frontend/src/lib/api/client.ts:66-96`
 
-<!-- src: frontend/src/lib/api/client.ts:62-77 -->
+<!-- src: frontend/src/lib/api/client.ts:66-81 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2031,9 +2031,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:223-227`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:232-236`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:223-227 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:232-236 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2044,16 +2044,16 @@ async def integrator_study(
 
 | Line | Meaning |
 |---|---|
-| 223 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 23), and `main.py` adds `/api/v1`. |
-| 225 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 226 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 227 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
+| 232 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 24), and `main.py` adds `/api/v1`. |
+| 234 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 235 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 236 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
 
 The endpoint's `execute` hands over to the shared path, `execute_run`
-(`backend/src/simforge/api/runs.py:107-142`). It is the same for all five models, and replay
+(`backend/src/simforge/api/runs.py:111-146`). It is the same for all five models, and replay
 (roadmap 1.4, Part 15) uses it too:
 
-<!-- src: backend/src/simforge/api/runs.py:107-142 -->
+<!-- src: backend/src/simforge/api/runs.py:111-146 -->
 ```python
 async def execute_run[Req: StrictModel, Res: StrictModel, Result](
     entry: ModelEntry[Req, Res, Result],
@@ -2095,12 +2095,12 @@ async def execute_run[Req: StrictModel, Res: StrictModel, Result](
 
 | Line | Meaning |
 |---|---|
-| 120 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 66-76) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
-| 121 | The inputs that are hashed and the summary that is stored, both from the model's entry. |
-| 122-126 | Only for a replay: if the rebuilt request no longer hashes like the original, stop before anything is saved (Part 15). |
-| 128-130 | Builds the response once with placeholder metadata, to take the **output digest**: a SHA-256 fingerprint of everything in the response except the run's own metadata (Part 15). |
-| 131-141 | Builds the run metadata (input hash, output digest, versions, git commit) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
-| 142 | Returns the response with its real metadata. |
+| 124 | Runs the CPU-heavy computation in a **worker thread**, so the server can keep answering other requests meanwhile. `compute_or_explain` (lines 70-80) turns a `ModelDomainError` (valid inputs, unreasonable job, such as too many steps) into an HTTP **422** with the explanation. |
+| 125 | The inputs that are hashed and the summary that is stored, both from the model's entry. |
+| 126-130 | Only for a replay: if the rebuilt request no longer hashes like the original, stop before anything is saved (Part 15). |
+| 132-134 | Builds the response once with placeholder metadata, to take the **output digest**: a SHA-256 fingerprint of everything in the response except the run's own metadata (Part 15). |
+| 135-145 | Builds the run metadata (input hash, output digest, versions, git commit) and, if asked, stores the run in the experiment log, also in a worker thread, because SQLite reads and writes the disk. |
+| 146 | Returns the response with its real metadata. |
 
 ### [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
 
@@ -2563,7 +2563,7 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:272-281 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:281-290 -->
 ```python
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
@@ -2578,7 +2578,7 @@ ANGLE_SWEEP = ModelEntry(
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 279). Otherwise, two identical computations that differ
+is removed before hashing (line 288). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 
@@ -2894,6 +2894,75 @@ reproducibility itself.
 
 ---
 
+## Part 16 — The experiment log: find, reopen, replay, label
+
+Roadmap 1.5 turns the replay API into a page you use: `/experiments`.
+
+### 16.1 The log page knows no model
+Before, the log page had a hand-written branch per model to produce its "key result". Now each
+model's registry entry writes its own headline, and the API sends it with every run. A new
+model needs no change to the log page: the same idea as the registry itself (Part 15.2). The
+headline is computed when the log is read, so runs saved before this step get one too; an old
+summary shape gets "—" instead of an error.
+
+### 16.2 Reopening a run
+`/economy/solow?run=<id>` asks the API for that run and fills the form with its stored inputs.
+It does **not** run it: you see what will be computed and press Run yourself. An uploaded
+dataset was never stored (privacy, Part 6 of the Quant guide), so that page asks for the file.
+
+### 16.3 A reply that arrives too late
+Clicking "Physics" and then quickly "Economy" sends two requests. If the Physics reply arrives
+second, it must not overwrite the Economy list. Each request remembers whether it is still
+wanted:
+
+<!-- src: frontend/src/components/ExperimentLog.tsx:126-138 -->
+```tsx
+  useEffect(() => {
+    let current = true;
+    listExperiments({ lab: lab ?? undefined, limit: PAGE_SIZE })
+      .then((page) => {
+        if (!current) return;
+        setRuns(page);
+        setMore(page.length === PAGE_SIZE);
+      })
+      .catch((err: unknown) => current && fail(err));
+    return () => {
+      current = false;
+    };
+  }, [lab]);
+```
+
+| Line | Meaning |
+|---|---|
+| 127 | This request's own flag, created when the effect runs. |
+| 130 | When its reply arrives, it is used only if the flag is still `true`. |
+| 135-137 | React calls this cleanup when `lab` changes (or the page closes), so an outdated request's flag becomes `false` and its reply is dropped. |
+| 138 | The effect reruns whenever `lab` changes. |
+
+This kind of bug is called a **race condition**: the result depends on which of two things
+finishes first.
+
+### 16.4 Labels are not results
+A run can have a name and a note. They live in two new columns (schema v3, migrated with a
+backup in one transaction, Part 15.3). The `PATCH` endpoint accepts only those two fields:
+sending `summary` or `model_version` is refused (422), because inputs, results and
+fingerprints are the scientific record. The page shows labels as plain text: a note
+containing `<b>` is displayed as the characters `<b>`, never as bold, so a note cannot inject
+code into the page.
+
+### 16.5 Checkpoint
+1. Why does the log page not need changing when a new model is added?
+2. In 16.3, what would the page show if line 130 were deleted and the Physics reply arrived
+   last?
+
+### 16.6 Exercises
+- **E16.1** Reopen a projectile run, change nothing and run it. Compare the new run's input
+  hash with the original's in the log. Should they match? Why?
+- **E16.2** Replay a run, then tick "Save replays" and replay it again. How do the two show
+  up in the log, and why is the original never changed?
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -2934,7 +3003,11 @@ reproducibility itself.
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap 1.4, run record v2 and replay):**
+**This version (roadmap 1.5, the experiment log):**
+- **Added Part 16:** model-written headlines, reopening a run, a race condition and how the
+  log avoids it, labels versus results; checkpoint and exercises.
+
+**The previous version (roadmap 1.4, run record v2 and replay):**
 - **Added Part 15:** two hashes (question and answer), the model registry, the migration and
   its transaction trap, declared tolerances, what the first replay found, what CI found
   (different CPUs, different last bits); checkpoint and exercises.
@@ -2942,7 +3015,7 @@ reproducibility itself.
   `execute_run` excerpt and table) and Part 11.5 (the sweep's hashed inputs now live in its
   registry entry).
 
-**The previous version (Workspace UI review fixes):**
+**An earlier version (Workspace UI review fixes):**
 - **Added lessons 5 and 6 to Part 14** (old results must say they are old; test the thing
   that is built) and checkpoint question 3.
 - **Updated** the Part 8 step [1] excerpt and line table for `IntegratorLab.tsx` (the handler

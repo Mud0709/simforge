@@ -35,7 +35,9 @@ def store_variant(client: TestClient, record: dict[str, Any], **changes: Any) ->
     """Store a copy of ``record`` with ``changes`` under a new run id (a controlled record)."""
     repo: ExperimentRepository = client.app.state.experiments  # type: ignore[attr-defined]
     run_id = str(uuid.uuid4())
-    repo.add(ExperimentRecord.model_validate({**record, **changes, "run_id": run_id}))
+    # Keep only what a stored record has (the log adds fields such as the headline).
+    stored = {k: v for k, v in record.items() if k in ExperimentRecord.model_fields}
+    repo.add(ExperimentRecord.model_validate({**stored, **changes, "run_id": run_id}))
     return run_id
 
 

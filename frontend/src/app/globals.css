@@ -505,3 +505,47 @@ td.reason {
   overflow-wrap: anywhere;
   max-width: 16em;
 }
+
+/* Experiment log */
+.lab-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+button.secondary,
+.button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border);
+}
+
+button.secondary[aria-pressed="true"] {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+/* A flex box inside the cell: a flex <td> stops being a table cell and breaks row lines. */
+.actions-inner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.replay-row td {
+  white-space: normal;
+}
+
+.replay-outcome[data-verdict="differs"] strong {
+  color: var(--danger);
+}
+
+.run-name {
+  display: block;
+}
+
+.run-note {
+  white-space: pre-wrap;
+}
