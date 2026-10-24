@@ -703,92 +703,6 @@
         "title": "Example",
         "type": "object"
       },
-      "ExperimentRecord": {
-        "additionalProperties": false,
-        "properties": {
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "environment": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Environment",
-            "type": "object"
-          },
-          "input_hash": {
-            "title": "Input Hash",
-            "type": "string"
-          },
-          "inputs": {
-            "additionalProperties": true,
-            "description": "Validated inputs exactly as used by the run.",
-            "title": "Inputs",
-            "type": "object"
-          },
-          "model_id": {
-            "title": "Model Id",
-            "type": "string"
-          },
-          "model_version": {
-            "title": "Model Version",
-            "type": "string"
-          },
-          "output_digest": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.",
-            "title": "Output Digest"
-          },
-          "record_version": {
-            "default": 1,
-            "description": "1: before roadmap 1.4 (no output digest); 2: current.",
-            "title": "Record Version",
-            "type": "integer"
-          },
-          "replay_of": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "run_id of the run this record replayed, if it is a replay.",
-            "title": "Replay Of"
-          },
-          "run_id": {
-            "title": "Run Id",
-            "type": "string"
-          },
-          "summary": {
-            "additionalProperties": true,
-            "description": "Headline metrics; series are not stored.",
-            "title": "Summary",
-            "type": "object"
-          }
-        },
-        "required": [
-          "run_id",
-          "model_id",
-          "model_version",
-          "created_at",
-          "input_hash",
-          "inputs",
-          "summary",
-          "environment"
-        ],
-        "title": "ExperimentRecord",
-        "type": "object"
-      },
       "FieldComparison": {
         "additionalProperties": false,
         "properties": {
@@ -1284,6 +1198,135 @@
           "text"
         ],
         "title": "KindCounts",
+        "type": "object"
+      },
+      "LoggedRun": {
+        "additionalProperties": false,
+        "description": "A stored run as the log shows it: the record plus its lab and a one-line headline.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "environment": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Environment",
+            "type": "object"
+          },
+          "headline": {
+            "description": "One line written by the model; '\u2014' if unavailable.",
+            "title": "Headline",
+            "type": "string"
+          },
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "description": "Validated inputs exactly as used by the run.",
+            "title": "Inputs",
+            "type": "object"
+          },
+          "lab": {
+            "description": "The lab, from the model id: physics, economy or quant.",
+            "title": "Lab",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User label; not part of the results.",
+            "title": "Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User note; not part of the results.",
+            "title": "Note"
+          },
+          "output_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SHA-256 of the canonical JSON of the full response without its run metadata. Equal digests mean every output value is bit-identical. None for v1.",
+            "title": "Output Digest"
+          },
+          "record_version": {
+            "default": 1,
+            "description": "1: before roadmap 1.4 (no output digest); 2: current.",
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "replay_needs_file": {
+            "description": "True if replaying needs the user to supply a file again (an upload).",
+            "title": "Replay Needs File",
+            "type": "boolean"
+          },
+          "replay_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "run_id of the run this record replayed, if it is a replay.",
+            "title": "Replay Of"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "Headline metrics; series are not stored.",
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "run_id",
+          "model_id",
+          "model_version",
+          "created_at",
+          "input_hash",
+          "inputs",
+          "summary",
+          "environment",
+          "lab",
+          "headline",
+          "replay_needs_file"
+        ],
+        "title": "LoggedRun",
         "type": "object"
       },
       "MethodStudyResult": {
@@ -2200,6 +2243,38 @@
         "title": "ReplayResponse",
         "type": "object"
       },
+      "RunLabels": {
+        "additionalProperties": false,
+        "description": "A run's name and note. Omitted fields are kept; null or \"\" clears. Nothing else about\na run can be changed: its inputs, results and fingerprints are the scientific record.",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "RunLabels",
+        "type": "object"
+      },
       "RunMetadata": {
         "additionalProperties": false,
         "description": "Everything needed to reproduce (or audit) a single run.",
@@ -2983,6 +3058,27 @@
           },
           {
             "in": "query",
+            "name": "lab",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "physics",
+                    "economy",
+                    "quant"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lab"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -2990,6 +3086,17 @@
               "maximum": 500,
               "minimum": 1,
               "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
               "type": "integer"
             }
           }
@@ -3000,7 +3107,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ExperimentRecord"
+                    "$ref": "#/components/schemas/LoggedRun"
                   },
                   "title": "Response List Experiments Api V1 Experiments Get",
                   "type": "array"
@@ -3045,7 +3152,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExperimentRecord"
+                  "$ref": "#/components/schemas/LoggedRun"
                 }
               }
             },
@@ -3063,6 +3170,56 @@
           }
         },
         "summary": "Get Experiment",
+        "tags": [
+          "experiments"
+        ]
+      },
+      "patch": {
+        "operationId": "label_experiment_api_v1_experiments__run_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunLabels"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggedRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Label Experiment",
         "tags": [
           "experiments"
         ]

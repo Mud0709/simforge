@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { logRow, shownRunId } from "./helpers";
+
 // Full stack: browser -> Next.js -> FastAPI -> from-scratch integrators -> SQLite.
 test("integrator study shows fitted orders near theory and log-log plots", async ({ page }) => {
   await page.goto("/physics/projectile");
@@ -33,9 +35,9 @@ test("integrator study shows fitted orders near theory and log-log plots", async
   // One heading per method (outside its <summary>, so every screen reader lists it).
   await expect(region("Validation").getByRole("heading", { name: /^All runs:/ })).toHaveCount(3);
 
+  const runId = await shownRunId(page);
   await page.getByRole("link", { name: "Experiments" }).click();
-  // Other E2E tests share this database and may run in parallel: find this study's row.
-  const row = page.getByRole("row").filter({ hasText: "physics.projectile.integrators" }).first();
+  const row = logRow(page, runId);
   await expect(row).toContainText(/rk4 p≈(3\.9|4\.0|4\.1)/);
 });
 

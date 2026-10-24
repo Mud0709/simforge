@@ -264,7 +264,19 @@ the file is read), then compares output digests. When digests are missing (v1 re
 differ, it compares the stored summary field by field against tolerances each model declares
 next to its entry, with a reason for each; a test makes sure every stored field has exactly
 one rule. A saved replay is a **new** record with `replay_of` pointing to the original, so the
-log stays append-only. The API comes first (1.4); the log page and replay button are 1.5.
+log stays append-only.
+
+### 16. The experiment log is generic (roadmap 1.5)
+The log page knows nothing about individual models. Each registry entry writes its own
+one-line **headline** from a stored summary (computed when the log is read, so old runs get
+one too; an unknown model or an older summary shape gets "—"), and says whether a replay
+needs a file (`replay_needs_file`, true for an uploaded dataset). The page filters by lab,
+loads 50 runs at a time, replays a run in place and links to `/<page>?run=<id>`, where the
+lab page fills its form from the stored inputs without running anything. A run can carry a
+**name** and a **note** (schema v3, migrated like v2: backup, one transaction). They are
+labels, not part of the scientific record: `PATCH` can change only them, and the page shows
+them as plain text. With no authentication, anyone using the deployment can edit labels;
+deletion stays deferred because it could destroy records.
 
 ## API endpoints
 
@@ -280,6 +292,8 @@ log stays append-only. The API comes first (1.4); the log page and replay button
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |
 | POST | `/api/v1/quant/datasets/profile` | Profile an uploaded CSV (base64) or a bundled sample |
 | GET | `/api/v1/experiments`, `/api/v1/experiments/{run_id}` | Experiment log |
+| GET | `/api/v1/experiments?lab=&limit=&offset=` | The log, newest first, with each model's one-line headline |
+| PATCH | `/api/v1/experiments/{run_id}` | Set a run's name and note (nothing else can change) |
 | POST | `/api/v1/experiments/{run_id}/replay` | Rerun a stored run; verdict identical / within tolerance / differs |
 
 ## Adding a new model (the intended pattern)

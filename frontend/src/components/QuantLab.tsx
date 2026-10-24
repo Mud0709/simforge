@@ -16,6 +16,7 @@ import {
 import { fileSizeProblem, fileToBase64, parseMarkers } from "@/lib/quant/upload";
 import { QuantAssumptions, QuantCharts, QuantSummary, QuantValidation } from "./QuantResults";
 import { Workspace, runStatus } from "./Workspace";
+import { useReopenedRun } from "./useReopenedRun";
 
 /** The chosen file could not be read (moved, deleted or changed since it was chosen). */
 class FileReadError extends Error {
@@ -62,6 +63,30 @@ export function QuantLab() {
   const [resultKey, setResultKey] = useState<string | null>(null);
   const [resultSource, setResultSource] = useState<string | null>(null);
   const latestRequest = useRef(0);
+
+  const reopened = useReopenedRun(["quant.dataset_profile"], (run) => {
+    const inputs = run.inputs as {
+      options: {
+        delimiter: Delimiter;
+        missing_markers: string[];
+        column_types: { column: number; type: ColumnType }[];
+      };
+    };
+    const summary = run.summary as { source?: string; sample_id?: SampleId | null };
+    setDelimiter(inputs.options.delimiter);
+    setMarkersText(inputs.options.missing_markers.join(", "));
+    setOverrides(Object.fromEntries(inputs.options.column_types.map((o) => [o.column, o.type])));
+    if (summary.source === "sample" && summary.sample_id) {
+      setSourceKind("sample");
+      setSampleId(summary.sample_id);
+      return;
+    }
+    setSourceKind("upload");
+    return (
+      "This run profiled an uploaded file, which SimForge never stores: choose the same file " +
+      "again."
+    );
+  });
 
   useEffect(() => {
     listSampleDatasets()
@@ -146,6 +171,12 @@ export function QuantLab() {
 
   const form = (
     <form onSubmit={onSubmit} noValidate aria-label="Dataset import settings">
+      {reopened.note && <p className="note">{reopened.note}</p>}
+      {reopened.error && (
+        <p className="api-error" role="alert">
+          {reopened.error}
+        </p>
+      )}
       <fieldset>
         <legend>Data</legend>
         <label className="checkbox">

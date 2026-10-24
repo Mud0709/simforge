@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { logRow, shownRunId } from "./helpers";
+
 // Full stack: browser -> Next.js -> FastAPI -> SciPy -> SQLite, and back.
 test("run a projectile simulation and find it in the experiment log", async ({ page }) => {
   await page.goto("/");
@@ -34,15 +36,9 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
   await expect(vis.locator(".chart")).toHaveCount(2);
   await expect(page.locator(".chart")).toHaveCount(2);
 
+  const runId = await shownRunId(page);
   await page.getByRole("link", { name: "Experiments" }).click();
-  await expect(page.getByRole("heading", { name: "Experiment log" })).toBeVisible();
-  // Other E2E tests share this database and may run in parallel, so match this run's row
-  // by its model and solver rather than assuming it is the newest.
-  const row = page
-    .getByRole("row")
-    .filter({ hasText: /physics\.projectile v1/ })
-    .first();
-  await expect(row).toContainText("DOP853");
+  const row = logRow(page, runId);
   await expect(row).toContainText(`range ${Number(expectedRange.toPrecision(6))} m`);
 });
 

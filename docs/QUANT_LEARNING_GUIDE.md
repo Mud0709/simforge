@@ -508,7 +508,7 @@ It does **not** show the data are accurate. A file of invented numbers hashes pe
 A profile depends on more than the file: the delimiter, the markers and the overrides change
 the result. So the run's identity (`input_hash`) covers all of them:
 
-<!-- src: backend/src/simforge/api/routes/quant.py:23-29 -->
+<!-- src: backend/src/simforge/api/routes/quant.py:24-30 -->
 ```python
 def _profile_inputs(_: ProfileRequest, result: profiling.ProfileComputation) -> dict[str, Any]:
     # Identity of the computation: the file's bytes (by hash and size) and every option.
@@ -542,7 +542,7 @@ The page applies the same idea so that changed settings can never pass as fresh 
 remembers the exact settings each result was computed with, and shows a "settings have
 changed" notice the moment they differ:
 
-<!-- src: frontend/src/components/QuantLab.tsx:36-47 -->
+<!-- src: frontend/src/components/QuantLab.tsx:37-48 -->
 ```tsx
 function settingsKey(
   source: string,
