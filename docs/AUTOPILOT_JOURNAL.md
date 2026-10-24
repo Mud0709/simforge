@@ -7,6 +7,22 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 21:05 UTC: Phase 2 authorised; self-grilling with defaults; every 4 hours (author)
+- **Did:** opened PR #12 (roadmap 1.6) at the author's request. Changed the protocol: a new
+  step's design decisions are settled by running `grilling` on itself and accepting its own
+  recommended answers (each recorded and reversible); `tdd` seams likewise; the 🔜 may move to
+  the next step inside the authorised phase (Phase 2) once the previous PR is merged; an
+  authorised phase without a step table is first split into steps, keeping every item and its
+  order. Schedule: every 4 hours. Status `running`.
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** 4 hours rather than 3 (fewer ticks, less usage; reverse in
+  chat).
+- **Waiting for you:** merge PR #12.
+- **What this means for you:** the autopilot no longer waits for you on design choices; you
+  review its defaults afterwards in `docs/plans/` and this journal, and can reverse any.
+- **Learning checkpoint:** which kinds of decision does it still refuse to take alone, and why?
+- **Next:** plan Phase 2 into steps and grill 2.1 (docs only until #12 is merged).
+
 ## 2026-10-24 ~20:30 UTC: roadmap 1.6 built in chat (author's session, not a tick)
 - **Did:** slices S1-S5 of `docs/plans/ROADMAP_1_6_PLAN.md` and the docs, one commit each
   (8bb7cb7, 25c0d35, d35464c, 4dfc72a, d83c07a, then docs); learning-log entries for PRs
