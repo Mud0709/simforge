@@ -9,6 +9,7 @@ Project skills load automatically in every Claude Code session opened in this re
 | `tdd` | [mattpocock/skills](https://github.com/mattpocock/skills) `skills/engineering/tdd` at `5beb35b` | MIT, (c) 2026 Matt Pocock | Points to SimForge's test standards; two references to skills not installed here replaced (marked "SimForge adaptation") |
 | `grilling` | mattpocock/skills `skills/productivity/grilling` at `5beb35b` | MIT, (c) 2026 Matt Pocock | None |
 | `simforge-status` | Written for SimForge | Project licence | — |
+| `autopilot` | Written for SimForge | Project licence | — (protocol for scheduled, unattended ticks; state in `.claude/autopilot/STATE.md`) |
 
 Skills from the author's Claude account (marked *(account)* in `CLAUDE.md`, such as
 `anthropic-skills:learn` or `data:validate-data`) are not stored here; they are available
