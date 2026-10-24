@@ -11,7 +11,8 @@ state: `.claude/autopilot/STATE.md`.
 - **Did:** wrote `docs/plans/ROADMAP_1_6_PLAN.md`: what 1.6 builds, 8 decisions with
   recommendations, 5 test-first slices, risks. No code (PR #11 is not merged). Autopilot
   commits since your last message: 1 of 6. Status set to `waiting-review` (nothing else can be
-  built until you answer), so the 18:26 tick will only check for your answer.
+  built until you answer) and the 6-hourly task paused, so waiting costs you nothing.
+  Answering the decisions in chat resumes it.
 - **Usage:** 7-day 0.73 → 0.73 (under 0.01; readings are rounded to 0.01), 5-hour 0.24 at
   start, 0.27 at the end. One subagent, effort high, same model as this session.
 - **Checks run:** none needed (docs only). PR #11 CI on its head: all four jobs green. Three
