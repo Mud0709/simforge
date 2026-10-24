@@ -3,11 +3,13 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: waiting-review
+status: running
 session: session_01KiMGHphJdZSjdXKDzmfkvm
-scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
+scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
 branch: claude/laughing-brahmagupta-50jkiy
+Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
+2026-10-24. Defaults: the autopilot grills itself and takes its recommended answers.
 
 ## Budget (the author may edit these numbers)
 - weekly cap: 0.76 (raised from 0.70 by the author on 2026-10-24 for a test tick). A tick never starts if it would take the 7-day window above this. The
@@ -25,15 +27,16 @@ branch: claude/laughing-brahmagupta-50jkiy
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-None. Roadmap 1.6 is complete on the branch (slices S1-S5 and docs, built in chat on
-2026-10-24). No step is marked 🔜: the author chooses the next one.
+Plan Phase 2: split its ROADMAP paragraph into steps (every item, same order, 🔜 on 2.1), then
+grill 2.1's design decisions with defaults into `docs/plans/ROADMAP_2_1_PLAN.md`. Docs and plan
+only, no code, until PR #12 (roadmap 1.6) is merged; then build 2.1 with `tdd` on a new PR.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-- Ask for a PR for roadmap 1.6 (the branch holds it; none is open), review and merge it.
-- Choose the next step: Phase 2 (Track B), or a Track A module first.
+Nothing.
 
 ## For your daily review (not blocking)
-- (none yet)
+- Merge PR #12 (roadmap 1.6). After the merge, approve or edit the 1.6 learning-log draft.
+- The weekly cap is 0.76 (your test setting); the default was 0.70.
