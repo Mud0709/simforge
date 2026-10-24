@@ -30,6 +30,29 @@ which small decisions you may take yourself (always with a written, reversible r
   delete a test to get green, and never loosen a tolerance without its justification.
 - Never add to `docs/LEARNING_LOG.md` (needs the author's approval); queue drafts in STATE.
 
+## 0b. Budget gate (before any work; keep it cheap)
+The author's Claude usage is limited, and this session's long context makes every request
+cost something. So each tick first decides whether it may run at all.
+0. Read STATE. If `status` is `paused`, `blocked` or `waiting-review`, go straight to step 1.2
+   (no usage reading needed).
+1. Read the author's live limits: `list_events` on this session (id in STATE) with
+   `kinds: ["rate_limit_event"]`, `limit: 100`; take the newest event's
+   `unifiedWindows.five_hour.utilization` and `.seven_day.utilization` (fractions, 0-1) and
+   their `resetsAt` (Unix seconds, UTC).
+2. Read the caps and the estimated tick cost from STATE's "Budget" section.
+3. **Skip the tick** if any of these holds:
+   - five-hour utilisation ≥ the five-hour cap (the author may be working right now);
+   - seven-day utilisation + estimated tick cost > the weekly cap. Use the higher
+     "near reset" cap if the weekly window resets within 12 hours: allowance left at the
+     reset is lost anyway;
+   - either window's status is not `allowed`.
+   A skipped tick changes no files and replies with one line, e.g. "Autopilot: skipped,
+   7-day at 72% (cap 70%, resets 2026-10-25 02:00 UTC)." It does not journal or commit.
+4. Otherwise note the seven-day utilisation as "before", run the tick, read it again at the
+   end as "after", and add the difference to "Measured tick costs" in STATE. The estimated
+   tick cost is the largest of the last three measurements (the starting estimate until
+   there are three). Never assume a tick is cheaper than measured.
+
 ## 1. Reorient (every tick)
 1. `git fetch origin`, then `git status -sb`; if the branch is behind its remote, pull
    (fast-forward only). Then read `.claude/autopilot/STATE.md`.
@@ -86,6 +109,19 @@ On a genuine stop: write the question under "Waiting for you" with options and y
 recommendation, set `status: blocked`, journal it, and pause (step 6).
 
 ## 4. Do the work, then verify it
+- **Delegate the unit of work to a subagent, with an effort level that fits it.** This
+  session's context is long, so work done here costs more than the same work in a fresh
+  subagent. Keep this session to the budget gate, choosing the unit, delegating, verifying
+  and journaling. Give the subagent everything it needs: the unit, the relevant files,
+  `CLAUDE.md`'s standards, the hard rules above, and "do not commit or push". Choose its
+  `effort` (never above `high`):
+  - `low`: journal or state only, re-running checks, formatting, small doc fixes;
+  - `medium`: a routine TDD slice in an agreed design, a review fix, a CI fix with a clear
+    error, the pre-commit review of a routine diff;
+  - `high`: planning a new roadmap step, scientific or numerical work, debugging an unclear
+    failure, security reviews.
+  Record the effort chosen in the journal entry. Then verify its work yourself: read the
+  diff and run the checks here. Its report is evidence, not proof.
 - Use subagents to get more done and to check yourself, within the work limit:
   - independent investigations in parallel (`Explore` or `general-purpose`);
   - before each commit, **one** fresh-context review of the diff (a `general-purpose` agent
@@ -102,6 +138,7 @@ Prepend an entry to `docs/AUTOPILOT_JOURNAL.md` (newest first):
 ```markdown
 ## <UTC date and time>: <one-line summary>
 - **Did:** what changed, commit hash, PR. Autopilot commits since your last message: N of 6.
+- **Usage:** 7-day before → after (this tick's cost), 5-hour at start; subagent efforts used.
 - **Checks run:** exact commands and results (and CI, if known). Re-runs, if any.
 - **Decisions taken for you:** each with the alternative and how to reverse it (or "none").
 - **Waiting for you:** proposals, questions, learning-log drafts (or "nothing").
