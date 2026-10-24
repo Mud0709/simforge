@@ -25,17 +25,15 @@ branch: claude/laughing-brahmagupta-50jkiy
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 1.6 is planned and decided: `docs/plans/ROADMAP_1_6_PLAN.md` (all recommendations
-accepted by the author on 2026-10-24). Next: slice 1 (backend recompute route), on a new PR,
-once PR #11 is merged. Until then there is nothing to build: pause again.
+Roadmap 1.6, being built in chat by the author's request (2026-10-24 ~18:40 UTC): all five
+slices S1-S5 of `docs/plans/ROADMAP_1_6_PLAN.md`, plus learning-log entries for PRs #9-#11.
+PR #11 is merged. A tick must first check the latest conversation for how far this got.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-- Merge PR #11, so 1.6 can start on a fresh PR. (The 1.6 decisions are answered.)
+Nothing.
 
 ## For your daily review (not blocking)
-- Learning-log drafts for PRs #9 and #10 (in chat on 2026-10-23): approve or edit.
-- PR #11 (roadmap 1.5) is green and waiting for your review and merge. The autopilot's commits
-  land on the same branch, so they appear in #11 until it is merged.
+- (none yet)
