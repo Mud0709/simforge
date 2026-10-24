@@ -77,7 +77,7 @@ options (and later, the cleaning recipe).
 Scaffolds, strict schemas, experiment log, CI. Physics: projectile with linear drag (exact
 vs adaptive), from-scratch integrator convergence study, range-against-angle sweep.
 
-## Phase 1: Studio core and a walking skeleton across all three labs
+## Phase 1: Studio core and a walking skeleton across all three labs ✅
 | Step | Outcome | Status |
 |---|---|---|
 | 1.1 | **Economy Lab's first model: Solow growth.** `/economy/solow` in the first version of the shared workspace (Parameters, Visualisation, Results, Assumptions, Validation); lab navigation | ✅ |
@@ -85,10 +85,13 @@ vs adaptive), from-scratch integrator convergence study, range-against-angle swe
 | 1.3 | **Quant Lab's first feature.** CSV upload and bundled synthetic datasets, identified by content hash (the file itself is not stored); column types with overrides, missing values, duplicates and summary statistics. Built on the standard `csv` module and NumPy; pandas arrives in Phase 5 | ✅ |
 | 1.4 | **Run record v2, model registry and replay.** Migration of the experiment log; `POST /experiments/{id}/replay` with an identical / within tolerance / differs verdict (a dataset profile is replayed by supplying the file again; its SHA-256 must match) | ✅ |
 | 1.5 | **Generic experiment log.** Runs by lab with model-supplied headlines; reopen a run (parameters in the URL), replay, name and annotate it | ✅ |
-| 1.6 | **Comparison and export.** Pin a baseline run and overlay another; export series as CSV and the run record as JSON | 🔜 |
+| 1.6 | **Comparison and export.** Pin a reference run and overlay another run of the same model, with a table of input and summary changes; recompute a stored run's series (digest-checked); export series as CSV and the run record as versioned JSON | ✅ |
 
 Done when each lab has a real, validated feature in the same workspace and every run can be
 saved, reopened, replayed, compared and exported.
+
+No step is marked 🔜 at the moment: the author chooses the next step (Phase 2 in Track B, or
+a Track A module interleaved first, which never replaces or reorders a Track B step).
 
 ## Phase 2: Physics Lab, mechanics and numerical methods ⏳
 Quadratic drag (validated against the exact vertical `tanh` solution, the c → 0 limit,

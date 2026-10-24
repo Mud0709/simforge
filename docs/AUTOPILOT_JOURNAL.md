@@ -7,6 +7,22 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 ~20:30 UTC: roadmap 1.6 built in chat (author's session, not a tick)
+- **Did:** slices S1-S5 of `docs/plans/ROADMAP_1_6_PLAN.md` and the docs, one commit each
+  (8bb7cb7, 25c0d35, d35464c, 4dfc72a, d83c07a, then docs); learning-log entries for PRs
+  #9-#11 (32d956c). Each slice: a builder subagent (medium or high effort, same model), then
+  a fresh reviewer, then checks here. Status `waiting-review`; the 6-hourly task is paused.
+- **Checks run:** `scripts/check.sh --e2e` on the final tree: exit 0; pytest 1234 passed,
+  Vitest 195 passed, Playwright 19 passed. Guide excerpts: all three guides ALL OK.
+- **Decisions taken for you:** the "not bit-identical" label no longer claims the environment
+  differs (nothing checks that); it now says the cause is not checked. `digest_match` is null
+  for old records without a digest. Reverse either in `ReferenceRunPanel.tsx` / `outputs.py`.
+- **Waiting for you:** a PR for 1.6; the next roadmap step.
+- **What this means for you:** every run can now be compared and exported; old runs are
+  recomputed and the digest says whether the recomputation is exact.
+- **Learning checkpoint:** why are negative numbers exempt from the CSV formula guard?
+- **Next:** your choice of the next step, then `grilling` for its decisions.
+
 ## 2026-10-24 18:40 UTC: new rule, pick up from the latest conversation (author's request)
 - **Did:** the skill's reorient step now reads the session's latest exchange (the author's last
   message and the final response) before choosing work, so a tick continues from work the

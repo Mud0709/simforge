@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
 failures: none
@@ -25,15 +25,15 @@ branch: claude/laughing-brahmagupta-50jkiy
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 1.6, being built in chat by the author's request (2026-10-24 ~18:40 UTC): all five
-slices S1-S5 of `docs/plans/ROADMAP_1_6_PLAN.md`, plus learning-log entries for PRs #9-#11.
-PR #11 is merged. A tick must first check the latest conversation for how far this got.
+None. Roadmap 1.6 is complete on the branch (slices S1-S5 and docs, built in chat on
+2026-10-24). No step is marked 🔜: the author chooses the next one.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-Nothing.
+- Ask for a PR for roadmap 1.6 (the branch holds it; none is open), review and merge it.
+- Choose the next step: Phase 2 (Track B), or a Track A module first.
 
 ## For your daily review (not blocking)
 - (none yet)
