@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 6 hours, UTC)
 failures: none
@@ -19,18 +19,22 @@ branch: claude/laughing-brahmagupta-50jkiy
   the last three measurements once there are three.
 
 ## Measured tick costs (7-day utilisation before → after)
-None yet. For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
-about 0.01, because the conversation is long.
+- 2026-10-24 12:44 UTC (test tick 2, planning 1.6): 0.73 → 0.73, under 0.01 at the 1%
+  resolution of the readings (5-hour window 0.24 → 0.27). Readings are rounded to 0.01, so
+  costs below that show as 0.
+For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-None. The next roadmap step is 1.6 (comparison and export). PR #11 (roadmap 1.5) is not
-merged yet, so until it is, the autopilot only plans 1.6 (proposals in the journal, no code).
+Roadmap 1.6 is planned: `docs/plans/ROADMAP_1_6_PLAN.md` (8 decisions, 5 slices). No code
+until PR #11 is merged and you answer the decisions.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-Nothing.
+- The 8 decisions for roadmap 1.6 (D1-D8 in `docs/plans/ROADMAP_1_6_PLAN.md`), each with a
+  recommendation. Reply in chat, e.g. "1.6: yes to all".
+- Merge PR #11, so 1.6 can start on a fresh PR.
 
 ## For your daily review (not blocking)
 - Learning-log drafts for PRs #9 and #10 (in chat on 2026-10-23): approve or edit.

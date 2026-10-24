@@ -7,6 +7,25 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 12:44 UTC: planned roadmap 1.6 as proposals (test tick 2)
+- **Did:** wrote `docs/plans/ROADMAP_1_6_PLAN.md`: what 1.6 builds, 8 decisions with
+  recommendations, 5 test-first slices, risks. No code (PR #11 is not merged). Autopilot
+  commits since your last message: 1 of 6. Status set to `waiting-review` (nothing else can be
+  built until you answer), so the 18:26 tick will only check for your answer.
+- **Usage:** 7-day 0.73 → 0.73 (under 0.01; readings are rounded to 0.01), 5-hour 0.24 at
+  start, 0.27 at the end. One subagent, effort high, same model as this session.
+- **Checks run:** none needed (docs only). PR #11 CI on its head: all four jobs green. Three
+  of the subagent's claims re-checked in the code (series not stored; Solow's "baseline" and
+  "scenario" names; replay's 409 on a version change): all true.
+- **Decisions taken for you:** the plan lives in a new `docs/plans/` folder (alternative: in
+  this journal; reverse by moving it).
+- **Waiting for you:** D1-D8 in the plan; merge PR #11.
+- **What this means for you:** the biggest choice is D1: series are not stored, so exports
+  of old runs must be recomputed, and the output digest proves the recomputation matches.
+- **Learning checkpoint:** why can a CSV cell like `=HYPERLINK(...)` be dangerous, and why
+  must the fix leave `-3.2` alone?
+- **Next:** your answers, then slice 1 (backend recompute) with `tdd`.
+
 ## 2026-10-24 12:32 UTC: resumed, with a one-off test tick (author's request, not a tick)
 - **Did:** set STATE `running`, re-enabled the 6-hourly task (next run 18:26 UTC), and
   scheduled one extra test tick for about 12:38 UTC. Added a rule to the skill: subagents
