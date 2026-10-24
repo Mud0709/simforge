@@ -73,6 +73,23 @@ export interface paths {
     patch: operations["label_experiment_api_v1_experiments__run_id__patch"];
     trace?: never;
   };
+  "/api/v1/experiments/{run_id}/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Export Experiment */
+    get: operations["export_experiment_api_v1_experiments__run_id__export_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/experiments/{run_id}/outputs": {
     parameters: {
       query?: never;
@@ -1221,6 +1238,28 @@ export interface components {
       verdict: "identical" | "within_tolerance" | "differs";
     };
     /**
+     * RunExport
+     * @description A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The
+     *     version lets a future import or report check what it reads. No series: the log stores
+     *     inputs, not curves (ARCHITECTURE decision 5).
+     */
+    RunExport: {
+      /**
+       * Export Version
+       * @description The export format version.
+       * @constant
+       */
+      export_version: 1;
+      /**
+       * Exported At
+       * Format: date-time
+       * @description When this export was made (UTC).
+       */
+      exported_at: string;
+      /** @description The run exactly as GET /experiments/{run_id} shows it. */
+      record: components["schemas"]["LoggedRun"];
+    };
+    /**
      * RunLabels
      * @description A run's name and note. Omitted fields are kept; null or "" clears. Nothing else about
      *     a run can be changed: its inputs, results and fingerprints are the scientific record.
@@ -1710,6 +1749,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LoggedRun"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_experiment_api_v1_experiments__run_id__export_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunExport"];
         };
       };
       /** @description Validation Error */

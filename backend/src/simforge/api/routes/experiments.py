@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.concurrency import run_in_threadpool
-from pydantic import Field
+from pydantic import AwareDatetime, Field
 
 from simforge.api.dependencies import Repository
 from simforge.api.outputs import RecomputedOutputs, RecomputeRequest, recompute_outputs
@@ -73,6 +74,27 @@ def get_experiment(run_id: str, repo: Repository) -> LoggedRun:
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
     return _logged(record)
+
+
+class RunExport(StrictModel):
+    """A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The
+    version lets a future import or report check what it reads. No series: the log stores
+    inputs, not curves (ARCHITECTURE decision 5)."""
+
+    export_version: Literal[1] = Field(description="The export format version.")
+    exported_at: AwareDatetime = Field(description="When this export was made (UTC).")
+    record: LoggedRun = Field(description="The run exactly as GET /experiments/{run_id} shows it.")
+
+
+@router.get("/{run_id}/export")
+def export_experiment(run_id: str, repo: Repository, response: Response) -> RunExport:
+    record = repo.get(run_id)
+    if record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    # Model id and run id only: user labels never go in a filename (safety rule, 1.6 plan).
+    filename = f"{record.model_id}_{record.run_id[:8]}.json"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return RunExport(export_version=1, exported_at=datetime.now(UTC), record=_logged(record))
 
 
 class RunLabels(StrictModel):

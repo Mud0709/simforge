@@ -2310,6 +2310,35 @@
         "title": "ReplayResponse",
         "type": "object"
       },
+      "RunExport": {
+        "additionalProperties": false,
+        "description": "A stored run as a versioned, downloadable JSON file (roadmap 1.6, decision D5). The\nversion lets a future import or report check what it reads. No series: the log stores\ninputs, not curves (ARCHITECTURE decision 5).",
+        "properties": {
+          "export_version": {
+            "const": 1,
+            "description": "The export format version.",
+            "title": "Export Version",
+            "type": "integer"
+          },
+          "exported_at": {
+            "description": "When this export was made (UTC).",
+            "format": "date-time",
+            "title": "Exported At",
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/LoggedRun",
+            "description": "The run exactly as GET /experiments/{run_id} shows it."
+          }
+        },
+        "required": [
+          "export_version",
+          "exported_at",
+          "record"
+        ],
+        "title": "RunExport",
+        "type": "object"
+      },
       "RunLabels": {
         "additionalProperties": false,
         "description": "A run's name and note. Omitted fields are kept; null or \"\" clears. Nothing else about\na run can be changed: its inputs, results and fingerprints are the scientific record.",
@@ -3287,6 +3316,48 @@
           }
         },
         "summary": "Label Experiment",
+        "tags": [
+          "experiments"
+        ]
+      }
+    },
+    "/api/v1/experiments/{run_id}/export": {
+      "get": {
+        "operationId": "export_experiment_api_v1_experiments__run_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunExport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Experiment",
         "tags": [
           "experiments"
         ]
