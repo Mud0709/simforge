@@ -7,6 +7,7 @@ import type { SolowResponse } from "@/lib/api/client";
 import { formatSig } from "@/lib/format";
 import { AssumptionsList } from "./AssumptionsList";
 import { ChecksTable } from "./ChecksTable";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 const BASELINE = "#64748b";
@@ -230,6 +231,7 @@ export function SolowSummary({ result }: Props) {
         {formatSig(s.capital_output_ratio, 4)} years (s₁). Capital, output and consumption are per
         effective worker, in model units.
       </p>
+      <CsvDownloads response={result} />
     </>
   );
 }

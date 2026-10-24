@@ -6,6 +6,7 @@ import { memo, useMemo } from "react";
 import type { IntegratorStudyResponse, MethodStudyResult } from "@/lib/api/client";
 import { formatExp, formatSig } from "@/lib/format";
 import { AssumptionsList } from "./AssumptionsList";
+import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
 const COLORS: Record<MethodStudyResult["method"], string> = {
@@ -200,6 +201,7 @@ export function IntegratorOrders({ result }: Props) {
         invariant), so their velocity order is not independent evidence. Horizon T ={" "}
         {formatSig(result.horizon, 6)} s, k = {formatSig(result.k, 6)} s⁻¹.
       </p>
+      <CsvDownloads response={result} />
     </>
   );
 }
