@@ -7,10 +7,11 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import Field
 
 from simforge.api.dependencies import Repository
+from simforge.api.outputs import RecomputedOutputs, RecomputeRequest, recompute_outputs
 from simforge.api.registry import get_entry
 from simforge.api.replay import ReplayRequest, ReplayResponse, replay_run
 from simforge.core.schemas import StrictModel
-from simforge.persistence.experiments import ExperimentRecord
+from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -103,11 +104,26 @@ def label_experiment(run_id: str, labels: RunLabels, repo: Repository) -> Logged
     return _logged(updated)
 
 
+async def _stored(run_id: str, repo: ExperimentRepository) -> ExperimentRecord:
+    """The stored run a rerun starts from (replay or recomputed outputs), or 404."""
+    record = await run_in_threadpool(repo.get, run_id)
+    if record is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
+    return record
+
+
 @router.post("/{run_id}/replay")
 async def replay_experiment(run_id: str, body: ReplayRequest, repo: Repository) -> ReplayResponse:
     """Rerun a stored run with the same inputs and the same model version, and say whether
     the same answer came back: identical, within tolerance, or differs."""
-    record = await run_in_threadpool(repo.get, run_id)
-    if record is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No experiment with run_id {run_id!r}")
-    return await replay_run(record, body, repo)
+    return await replay_run(await _stored(run_id, repo), body, repo)
+
+
+@router.post("/{run_id}/outputs")
+async def recompute_experiment_outputs(
+    run_id: str, body: RecomputeRequest, repo: Repository
+) -> RecomputedOutputs:
+    """Compute a stored run again and return its full response (series included), with
+    whether it is bit-identical to the original. Refuses exactly what replay refuses; never
+    saves anything."""
+    return await recompute_outputs(await _stored(run_id, repo), body, repo)
