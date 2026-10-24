@@ -120,6 +120,10 @@ recommendation, set `status: blocked`, journal it, and pause (step 6).
     error, the pre-commit review of a routine diff;
   - `high`: planning a new roadmap step, scientific or numerical work, debugging an unclear
     failure, security reviews.
+  **Effort is the only thing that varies, never the model.** Do not pass `model` to a
+  subagent: it inherits this session's model. Switching models is the author's decision, to
+  be proposed (with evidence that the other model is better for the job) under "Waiting for
+  you", never taken alone.
   Record the effort chosen in the journal entry. Then verify its work yourself: read the
   diff and run the checks here. Its report is evidence, not proof.
 - Use subagents to get more done and to check yourself, within the work limit:

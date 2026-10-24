@@ -7,6 +7,21 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-24 12:32 UTC: resumed, with a one-off test tick (author's request, not a tick)
+- **Did:** set STATE `running`, re-enabled the 6-hourly task (next run 18:26 UTC), and
+  scheduled one extra test tick for about 12:38 UTC. Added a rule to the skill: subagents
+  always inherit this session's model (Opus 5.5); only the effort varies (low, medium, high).
+  Changing the model is a proposal for the author. Work-limit count reset to 0 of 6.
+- **Usage:** 7-day 72%, 5-hour 21% at 12:26 UTC. The weekly cap is 70% until 14:00 UTC (12 h
+  before the 02:00 UTC reset), so the test tick is expected to skip under the budget gate.
+- **Checks run:** none needed (no code changed).
+- **Decisions taken for you:** none.
+- **Waiting for you:** merge PR #11; approve the learning-log drafts for PRs #9 and #10.
+- **What this means for you:** the test shows the gate working; real work starts on the first
+  tick that fits under the cap.
+- **Learning checkpoint:** why is a skipped tick still not completely free?
+- **Next:** the test tick, then 18:26 UTC: plan roadmap 1.6 as proposals.
+
 ## 2026-10-24 12:27 UTC: paused; usage-aware ticks every 6 hours (author's request)
 - **Did:** paused the autopilot (scheduled task disabled, STATE `paused`). Changed the schedule
   to every 6 hours. Added a budget gate: each tick reads the author's live 5-hour and 7-day
