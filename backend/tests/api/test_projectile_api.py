@@ -7,6 +7,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.approx import rel_approx
+
 URL = "/api/v1/physics/projectile/simulate"
 
 
@@ -30,8 +32,8 @@ def test_vacuum_range_through_api_matches_textbook(client: TestClient) -> None:
     params = {"initial_speed": 10.0, "launch_angle_deg": 30.0, "drag_coefficient": 0.0}
     body = client.post(URL, json={"parameters": params}).json()
     expected = 10.0**2 * math.sin(math.radians(60.0)) / 9.80665
-    assert body["analytical"]["range"] == pytest.approx(expected, rel=1e-13)
-    assert body["numerical"]["range"] == pytest.approx(expected, rel=1e-9)
+    assert body["analytical"]["range"] == rel_approx(expected, rel=1e-13)
+    assert body["numerical"]["range"] == rel_approx(expected, rel=1e-9)
 
 
 @pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity"])

@@ -24,6 +24,7 @@ from scipy.optimize import brentq, minimize_scalar
 
 from simforge.economy.solow import simulation as sim
 from simforge.economy.solow.schemas import MIN_EFFECTIVE_DEPRECIATION
+from tests.approx import rel_approx
 
 U = 2.0**-53  # unit roundoff of float64
 # Below this relative distance from k*, rounding noise dominates the dynamics, so strict
@@ -135,8 +136,8 @@ def test_steady_state_is_a_fixed_point_and_matches_formula() -> None:
     e = econ()
     lam = 0.01 + 0.02 + 0.01 * 0.02 + 0.05
     k_star = sim.steady_state_capital(e, 0.2)
-    assert k_star == pytest.approx((0.2 / lam) ** (1 / 0.7), rel=1e-15)
-    assert sim.step(e, 0.2, k_star) == pytest.approx(k_star, rel=1e-15)
+    assert k_star == rel_approx((0.2 / lam) ** (1 / 0.7), rel=1e-15)
+    assert sim.step(e, 0.2, k_star) == rel_approx(k_star, rel=1e-15)
 
 
 def test_rho_matches_derivative_of_the_recurrence() -> None:
@@ -145,12 +146,12 @@ def test_rho_matches_derivative_of_the_recurrence() -> None:
     k_star = sim.steady_state_capital(e, 0.25)
     h = k_star * 1e-6
     fd = (sim.step(e, 0.25, k_star + h) - sim.step(e, 0.25, k_star - h)) / (2 * h)
-    assert sim.convergence_factor(e) == pytest.approx(fd, rel=1e-9)
+    assert sim.convergence_factor(e) == rel_approx(fd, rel=1e-9)
 
 
 def test_half_life_formula() -> None:
     e = econ()
-    assert math.pow(sim.convergence_factor(e), sim.half_life(e)) == pytest.approx(0.5, rel=1e-13)
+    assert math.pow(sim.convergence_factor(e), sim.half_life(e)) == rel_approx(0.5, rel=1e-13)
 
 
 def test_no_positive_steady_state_is_rejected() -> None:
@@ -386,7 +387,7 @@ def test_steady_state_converges_to_continuous_at_first_order() -> None:
         e, s = scaled(eps)
         err = abs(sim.steady_state_capital(e, s) / K_STAR_C - 1)
         predicted = abs((1 + eps * N_C * G_C / LAM_C) ** (-1 / (1 - A_C)) - 1)
-        assert err == pytest.approx(predicted, rel=1e-3)
+        assert err == rel_approx(predicted, rel=1e-3)
         errors.append(err)
     for coarse, fine in itertools.pairwise(errors):
         assert 0.95 <= math.log10(coarse / fine) <= 1.05
@@ -397,7 +398,7 @@ def test_without_the_ng_term_steady_states_coincide(eps: float) -> None:
     """With n = 0 the only discrete/continuous difference (the n g term) vanishes."""
     e = econ(A_C, eps * D_C, 0.0, eps * G_C)
     continuous = (S_C / (G_C + D_C)) ** (1 / (1 - A_C))
-    assert sim.steady_state_capital(e, eps * S_C) == pytest.approx(continuous, rel=1e-14)
+    assert sim.steady_state_capital(e, eps * S_C) == rel_approx(continuous, rel=1e-14)
 
 
 def test_path_converges_to_continuous_solution_at_first_order() -> None:
@@ -467,4 +468,4 @@ def test_scenario_converges_to_the_new_steady_state() -> None:
     years = math.ceil(60 / sim.convergence_gap(e))
     sched = sim.savings_schedule(0.2, 0.3, 10, years)
     k = sim.simulate_capital(e, sched, sim.steady_state_capital(e, 0.2))
-    assert k[-1] == pytest.approx(sim.steady_state_capital(e, 0.3), rel=1e-12)
+    assert k[-1] == rel_approx(sim.steady_state_capital(e, 0.3), rel=1e-12)

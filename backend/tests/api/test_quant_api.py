@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from simforge.quant.profiling.limits import MAX_BASE64_CHARS, MAX_FILE_BYTES, MAX_REQUEST_BYTES
 from simforge.quant.profiling.model import sample_bytes
+from tests.approx import rel_approx
 
 URL = "/api/v1/quant/datasets/profile"
 CSV = b"city,temp_c,when\nOslo,-3.5,2026-01-05\nLima,19,2026-01-05\nOslo,-3.5,2026-01-05\n"
@@ -54,7 +55,7 @@ def test_upload_profile(client: TestClient) -> None:
     assert b["duplicates"]["duplicate_rows"] == 1
     assert [c["type"] for c in b["columns"]] == ["categorical", "numeric", "date"]
     temp = b["columns"][1]["numeric"]
-    assert temp["mean"] == pytest.approx((-3.5 + 19 - 3.5) / 3, rel=1e-15)
+    assert temp["mean"] == rel_approx((-3.5 + 19 - 3.5) / 3, rel=1e-15)
     assert b["preview"]["rows"][1] == ["Lima", "19", "2026-01-05"]
     assert {a["id"] for a in b["assumptions"]} >= {"descriptive_only", "duplicates"}
     assert all(c["passed"] is not False for c in b["checks"])
@@ -172,7 +173,7 @@ def test_numeric_sentinel_marker_is_missing_not_a_number(client: TestClient) -> 
     # -999 is a common "no reading" code; as a marker it must not enter the statistics.
     data = b"temp\n10\n-999\n20\n"
     plain = client.post(URL, json=upload(data)).json()["columns"][0]
-    assert plain["numeric"]["mean"] == pytest.approx(-323.0, rel=1e-15)  # (10 - 999 + 20) / 3
+    assert plain["numeric"]["mean"] == rel_approx(-323.0, rel=1e-15)  # (10 - 999 + 20) / 3
     marked = client.post(URL, json=upload(data, options={"missing_markers": ["-999"]})).json()
     col = marked["columns"][0]
     assert (col["missing_count"], col["missing_markers_found"]) == (1, {"-999": 1})

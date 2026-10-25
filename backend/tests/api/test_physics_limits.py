@@ -15,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from simforge.physics.projectile.schemas import ProjectileParameters
+from tests.approx import rel_approx
 
 SIM = "/api/v1/physics/projectile/simulate"
 SWEEP = "/api/v1/physics/projectile/angle-sweep"
@@ -113,7 +114,7 @@ def test_corners_of_the_allowed_space_never_crash(client: TestClient) -> None:
                 # reports honestly, dominates; there we require a finite, positive result.
                 scale = body["analytical"]["range"] + body["analytical"]["max_height"] - h
                 if scale > 1e-6:
-                    assert numeric == pytest.approx(exact, rel=1e-5), (url, extra, params)
+                    assert numeric == rel_approx(exact, rel=1e-5), (url, extra, params)
     assert ran > 0
 
 
