@@ -320,12 +320,14 @@ def test_value_rules_survive_last_bit_differences_at_the_tightest_tolerance(
 
     def last_bits_differ(vx: float, vy: float, kappa: float) -> tuple[float, float]:
         ax, ay = exact_law(vx, vy, kappa)
-        ulp = 2.0**-52
-        return ax * (1 + rng.choice((-2, -1, 1, 2)) * ulp), ay * (1 + rng.choice((-2, -1, 1, 2)) * ulp)
+        ulps = (-2, -1, 1, 2)
+        return ax * (1 + rng.choice(ulps) * 2.0**-52), ay * (1 + rng.choice(ulps) * 2.0**-52)
 
     monkeypatch.setattr(quadratic_numerical, "drag_acceleration", last_bits_differ)
     replayed = entry.summary(entry.compute(request))
     counts = {"numerical.n_steps", "numerical.n_rhs_evaluations"}
     comparison = compare_summaries(original, replayed, rules)
-    outside = [c.field for c in comparison.fields if c.field not in counts and not c.within_tolerance]
+    outside = [
+        c.field for c in comparison.fields if c.field not in counts and not c.within_tolerance
+    ]
     assert outside == [], [(c.field, c.original, c.replay) for c in comparison.fields]
