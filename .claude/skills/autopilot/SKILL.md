@@ -182,4 +182,14 @@ on a tick that only changes STATE and the journal, commit those alone.
   autopilot": set `status: running`, reset the work-limit count, and re-enable the task.
 
 ## 7. Reply at the end of a tick
-Two or three lines: what was done, the commit, and the next step. The journal holds the detail.
+The author reads these replies, so they follow `CLAUDE.md`'s format, like any other response:
+- **The easy summary first:** one or two plain sentences saying what happened (built, planned,
+  skipped, waiting), as for someone who has not been following.
+- **What was done:** short headings or bullets, verified facts separated from assumptions,
+  with commits, checks actually run, usage and the decisions taken for the author.
+- **What this means for me:** what changed, why it matters, the key concept, the main
+  trade-off, and what to do next.
+- **Learning checkpoint:** one or two questions about this unit.
+- **Recommended skill for the next step:** the skill, why, and how to use it.
+A tick that only skips or waits still gives the easy summary and the recommended skill, in a
+few lines. The journal holds the full record; the reply never contradicts it.
