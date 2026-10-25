@@ -7,6 +7,24 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-25 08:30 UTC: 2.1 slices 1-3 built in chat; paused on the author's "stop after slice 3"
+- **Did:** slice 1 reference formulas (ed2d77a), slice 2 integrator and model (74d3164),
+  slice 3 API, registry and golden run (d5a4aaa); also enforced 46 test tolerances that
+  pytest.approx was loosening (074cf27). Each slice: builder (high effort) + fresh reviewer;
+  slice 3's review runs after its commit (the author asked to finish fast). Autopilot paused.
+- **Checks run:** slices 1-2: full `scripts/check.sh` passed (pytest 1502). Slice 3: the
+  builder's full `scripts/check.sh` passed (pytest 1570); after commit I re-ran 64 API,
+  registry and golden tests: passed. Playwright not run for 2.1 yet.
+- **Decisions taken for you:** the stiffness guard bounds drag time S = ∫κ|v|dt (proved), not
+  the plan's κV·T_bound (which refused 193 of 1007 grid runs that finish); new input rules
+  atol ≤ 0.01·min(v₀, v_t) and drag-free flight ≥ 1 µs (both measured); `drag_constant`
+  default 0.01 kg/m. All reversible; the plan gets amended in slice 5.
+- **Waiting for you:** "continue 2.1" for slices 4-5.
+- **What this means for you:** the quadratic-drag model works end to end through the API; there
+  is no page for it yet.
+- **Learning checkpoint:** why does an explicit solver's step count grow with S?
+- **Next:** slice 4 (frontend) with `tdd`, when you say so.
+
 ## 2026-10-25 04:40 UTC: Phase 2 split into steps; 2.1 (quadratic drag) planned by default
 - **Did:** ROADMAP Phase 2 now has a step table (2.1-2.6, every item of the paragraph in its
   order; 🔜 on 2.1). `docs/plans/ROADMAP_2_1_PLAN.md`: the autopilot grilled itself and took

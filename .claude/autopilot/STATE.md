@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: paused
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
@@ -28,9 +28,9 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.1 (quadratic drag): planned and decided by default in `docs/plans/ROADMAP_2_1_PLAN.md`
-(12 decisions, 5 slices). Next: slice 1 with `tdd`. PR #12 is merged; 2.1 gets a new PR once
-the branch has code for it (the autopilot does not open PRs unasked: ask the author).
+Roadmap 2.1: slices 1-3 committed (ed2d77a, 74d3164, d5a4aaa); slice 3's fresh-context review
+was still running at the pause, its fixes to be committed as a follow-up. The author said
+"stop after slice 3": do NOT start slice 4 (frontend) or 5 (docs) until the author says so.
 
 ## Remainder of the current unit
 —
