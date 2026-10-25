@@ -201,6 +201,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/projectile/quadratic-drag/simulate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Simulate Quadratic Drag */
+    post: operations["simulate_quadratic_drag_api_v1_physics_projectile_quadratic_drag_simulate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/projectile/simulate": {
     parameters: {
       query?: never;
@@ -1152,6 +1169,216 @@ export interface components {
       /** Y Numerical */
       y_numerical: number[];
     };
+    /** QuadraticDiagnostics */
+    QuadraticDiagnostics: {
+      /**
+       * Drag Time Bound
+       * @description Proved upper bound on the drag time, the integral of kappa |v| dt (dimensionless: the path length in drag lengths m/c).
+       */
+      drag_time_bound: number;
+      /**
+       * Flight Time Bound
+       * @description Proved upper bound on the flight time, s.
+       */
+      flight_time_bound: number;
+      /** Invariant Note */
+      invariant_note: string;
+      /**
+       * Max Energy Balance Residual
+       * @description max |KE + PE + W - E0| / E0 over the solver's step nodes, with W the work against drag integrated from c|v|^3. Exactly 0 for the true motion.
+       */
+      max_energy_balance_residual: number;
+      /**
+       * Max Invariant Residual
+       * @description max |I - I0| / max(1/vx^2) over the step nodes, for the hodograph invariant I (constant for the true motion). Null when I is undefined: a vertical launch (vx = 0), or a run whose vx decayed below the solver's control.
+       */
+      max_invariant_residual: number | null;
+    };
+    /** QuadraticDragParameters */
+    QuadraticDragParameters: {
+      /**
+       * Drag Constant
+       * @description Quadratic drag constant c in kg/m (drag force F = -c|v|v; for a ball c = rho C_d A / 2). Not the dimensionless drag coefficient C_d, and not the linear model's b in kg/s. 0 means vacuum.
+       * @default 0.01
+       */
+      drag_constant?: number;
+      /**
+       * Gravity
+       * @description Gravitational acceleration in m/s^2 (default: standard gravity).
+       * @default 9.80665
+       */
+      gravity?: number;
+      /**
+       * Initial Speed
+       * @description Launch speed |v0| in m/s.
+       * @default 20
+       */
+      initial_speed?: number;
+      /**
+       * Launch Angle Deg
+       * @description Launch angle above the horizontal, in degrees.
+       * @default 45
+       */
+      launch_angle_deg?: number;
+      /**
+       * Launch Height
+       * @description Height of the launch point above the ground, in m.
+       * @default 0
+       */
+      launch_height?: number;
+      /**
+       * Mass
+       * @description Projectile mass in kg.
+       * @default 1
+       */
+      mass?: number;
+    };
+    /** QuadraticDragRequest */
+    QuadraticDragRequest: {
+      /**
+       * N Samples
+       * @description Number of points in the resampled series.
+       * @default 400
+       */
+      n_samples?: number;
+      parameters?: components["schemas"]["QuadraticDragParameters"];
+      /**
+       * Save Experiment
+       * @description Record inputs and summary metrics in the experiment log.
+       * @default true
+       */
+      save_experiment?: boolean;
+      solver?: components["schemas"]["SolverSettings"];
+    };
+    /** QuadraticDragResponse */
+    QuadraticDragResponse: {
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      diagnostics: components["schemas"]["QuadraticDiagnostics"];
+      metadata: components["schemas"]["RunMetadata"];
+      model: components["schemas"]["ModelInfo"];
+      numerical: components["schemas"]["NumericalResult"];
+      /** Numerical Note */
+      numerical_note: string;
+      parameters: components["schemas"]["QuadraticDragParameters"];
+      series: components["schemas"]["QuadraticDragSeries"];
+      solver: components["schemas"]["SolverSettings"];
+      /**
+       * Terminal Speed
+       * @description sqrt(m g / c) in m/s (exact). Null in vacuum, where it is infinite.
+       */
+      terminal_speed: number | null;
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+      vacuum: components["schemas"]["QuadraticVacuumFlight"];
+      /** @description The exact vertical flight and the numerical errors against it; null unless the launch angle is exactly 90 degrees (no exact 2-D solution exists). */
+      vertical_reference: components["schemas"]["QuadraticVerticalReference"] | null;
+    };
+    /**
+     * QuadraticDragSeries
+     * @description Uniformly resampled series for plotting, from the solver's dense output; the vacuum
+     *     trajectory (exact) on its own time grid, since it lasts longer.
+     */
+    QuadraticDragSeries: {
+      /** Drag Work */
+      drag_work: number[];
+      /** Kinetic Energy */
+      kinetic_energy: number[];
+      /** Potential Energy */
+      potential_energy: number[];
+      /** Speed */
+      speed: number[];
+      /** T */
+      t: number[];
+      /** Vacuum T */
+      vacuum_t: number[];
+      /** Vacuum X */
+      vacuum_x: number[];
+      /** Vacuum Y */
+      vacuum_y: number[];
+      /** X */
+      x: number[];
+      /** Y */
+      y: number[];
+    };
+    /**
+     * QuadraticVacuumFlight
+     * @description The same launch with no drag (exact closed forms).
+     */
+    QuadraticVacuumFlight: {
+      /**
+       * Apex Time
+       * @description s
+       */
+      apex_time: number;
+      /**
+       * Flight Time
+       * @description s
+       */
+      flight_time: number;
+      /**
+       * Impact Speed
+       * @description m/s
+       */
+      impact_speed: number;
+      /**
+       * Max Height
+       * @description m
+       */
+      max_height: number;
+      /** Method Note */
+      method_note: string;
+      /**
+       * Range
+       * @description Horizontal distance at landing, m
+       */
+      range: number;
+    };
+    /**
+     * QuadraticVerticalFlight
+     * @description The exact vertical flight with quadratic drag (R3).
+     */
+    QuadraticVerticalFlight: {
+      /**
+       * Apex Time
+       * @description s, from launch to the top
+       */
+      apex_time: number;
+      /**
+       * Fall Time
+       * @description s, from the top to the ground
+       */
+      fall_time: number;
+      /**
+       * Flight Time
+       * @description s
+       */
+      flight_time: number;
+      /**
+       * Impact Speed
+       * @description m/s
+       */
+      impact_speed: number;
+      /**
+       * Max Height
+       * @description m above the ground
+       */
+      max_height: number;
+    };
+    /** QuadraticVerticalReference */
+    QuadraticVerticalReference: {
+      apex_time: components["schemas"]["ErrorMetric"];
+      exact: components["schemas"]["QuadraticVerticalFlight"];
+      flight_time: components["schemas"]["ErrorMetric"];
+      impact_speed: components["schemas"]["ErrorMetric"];
+      max_height: components["schemas"]["ErrorMetric"];
+      /** Method Note */
+      method_note: string;
+    };
     /** RecomputeRequest */
     RecomputeRequest: {
       /** @description Only for a dataset profile of an uploaded file. */
@@ -1175,7 +1402,8 @@ export interface components {
         | components["schemas"]["IntegratorStudyResponse"]
         | components["schemas"]["AngleSweepResponse"]
         | components["schemas"]["SolowResponse"]
-        | components["schemas"]["ProfileResponse"];
+        | components["schemas"]["ProfileResponse"]
+        | components["schemas"]["QuadraticDragResponse"];
     };
     /**
      * ReferenceLine
@@ -1956,6 +2184,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["IntegratorStudyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  simulate_quadratic_drag_api_v1_physics_projectile_quadratic_drag_simulate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuadraticDragRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuadraticDragResponse"];
         };
       };
       /** @description Validation Error */
