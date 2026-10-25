@@ -193,6 +193,12 @@ def test_barely_flying_launches_get_a_422_not_a_500(
 
 # --- every corner of the allowed space -------------------------------------------------------
 
+MASSES, SPEEDS, DRAGS = (1e-6, 1e6), (1e-3, 1e4), ("vacuum", "largest")
+GRAVITIES, HEIGHTS, ANGLES = (0.01, 1000.0), (0.0, 1e5), (0, 1e-3, 90)
+METHODS = ("RK45", "DOP853", "Radau")
+TIGHT = (1e-13, 1e-14)  # the tightest (rtol, atol) allowed
+LOOSE_RTOL = 1e-3  # the loosest rtol; atol is set per corner, just inside its rule
+
 
 def _largest_drag_constant(mass: float, v0: float, g: float) -> float:
     """The largest c allowed (c <= 1e6 and kappa max(v0, v_t) <= 1e4), just inside."""
@@ -200,15 +206,48 @@ def _largest_drag_constant(mass: float, v0: float, g: float) -> float:
     return min(1e6, mass * kappa) * (1 - 1e-9)
 
 
+def _repeats_another_corner(
+    mass: float, v0: float, drag: str, g: float, h: float, angle: float
+) -> bool:
+    """Whether tight-tolerance Radau on this corner repeats a computation another corner makes.
+
+    Radau at rtol = 1e-13 is the one costly combination: measured in the slice 3 review, 57
+    of the 59 s that all 576 requests took, 0.4 to 3.5 s per drag corner; everything else
+    together took 2 s. So only this combination is thinned, and only where a kept corner
+    makes the same computation; every other method and setting still runs on every corner.
+    """
+    if drag == "vacuum":
+        return False  # all 24 vacuum corners together take under 0.2 s
+    if v0 == 1e4 and mass == 1e6:
+        # The motion depends on kappa = c/m only (the mass also sets the units of the drag
+        # work W, which rtol controls at this setting). At v0 = 1e4 the largest c is m x 1 /m
+        # for both masses (the cap c <= 1e6 does not bind), so kappa = 1 for both. Measured:
+        # flight times equal to 1e-13 and step counts within 1% between the two masses.
+        return True
+    if h == 1e5 and angle == 1e-3:
+        # vy0 <= 0.17 m/s against a 100 km fall: the angle-0 corner's computation. Measured:
+        # the same step count at v0 = 1e-3 and within 1% at v0 = 1e4.
+        return True
+    if v0 == 1e4 and g == 0.01 and (h, angle) != (1e5, 0):
+        # At v0 = 1e4 every corner has kappa = 1 and spends most of its 9000 to 15 000 steps
+        # slowing down from 1e4 m/s; g changes only the fall after that. g = 1000 keeps every
+        # height and angle, and g = 0.01 keeps its slowest corner (h = 1e5, angle 0: 3.0 to
+        # 3.3 s, the slowest request of the whole grid), the case the time budget is for.
+        return True
+    # kappa = 1 at v0 = 1e-3 (the cap c <= 1e6 binds for the heavy mass) from 100 km: the fall
+    # at v_t = sqrt(g / kappa) through 100 km that the kept v0 = 1e4, h = 1e5 corners end with.
+    return v0 == 1e-3 and mass == 1e6 and h == 1e5
+
+
 def test_corners_of_the_allowed_space_never_crash_and_finish_in_time(client: TestClient) -> None:
     # Every corner (mass, speed, c, g, height, angle), with every solver and both extreme
     # tolerance settings, either runs or is refused with a 422 that explains why. Never a 500,
-    # and no request takes longer than SECONDS_PER_REQUEST.
-    corners = itertools.product(
-        [1e-6, 1e6], [1e-3, 1e4], ["vacuum", "largest"], [0.01, 1000.0], [0.0, 1e5], [0, 1e-3, 90]
-    )
+    # and no request takes longer than SECONDS_PER_REQUEST. Tight-tolerance Radau skips the
+    # corners that repeat another corner's computation (_repeats_another_corner).
+    corners = itertools.product(MASSES, SPEEDS, DRAGS, GRAVITIES, HEIGHTS, ANGLES)
     ran = refused = 0
     slowest = (0.0, "")
+    tight_radau_ran: list[tuple[float, ...]] = []
     for mass, v0, drag, g, h, angle in corners:
         c = 0.0 if drag == "vacuum" else _largest_drag_constant(mass, v0, g)
         v_t = math.inf if c == 0 else math.sqrt(mass * g / c)
@@ -221,9 +260,10 @@ def test_corners_of_the_allowed_space_never_crash_and_finish_in_time(client: Tes
             "launch_angle_deg": angle,
         }
         loosest_atol = min(0.1, ATOL_FRACTION * min(v0, v_t)) * (1 - 1e-9)
-        for method, (rtol, atol) in itertools.product(
-            ("RK45", "DOP853", "Radau"), ((1e-13, 1e-14), (1e-3, loosest_atol))
-        ):
+        for method, (rtol, atol) in itertools.product(METHODS, (TIGHT, (LOOSE_RTOL, loosest_atol))):
+            tight_radau = method == "Radau" and (rtol, atol) == TIGHT
+            if tight_radau and _repeats_another_corner(mass, v0, drag, g, h, angle):
+                continue
             solver = {"method": method, "rtol": rtol, "atol": atol}
             start = time.perf_counter()
             r = post(client, params, solver=solver)
@@ -237,6 +277,8 @@ def test_corners_of_the_allowed_space_never_crash_and_finish_in_time(client: Tes
                 assert explained(r), where
                 continue
             ran += 1
+            if tight_radau and c > 0:
+                tight_radau_ran.append((mass, v0, g, h, angle))
             body = r.json()
             t = body["numerical"]["flight_time"]
             assert math.isfinite(t), where
@@ -248,4 +290,7 @@ def test_corners_of_the_allowed_space_never_crash_and_finish_in_time(client: Tes
                 assert t == rel_approx(body["vacuum"]["flight_time"], rel=1e-6), where
     assert ran > 0
     assert refused > 0
+    # The thinned tight-Radau runs with drag still cover every value of every axis.
+    for axis, values in enumerate((MASSES, SPEEDS, GRAVITIES, HEIGHTS, ANGLES)):
+        assert {run[axis] for run in tight_radau_ran} == set(values), (axis, tight_radau_ran)
     print(f"corners: {ran} ran, {refused} refused; slowest {slowest[0]:.2f} s: {slowest[1]}")
