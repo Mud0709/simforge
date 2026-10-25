@@ -15,6 +15,7 @@ import pytest
 
 from simforge.physics.projectile import analytical
 from simforge.physics.projectile.analytical import ProjectileSetup
+from tests.approx import rel_approx
 
 G = 9.80665
 
@@ -55,8 +56,8 @@ DENSE_U = np.concatenate([np.geomspace(1e-12, 100, 1001), np.linspace(0.09, 1.1,
 def test_auxiliary_functions_match_50_digit_reference_on_a_dense_grid() -> None:
     phi, psi = analytical.phi(DENSE_U), analytical.psi(DENSE_U)
     for i, u in enumerate(DENSE_U):
-        assert phi[i] == pytest.approx(_phi_decimal(float(u)), rel=PHI_REL), u
-        assert psi[i] == pytest.approx(_psi_decimal(float(u)), rel=PSI_REL), u
+        assert phi[i] == rel_approx(_phi_decimal(float(u)), rel=PHI_REL), u
+        assert psi[i] == rel_approx(_psi_decimal(float(u)), rel=PSI_REL), u
 
 
 def test_auxiliary_functions_vacuum_limit_is_exact() -> None:
@@ -71,14 +72,14 @@ def test_auxiliary_functions_vacuum_limit_is_exact() -> None:
 def test_vacuum_range_and_height_match_textbook(angle: float) -> None:
     s = setup(v0=20.0, angle=angle)
     theta = math.radians(angle)
-    assert range_of(s) == pytest.approx(20.0**2 * math.sin(2 * theta) / G, rel=1e-13)
-    assert analytical.flight_time(s) == pytest.approx(2 * 20.0 * math.sin(theta) / G, rel=1e-14)
+    assert range_of(s) == rel_approx(20.0**2 * math.sin(2 * theta) / G, rel=1e-13)
+    assert analytical.flight_time(s) == rel_approx(2 * 20.0 * math.sin(theta) / G, rel=1e-14)
     _, y, _, _ = analytical.state(s, np.array([analytical.apex_time(s)]))
-    assert y[0] == pytest.approx((20.0 * math.sin(theta)) ** 2 / (2 * G), rel=1e-14)
+    assert y[0] == rel_approx((20.0 * math.sin(theta)) ** 2 / (2 * G), rel=1e-14)
 
 
 def test_vacuum_complementary_angles_have_equal_range() -> None:
-    assert range_of(setup(angle=30.0)) == pytest.approx(range_of(setup(angle=60.0)), rel=1e-13)
+    assert range_of(setup(angle=30.0)) == rel_approx(range_of(setup(angle=60.0)), rel=1e-13)
 
 
 def test_vacuum_45_degrees_maximises_range_from_ground() -> None:
@@ -91,7 +92,7 @@ def test_vacuum_launch_from_height_matches_quadratic_formula() -> None:
     v0, theta, h = 15.0, math.radians(20.0), 12.0
     vy0 = v0 * math.sin(theta)
     expected_t = (vy0 + math.sqrt(vy0**2 + 2 * G * h)) / G
-    assert analytical.flight_time(setup(v0=15.0, angle=20.0, h=12.0)) == pytest.approx(
+    assert analytical.flight_time(setup(v0=15.0, angle=20.0, h=12.0)) == rel_approx(
         expected_t, rel=1e-14
     )
 
@@ -122,14 +123,12 @@ def test_closed_form_satisfies_equations_of_motion() -> None:
 )
 def test_flight_time_matches_lambert_w_closed_form(b: float, h: float, angle: float) -> None:
     s = setup(v0=25.0, angle=angle, h=h, b=b)
-    assert analytical.flight_time(s) == pytest.approx(
-        analytical.flight_time_lambert_w(s), rel=1e-12
-    )
+    assert analytical.flight_time(s) == rel_approx(analytical.flight_time_lambert_w(s), rel=1e-12)
 
 
 def test_weak_drag_converges_to_vacuum() -> None:
     vacuum, weak = setup(b=0.0), setup(b=1e-12)
-    assert range_of(weak) == pytest.approx(range_of(vacuum), rel=1e-10)
+    assert range_of(weak) == rel_approx(range_of(vacuum), rel=1e-10)
     assert range_of(weak) < range_of(vacuum)
 
 
@@ -151,7 +150,7 @@ def test_stable_form_avoids_catastrophic_cancellation() -> None:
     textbook = tau_f * (s.vy0 + vt_f) * (-math.expm1(-t / tau_f)) - vt_f * t
     stable = float(analytical.state(s, np.array([t]))[1][0])
 
-    assert stable == pytest.approx(reference, rel=1e-14)
+    assert stable == rel_approx(reference, rel=1e-14)
     assert abs(textbook - reference) / reference > 1e-9  # the problem being avoided
 
 
@@ -165,7 +164,7 @@ def test_long_fall_approaches_terminal_velocity() -> None:
     t = analytical.flight_time(s)
     _, _, vx, vy = analytical.state(s, np.array([t]))
     assert s.k * t > 500  # many relaxation times: transient fully decayed
-    assert vy[0] == pytest.approx(-s.terminal_speed, rel=1e-12)
+    assert vy[0] == rel_approx(-s.terminal_speed, rel=1e-12)
     assert abs(vx[0]) < 1e-200
 
 

@@ -24,6 +24,7 @@ from simforge.quant.profiling.statistics import (
     quantile,
     sturges_bins,
 )
+from tests.approx import rel_approx
 
 MAX = sys.float_info.max
 
@@ -33,7 +34,7 @@ def test_hand_worked_example() -> None:
     s = numeric_stats([9, 2, 4, 4, 5, 4, 5, 7])
     assert s.count == 8
     assert s.mean == 5.0
-    assert s.std == pytest.approx(math.sqrt(32 / 7), rel=1e-15)
+    assert s.std == rel_approx(math.sqrt(32 / 7), rel=1e-15)
     # Type 7: Q1 at h = 7 * 0.25 = 1.75 -> 4 + 0.75 (4 - 4) = 4; Q3 at h = 5.25 -> 5 + 0.25 * 2.
     assert (s.min, s.q1, s.median, s.q3, s.max) == (2.0, 4.0, 4.5, 5.5, 9.0)
 
@@ -52,7 +53,7 @@ def test_against_the_statistics_module(seed: int) -> None:
     values = [rng.uniform(-1e6, 1e6) * 10 ** rng.randint(-3, 3) for _ in range(n)]
     s = numeric_stats(values)
     assert s.mean == pytest.approx(statistics.fmean(values), rel=1e-12, abs=1e-6)
-    assert s.std == pytest.approx(statistics.stdev(values), rel=1e-12)
+    assert s.std == rel_approx(statistics.stdev(values), rel=1e-12)
     q1, q2, q3 = statistics.quantiles(values, n=4, method="inclusive")
     assert s.q1 == pytest.approx(q1, rel=1e-14, abs=1e-9)
     assert s.median == pytest.approx(q2, rel=1e-14, abs=1e-9)
@@ -97,7 +98,7 @@ def test_huge_values_do_not_overflow() -> None:
     assert m.mean == MAX
     t = numeric_stats([1e308, 5e307])
     assert t.mean == 7.5e307
-    assert t.std == pytest.approx(math.sqrt(2) * 2.5e307, rel=1e-15)
+    assert t.std == rel_approx(math.sqrt(2) * 2.5e307, rel=1e-15)
     assert sum(t.bin_counts) == 2
 
 
@@ -108,22 +109,22 @@ def test_unrepresentable_std_is_reported_not_infinite() -> None:
     assert s.std is None
     assert any("not representable" in n for n in s.notes)
     assert s.median == 0.0
-    assert s.q1 == pytest.approx(-0.85e308, rel=1e-15)
-    assert s.q3 == pytest.approx(0.85e308, rel=1e-15)
+    assert s.q1 == rel_approx(-0.85e308, rel=1e-15)
+    assert s.q3 == rel_approx(0.85e308, rel=1e-15)
     assert all(math.isfinite(e) for e in s.bin_edges)
 
 
 def test_quantile_between_extremes_stays_finite() -> None:
     # Naive a + g (b - a) computes b - a = 2 MAX = inf.
     assert quantile(np.array([-MAX, MAX]), 0.5) == 0.0
-    assert quantile(np.array([-MAX, MAX]), 0.25) == pytest.approx(-MAX / 2, rel=1e-15)
+    assert quantile(np.array([-MAX, MAX]), 0.25) == rel_approx(-MAX / 2, rel=1e-15)
     assert quantile(np.array([MAX, MAX]), 0.3) == MAX  # clamped: never rounds up to inf
 
 
 def test_tiny_values_keep_their_precision() -> None:
     values = [3e-310, 1e-310, 2e-310]  # subnormal numbers
     s = numeric_stats(values)
-    assert s.mean == pytest.approx(2e-310, rel=1e-6)
+    assert s.mean == rel_approx(2e-310, rel=1e-6)
     assert s.median == 2e-310
 
 
