@@ -7,6 +7,47 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-25 04:40 UTC: Phase 2 split into steps; 2.1 (quadratic drag) planned by default
+- **Did:** ROADMAP Phase 2 now has a step table (2.1-2.6, every item of the paragraph in its
+  order; 🔜 on 2.1). `docs/plans/ROADMAP_2_1_PLAN.md`: the autopilot grilled itself and took
+  its recommended answers. Autopilot commits since your last message: 1 of 6.
+- **Usage:** 7-day 0.00 → 0.02 (new week), 5-hour 0.04 at start. One subagent, effort high.
+- **Checks run:** none needed (docs only). The plan's formulas were checked numerically by the
+  planning subagent against an independent SciPy DOP853 integration (scratch script, not a
+  repository test): vertical flight to 5e-11 relative, invariant drift ≤ 3e-10. I re-checked
+  its key code claim (projectile runs hash their parameters, `api/routes/physics.py:114`).
+- **Decisions taken for you (defaults; reverse any in chat):**
+  - a **new model** `physics.projectile.quadratic_drag` and page, not a drag-law option on the
+    existing projectile (an option would change every stored projectile run's input hash, so
+    replay would refuse them);
+  - input `drag_constant` c in kg/m (F = −c|v|v); terminal speed √(mg/c) reported;
+  - references: vertical rise (tan) and fall (tanh), terminal speed, energy balance, c → 0
+    limit, and a hodograph invariant, the only one that tests the 2-D coupling (a wrong force
+    law passed the first four in the subagent's check);
+  - existing adaptive solver in a separate integrator (sharing code waits for 2.4);
+  - a new learning-guide Part 18; 5 test seams and 5 slices.
+- **Waiting for you:** nothing blocking. Review the defaults; a roadmap question in STATE.
+- **Draft learning-log entry for PR #12 (add on your approval):**
+  ```
+  ## Roadmap 1.6: comparison and export
+  - **Merged:** PR #12, `82ca0b2` (2026-10-25).
+  - **What it does:** pin a reference run and overlay a run of the same model, with a table
+    of input and summary changes; recompute a stored run's series (digest-checked); export
+    CSV in the browser and a versioned JSON record. Completes Phase 1.
+  - **Key concepts:** recompute, don't store (the digest proves a match); RFC 4180 and exact
+    number round-trip; CSV formula injection (numbers exempt); relative change undefined at
+    a zero reference; tolerances are not significance tests.
+  - **Decisions and trade-offs:** CSV made in the browser (covers unsaved runs and uploads);
+    reference in the URL, not the database; same-model overlay only; a fresh reviewer per
+    slice caught four bugs.
+  - **Revisit:** why "not bit-identical" no longer claims a cause.
+  - **Next:** Phase 2, starting with 2.1 quadratic drag.
+  ```
+- **What this means for you:** 2.1 is a *new* model so that every run you already saved still
+  replays exactly; the price is a little duplicated solver code until 2.4.
+- **Learning checkpoint:** why can't linear drag with any single b match quadratic drag?
+- **Next:** 2.1 slice 1 (reference functions) with `tdd`.
+
 ## 2026-10-24 21:05 UTC: Phase 2 authorised; self-grilling with defaults; every 4 hours (author)
 - **Did:** opened PR #12 (roadmap 1.6) at the author's request. Changed the protocol: a new
   step's design decisions are settled by running `grilling` on itself and accepting its own
