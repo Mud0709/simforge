@@ -68,6 +68,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 15 — Replay: asking the same question twice](#part-15--replay-asking-the-same-question-twice)
 - [Part 16 — The experiment log: find, reopen, replay, label](#part-16--the-experiment-log-find-reopen-replay-label)
 - [Part 17 — Comparison and export: a reference run, CSV and JSON](#part-17--comparison-and-export-a-reference-run-csv-and-json)
+- [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Three name clashes to know before reading code
@@ -3215,6 +3216,418 @@ record, not the series: the series can always be recomputed (17.1).
   page shows and whether the rest of the page still works, then check.
 - **E17.5** (stretch) Suggest a case where a relative change based on `|a|` is misleading
   even though `a ≠ 0`. What would you show instead?
+
+---
+
+## Part 18 — Quadratic drag: checking a model with no exact answer
+
+> **Draft status.** This Part was written from the decided plan,
+> `docs/plans/ROADMAP_2_1_PLAN.md`, while roadmap 2.1 was still being built. The physics and
+> the reasoning below do not depend on the final code; the code excerpts do, so they are
+> marked `TODO excerpt` until the code is final. The worked numbers come from a short scratch
+> script (stdlib Python, the formulas below and a hand-written RK4 with step 1e-4 s), not
+> from SimForge and not from a repository test, and they are labelled where they appear.
+
+Roadmap 2.1 adds a second projectile page, `/physics/projectile/quadratic-drag`, where air
+resistance grows with the **square** of the speed: `F = −c|v|v`. This is much closer to the
+drag a thrown ball really feels. It also raises a new problem for SimForge. The linear-drag
+model (Parts 2-3) has an exact formula, so every numerical answer could be compared with the
+truth. For quadratic drag in 2-D there is **no** exact formula. So how do we know the
+computer's answer is right? This Part is mostly about that question.
+
+### 18.1 Why air resistance grows like v² for a fast ball **[IB core idea]**
+**Intuition first.** A ball moving through air has to push air out of its way. In one second
+it sweeps through a "tube" of air of cross-section `A` and length `v`, so volume `A·v` and
+mass `ρAv` (ρ is the air's density, about 1.2 kg/m³). It shoves that air sideways and forwards
+at a speed that is roughly proportional to `v`. Force is the rate of change of momentum, so
+
+```
+force ≈ (mass of air hit per second) × (speed given to it) ∝ (ρAv) × v = ρAv²
+```
+
+Double the speed and you hit twice as much air per second, *and* hit each kilogram twice as
+hard: four times the force. The standard way to write it is
+
+```
+F = ½ ρ C_d A v²      so      c = ½ ρ C_d A   (kg/m)
+```
+
+where `C_d`, the **drag coefficient**, is a pure number (no units) that depends on the shape
+(about 0.5 for a smooth ball over a wide range of speeds). The argument above explains the
+`v²`; it does not predict `C_d`, which is measured.
+
+**What about IB's Stokes's law?** IB Physics gives `F = 6πηrv`, which is *linear* in `v`. Both
+are right, for different regimes: Stokes's law is for small, slow objects in a thick fluid
+(a ball bearing sinking in oil, a mist droplet), where the fluid's stickiness (viscosity η)
+dominates. For a fast ball in air, pushing the air's mass aside dominates, and the force goes
+like `v²`. The physics behind which regime you are in (the Reynolds number) is beyond this
+guide; SimForge simply offers both laws as separate models.
+
+**A worked number** (scratch script; the inputs are typical textbook values, **assumed, not
+measured**): a tennis ball, `m = 57 g`, diameter 6.7 cm, `C_d = 0.55`, `ρ = 1.2 kg/m³`. Then
+`A = 3.53 × 10⁻³ m²` and `c = 1.16 × 10⁻³ kg/m`.
+
+> ⚠️ **Name clash: `b`, `c` and `C_d`.** Three different "drag numbers" appear in SimForge:
+>
+> | Symbol | Meaning | Units | Model | Field name |
+> |---|---|---|---|---|
+> | `b` | linear drag coefficient, `F = −b v` | kg/s | linear (`physics.projectile`) | `drag_coefficient` |
+> | `c` | quadratic drag constant, `F = −c\|v\|v` | kg/m | quadratic (`physics.projectile.quadratic_drag`) | `drag_constant` |
+> | `C_d` | the dimensionless drag coefficient in `c = ½ρC_dA` | none | neither (explained here only) | — |
+>
+> The new field is called `drag_constant` precisely because "drag coefficient" usually means
+> `C_d`, and the linear model already uses `drag_coefficient` for `b`. Likewise `k = b/m`
+> (1/s) in the linear model and `κ = c/m` (1/m) here are different quantities with different
+> units.
+
+### 18.2 The equations, and why x and y no longer separate **[IB core → IB HL]**
+Newton's second law with gravity and the drag force `−c|v|v` (it points against the velocity,
+and its size is `c v²`, because `|v|v` has size `v·v`). Dividing by `m` and writing
+`κ = c/m` (units 1/m):
+
+```
+dvx/dt = −κ |v| vx           dvy/dt = −g − κ |v| vy           |v| = √(vx² + vy²)
+```
+
+Compare the linear model: `dvx/dt = −k vx`, `dvy/dt = −g − k vy`. There, the horizontal
+equation contains only `vx` and the vertical one only `vy`. They are **independent**, which is
+why Part 3 could solve each on its own. Here, the speed `|v|` contains *both* components. How
+fast the ball slows horizontally depends on how fast it is moving vertically, and the other
+way round. The two equations are **coupled**, and that coupling is exactly what stops a
+closed-form 2-D solution: the ODE has to be solved numerically (SciPy's `solve_ivp`, as on the
+linear page, Part 2.3), and the state carries one extra number, the work done against drag
+`W` (18.7): `[x, y, vx, vy, W]`.
+
+There is one escape: if `vx = 0` (a throw straight up), then `|v| = |vy|` and the vertical
+equation stands alone. That special case *does* have an exact solution (18.4-18.5), and it
+becomes one of our checks.
+
+### 18.3 Terminal speed as a force balance **[IB core]**
+Drop the ball. At first it is slow, so drag is tiny and it accelerates at about `g`. As it
+speeds up, drag grows like `v²`, until drag equals weight. Then the net force is zero and the
+speed stops changing:
+
+```
+m g = c v_t²      ⇒      v_t = √(mg/c) = √(g/κ)      (m/s)
+```
+
+For the tennis ball: `v_t = √(0.057 × 9.81 / 0.00116) ≈ 21.9 m/s` (scratch script). A natural
+time scale comes with it: `τ = v_t/g ≈ 2.23 s`, roughly "how long it takes to get close to
+terminal speed".
+
+In 2-D, the horizontal velocity keeps decaying (`dvx/dt = −κ|v|vx` always opposes `vx`), so a
+long flight ends falling almost straight down: the velocity tends to `(0, −v_t)`. SimForge will
+show `v_t` as an **exact** derived result (`null` in a vacuum, `c = 0`, because the terminal
+speed would be infinite and JSON has no infinity), and a "speed against time" chart with a
+`v_t` line.
+
+### 18.4 Straight up: the rise, with `tan` **[IB HL]**
+Throw straight up at `v₀` from height `h₀`. While rising (`v > 0`), gravity and drag *both*
+point down:
+
+```
+dv/dt = −g − κv² = −g (1 + v²/v_t²)          (using κ = g/v_t²)
+```
+
+**Separate the variables** (Part 1.4): put every `v` on one side, every `t` on the other.
+
+```
+∫ dv / (1 + v²/v_t²) = −g ∫ dt
+```
+
+The left side is the standard integral `∫ dx/(a² + x²) = (1/a) arctan(x/a)` from the HL
+formula booklet, after multiplying top and bottom by `v_t²`. It gives
+`v_t arctan(v/v_t) = v_t φ₀ − g t`, with `φ₀ = arctan(v₀/v_t)`. Solve for `v`:
+
+```
+v(t) = v_t tan(φ₀ − t/τ)                     apex when v = 0:   t_a = τ φ₀
+```
+
+Integrating once more gives the height (with `s = t/τ`):
+
+```
+y(t) = h₀ + (v_t²/g) ln(cos s + (v₀/v_t) sin s)          H = (v_t²/2g) ln(1 + v₀²/v_t²)
+```
+
+where `H` is the apex height above the launch point. (Check: at `s = φ₀`,
+`cos φ₀ + tan φ₀ sin φ₀ = 1/cos φ₀`, and `1/cos²φ₀ = 1 + tan²φ₀`.)
+
+**A rounding trap you have met before.** When drag is weak, the argument of `ln` is very close
+to 1, and `ln(1 + tiny)` computed naively loses digits, exactly like the cancellation in
+Part 3.5. The plan therefore evaluates it as `log1p(−2 sin²(s/2) + (v₀/v_t) sin s)`, using
+`cos s − 1 = −2 sin²(s/2)`, and `H` with `log1p`. `log1p(x)` computes `ln(1 + x)` accurately
+for tiny `x`.
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the rise formulas (v(t), apex time, y(t) via log1p, apex height) -->
+
+### 18.5 Coming down: the fall, with `tanh` **[IB HL → Beyond IB]**
+After the apex the ball falls. Now gravity points down and drag points **up**: they oppose.
+With `w = −v > 0` the downward speed, starting from rest at the apex:
+
+```
+dw/dt = g (1 − w²/v_t²)
+```
+
+Separate again. This time the integral needs **partial fractions** [IB HL]:
+
+```
+1/(1 − w²/v_t²) = ½ [ 1/(1 − w/v_t) + 1/(1 + w/v_t) ]
+⇒  ∫ dw/(1 − w²/v_t²) = (v_t/2) ln((v_t + w)/(v_t − w)) = g s
+```
+
+where `s` is the time since the apex. Solving for `w` gives an exponential expression that
+has a name, the **hyperbolic tangent**, `tanh x = (eˣ − e⁻ˣ)/(eˣ + e⁻ˣ)` [Beyond IB, but only
+a shorthand]:
+
+```
+w(s) = v_t tanh(s/τ)            drop  d(s) = (v_t²/g) ln cosh(s/τ)
+```
+
+`tanh x` rises from 0 towards 1 and never passes it, which is the terminal speed of 18.3 in a
+formula. The ball lands when the drop equals the apex height `Y = h₀ + H`. With
+`X = gY/v_t²` (a pure number):
+
+```
+fall time     s_L = τ arcosh(eˣ)          impact speed   v_t √(1 − e^(−2X))
+```
+
+computed as `τ asinh(√expm1(2X))` and `v_t √(−expm1(−2X))`, again to avoid cancellation when
+`X` is small (`expm1(x)` computes `eˣ − 1` accurately).
+
+**The whole vertical flight** (from the ground, `h₀ = 0`) simplifies nicely: `e^(2X) =
+1 + v₀²/v_t²`, so the ball hits the ground at `v₀ v_t / √(v₀² + v_t²)`, which is less than
+`v₀`: energy was lost to the air.
+
+**Worked example** (scratch script; tennis ball of 18.1, `v₀ = 20 m/s` straight up from the
+ground, `g = 9.81 m/s²`):
+
+| Quantity | Quadratic drag (formulas above) | Vacuum |
+|---|---|---|
+| Rise time `t_a` | 1.65 s | 2.04 s |
+| Apex height `H` | 14.8 m | 20.4 m |
+| Fall time `s_L` | 1.83 s | 2.04 s |
+| Total flight time | 3.48 s | 4.08 s |
+| Impact speed | 14.8 m/s | 20.0 m/s |
+
+The scratch script's RK4 integration (step 1e-5 s) agreed with the formulas' rise time, apex
+height and flight time to 1e-10 (s or m) or better, an independent check of the derivation.
+
+**Up and down are not mirror images.** In a vacuum the fall takes exactly as long as the rise.
+With drag the fall takes *longer* (1.83 s against 1.65 s): going up, gravity and drag both
+slow the ball; coming down, drag fights gravity. This gives the tests a checkable property
+that needs no numbers at all.
+
+### 18.6 The c → 0 limit **[IB HL]**
+As `c → 0`, `v_t → ∞` and the formulas must become the vacuum ones. Use the Maclaurin series
+(Part 3.6): `arctan x ≈ x` and `ln(1 + x) ≈ x` for small `x`.
+
+```
+t_a = τ arctan(v₀/v_t) ≈ (v_t/g)(v₀/v_t) = v₀/g
+H   = (v_t²/2g) ln(1 + v₀²/v_t²) ≈ (v_t²/2g)(v₀²/v_t²) = v₀²/2g
+```
+
+which are the IB formulas for a vertical throw. The impact speed `v₀v_t/√(v₀² + v_t²)` tends to
+`v₀`. For the full 2-D solver the plan checks the limit numerically: a run with `c = 0` must
+match the textbook vacuum range `v₀² sin 2θ / g`, flight time and height. Those vacuum formulas
+are **written in the tests**, not imported from the linear model's code, so that a bug shared
+by both models could not hide.
+
+### 18.7 The energy balance **[IB core]**
+Where does the ball's energy go? Into the air, as work done against drag. The rate at which a
+force does work is `F·v` (power, IB core). Drag points against `v` with size `c v²`, so it
+removes energy at the rate `c v² × v = c|v|³`:
+
+```
+d/dt (½mv² + mgy) = −c|v|³          ⇒          KE + PE + W = E₀,   with dW/dt = c|v|³  (W, J/s)
+```
+
+SimForge integrates `W` alongside the motion, as the fifth state component, and checks that
+`KE + PE + W` stays equal to the launch energy `E₀`. The page shows this "energy budget" as on
+the linear page.
+
+**A subtle but important rule from the plan:** `W` must be computed from the formula
+`c|v|³` **directly**, not as `−F·v` using the code's own force function. Why? If the force
+function had a bug, `−F·v` would carry the same bug, `W` would be "consistent" with the wrong
+force, and the balance would still close. Computing `W` an independent way is what makes the
+check able to fail (Part 14's lesson: a test must be able to fail). 18.10 shows a bug this
+catches.
+
+### 18.8 The hodograph invariant **[Beyond IB]**
+The energy balance mixes the solver's answer with an integral (`W`) that the solver also
+computed. Is there a check that tests genuinely 2-D motion with *no* extra integral? There is:
+a combination of `vx` and `vy` that stays exactly constant. (The linear model had its own
+invariant, Part 6.7.)
+
+**The idea.** Describe the velocity by its size `v` and its direction, the angle `θ` above
+the horizontal. Drag points exactly along `v`, so it can change the speed but **not** the
+direction. Only gravity turns the velocity, and only its component perpendicular to `v`,
+`g cos θ`, does that:
+
+```
+v dθ/dt = −g cos θ                        (circular-motion style: a_perpendicular = v·dθ/dt)
+dvx/dt  = −κ v vx
+```
+
+Divide the second by the first (chain rule, `dvx/dθ = (dvx/dt)/(dθ/dt)`) and use
+`v = vx / cos θ`:
+
+```
+dvx/dθ = κ vx³ / (g cos³θ)        ⇒        d(1/vx²)/dθ = −(2κ/g) sec³θ
+```
+
+Integrating `sec³θ` (a classic integration by parts, plus `∫ sec θ dθ`, both beyond the IB
+booklet) and writing `sec θ = v/vx`, `tan θ = vy/vx` gives the invariant
+
+```
+I = 1/vx² + (κ/g) · [ v·vy/vx² + asinh(vy/vx) ]          constant, units s²/m²
+```
+
+(`asinh(tan θ)` equals `ln(sec θ + tan θ)` but avoids a cancellation late in a fall, when
+`vy ≈ −v`.) Check the vacuum limit: with `κ = 0`, `I = 1/vx²`, and in a vacuum `vx` is
+constant. ✓
+
+Two conditions: `vx` must not be zero (a vertical launch has no `I`, so the response gives
+`null` there), and `vx` never changes sign, because `dvx/dt` is proportional to `−vx`. So for
+any launch with `vx₀ > 0`, `I` exists for the whole flight. The numerical check is how far `I`
+drifts from its launch value. One complication, still open in the plan: late in a long flight
+`vx` decays towards 0, so `1/vx²` becomes huge and the drift needs a sensible normalisation,
+to be decided in slice 2.
+
+The name: a **hodograph** is the curve traced by the tip of the velocity vector, and this
+derivation works in velocity space, which is why the literature calls it the hodograph method.
+The plan notes honestly that **no literature source was checked**: the reference is the
+derivation above plus a numerical check.
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the invariant function (asinh form) and the residual's normalisation chosen in slice 2 -->
+
+### 18.9 Two proved bounds, and why the solver needs them **[Beyond IB]**
+The linear model stops its integration at `2 × the exact flight time` and refuses "stiff" runs
+by looking at `k·T` (`model.py`; SCIENTIFIC_VALIDATION, linear model). Without an exact flight time, what can replace it? A **proved
+upper bound**.
+
+1. **The speed never exceeds `max(v₀, v_t)`.** The rate of change of `½v²` is
+   `−g vy − κv³ ≤ v(g − κv²)`, which is negative whenever `v > v_t`. So above `v_t` the ball
+   can only slow down. In words: you cannot be pushed past terminal speed by gravity alone.
+2. **The flight time is at most `vy₀/g + T_fall`.** Going up, drag adds to gravity, so the rise
+   takes at most the vacuum time `vy₀/g` and climbs at most `vy₀²/2g`. Coming down, the
+   largest the drag rate can be is `κV` with `V = max(v₀, v_t)` (bound 1), so the ball falls at
+   least as fast as under **linear** drag with `k = κV`; `T_fall` is that linear-drag fall
+   time, which has an exact formula.
+
+These give the integration cap and the stiffness guard: the run is refused (a 422 with the
+reason) if `κ·max(v₀, v_t)·T_bound` is above the same limits as the linear model. The bound is
+**loose**: in the plan's check, a flight of 39.8 s had a bound of 3989 s. So the refusal
+message says "at most", and the plan measures in slice 2 how often the guard refuses runs that
+would have been fine. That is a trade-off: a cheap, *guaranteed* bound that is sometimes
+pessimistic, instead of a tight guess that could be wrong.
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_model.py, the stiffness guard and integration cap from T_bound -->
+
+### 18.10 A wrong force law that passes three tests **[Beyond IB idea]**
+Here is a tempting bug. "Drag opposes motion in each direction," so someone writes
+
+```
+dvx/dt = −κ |vx| vx          dvy/dt = −g − κ |vy| vy          (WRONG)
+```
+
+It looks reasonable, and the units are right. Which checks catch it?
+
+| Check | Catches the wrong law? | Why |
+|---|---|---|
+| Vertical throw against the exact `tan`/`tanh` solution | **No** | With `vx = 0`, `\|v\| = \|vy\|`: both laws give the same equation |
+| `c → 0` against the vacuum formulas | **No** | Both drag terms vanish |
+| Long vertical fall reaches `v_t` | **No** | Same vertical equation once `vx = 0` |
+| Energy balance, `W` coded from `c\|v\|³` | **Yes** | The wrong force removes energy at `c(\|vx\|³ + \|vy\|³)`, not `c\|v\|³` |
+| Hodograph invariant | **Yes** | Its derivation needs drag along `v`; the wrong force turns the velocity |
+
+The three "No" rows test motion in which x and y do not interact, and the bug is precisely in
+the interaction. Scratch-script numbers (tennis ball, 20 m/s at 45°, RK4 step 1e-4 s): with
+the correct law the energy balance closed to 5e-15 of `E₀` and the invariant drifted
+2e-14 relative; with the wrong law they were off by 0.15 of `E₀` and 0.23 relative, and the
+range came out 27.7 m instead of 25.7 m (vacuum: 40.8 m). The plan's tests include this
+wrong law as a deliberate **mutant** that the suite must catch. (A *two*-dimensional long fall
+would catch it weakly too, because the wrong law lets `vx` decay much more slowly; the plan's
+terminal-speed test is vertical.)
+
+<!-- TODO excerpt: backend/tests/physics/ (quadratic integrator test file), the wrong-coupling mutant test -->
+
+### 18.11 Why 2.1 is a new model, not an option on the old one
+The obvious design would be a `drag_law` switch ("linear" or "quadratic") on the existing
+projectile form. The plan rejects it (decision D2), and the reason is replay (Part 15).
+
+- Every saved run stores its validated inputs as dumped, and an **input hash** of them
+  (15.1). The linear model, the integrator study and the angle sweep all share one parameters
+  schema. Add a field to it and every rebuilt request gains that field, so every *old* run of
+  all three models would hash differently: replay would refuse each one with 409 ("this is no
+  longer the same question").
+- Their responses, and so their output digests, would change too, which means three version
+  bumps and new golden runs for models whose physics did not change at all.
+
+A new model, `physics.projectile.quadratic_drag` v1.0.0, with its own parameters and endpoint
+(`POST /api/v1/physics/projectile/quadratic-drag/simulate`), is purely additive: nothing
+stored changes, and the golden test checks that the existing models' digests stay identical.
+The cost is about 40 lines of event-handling code copied from the linear solver; the plan
+records it as a risk and leaves sharing it to roadmap 2.4. The UI follows the same logic: a
+new page, linked both ways from the linear page, because the two forms differ (`b` in kg/s
+against `c` in kg/m) and a linear and a quadratic run cannot yet be overlaid.
+
+### 18.12 The code
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_schemas.py, the drag_constant field and the κ·max(v₀, v_t) ≤ 1e4 s⁻¹ validator -->
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_numerical.py, the right-hand side for the state [x, y, vx, vy, W], with W from c|v|³ -->
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_numerical.py, the landing and apex events (direction = −1, launch-instant guard) -->
+
+<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the fall formulas (asinh(√expm1(2X)) and √(−expm1(−2X)) forms) -->
+
+### 18.13 What the evidence will and will not show
+The five checks, together: exact vertical flights (18.4-18.5), the vacuum limit (18.6),
+terminal speed (18.3), the energy balance (18.7) and the invariant (18.8), plus the bounds
+(18.9) holding on every step. None of them is "the exact 2-D answer", because there is none.
+Each one checks a *consequence* the true solution must have. Together they make a wrong
+answer very hard to hide, but a passing suite still does not prove the 2-D trajectory is
+right to the last digit: it shows the solver solves the stated equations, as consistently as
+these properties can detect. And, as always (SCIENTIFIC_VALIDATION, principle 5), none of it
+shows that `F = −c|v|v` with a constant `C_d` describes a real ball: spin, wind and a `C_d`
+that changes with speed are all left out. What has actually been run is listed, with its
+status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
+
+### 18.14 Checkpoint
+1. Explain in two sentences, without equations, why doubling a fast ball's speed roughly
+   quadruples the air resistance.
+2. Why can the linear model solve x and y separately, but the quadratic model cannot? Point to
+   the exact symbol responsible.
+3. A ball is thrown straight up with quadratic drag. Does it take longer to go up or to come
+   down? Give the physical reason, not the formula.
+4. Why must the drag work `W` be computed from `c|v|³` and not from the code's force function?
+5. A wrong force law passes the vertical, vacuum and terminal-speed tests. What do those three
+   tests have in common that makes them blind to it?
+6. Why would adding a `drag_law` field to the existing projectile form break replay of runs
+   that were saved before the change?
+
+### 18.15 Exercises
+- **E18.1** Using the momentum argument in 18.1, show that `ρAv²` has the units of a force.
+  Then find the units of `c` and check they are kg/m.
+- **E18.2** Estimate the terminal speed of a raindrop of radius 1.5 mm (take `C_d = 0.5` and
+  water density 1000 kg/m³). Then compute the Stokes's-law terminal speed for the same drop
+  (`η = 1.8 × 10⁻⁵ Pa s` for air) and explain which answer is more believable, and why.
+- **E18.3** Starting from `dv/dt = −g(1 + v²/v_t²)`, derive `t_a = τ arctan(v₀/v_t)` yourself.
+  Then use `arctan x ≈ x − x³/3` to find the first correction to the vacuum rise time `v₀/g`.
+  Is the drag rise time shorter or longer, and does your correction agree?
+- **E18.4** Use partial fractions to derive `w(s) = v_t tanh(s/τ)` from `dw/dt =
+  g(1 − w²/v_t²)`. Then show that `v_t − w ≈ 2v_t e^(−2s/τ)` for large `s`, and find how many
+  multiples of `τ` it takes for the gap to fall below one millionth of `v_t`.
+- **E18.5** Show, from the equations of motion, that `d/dt(½mv² + mgy) = −c|v|³`. Then repeat
+  the calculation with the wrong law of 18.10 and find the rate at which it removes energy.
+  For which directions of motion do the two rates agree?
+- **E18.6** Show that `I` in 18.8 reduces to `1/vx²` when `κ = 0`, and explain why that alone
+  is a weak test of a solver. What part of `I` carries the real information?
+- **E18.7** The flight-time bound in 18.9 compares quadratic drag with linear drag at
+  `k = κ·max(v₀, v_t)`. Explain in words why a ball with this linear drag can never fall
+  faster than the quadratic one. Then suggest why the bound becomes much looser at high
+  launch speeds.
+- **E18.8** (stretch) Late in a long flight, `1/vx²` grows like `e^(2gt/v_t)`. Propose two ways
+  to measure the invariant's drift that do not blow up, and say what each could hide.
 
 ---
 
