@@ -384,6 +384,179 @@ With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48�
 
 ---
 
+## `physics.projectile.quadratic_drag` v1.0.0: projectile motion with quadratic drag (being built)
+
+> **Status: roadmap 2.1, in progress. This section was drafted from the decided plan
+> (`docs/plans/ROADMAP_2_1_PLAN.md`) before the code was final.** Everything marked
+> *planned (slice N), not yet run* is a check the plan commits to, not a result. The only
+> numbers given are from the plan's planning-time scratch script, labelled as such; they are
+> not repository tests and say nothing yet about SimForge's implementation. Slice 5 replaces
+> each "planned" entry with what was actually run, or removes it.
+
+### Model
+A point mass `m` under uniform gravity `g` with quadratic drag `F = −c|v|v`, `c` in kg/m
+(API field `drag_constant`; not the linear model's `b` in kg/s, and not the dimensionless
+`C_d` in `c = ½ρC_dA`). With `κ = c/m` (1/m):
+
+```
+dvx/dt = −κ |v| vx          dvy/dt = −g − κ |v| vy          |v| = √(vx² + vy²)
+```
+
+State `[x, y, vx, vy, W]`, where `W` is the work done against drag, integrated from
+`dW/dt = c|v|³` (coded from that formula, **not** from the force function, so that the energy
+balance can catch a wrong force law). Derived quantities: terminal speed `v_t = √(mg/c)`
+(m/s), time scale `τ = v_t/g` (s). `c = 0` means vacuum. SI units throughout; launch angle in
+degrees at the API boundary. Planned engine files: `physics/projectile/quadratic_reference.py`
+(closed forms, invariant, bounds), `quadratic_numerical.py` (ODE solve), `quadratic_model.py`
+(orchestration, assumptions), `quadratic_schemas.py`.
+
+### No exact 2-D solution: what replaces it
+The speed `|v|` couples the two components, so the 2-D motion has no general closed form and
+is solved numerically (SciPy `solve_ivp`: RK45, DOP853 (default) or Radau; default
+`rtol = atol = 1e-10`; terminal landing event with `direction = −1` and the linear model's
+"launch instant counts as above ground" guard; apex event on `vy`). In place of an exact
+answer, the plan validates against five independent references:
+
+| | Reference | What it constrains | Genuinely 2-D? |
+|---|---|---|---|
+| R1-R3 | Exact vertical solution (`tan` rise, `tanh` fall, full flight) | Solver accuracy and events, at θ = 90° only | No (`vx = 0`) |
+| R4 | Terminal speed `√(mg/c)` | Long-time behaviour | No (a vertical long fall) |
+| `c → 0` | Textbook vacuum formulas, written in the tests | The drag-free limit | Yes, but drag-free |
+| R5 | Energy balance `KE + PE + W = E₀` | Consistency of motion and dissipation | Yes |
+| R6 | Hodograph invariant | The coupling of x and y | Yes |
+| R7 | Two bounds (speed, flight time) | Used for the integration cap and stiffness guard; must hold on every node | Yes |
+
+**No comparison with linear drag beyond the shared vacuum limit**: no value of `b` makes `bv`
+equal `cv²` except at one speed, so a "low-speed agreement" test would need an arbitrary
+matching speed and an underived tolerance.
+
+### Mathematical guarantees (derived on paper in the plan; the tests are to check the implementation obeys them)
+Derived in the plan, section "Reference formulas". **Not checked against any literature
+source.** Learning-guide Part 18 gives the derivation sketches.
+
+1. **R1, rise** (`v > 0`): `v(t) = v_t tan(φ₀ − t/τ)`, `φ₀ = arctan(v₀/v_t)`; apex time
+   `t_a = τφ₀`; `y(t) = h + (v_t²/g) ln(cos s + (v₀/v_t) sin s)`, `s = t/τ`; apex height
+   above launch `H = (v_t²/2g) ln(1 + v₀²/v_t²)`.
+2. **R2, fall from rest** from height `Y`, time `s` after the apex: `w(s) = v_t tanh(s/τ)`,
+   drop `(v_t²/g) ln cosh(s/τ)`; with `X = gY/v_t²`, fall time `τ arcosh(eˣ)` and impact speed
+   `v_t √(1 − e^(−2X))`.
+3. **R3, vertical launch**: `Y = h + H`, `T = t_a + s_L`. From the ground the impact speed is
+   `v₀v_t/√(v₀² + v_t²) < v₀`, and the fall takes longer than the rise. As `c → 0`:
+   `t_a → v₀/g`, `H → v₀²/2g`, impact speed `→ v₀` (Taylor series).
+4. **R4, terminal speed**: `v_t = √(mg/c)`; from R2, `v_t − w ≈ 2v_t e^(−2s/τ)`, so after `20τ`
+   the gap is below `1e-17·v_t`. In 2-D the velocity tends to `(0, −v_t)`.
+5. **R5, energy balance**: `d/dt(½mv² + mgy) = −c|v|³`, so `KE + PE + W = E₀`.
+6. **R6, hodograph invariant** (`vx₀ > 0`):
+   `I = 1/vx² + (κ/g)·[v·vy/vx² + asinh(vy/vx)]` is constant (s²/m²). `vx` never changes
+   sign, so `I` is defined for the whole flight; undefined for a vertical launch.
+7. **R7, bounds**: (i) speed `≤ max(v₀, v_t)` throughout; (ii) flight time
+   `≤ T_bound = vy₀/g + T_fall`, with `T_fall` the exact linear-drag time to fall from rest
+   from `h + vy₀²/2g` with `k = κ·max(v₀, v_t)`. The bound is loose (see below).
+
+**Smoothness caveat (proved, and a risk for the tests):** `|v|v` is once but not twice
+differentiable at `v = 0`, which only a vertical launch reaches (with `vx₀ > 0` the speed never
+vanishes). High-order methods may lose accuracy across a vertical apex, so the vertical tests'
+tolerances must be justified with that in mind.
+
+### Numerical-analysis issues handled (planned, slice 1)
+- `y(t)` and `H` near 1 inside the logarithm when drag is weak: evaluated as
+  `log1p(−2 sin²(s/2) + (v₀/v_t) sin s)` and with `log1p`.
+- Fall time and impact speed for small `X`: `τ asinh(√expm1(2X))` and `v_t √(−expm1(−2X))`.
+- The invariant uses `asinh(vy/vx)` instead of `ln((v + vy)/vx)`, which cancels when
+  `vy ≈ −v` late in a fall.
+- Planned check: each cancellation-prone form against a 50-digit `decimal` evaluation.
+  **Planned (slice 1), not yet run.** Whether the planning script's largest rise-curve
+  difference (8e-11 m, weakest-drag case) came from cancellation or from the solver was **not**
+  separated.
+
+### What is tested (all planned; none run yet)
+Tolerances are to be derived and justified when each test is written, not chosen to pass.
+
+| Check | Reference | Status |
+|---|---|---|
+| Closed forms satisfy their ODEs (central differences) | Finite differences, as for the linear closed form | planned (slice 1), not yet run |
+| `c → 0` Taylor limits of `t_a`, `H`, impact speed | Series expansions | planned (slice 1), not yet run |
+| `v₀v_t/√(v₀² + v_t²)` identity; fall longer than rise | Algebra; proved property | planned (slice 1), not yet run |
+| Cancellation-prone forms | 50-digit `decimal` | planned (slice 1), not yet run |
+| Vertical runs, 3 solvers, against R1-R3 | Exact vertical solution | planned (slice 2), not yet run |
+| `c = 0` run against textbook vacuum range, time, height | Textbook formulas (in the test, not imported) | planned (slice 2), not yet run |
+| Long vertical fall reaches `v_t` | R4 | planned (slice 2), not yet run |
+| Energy balance residual (`W` coded independently) | R5 | planned (slice 2), not yet run |
+| Invariant drift on 2-D launches | R6 | planned (slice 2), not yet run; normalisation still to be decided |
+| Both R7 bounds hold on every step node | R7 | planned (slice 2), not yet run |
+| Shallow launches do not "land" at t = 0 | Event guard | planned (slice 2), not yet run |
+| Error falls as `rtol` tightens | Convergence | planned (slice 2), not yet run |
+| Wrong-coupling mutant (`−κ\|vx\|vx`, `−κ\|vy\|vy`) is caught by R5 and R6 | Mutation check | planned (slice 2), not yet run |
+| Stiffness guard refuses with a reason; `vertical_reference` only at 90°; `terminal_speed` null at `c = 0`; checks present and labelled | Orchestration | planned (slice 2), not yet run |
+| Input validation (NaN, ±Infinity, bounds, `κ·max(v₀, v_t) ≤ 1e4 s⁻¹`, no flight at 0° from 0 m) | Contract | planned (slice 3), not yet run |
+| Corners of the input space: a result or a 422 with a reason, never a 500 | Contract | planned (slice 3), not yet run |
+| Registry rebuild gives the same input hash; golden run; replay and recompute | Reproducibility | planned (slice 3), not yet run |
+| Existing models' golden digests unchanged | Regression | planned (slice 3), not yet run |
+
+**Why the vertical, `c → 0` and terminal-speed checks are not enough.** The wrong law
+`−κ|vx|vx`, `−κ|vy|vy` agrees with `−κ|v|v` whenever `vx = 0` (vertical runs and a vertical
+long fall) and whenever `c = 0`. Only R5 (with `W` coded from `c|v|³`) and R6 test the
+coupling.
+
+**Input limits (planned, slice 3).** As the linear model: mass ≥ 1e-6 kg, speed ≥ 1e-3 m/s,
+the same gravity, speed, angle and height bounds; `c` from 0 to 1e6 kg/m; and the largest drag
+rate in the flight, `κ·max(v₀, v_t)` (by R7 the speed never exceeds `max(v₀, v_t)`), at most
+1e4 s⁻¹ (drag acting over at least 0.1 ms).
+
+**Integration cap and stiffness guard (planned, slice 2).** Cap `t_max = T_bound` (R7).
+Refuse (422) when `κ·max(v₀, v_t)·T_bound` exceeds the linear model's limits (1e4 explicit,
+1e7 Radau). Because the bound is loose, the guard may refuse runs that would have been fast;
+its over-refusal is to be measured on a grid in slice 2. **Not yet measured.**
+
+### Observed during planning (scratch script, not a repository test)
+From the plan; an independent SciPy DOP853 integration at `rtol = atol = 1e-12`, run once
+during planning. These numbers support the derivations; they are **not** evidence about
+SimForge's implementation.
+- Vertical flight time, apex time, apex height and impact speed agreed with R1-R3 to 5e-11
+  relative or better on four cases; the rise curve `y(t)` to 8e-11 m.
+- The invariant drifted 2e-13 to 3e-10 relative on three 2-D cases; the wrong force law
+  drifted it by 0.49 and broke the energy balance by 0.22.
+- The flight-time bound held on five cases; it was loose by up to about 100× (39.8 s against
+  a bound of 3989 s at `v₀ = 1000 m/s`).
+- A `c → 0` run matched the vacuum range to 3e-11.
+
+A second scratch check, run while drafting the learning guide (stdlib Python, RK4 with fixed
+step 1e-4 s; tennis-ball values `c = 1.16e-3 kg/m`, `m = 0.057 kg`, `g = 9.81 m/s²`,
+20 m/s at 45°): energy balance closed to 5e-15 of `E₀` and the invariant drifted 2e-14
+relative with the correct law; 0.15 and 0.23 with the wrong law.
+
+### Observed accuracy
+**Planned (slice 2), not yet run.** A table like the linear model's (errors against R1-R3 for
+vertical runs; energy and invariant residuals for 2-D runs; steps per method), with versions
+and date.
+
+### Per-run checks shown in the app (planned, slice 2)
+Response fields `diagnostics.max_energy_balance_residual` and
+`diagnostics.max_invariant_residual` (`null` for a vertical launch), and the shared
+`ValidationCheck` list. `vertical_reference` (only at 90°) gives the exact R3 values and the
+numerical errors against them. `terminal_speed` and `vacuum` are exact closed forms, labelled
+"exact"; every numerical value is labelled with its solver and tolerances.
+
+### Replay tolerances (planned, slice 3)
+Following the linear model's reasoning: `numerical.*` values `10·(rtol·|x| + atol)`; counts and
+solver settings exact; `terminal_speed` and `vacuum.*` 1e-12 relative (closed forms);
+`max_energy_balance_residual` absolute `10·(rtol + atol/S)`. **The invariant residual's rule
+is not yet derived**: it depends on the normalisation chosen in slice 2, and slice 3 must give
+it a reason. The golden run is appended, leaving the six existing entries unchanged.
+
+### Known limitations (expected; to be confirmed when built)
+- Constant `C_d` (so constant `c`): no variation of drag with speed, no spin or lift, no wind,
+  no buoyancy. Validation shows the equations are solved, not that they describe a real ball.
+- No exact 2-D reference: the 2-D evidence is consistency (R5, R6, R7, `c → 0`), not a
+  comparison with a true answer.
+- The invariant becomes ill-conditioned late in long flights (`1/vx²` grows like
+  `e^(2gt/v_t)`); its normalisation, and perhaps a `null` when `vx` has decayed far, are open.
+- The flight-time bound is loose, so the stiffness guard can refuse feasible runs.
+- About 40 lines of event logic are duplicated from the linear solver until roadmap 2.4.
+- The hodograph-method literature was not checked.
+
+---
+
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 
 Engine: `backend/src/simforge/economy/solow/simulation.py` (pure). Orchestration and per-run
