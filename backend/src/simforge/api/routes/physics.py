@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from fastapi import APIRouter
@@ -10,9 +11,21 @@ from simforge.core import formatting as fmt
 from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.physics.projectile import integrator_model
 from simforge.physics.projectile import model as projectile
+from simforge.physics.projectile import quadratic_model as quadratic
 from simforge.physics.projectile.integrator_schemas import (
     IntegratorStudyRequest,
     IntegratorStudyResponse,
+)
+from simforge.physics.projectile.quadratic_numerical import QuadraticSetup
+from simforge.physics.projectile.quadratic_schemas import (
+    QuadraticDiagnostics,
+    QuadraticDragParameters,
+    QuadraticDragRequest,
+    QuadraticDragResponse,
+    QuadraticDragSeries,
+    QuadraticVacuumFlight,
+    QuadraticVerticalFlight,
+    QuadraticVerticalReference,
 )
 from simforge.physics.projectile.schemas import (
     AngleSweepRequest,
@@ -311,3 +324,230 @@ async def projectile_angle_sweep(
     request: AngleSweepRequest, repo: Repository
 ) -> AngleSweepResponse:
     return await execute(ANGLE_SWEEP, request, repo, save=request.save_experiment)
+
+
+# --- Quadratic drag (roadmap 2.1) -----------------------------------------------------------
+
+
+def _quadratic_setup(p: QuadraticDragParameters) -> QuadraticSetup:
+    return QuadraticSetup(
+        initial_speed=p.initial_speed,
+        launch_angle_rad=math.radians(p.launch_angle_deg),  # 90 -> pi/2 exactly
+        launch_height=p.launch_height,
+        mass=p.mass,
+        drag_constant=p.drag_constant,
+        gravity=p.gravity,
+    )
+
+
+def _quadratic_run(request: QuadraticDragRequest) -> quadratic.QuadraticComputation:
+    setup = _quadratic_setup(request.parameters)
+    return quadratic.run(setup, request.solver, n_samples=request.n_samples)
+
+
+def _vertical_reference(
+    ref: quadratic.VerticalReference | None,
+) -> QuadraticVerticalReference | None:
+    if ref is None:
+        return None
+    e = ref.exact
+    return QuadraticVerticalReference(
+        exact=QuadraticVerticalFlight(
+            apex_time=e.apex_time,
+            max_height=e.max_height,
+            fall_time=e.fall_time,
+            flight_time=e.flight_time,
+            impact_speed=e.impact_speed,
+        ),
+        flight_time=ref.flight_time,
+        apex_time=ref.apex_time,
+        max_height=ref.max_height,
+        impact_speed=ref.impact_speed,
+        method_note=ref.method_note,
+    )
+
+
+def _quadratic_response(
+    request: QuadraticDragRequest, r: quadratic.QuadraticComputation, metadata: RunMetadata
+) -> QuadraticDragResponse:
+    v, d, s = r.vacuum, r.diagnostics, r.series
+    return QuadraticDragResponse(
+        model=quadratic.MODEL_INFO,
+        parameters=request.parameters,
+        solver=request.solver,
+        units=quadratic.UNITS,
+        assumptions=quadratic.ASSUMPTIONS,
+        numerical=r.numerical,
+        numerical_note=quadratic.NUMERICAL_NOTE,
+        terminal_speed=r.terminal_speed,
+        vacuum=QuadraticVacuumFlight(
+            flight_time=v.flight_time,
+            range=v.range,
+            max_height=v.max_height,
+            apex_time=v.apex_time,
+            impact_speed=v.impact_speed,
+            method_note=v.method_note,
+        ),
+        vertical_reference=_vertical_reference(r.vertical_reference),
+        diagnostics=QuadraticDiagnostics(
+            max_energy_balance_residual=d.max_energy_balance_residual,
+            max_invariant_residual=d.max_invariant_residual,
+            invariant_note=d.invariant_note,
+            drag_time_bound=d.drag_time_bound,
+            flight_time_bound=d.flight_time_bound,
+        ),
+        checks=r.checks,
+        series=QuadraticDragSeries(
+            t=s.t,
+            x=s.x,
+            y=s.y,
+            speed=s.speed,
+            kinetic_energy=s.kinetic_energy,
+            potential_energy=s.potential_energy,
+            drag_work=s.drag_work,
+            vacuum_t=s.vacuum_t,
+            vacuum_x=s.vacuum_x,
+            vacuum_y=s.vacuum_y,
+        ),
+        metadata=metadata,
+    )
+
+
+_VACUUM_FIELDS = ("flight_time", "range", "max_height", "apex_time", "impact_speed")
+
+
+def _quadratic_summary(r: quadratic.QuadraticComputation) -> dict[str, Any]:
+    d = r.diagnostics
+    return {
+        "numerical": r.numerical.model_dump(),
+        "terminal_speed": r.terminal_speed,
+        "vacuum": {q: getattr(r.vacuum, q) for q in _VACUUM_FIELDS},
+        "diagnostics": {
+            "max_energy_balance_residual": d.max_energy_balance_residual,
+            "max_invariant_residual": d.max_invariant_residual,
+            "drag_time_bound": d.drag_time_bound,
+            "flight_time_bound": d.flight_time_bound,
+        },
+    }
+
+
+_CLOSED_FORM = (
+    "A closed form (square roots, and for the vacuum flight the textbook formulas): a few "
+    "rounding errors of about 1e-16 each on another machine; 1e-12 relative leaves a wide "
+    "margin."
+)
+
+
+# Below rtol = 1e-10 the solver's results are set by rounding, not by its error control, so
+# the replay rules use max(rtol, this) in place of rtol. Measured in the slice 3 review by
+# emulating another CPU (each drag evaluation multiplied by 1 +- 1 or 2 ulp; 1728 reruns on a
+# grid of speeds, angles up to 90, heights, drag, all three methods, rtol 1e-13 to 1e-3): at
+# rtol = 1e-13 results moved by up to 1e-10 relative (a nearly vertical flight's range, DOP853)
+# and Radau's energy residual once from 1.2e-13 to 6.5e-10, up to 650 times the plain rule.
+# At rtol >= 1e-10 (the default and the golden run) the rules are unchanged.
+_REPLAY_RTOL_FLOOR = 1e-10
+
+
+def _quadratic_tolerances(inputs: dict[str, Any], summary: dict[str, Any]) -> dict[str, Tolerance]:
+    rtol = max(inputs["solver"]["rtol"], _REPLAY_RTOL_FLOOR)
+    atol = inputs["solver"]["atol"]
+    setup = _quadratic_setup(QuadraticDragParameters.model_validate(inputs["parameters"]))
+    solver = (
+        "The adaptive solver controls its error to about rtol*|x| + atol. Rounding on another "
+        "machine can change one accept/reject decision and so move a result by up to that "
+        "much; a factor of 10 is the margin (the linear model's rule). Below rtol = 1e-10 "
+        "rounding, not rtol, sets the accuracy, so rtol is taken as at least 1e-10 here "
+        "(measured: up to 1e-10 relative at rtol = 1e-13 with last-bit differences)."
+    )
+    if setup.vx0 > 0:
+        # The velocities I depends on are vx (relative to itself, and vx0 is small for a
+        # nearly vertical launch) and, late in a long fall, vy against -v_t, so the model's
+        # check uses rtol + atol / min(vx0, v_t) as their requested accuracy.
+        invariant_scale = rtol + atol / min(setup.vx0, setup.terminal_speed)
+        invariant = Tolerance(
+            relative=0.0,
+            absolute=10 * invariant_scale,
+            reason="A relative error of the velocities, near the solver's error control, so "
+            "only an absolute tolerance makes sense: 10*(rtol + atol/min(vx0, v_t)), the "
+            "requested accuracy of vx and vy that the invariant check itself uses, with a "
+            "factor of 10 and rtol taken as at least 1e-10, below which rounding sets the "
+            "accuracy (null, when the invariant is undefined, must stay null).",
+        )
+    else:
+        invariant = Tolerance.exact(
+            "Null for a vertical launch (vx = 0, and the invariant divides by vx)."
+        )
+    rules: dict[str, Tolerance] = {
+        "numerical.method": Tolerance.exact("The chosen solver, copied from the inputs."),
+        "numerical.rtol": Tolerance.exact("A solver setting, copied from the inputs."),
+        "numerical.atol": Tolerance.exact("A solver setting, copied from the inputs."),
+        "numerical.n_steps": Tolerance.exact(
+            "A count: a different number of steps is a different computation."
+        ),
+        "numerical.n_rhs_evaluations": Tolerance.exact(
+            "A count: a different number of evaluations is a different computation."
+        ),
+        "terminal_speed": Tolerance(
+            relative=1e-12,
+            absolute=0.0,
+            reason="sqrt(m g / c), a closed form with a few roundings (null in vacuum must "
+            "stay null); 1e-12 relative leaves a wide margin.",
+        ),
+        "vacuum.*": Tolerance(relative=1e-12, absolute=0.0, reason=_CLOSED_FORM),
+        "diagnostics.max_energy_balance_residual": Tolerance(
+            relative=0.0,
+            absolute=10 * (rtol + atol / setup.initial_speed),
+            reason="A relative energy error near the solver's error control, so only an "
+            "absolute tolerance makes sense: 10*(rtol + atol/v0), the requested relative "
+            "accuracy of the state that the energy check itself uses, with a factor of 10 "
+            "and rtol taken as at least 1e-10 (measured: Radau at rtol = 1e-13 moved it from "
+            "1.2e-13 to 6.5e-10 with last-bit differences).",
+        ),
+        "diagnostics.max_invariant_residual": invariant,
+        "diagnostics.drag_time_bound": Tolerance(
+            relative=1e-12,
+            absolute=0.0,
+            reason="A proved bound in closed form (logarithms of the flight-time bound and "
+            "the launch values): a few roundings; 1e-12 relative leaves a wide margin.",
+        ),
+        "diagnostics.flight_time_bound": Tolerance(
+            relative=1e-12,
+            absolute=0.0,
+            reason="The rise bound vy0/g plus an exact linear-drag fall time found by "
+            "Brent's method (converged to about 1e-15, as the linear model's flight time); "
+            "1e-12 relative leaves a wide margin.",
+        ),
+    }
+    for q in _VACUUM_FIELDS:
+        rules[f"numerical.{q}"] = Tolerance(relative=10 * rtol, absolute=10 * atol, reason=solver)
+    return rules
+
+
+def _quadratic_headline(s: dict[str, Any]) -> str:
+    v_t = s["terminal_speed"]
+    drag = "no drag" if v_t is None else f"v_t {fmt.sig(v_t)} m/s"
+    return f"range {fmt.sig(s['numerical']['range'])} m, {drag}"
+
+
+QUADRATIC_DRAG = ModelEntry(
+    info=quadratic.MODEL_INFO,
+    request_type=QuadraticDragRequest,
+    compute=_quadratic_run,
+    # Only the inputs that affect the numbers are hashed (not save_experiment).
+    inputs=lambda req, _: req.model_dump(include={"parameters", "solver", "n_samples"}),
+    summary=_quadratic_summary,
+    respond=_quadratic_response,
+    elapsed_ms=lambda r: r.elapsed_ms,
+    rebuild=lambda inputs, _: QuadraticDragRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+    tolerances=_quadratic_tolerances,
+    headline=_quadratic_headline,
+)
+
+
+@router.post("/projectile/quadratic-drag/simulate")
+async def simulate_quadratic_drag(
+    request: QuadraticDragRequest, repo: Repository
+) -> QuadraticDragResponse:
+    return await execute(QUADRATIC_DRAG, request, repo, save=request.save_experiment)

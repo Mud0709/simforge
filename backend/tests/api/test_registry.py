@@ -60,6 +60,13 @@ CASES: list[tuple[str, str, dict[str, Any], bytes | None]] = [
         },
         UPLOAD,
     ),
+    # Appended, not inserted: other tests index the cases above by position.
+    (
+        "physics.projectile.quadratic_drag",
+        "/api/v1/physics/projectile/quadratic-drag/simulate",
+        {"parameters": {"drag_constant": 0.02, "launch_angle_deg": 30}},
+        None,
+    ),
 ]
 
 
