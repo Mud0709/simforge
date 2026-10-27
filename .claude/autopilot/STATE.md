@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
@@ -28,15 +28,14 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.1: slices 1-3 committed (ed2d77a, 74d3164, d5a4aaa); slice 3's fresh-context review
-was still running at the pause, its fixes to be committed as a follow-up. On 2026-10-27 the
-author said "continue 2.1 slices 4-5": slices 4 (frontend) and 5 (docs) are being built in chat.
+None. Roadmap 2.1 (quadratic drag) is complete on the branch: slices 1-5 and reviews
+(ed2d77a, 74d3164, d5a4aaa, 9839c59, 5a31773, cde59bc, docs). 🔜 is on 2.2. No PR is open.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-Nothing.
+- Ask for a PR for 2.1 and merge it; then 2.2 (angle sweeps for both drag laws) can start.
 
 ## For your daily review (not blocking)
 - PR #12 is merged: a learning-log draft for 1.6 is in the journal entry of 2026-10-25 04:40.

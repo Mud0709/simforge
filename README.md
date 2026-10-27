@@ -9,7 +9,7 @@ each run was produced, and is tested against analytical results wherever they ex
 
 | Module | Status | Scope |
 |---|---|---|
-| **Physics Lab** | Projectile model and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
+| **Physics Lab** | Projectile models (linear and quadratic drag) and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
 | **Economy Lab** | Solow growth model with a savings-policy experiment | Growth, then interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
 | **Quant Research Lab** | CSV import and dataset profile | Data import and exploration, then regression, hypothesis tests, time series, backtesting and overfitting checks. |
 
@@ -35,6 +35,16 @@ inclusion decision) is shown.
 find the angle that throws furthest. Without drag, from ground level, that's 45°. Drag pulls it
 lower: about 30° for the default `b = 1 kg/s`. The result is compared with the closed-form
 vacuum optimum.
+
+**Quadratic drag** (`/physics/projectile/quadratic-drag`). Air resistance that grows with the
+square of the speed, `F = −c|v|v`, closer to what a thrown ball feels. A 2-D flight with this
+drag has no exact formula, so the adaptive solver's answer is checked in other ways on every
+run: against the exact solution for a throw straight up (`tan` on the way up, `tanh` on the
+way down), the drag-free limit, the terminal speed `√(mg/c)`, the energy balance and a
+lesser-known conserved quantity of the motion (the hodograph invariant), plus two proved
+bounds. The page shows the trajectory beside the drag-free one, speed against time with the
+terminal speed, and the energy budget. It is a separate model from the linear one, so every
+run saved before it replays exactly as before.
 
 **Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
 RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed

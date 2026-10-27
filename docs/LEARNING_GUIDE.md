@@ -8,7 +8,8 @@ covers the angle sweep (added in `cf3a870`). Part 12 points to the **Economy Lab
 [ECONOMY_LEARNING_GUIDE.md](ECONOMY_LEARNING_GUIDE.md), which covers the Solow growth model.
 This guide stays the home of the Physics Lab and of the engineering shared by every lab:
 Parts 13-17 cover the working tools, the review lessons, replay, the experiment log, and
-comparison and export. Every line number points at the code as it is
+comparison and export. Part 18 covers quadratic drag, the first Physics Lab model with no
+exact 2-D answer, and how it is checked anyway. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -46,6 +47,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
    and 11, but uses 1.7 (floating point) and Part 7 (tests as evidence).
 10. **The shared studio:** Parts 15-17 (replay, the experiment log, comparison and export), in
    order. Part 17 builds on 15.1 (the output digest) and 1.7 (floating point).
+11. **Quadratic drag:** Part 18. It needs Parts 2-3 (the linear model), 6.7 (an invariant as a
+   check) and 15.1 (input hashes, for 18.12). The derivations in 18.4-18.5 use IB HL
+   integration; 18.8 and 18.10 are Beyond IB and can be skimmed on a first pass.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -71,7 +75,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
-### ⚠️ Three name clashes to know before reading code
+### ⚠️ Four name clashes to know before reading code
 The code reuses some letters with different meanings in different files. This trips up
 everyone.
 
@@ -80,6 +84,7 @@ everyone.
 | `h` | **time step** (s), in `numerics/fixed_step.py` and `integrator_study.py` | **launch height** (m), in `analytical.py:150` and in the tests' `setup(h=...)` |
 | `y` | **height** (m), the vertical coordinate | **the whole state vector**, in `fixed_step.py`, the standard letter for "the unknown" in ODE textbooks |
 | `k` | **drag rate** `b/m` (1/s) | **RK4 stage slopes** `k1…k4`, in `rk4_step` |
+| drag numbers | `b` (kg/s, linear drag `F = −bv`, field `drag_coefficient`) and `k = b/m` (1/s) | `c` (kg/m, quadratic drag `F = −c\|v\|v`, field `drag_constant`) and `κ = c/m` (1/m); and `C_d`, the dimensionless "drag coefficient" in `c = ½ρC_dA` (Part 18.1) |
 
 In this guide's prose, `h` always means the time step and `h₀` the launch height. In code
 excerpts, I flag the meaning wherever it matters.
@@ -113,6 +118,12 @@ the measured numbers aren't exactly 1, 4 and 2.
 with SciPy's adaptive solvers. Parts 1-10 focus on the integrator study, because that is
 the code written from scratch. That page also has a **"Range against launch angle"** panel,
 which finds the angle that throws furthest; Part 11 explains it.)
+
+A third projectile page, `/physics/projectile/quadratic-drag`, uses air resistance that grows
+with the **square** of the speed, which is closer to what a real ball feels. That case has no
+exact 2-D formula, so the comparison trick above is not available; Part 18 explains how its
+numbers are checked instead (an exact throw straight up, limits, an energy balance, a
+conserved quantity and proved bounds).
 
 ---
 
@@ -1986,9 +1997,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:66-96`
+### [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
 
-<!-- src: frontend/src/lib/api/client.ts:70-85 -->
+<!-- src: frontend/src/lib/api/client.ts:73-88 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2010,14 +2021,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 | Line | Meaning |
 |---|---|
-| 53 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
-| 56 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
-| 58 | Tells the server the body is JSON. |
-| 60-61 | If the network itself fails (server not running), throw a friendly error. |
-| 63-65 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 38-51). |
-| 67 | Success: parse the response JSON. |
+| 73 | A generic helper. `<T>` is a *type parameter*: "whatever type the caller expects back". |
+| 76 | `fetch` sends an HTTP request to `/api/v1` + `path`. |
+| 78 | Tells the server the body is JSON. |
+| 80-81 | If the network itself fails (server not running), throw a friendly error. |
+| 83-85 | HTTP status ≥ 400 means the server refused. Read its JSON `detail` and turn it into a readable message (`describeError`, lines 58-71). |
+| 87 | Success: parse the response JSON. |
 
-`runIntegratorStudy` (lines 78-83) calls this with `method: "POST"` and
+`runIntegratorStudy` (lines 105-110) calls this with `method: "POST"` and
 `body: JSON.stringify(body)`, which turns the request object into JSON text. The request
 and response *types* come from `schema.d.ts`, which is **generated** from the backend's
 schemas. Change a backend field without regenerating it, and CI's `api-contract` job fails.
@@ -2039,9 +2050,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:232-236`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:232-236 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:245-249 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2052,13 +2063,13 @@ async def integrator_study(
 
 | Line | Meaning |
 |---|---|
-| 232 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 24), and `main.py` adds `/api/v1`. |
-| 234 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
-| 235 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
-| 236 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
+| 245 | A **decorator** that registers this function for `POST` requests to `/projectile/integrators`. The router adds `/physics` (line 37), and `main.py` adds `/api/v1`. |
+| 247 | **This type hint does real work.** Because `request` is declared as `IntegratorStudyRequest`, FastAPI parses the JSON body *into* that class and validates it (step [5]) before this function runs. Invalid input never reaches the science. `repo: Repository` is a *dependency*: FastAPI supplies the experiment-log database object (`api/dependencies.py`). |
+| 248 | The return type tells FastAPI how to turn the result back into JSON, and documents the API. |
+| 249 | Hands the request to the shared run path with this model's **registry entry** (`INTEGRATOR_STUDY`, defined just above in the same file): which function computes it, which inputs are hashed, what is stored, how the response is built. Every model endpoint is this one line. |
 
 The endpoint's `execute` hands over to the shared path, `execute_run`
-(`backend/src/simforge/api/runs.py:111-146`). It is the same for all five models, and replay
+(`backend/src/simforge/api/runs.py:111-146`). It is the same for all six models, and replay
 (roadmap 1.4, Part 15) uses it too:
 
 <!-- src: backend/src/simforge/api/runs.py:111-146 -->
@@ -2571,7 +2582,7 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:281-290 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:294-303 -->
 ```python
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
@@ -2586,7 +2597,7 @@ ANGLE_SWEEP = ModelEntry(
 ```
 
 The launch angle in the request is **ignored**, because the sweep tries every angle. So it
-is removed before hashing (line 288). Otherwise, two identical computations that differ
+is removed before hashing (line 301). Otherwise, two identical computations that differ
 only in an unused field would get different input hashes, and the experiment log would
 treat them as different experiments.
 
@@ -2993,7 +3004,7 @@ That is exactly what `POST /experiments/{id}/outputs` does. The log never stored
 (ARCHITECTURE decision 5: a projectile run has thousands of numbers, its inputs a dozen), so
 the curves of a stored run exist only after computing it again:
 
-<!-- src: backend/src/simforge/api/outputs.py:69-81 -->
+<!-- src: backend/src/simforge/api/outputs.py:76-88 -->
 ```python
 async def recompute_outputs(
     record: ExperimentRecord, body: RecomputeRequest, repo: ExperimentRepository
@@ -3012,10 +3023,10 @@ async def recompute_outputs(
 
 | Line | Meaning |
 |---|---|
-| 72 | `prepare_rerun` is the **same** refusal helper replay uses (`api/rerun.py`): unknown model, changed model version (409), inputs that no longer validate, an uploaded file missing or different. One helper means the two routes cannot drift apart; a test sends the same bad requests to both and requires the same answer. |
-| 73-75 | The rebuilt request goes through the same `execute_run` as a live run, with `save=False`: nothing is written to the log. `expected_input_hash` refuses a rebuilt request that no longer asks the same question. |
-| 76 | The new response's output digest. |
-| 79 | Three answers, not two: `True` (bit-identical), `False` (both digests exist and differ), `None` (a v1 record has no digest, so nothing can be proved). |
+| 79 | `prepare_rerun` is the **same** refusal helper replay uses (`api/rerun.py`): unknown model, changed model version (409), inputs that no longer validate, an uploaded file missing or different. One helper means the two routes cannot drift apart; a test sends the same bad requests to both and requires the same answer. |
+| 80-82 | The rebuilt request goes through the same `execute_run` as a live run, with `save=False`: nothing is written to the log. `expected_input_hash` refuses a rebuilt request that no longer asks the same question. |
+| 83 | The new response's output digest. |
+| 86 | Three answers, not two: `True` (bit-identical), `False` (both digests exist and differ), `None` (a v1 record has no digest, so nothing can be proved). |
 
 On the page these become three labels. The `False` label is deliberately careful:
 "recomputed, not bit-identical (cause not checked; usually another CPU or library version)".
@@ -3131,7 +3142,7 @@ For each summary value, with reference value `a` and new value `b`, the table sh
 - the **change** `b − a`, in the value's own units;
 - the **relative change** `(b − a) / |a|`, as a percentage.
 
-<!-- src: frontend/src/lib/reference/compare.ts:191-209 -->
+<!-- src: frontend/src/lib/reference/compare.ts:210-228 -->
 ```ts
 export function summaryDiff(reference: ModelResponse, current: ModelResponse): SummaryRow[] {
   const [a, b] = [summaryFields(reference), summaryFields(current)];
@@ -3157,7 +3168,7 @@ export function summaryDiff(reference: ModelResponse, current: ModelResponse): S
 Why `|a|` and not `a`? Take `a = −4` and `b = −5`: the value went *down* by 1. With `|a|`,
 `(−5 − (−4)) / 4 = −25%`, a decrease, as it should read. With `a` you would get `+25%`.
 
-Why is it **undefined** when `a = 0` (line 203)? Relative change asks "how big is the change
+Why is it **undefined** when `a = 0` (line 222)? Relative change asks "how big is the change
 compared with where you started?" If you started at 0, any change, however small, is
 infinitely many times 0, and `0 → 0` gives `0/0`, which has no value at all. So the code
 stores `null` and the table shows "—", never `Infinity`. A finite but enormous ratio (a tiny
@@ -3220,13 +3231,6 @@ record, not the series: the series can always be recomputed (17.1).
 ---
 
 ## Part 18 — Quadratic drag: checking a model with no exact answer
-
-> **Draft status.** This Part was written from the decided plan,
-> `docs/plans/ROADMAP_2_1_PLAN.md`, while roadmap 2.1 was still being built. The physics and
-> the reasoning below do not depend on the final code; the code excerpts do, so they are
-> marked `TODO excerpt` until the code is final. The worked numbers come from a short scratch
-> script (stdlib Python, the formulas below and a hand-written RK4 with step 1e-4 s), not
-> from SimForge and not from a repository test, and they are labelled where they appear.
 
 Roadmap 2.1 adds a second projectile page, `/physics/projectile/quadratic-drag`, where air
 resistance grows with the **square** of the speed: `F = −c|v|v`. This is much closer to the
@@ -3316,8 +3320,8 @@ time scale comes with it: `τ = v_t/g ≈ 2.23 s`, roughly "how long it takes to
 terminal speed".
 
 In 2-D, the horizontal velocity keeps decaying (`dvx/dt = −κ|v|vx` always opposes `vx`), so a
-long flight ends falling almost straight down: the velocity tends to `(0, −v_t)`. SimForge will
-show `v_t` as an **exact** derived result (`null` in a vacuum, `c = 0`, because the terminal
+long flight ends falling almost straight down: the velocity tends to `(0, −v_t)`. SimForge
+shows `v_t` as an **exact** derived result (`null` in a vacuum, `c = 0`, because the terminal
 speed would be infinite and JSON has no infinity), and a "speed against time" chart with a
 `v_t` line.
 
@@ -3354,11 +3358,46 @@ where `H` is the apex height above the launch point. (Check: at `s = φ₀`,
 
 **A rounding trap you have met before.** When drag is weak, the argument of `ln` is very close
 to 1, and `ln(1 + tiny)` computed naively loses digits, exactly like the cancellation in
-Part 3.5. The plan therefore evaluates it as `log1p(−2 sin²(s/2) + (v₀/v_t) sin s)`, using
-`cos s − 1 = −2 sin²(s/2)`, and `H` with `log1p`. `log1p(x)` computes `ln(1 + x)` accurately
-for tiny `x`.
+Part 3.5. `log1p(x)` computes `ln(1 + x)` accurately for tiny `x`, so the code uses it. It goes
+one step further, with the same idea as `ψ` and `φ` in Part 3: each formula is written as
+**the vacuum answer times a correction factor** that tends to 1 as drag vanishes. With
+`r = v₀/v_t`, the apex time `τ arctan(r)` becomes `(v₀/g) · arctan(r)/r`, and
+`H = (v_t²/2g) ln(1 + r²)` becomes `(v₀²/2g) · ln(1 + r²)/r²`:
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the rise formulas (v(t), apex time, y(t) via log1p, apex height) -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_reference.py:134-153 -->
+```python
+def apex_time(v0: float, v_t: float, g: float) -> float:
+    """Time to the top of a vertical throw at v0 (m/s): t_a = tau atan(v0/v_t), in s (R1).
+
+    Computed as (v0/g) * atan(r)/r with r = v0/v_t; the vacuum limit is v0/g.
+    """
+    _check("v0", v0)
+    _check_vt_g(v_t, g)
+    r = v0 * _inverse(v_t)
+    return v0 / g * (math.atan(r) / r if r > 0 else 1.0)
+
+
+def apex_height(v0: float, v_t: float, g: float) -> float:
+    """Height gained by a vertical throw: H = (v_t^2 / 2g) ln(1 + v0^2/v_t^2), in m (R1).
+
+    Computed as (v0^2 / 2g) * log1p(r^2)/r^2; the vacuum limit is v0^2 / 2g.
+    """
+    _check("v0", v0)
+    _check_vt_g(v_t, g)
+    r2 = (v0 * _inverse(v_t)) ** 2
+    return v0**2 / (2 * g) * (math.log1p(r2) / r2 if r2 > 0 else 1.0)
+```
+
+| Line | Meaning |
+|---|---|
+| 139-140, 150-151 | Inputs are checked here too (finite, in their domain), because these functions are also used directly by tests and by the model, not only behind the API. |
+| 141 | `r = v₀/v_t`. `_inverse(v_t)` is `1/v_t`, and exactly 0 in a vacuum, so `r = 0` there, with no `0 × ∞`. |
+| 142 | The vacuum rise time `v₀/g` times `arctan(r)/r`. When `r = 0` the factor is taken as its limit, 1, so a vacuum uses this same line: no special case to get wrong. |
+| 152-153 | The same pattern for the height: `r²` first, then `log1p(r²)/r²`, which is never computed as `ln` of a number that has already been rounded to 1. |
+
+A test (`test_naive_apex_height_loses_digits_for_weak_drag`) computes the naive form at
+`r = 10⁻⁴` and shows it losing digits against a 50-digit `decimal` reference, while this form
+stays within `2 × 10⁻¹⁵`.
 
 ### 18.5 Coming down: the fall, with `tanh` **[IB HL → Beyond IB]**
 After the apex the ball falls. Now gravity points down and drag points **up**: they oppose.
@@ -3391,8 +3430,41 @@ formula. The ball lands when the drop equals the apex height `Y = h₀ + H`. Wit
 fall time     s_L = τ arcosh(eˣ)          impact speed   v_t √(1 − e^(−2X))
 ```
 
-computed as `τ asinh(√expm1(2X))` and `v_t √(−expm1(−2X))`, again to avoid cancellation when
-`X` is small (`expm1(x)` computes `eˣ − 1` accurately).
+The plan wrote the fall time as `τ asinh(√expm1(2X))`, which avoids cancellation when `X` is
+small (`expm1(x)` computes `eˣ − 1` accurately). Building it showed a second trap: for strong
+drag and a long drop, `X` is large, and `e^(2X)` **overflows** (exceeds the largest double,
+about 1.8 × 10³⁰⁸) once `2X > 709.8`. The code uses an identity with only positive terms that
+cannot overflow, `arcosh(eˣ) = X + log1p(√(1 − e^(−2X)))`, again as "vacuum time × factor":
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_reference.py:224-238 -->
+```python
+def fall_time(drop: float, v_t: float, g: float) -> float:
+    """Time (s) to fall ``drop`` metres from rest: tau arcosh(e^X) with X = g drop / v_t^2 (R2).
+
+    Uses arcosh(e^X) = X + log1p(sqrt(1 - e^(-2X))) (positive terms only, no overflow),
+    written as sqrt(2 drop / g) times arcosh(e^X)/sqrt(2X), which tends to 1 as X -> 0.
+    """
+    _check("drop", drop)
+    _check_vt_g(v_t, g)
+    q = _inverse(v_t)
+    xi = g * drop * q * q
+    if xi < _FALL_FACTOR_ONE_BELOW:  # arcosh(e^X)/sqrt(2X) = 1 + X/6 + ...
+        factor = 1.0
+    else:
+        factor = (xi + math.log1p(math.sqrt(-math.expm1(-2 * xi)))) / math.sqrt(2 * xi)
+    return math.sqrt(2 * drop / g) * factor
+```
+
+| Line | Meaning |
+|---|---|
+| 233 | `X = g·drop/v_t²`, written with `q = 1/v_t` so that a vacuum gives `X = 0`. |
+| 234-235 | For tiny `X` the factor is 1 + X/6 + …, which is 1 to rounding below 10⁻¹⁶: use 1 and avoid `0/0`. |
+| 237 | `e^(−2X)` is at most 1, so nothing here can overflow; `−expm1(−2X)` is `1 − e^(−2X)` without cancellation when `X` is small. |
+| 238 | The vacuum fall time `√(2·drop/g)` times the factor. |
+
+A test (`test_plan_form_of_the_fall_time_overflows_for_strong_drag`) shows the plan's form
+overflowing, and the formulas are checked against 50-digit `decimal` values from `X ≈ 10⁻¹²`
+to `X ≈ 10⁹`.
 
 **The whole vertical flight** (from the ground, `h₀ = 0`) simplifies nicely: `e^(2X) =
 1 + v₀²/v_t²`, so the ball hits the ground at `v₀ v_t / √(v₀² + v_t²)`, which is less than
@@ -3427,8 +3499,9 @@ H   = (v_t²/2g) ln(1 + v₀²/v_t²) ≈ (v_t²/2g)(v₀²/v_t²) = v₀²/2g
 ```
 
 which are the IB formulas for a vertical throw. The impact speed `v₀v_t/√(v₀² + v_t²)` tends to
-`v₀`. For the full 2-D solver the plan checks the limit numerically: a run with `c = 0` must
-match the textbook vacuum range `v₀² sin 2θ / g`, flight time and height. Those vacuum formulas
+`v₀`. For the full 2-D solver the tests check the limit numerically
+(`test_vacuum_run_matches_the_textbook_formulas`): a run with `c = 0` must match the textbook
+vacuum range `v₀² sin 2θ / g`, flight time and height. Those vacuum formulas
 are **written in the tests**, not imported from the linear model's code, so that a bug shared
 by both models could not hide.
 
@@ -3438,7 +3511,7 @@ force does work is `F·v` (power, IB core). Drag points against `v` with size `c
 removes energy at the rate `c v² × v = c|v|³`:
 
 ```
-d/dt (½mv² + mgy) = −c|v|³          ⇒          KE + PE + W = E₀,   with dW/dt = c|v|³  (W, J/s)
+d/dt (½mv² + mgy) = −c|v|³          ⇒          KE + PE + W = E₀,   with dW/dt = c|v|³  (W in J)
 ```
 
 SimForge integrates `W` alongside the motion, as the fifth state component, and checks that
@@ -3449,7 +3522,7 @@ the linear page.
 `c|v|³` **directly**, not as `−F·v` using the code's own force function. Why? If the force
 function had a bug, `−F·v` would carry the same bug, `W` would be "consistent" with the wrong
 force, and the balance would still close. Computing `W` an independent way is what makes the
-check able to fail (Part 14's lesson: a test must be able to fail). 18.10 shows a bug this
+check able to fail (Part 14's lesson: a test must be able to fail). 18.11 shows a bug this
 catches.
 
 ### 18.8 The hodograph invariant **[Beyond IB]**
@@ -3489,16 +3562,59 @@ constant. ✓
 Two conditions: `vx` must not be zero (a vertical launch has no `I`, so the response gives
 `null` there), and `vx` never changes sign, because `dvx/dt` is proportional to `−vx`. So for
 any launch with `vx₀ > 0`, `I` exists for the whole flight. The numerical check is how far `I`
-drifts from its launch value. One complication, still open in the plan: late in a long flight
-`vx` decays towards 0, so `1/vx²` becomes huge and the drift needs a sensible normalisation,
-to be decided in slice 2.
+drifts from its launch value `I₀`. One complication: late in a long flight `vx` decays towards
+0, so the two big terms of `I` (each about `1/vx²`) grow enormous and nearly cancel, while `I`
+itself stays at `I₀`. A tiny relative error in the state then moves `I` by about
+`rtol/vx²`, and divided by `I₀` that "drift" was measured above 10¹⁷ in an accurate run. So
+the residual is divided by the **size of the terms**, the largest `1/vx²` in the flight, which
+makes it a relative error of the state. Its weakness: errors early in the flight, where
+`1/vx²` is small, count for less.
 
 The name: a **hodograph** is the curve traced by the tip of the velocity vector, and this
 derivation works in velocity space, which is why the literature calls it the hodograph method.
 The plan notes honestly that **no literature source was checked**: the reference is the
 derivation above plus a numerical check.
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the invariant function (asinh form) and the residual's normalisation chosen in slice 2 -->
+The invariant itself (the input checks above these lines are omitted):
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_reference.py:299-301 -->
+```python
+    q = _inverse(v_t)
+    speed = np.hypot(vx_arr, vy_arr)
+    return 1 / vx_arr**2 + q * q * (speed * vy_arr / vx_arr**2 + np.arcsinh(vy_arr / vx_arr))
+```
+
+and the residual the model reports:
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_model.py:321-335 -->
+```python
+    if vx_min <= 0:
+        return None, undefined
+    v_t = setup.terminal_speed
+    # A tiny positive vx can overflow 1/vx^2 or v vy / vx^2 (JSON has no infinity).
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        scale = float(np.max(1.0 / sol.vx**2))
+        inv = qr.hodograph_invariant(sol.vx, sol.vy, v_t, setup.gravity)
+        i0 = qr.hodograph_invariant(
+            np.array([setup.vx0]), np.array([setup.vy0]), v_t, setup.gravity
+        )[0]
+        residual = float(np.max(np.abs(inv - i0)) / scale)
+    if not (math.isfinite(scale) and math.isfinite(residual)):
+        return None, undefined
+    note = "max |I - I0| / max(1/vx^2) over the solver's step nodes."
+    return residual, note
+```
+
+| Line | Meaning |
+|---|---|
+| 301 (reference) | `I` term by term: `1/vx²`, then `(1/v_t²)` (which is `κ/g`) times the bracket. `np.hypot` computes `v = √(vx² + vy²)` without overflow. |
+| 321-322 | If the solver's `vx` has reached 0 or below, `I` is undefined. The *true* `vx` never does, but late in a very long fall it is far below `atol`, where the solver does not control its sign. The result is `null` with a reason, not a crash. |
+| 325-331 | `1/vx²` for a tiny positive `vx` can overflow to infinity; `errstate` silences the warning, and line 332 turns an infinite result into `null` too, because JSON has no infinity. |
+| 331 | The normalisation described above: `max |I − I₀|` divided by `max 1/vx²`. |
+
+The per-run check compares this residual with a threshold built from the accuracy the solver
+was asked for in the velocities, `rtol + atol/min(vx₀, v_t)`. (A first version used
+`atol/v₀`; a review found it failed *correct* nearly vertical runs, where `vx₀` is tiny.)
 
 ### 18.9 Two proved bounds, and why the solver needs them **[Beyond IB]**
 The linear model stops its integration at `2 × the exact flight time` and refuses "stiff" runs
@@ -3514,16 +3630,121 @@ upper bound**.
    least as fast as under **linear** drag with `k = κV`; `T_fall` is that linear-drag fall
    time, which has an exact formula.
 
-These give the integration cap and the stiffness guard: the run is refused (a 422 with the
-reason) if `κ·max(v₀, v_t)·T_bound` is above the same limits as the linear model. The bound is
-**loose**: in the plan's check, a flight of 39.8 s had a bound of 3989 s. So the refusal
-message says "at most", and the plan measures in slice 2 how often the guard refuses runs that
-would have been fine. That is a trade-off: a cheap, *guaranteed* bound that is sometimes
-pessimistic, instead of a tight guess that could be wrong.
+The flight-time bound gives the **integration cap**. It is exact in a vacuum, so the cap is
+*twice* the bound: a cap equal to the landing time could put the landing at the very end of the
+interval, where rounding can hide the moment `y` changes sign.
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_model.py, the stiffness guard and integration cap from T_bound -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_model.py:513-519 -->
+```python
+    t_bound = _flight_time_bound(setup)
+    # Twice the proved bound: the bound is exact in vacuum, and a cap equal to the landing
+    # time could leave the landing event at the very end of the interval, where rounding can
+    # hide the sign change. The landing itself is found by the solver's event detection.
+    sol = integrate(
+        setup, method=solver.method, rtol=solver.rtol, atol=solver.atol, t_max=2.0 * t_bound
+    )
+```
 
-### 18.10 A wrong force law that passes three tests **[Beyond IB idea]**
+The bound is also **loose**, far looser than the plan expected: the plan's check found 39.8 s
+against a bound of 3989 s (about 100×), but measured across the allowed inputs it is loose by
+up to about 7 × 10⁵ times. For a cap that does no harm (the solver stops at the landing
+anyway). For the stiffness guard it did, which is the next section. That is the trade-off of
+a proved bound: cheap and *guaranteed*, but sometimes very pessimistic.
+
+### 18.10 The stiffness guard, redesigned **[IB core idea → Beyond IB]**
+**Why a guard at all?** Part 6 showed that an explicit method (RK45 and DOP853 are explicit
+Runge-Kutta methods) becomes unstable if its step is too long compared with how fast the
+system "relaxes". Here the velocity relaxes at the **drag rate** `κ|v|` (units 1/s): drag
+removes a fraction of about `κ|v|·Δt` of the velocity in a short time `Δt`. When the drag rate
+is large, a stable step must be short, so a long flight needs a huge number of steps. The
+linear model refuses an explicit run when `k·T` (drag rate × flight time) is above 10⁴.
+
+**The plan's guard, and why it failed.** Quadratic drag has no exact flight time, so the plan
+multiplied two proved upper bounds: the largest drag rate `κ·max(v₀, v_t)` and the flight-time
+bound `T_bound`, and refused the run if the product exceeded 10⁴. Both factors are safe, but
+both can be pessimistic, and **the product of two loose upper bounds is loose twice over**:
+if each is 100 times too big, the product is 10⁴ times too big. A ball launched at
+1000 m/s really is slowed hard, but only for the first moment; the rest of the flight is slow.
+Measured on a grid of 1007 allowed inputs, the plan's rule refused 323 runs for an explicit
+method, and **193 of them actually finish quickly** (at most 38 000 right-hand-side
+evaluations). Its test case: `v₀ = 1000 m/s` at 60°, `v_t = 30 m/s` gives a product of
+6.2 × 10⁵, refused, yet RK45 finishes it in under 1000 steps.
+
+**The right measure of cost.** What sets an explicit method's work is not the *largest* drag
+rate times the *longest possible* time, but the drag rate added up over the actual flight:
+
+```
+S = ∫ κ|v| dt      (the "drag time", no units)
+```
+
+Since `|v| dt` is the distance travelled along the path, `S = κ × path length`: the path
+length measured in "drag lengths" `m/c`. Once the step is limited by stability, the number of
+steps grows like `S` (measured for DOP853: 2.5 to 16 evaluations per unit of `S` above
+`S = 100`). A ball that is fast only briefly has a small `S`, however large its peak drag rate.
+
+**A proved bound on S, with small slack.** `S` is not known before the run, so the guard
+needs an upper bound, and this one is built so its slack is **additive and logarithmic**
+instead of multiplicative. The idea: `|v| ≤ |vx| + |vy|`, so `S ≤ κ(X + Y)`, where `X` is the
+range and `Y` the total vertical distance travelled.
+
+- *Horizontally*, drag slows `vx` at least as fast as `κvx²`, which solves to
+  `vx ≤ vx₀/(1 + κvx₀t)`. Integrating gives `κX ≤ ln(1 + κ·vx₀·T_bound)`. The loose
+  `T_bound` now sits *inside a logarithm*: 10⁵ times too big costs only about `ln(10⁵) ≈ 11.5`.
+- *Vertically*, the climb is at most the exact vertical apex height at speed `vy₀` (18.4), and
+  the ball comes down the climb plus `h₀` once: `κY ≤ ln(1 + vy₀²/v_t²) + κh₀`.
+
+```
+S ≤ ln(1 + κ·vx₀·T_bound) + ln(1 + vy₀²/v_t²) + κh₀
+```
+
+Because `S ≥ κh₀` (the ball must at least fall `h₀`), the bound exceeds the true `S` by at most
+the two logarithms: measured, at most 27 on that grid. For a vertical throw every step is an
+equality, so the bound is exact (a test checks this).
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_model.py:228-246 -->
+```python
+    kappa, q = setup.kappa, _inverse_terminal_speed(setup)
+    if kappa == 0:
+        return 0.0
+    horizontal = math.log1p(kappa * setup.vx0 * _flight_time_bound(setup))
+    rise = math.log1p((setup.vy0 * q) ** 2)
+    return horizontal + rise + kappa * setup.launch_height
+
+
+def _guard(setup: QuadraticSetup, method: str) -> float:
+    bound = drag_time_bound(setup)
+    if method != "Radau" and bound > EXPLICIT_STIFFNESS_LIMIT:
+        raise ModelDomainError(
+            f"The flight travels up to {bound:.3g} drag lengths m/c (its drag time, the "
+            f"integral of kappa |v| dt, is at most this), above the "
+            f"{EXPLICIT_STIFFNESS_LIMIT:.0e} limit for {method}: an explicit method's step "
+            "is limited by the drag rate, so the run would be prohibitively slow. Use "
+            "method='Radau' for stiff problems."
+        )
+    return bound
+```
+
+| Line | Meaning |
+|---|---|
+| 228-230 | `q = 1/v_t`. In a vacuum `κ = 0`, so the drag time is exactly 0: no `0 × ∞` from `v_t = ∞`. |
+| 231 | The horizontal term. `log1p` keeps it accurate when `κ·vx₀·T_bound` is small (weak drag). |
+| 232 | The vertical climb term, `ln(1 + vy₀²/v_t²)`, again with `log1p`. |
+| 233 | Plus `κh₀`, the fall from the launch height. |
+| 238 | Only explicit methods are limited. Radau is *implicit* and L-stable: its step is not limited by the drag rate, so it gets no drag-time limit (on the grid, every run the plan's Radau limit would have refused finished in under 0.5 s). |
+| 239-245 | The refusal is a `ModelDomainError`, which the API turns into a 422 whose message says what was compared ("up to", because it is a bound), with which limit, and what to do instead (use Radau). |
+
+Result on the same grid: the new rule refused 130 runs, and **none** of them finished within
+250 000 evaluations, so it refuses the runs that really are too slow. This was a design change
+made while building (slice 2), recorded in the plan's "Amendments after building".
+
+**Input rules found the same way.** Two more rules came from measurements, not from the plan:
+`atol ≤ 0.01·min(v₀, v_t)` (far above the smallest velocity scale the solver does not control
+the velocity at all, and runs took 10 s or more, mostly with Radau), and a drag-free flight of
+at least 1 µs (shorter flights cannot be resolved: the solver locates the landing only to
+about 10⁻¹⁵ s, and some crashed). Both are checked at the boundary, so a bad request gets a 422
+with a reason instead of a slow or failed run.
+
+### 18.11 A wrong force law that passes three tests **[Beyond IB idea]**
 Here is a tempting bug. "Drag opposes motion in each direction," so someone writes
 
 ```
@@ -3539,19 +3760,63 @@ It looks reasonable, and the units are right. Which checks catch it?
 | Long vertical fall reaches `v_t` | **No** | Same vertical equation once `vx = 0` |
 | Energy balance, `W` coded from `c\|v\|³` | **Yes** | The wrong force removes energy at `c(\|vx\|³ + \|vy\|³)`, not `c\|v\|³` |
 | Hodograph invariant | **Yes** | Its derivation needs drag along `v`; the wrong force turns the velocity |
+| Speed `≤ max(v₀, v_t)` | **Sometimes** | Off the axes the wrong drag is *weaker* than `c v²`, so a falling ball can pass `v_t` |
 
 The three "No" rows test motion in which x and y do not interact, and the bug is precisely in
 the interaction. Scratch-script numbers (tennis ball, 20 m/s at 45°, RK4 step 1e-4 s): with
 the correct law the energy balance closed to 5e-15 of `E₀` and the invariant drifted
 2e-14 relative; with the wrong law they were off by 0.15 of `E₀` and 0.23 relative, and the
-range came out 27.7 m instead of 25.7 m (vacuum: 40.8 m). The plan's tests include this
-wrong law as a deliberate **mutant** that the suite must catch. (A *two*-dimensional long fall
-would catch it weakly too, because the wrong law lets `vx` decay much more slowly; the plan's
-terminal-speed test is vertical.)
+range came out 27.7 m instead of 25.7 m (vacuum: 40.8 m). The tests include this wrong
+law as a deliberate **mutant** that the suite must catch. They swap it in for the real force
+function, then require the one-dimensional checks to *pass* (to prove they are blind to it)
+and the energy and invariant checks to *fail*:
 
-<!-- TODO excerpt: backend/tests/physics/ (quadratic integrator test file), the wrong-coupling mutant test -->
+<!-- src: backend/tests/physics/test_quadratic_numerical.py:352-360 -->
+```python
+def wrong_coupling(vx: float, vy: float, kappa: float) -> tuple[float, float]:
+    """The classic bug: each component dragged by its own speed, -kappa|vx|vx, -kappa|vy|vy."""
+    return -kappa * abs(vx) * vx, -kappa * abs(vy) * vy
 
-### 18.11 Why 2.1 is a new model, not an option on the old one
+
+@pytest.fixture
+def mutant(monkeypatch: pytest.MonkeyPatch) -> Callable[..., tuple[float, float]]:
+    monkeypatch.setattr(qn, "drag_acceleration", wrong_coupling)
+    return wrong_coupling
+```
+
+<!-- src: backend/tests/physics/test_quadratic_numerical.py:390-402 -->
+```python
+@pytest.mark.usefixtures("mutant")
+@pytest.mark.parametrize(("v0", "angle", "h", "v_t"), TWO_D[:3])
+def test_wrong_coupling_is_caught_by_energy_and_invariant(
+    v0: float, angle: float, h: float, v_t: float
+) -> None:
+    s = make_setup(v0=v0, angle=angle, h=h, v_t=v_t)
+    sol = solve(s)
+    # The mutant removes energy at c(|vx|^3 + |vy|^3) instead of c|v|^3, a difference
+    # comparable to the drag work itself: measured 0.16 to 0.34 of E0 here, and the invariant
+    # residual 0.16 to 0.24. A floor of 1e-3 is safe and lies 1e5 times above the correct
+    # law's tolerance (1e-8).
+    assert energy_residual(s, sol) > 1e-3
+    assert invariant_residual(s, sol) > 1e-3
+```
+
+| Line | Meaning |
+|---|---|
+| 352-354 | The bug, written out on purpose: each component dragged by its own speed. |
+| 357-360 | A pytest **fixture**: `monkeypatch.setattr` replaces `drag_acceleration` inside the integrator module for the length of one test, then puts the real one back. This works because the integrator looks the force function up each time it is called (a comment in `quadratic_numerical.py` says so). |
+| 390-392 | Applied to three 2-D cases (`TWO_D[:3]`) with the mutant in place. |
+| 397-402 | With the bug, the energy residual and the invariant residual must both be *above* 10⁻³. Measured 0.16 to 0.34 and 0.16 to 0.24; the correct law stays below 10⁻⁸, 10⁵ times lower, so this floor cannot be crossed by accident. |
+
+Building the tests found one correction to the plan, which had said "only the energy balance
+and the invariant catch it": in some flights the mutant also breaks the proved speed bound
+(measured 1.85% above `max(v₀, v_t)` for a horizontal launch below `v_t`), because off the
+axes its drag `c(|vx|³ + |vy|³)/|v|` is weaker than `c|v|²`. That is not a reliable detector
+(it happens only in some flights), but it is not blind either. The model's own per-run checks
+fail too: with the mutant, the app would show the energy and invariant checks as failed
+(`test_checks_fail_for_the_wrong_coupling`).
+
+### 18.12 Why 2.1 is a new model, not an option on the old one
 The obvious design would be a `drag_law` switch ("linear" or "quadratic") on the existing
 projectile form. The plan rejects it (decision D2), and the reason is replay (Part 15).
 
@@ -3571,16 +3836,94 @@ records it as a risk and leaves sharing it to roadmap 2.4. The UI follows the sa
 new page, linked both ways from the linear page, because the two forms differ (`b` in kg/s
 against `c` in kg/m) and a linear and a quadratic run cannot yet be overlaid.
 
-### 18.12 The code
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_schemas.py, the drag_constant field and the κ·max(v₀, v_t) ≤ 1e4 s⁻¹ validator -->
+### 18.13 The code
+The rise and fall formulas (18.4-18.5), the invariant (18.8) and the guard (18.10) are quoted
+above. Three more pieces complete the picture.
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_numerical.py, the right-hand side for the state [x, y, vx, vy, W], with W from c|v|³ -->
+**The input field and the drag-rate rule** (`quadratic_schemas.py`):
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_numerical.py, the landing and apex events (direction = −1, launch-instant guard) -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_schemas.py:64-89 -->
+```python
+    drag_constant: float = Field(
+        default=0.01,
+        ge=0,
+        le=1e6,
+        description="Quadratic drag constant c in kg/m (drag force F = -c|v|v; for a ball "
+        "c = rho C_d A / 2). Not the dimensionless drag coefficient C_d, and not the linear "
+        "model's b in kg/s. 0 means vacuum.",
+    )
+    gravity: float = Field(
+        default=9.80665,
+        ge=0.01,
+        le=1000,
+        description="Gravitational acceleration in m/s^2 (default: standard gravity).",
+    )
 
-<!-- TODO excerpt: backend/src/simforge/physics/projectile/quadratic_reference.py, the fall formulas (asinh(√expm1(2X)) and √(−expm1(−2X)) forms) -->
+    @model_validator(mode="after")
+    def _drag_rate_in_range(self) -> Self:
+        kappa = self.drag_constant / self.mass  # <= 1e12 1/m within the field bounds
+        rate = max(kappa * self.initial_speed, math.sqrt(kappa * self.gravity))
+        if rate > MAX_DRAG_RATE:
+            raise ValueError(
+                f"the largest drag rate in the flight, kappa max(v0, v_t) = {rate:.3g} s^-1 "
+                f"(kappa = c/m), is above the {MAX_DRAG_RATE:g} s^-1 limit (drag would act in "
+                "under 0.1 ms); lower drag_constant or raise mass"
+            )
+        return self
+```
 
-### 18.13 What the evidence will and will not show
+| Line | Meaning |
+|---|---|
+| 64-71 | `drag_constant` is `c` in kg/m, from 0 (vacuum) to 10⁶. The description names the two things it is *not* (the name clash of 18.1), because the API documentation and the form show it. |
+| 79 | A Pydantic **model validator** runs after every single field has passed its own bounds, so it can check a *combination*. |
+| 81-82 | The largest drag rate in the flight is `κ·max(v₀, v_t)` (by the speed bound, 18.9). Since `κ·v_t = √(κg)`, it is computed as `max(κv₀, √(κg))`, which is 0 in a vacuum instead of `0 × ∞`. |
+| 83-88 | Above 10⁴ s⁻¹ (drag acting in under 0.1 ms, the linear model's limit) the request is refused with a 422 that says what to change. |
+
+**The right-hand side** (`quadratic_numerical.py`), the five rates for the state
+`[x, y, vx, vy, W]`:
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:92-98 -->
+```python
+    def rhs(_t: float, s: FloatArray) -> FloatArray:
+        vx, vy = float(s[2]), float(s[3])
+        # Looked up at call time, so a test can substitute a wrong force law (mutation test).
+        ax, ay = drag_acceleration(vx, vy, kappa)
+        # dW/dt = c |v|^3, computed here from the velocity, independently of the force.
+        power = c * (vx * vx + vy * vy) ** 1.5
+        return np.array([vx, vy, ax, ay - g, power])
+```
+
+| Line | Meaning |
+|---|---|
+| 95 | The drag acceleration `−κ|v|v`, from the separate function `drag_acceleration`. It is looked up when called, so a test can swap in the wrong law (18.11). |
+| 97 | `dW/dt = c|v|³`, computed from the velocity directly and **not** from line 95's force (18.7): a wrong force would not make `W` agree with it. |
+| 98 | `dx/dt = vx`, `dy/dt = vy`, the two accelerations (gravity added to the vertical one) and the power. |
+
+**The landing and apex events**, copied on purpose from the linear solver (18.12):
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:100-111 -->
+```python
+    def hits_ground(t: float, s: FloatArray) -> float:
+        # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
+        # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
+        # Treating the launch instant as "above ground" leaves only the real landing.
+        return float(s[1]) if t > 0.0 else 1.0
+
+    def reaches_apex(_t: float, s: FloatArray) -> float:
+        return float(s[3])
+
+    hits_ground.terminal = True  # type: ignore[attr-defined]
+    hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
+    reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
+```
+
+| Line | Meaning |
+|---|---|
+| 100-104 | The landing is where `y` crosses 0. Launched from the ground, `y = 0` exactly at `t = 0`; if the first step overshot the landing, the solver would read "0, then negative" as a landing at `t = 0`. Reporting `1.0` at the launch instant leaves only the real landing (a test launches at 0.001° to 1° and checks the landing time). |
+| 106-107 | The apex is where `vy` crosses 0. |
+| 109-111 | `terminal = True` stops the integration at the landing; `direction = −1` counts only crossings while descending. |
+
+### 18.14 What the evidence does and does not show
 The five checks, together: exact vertical flights (18.4-18.5), the vacuum limit (18.6),
 terminal speed (18.3), the energy balance (18.7) and the invariant (18.8), plus the bounds
 (18.9) holding on every step. None of them is "the exact 2-D answer", because there is none.
@@ -3589,10 +3932,19 @@ answer very hard to hide, but a passing suite still does not prove the 2-D traje
 right to the last digit: it shows the solver solves the stated equations, as consistently as
 these properties can detect. And, as always (SCIENTIFIC_VALIDATION, principle 5), none of it
 shows that `F = −c|v|v` with a constant `C_d` describes a real ball: spin, wind and a `C_d`
-that changes with speed are all left out. What has actually been run is listed, with its
-status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
+that changes with speed are all left out.
 
-### 18.14 Checkpoint
+**What was measured** (observed on one machine, 2026-10-27, not a guarantee; details and
+versions in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`): at the default
+tolerances (`rtol = atol = 10⁻¹⁰`), on 54 two-dimensional launches the flight time and range
+agreed with an independent, tighter integration to `3 × 10⁻¹¹` relative or better, and the
+energy and invariant residuals stayed below `6 × 10⁻¹⁰`; on 18 vertical launches the errors
+against the exact `tan`/`tanh` flight were at most about `3 × 10⁻⁹`. Every check the app
+shows, its threshold, and what the tests actually run are listed there too, with the known
+limitations (for example, the invariant can be a number on one computer and `null` on
+another in a very long fall, because there `vx` has decayed below what the solver controls).
+
+### 18.15 Checkpoint
 1. Explain in two sentences, without equations, why doubling a fast ball's speed roughly
    quadruples the air resistance.
 2. Why can the linear model solve x and y separately, but the quadratic model cannot? Point to
@@ -3604,8 +3956,12 @@ status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
    tests have in common that makes them blind to it?
 6. Why would adding a `drag_law` field to the existing projectile form break replay of runs
    that were saved before the change?
+7. The plan's guard multiplied the largest drag rate by the longest possible flight time.
+   Both are safe upper bounds. Why did the product still refuse runs that finish quickly,
+   and why does putting `T_bound` inside a logarithm fix most of that?
+8. Why is the invariant's drift divided by the largest `1/vx²` and not by `I₀`?
 
-### 18.15 Exercises
+### 18.16 Exercises
 - **E18.1** Using the momentum argument in 18.1, show that `ρAv²` has the units of a force.
   Then find the units of `c` and check they are kg/m.
 - **E18.2** Estimate the terminal speed of a raindrop of radius 1.5 mm (take `C_d = 0.5` and
@@ -3618,7 +3974,7 @@ status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
   g(1 − w²/v_t²)`. Then show that `v_t − w ≈ 2v_t e^(−2s/τ)` for large `s`, and find how many
   multiples of `τ` it takes for the gap to fall below one millionth of `v_t`.
 - **E18.5** Show, from the equations of motion, that `d/dt(½mv² + mgy) = −c|v|³`. Then repeat
-  the calculation with the wrong law of 18.10 and find the rate at which it removes energy.
+  the calculation with the wrong law of 18.11 and find the rate at which it removes energy.
   For which directions of motion do the two rates agree?
 - **E18.6** Show that `I` in 18.8 reduces to `1/vx²` when `κ = 0`, and explain why that alone
   is a weak test of a solver. What part of `I` carries the real information?
@@ -3627,7 +3983,14 @@ status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
   faster than the quadratic one. Then suggest why the bound becomes much looser at high
   launch speeds.
 - **E18.8** (stretch) Late in a long flight, `1/vx²` grows like `e^(2gt/v_t)`. Propose two ways
-  to measure the invariant's drift that do not blow up, and say what each could hide.
+  to measure the invariant's drift that do not blow up, and say what each could hide. Compare
+  one of them with the normalisation SimForge chose (18.8).
+- **E18.9** Show that `dvx/dt ≤ −κvx²` (use `|v| ≥ vx`) implies `vx(t) ≤ vx₀/(1 + κvx₀t)`, and
+  integrate to get the horizontal term of the drag-time bound in 18.10. Then take a flight with
+  `κ·vx₀·T_bound = 10⁶` and compare the plan's product rule with the logarithm: by how much does
+  each over-estimate if the true value of `κ·vx₀·T` is 10?
+- **E18.10** Open `/physics/projectile/quadratic-drag`, choose a launch at exactly 90° and then
+  at 89°. Which checks appear or disappear, and why? Predict first, then look.
 
 ---
 
@@ -3666,19 +4029,45 @@ status, in the quadratic-drag section of `SCIENTIFIC_VALIDATION.md`.
 | `R(θ)` | range: horizontal distance at landing | m | `range` |
 | `θ*`, `R*` | best angle and maximum range | degrees, m | `best_angle_deg`, `best_range` |
 | `δ` | small change of angle near `θ*` (Part 11 only) | degrees | — |
+| `c` | quadratic drag constant, `F = −c\|v\|v` (Part 18). Not `b`, not `C_d`! | kg/m | `drag_constant` |
+| `C_d` | dimensionless drag coefficient, `c = ½ρC_dA` (explained only, not an input) | — | — |
+| `ρ`, `A` | air density; the ball's cross-sectional area | kg/m³, m² | — |
+| `κ` | `c/m` (Part 18). Not the linear `k`! | 1/m | `kappa` |
+| `v_t` (Part 18) | terminal speed `√(mg/c)`; `null` in a vacuum | m/s | `terminal_speed`, `v_t` |
+| `τ` (Part 18) | time scale `v_t/g` | s | — |
+| `t_a`, `H` | apex time; apex height above the launch point (vertical throw) | s, m | `apex_time`, `apex_height` |
+| `X` | dimensionless drop `gY/v_t²` in the fall formulas | — | `xi` |
+| `W` | work done against drag, `dW/dt = c\|v\|³` | J | `drag_work`, state `s[4]` |
+| `I` (Part 18) | hodograph invariant `1/vx² + (κ/g)[v·vy/vx² + asinh(vy/vx)]`. Not Part 6's `I`! | s²/m² | `hodograph_invariant` |
+| `T_bound` | proved upper bound on the flight time | s | `flight_time_bound` |
+| `S` | drag time `∫κ\|v\| dt` (path length in drag lengths `m/c`) | — | `drag_time_bound` (its bound) |
 
 ---
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap 1.6, comparison and export):**
+**This version (roadmap 2.1, quadratic drag):**
+- **Completed Part 18** (drafted from the plan before the code): the draft-status box is gone,
+  every code placeholder is now a checked excerpt (the rise and fall formulas, the invariant
+  and its residual, the integration cap, the guard, the mutant test, the input rule, the
+  right-hand side, the events), the fall time uses the overflow-safe form actually built, the
+  invariant's normalisation is explained, the mutant's effect on the speed bound is added, and
+  the numbers say what was measured.
+- **Added 18.10**, the stiffness guard redesign: why the product of two loose bounds
+  over-refuses, the drag time `S` as the cost measure, its proved bound, and the two input
+  rules found by measurement. Later sections renumbered (18.11-18.16); checkpoint questions 7-8
+  and exercises E18.9-E18.10 added.
+- **Added** Part 18 to the header, the reading order (stage 11) and Part 0; a fourth name
+  clash (`b`, `k`, `c`, `κ`, `C_d`); symbol-table rows for Part 18.
+
+**The previous version (roadmap 1.6, comparison and export):**
 - **Added Part 17:** recomputing instead of storing (and the digest's three answers), RFC 4180
   and exact number round-trip, CSV formula injection and why numbers are exempt, the
   reference run in the URL, relative change and the reference-0 case, why replay tolerances
   are not significance tests, the JSON export; checkpoint and exercises.
 - **Added** Parts 15-17 to the contents (15 and 16 were missing) and a reading-order stage.
 
-**The previous version (roadmap 1.5, the experiment log):**
+**An earlier version (roadmap 1.5, the experiment log):**
 - **Added Part 16:** model-written headlines, reopening a run, a race condition and how the
   log avoids it, labels versus results; checkpoint and exercises.
 
