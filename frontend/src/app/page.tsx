@@ -6,7 +6,7 @@ const MODULES: readonly LabCard[] = [
   {
     name: "Physics Lab",
     href: "/physics/projectile",
-    status: "Projectile model and integrator study available",
+    status: "Projectile models (linear and quadratic drag) and integrator study available",
     description:
       "Simulate motion, collisions, energy transfer and orbital mechanics. Adjust parameters, " +
       "compare numerical results with theoretical predictions, and graph the outcomes.",

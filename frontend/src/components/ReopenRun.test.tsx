@@ -5,8 +5,11 @@
 import { render, screen, within } from "@testing-library/react";
 import { vi } from "vitest";
 
+import { reopenLink } from "@/lib/runs/pages";
+
 import { ExperimentLog } from "./ExperimentLog";
 import { ProjectileLab } from "./ProjectileLab";
+import { QuadraticDragLab } from "./QuadraticDragLab";
 import { QuantLab } from "./QuantLab";
 import { SolowLab } from "./SolowLab";
 
@@ -103,6 +106,44 @@ describe("reopening a run", () => {
     expect(screen.getByLabelText(/^Initial speed/)).toHaveValue("12");
     expect(screen.getByLabelText(/^Drag coefficient/)).toHaveValue("0.5");
     expect(screen.getByLabelText("Method")).toHaveValue("Radau");
+  });
+
+  it("fills the quadratic-drag form, including the solver, on its own page", async () => {
+    const calls = mockApi(
+      record("physics.projectile.quadratic_drag", {
+        parameters: {
+          initial_speed: 14,
+          launch_angle_deg: 90,
+          launch_height: 3,
+          mass: 0.5,
+          drag_constant: 0.002,
+          gravity: 9.81,
+        },
+        solver: { method: "RK45", rtol: 1e-8, atol: 1e-9 },
+        n_samples: 400,
+      }),
+    );
+    expect(reopenLink("physics.projectile.quadratic_drag", "0123456789abcdef")).toBe(
+      "/physics/projectile/quadratic-drag?run=0123456789abcdef",
+    );
+    openPage("/physics/projectile/quadratic-drag?run=0123456789abcdef");
+    render(<QuadraticDragLab />);
+    await screen.findByText(/Loaded the inputs of run 01234567/);
+    expect(screen.getByLabelText(/^Initial speed/)).toHaveValue("14");
+    expect(screen.getByLabelText(/^Launch angle/)).toHaveValue("90");
+    expect(screen.getByLabelText(/^Drag constant c/)).toHaveValue("0.002");
+    expect(screen.getByLabelText(/^Gravity/)).toHaveValue("9.81");
+    expect(screen.getByLabelText("Method")).toHaveValue("RK45");
+    expect(screen.getByLabelText(/^Relative tolerance/)).toHaveValue("1e-8");
+    expect(calls.filter((c) => c.startsWith("POST"))).toEqual([]);
+  });
+
+  it("refuses a linear-drag run on the quadratic-drag page", async () => {
+    mockApi(record("physics.projectile", { parameters: { drag_coefficient: 0.5 } }));
+    openPage("/physics/projectile/quadratic-drag?run=0123456789abcdef");
+    render(<QuadraticDragLab />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/physics\.projectile run/);
+    expect(screen.getByLabelText(/^Drag constant c/)).toHaveValue("0.01");
   });
 
   it("asks for the file again when the run profiled an upload", async () => {
