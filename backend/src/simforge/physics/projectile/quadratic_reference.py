@@ -322,7 +322,7 @@ def flight_time_bound(v0: float, launch_angle_rad: float, h: float, v_t: float, 
     Coming down, d|vy|/dt >= g - kappa V |vy| with V = max(v0, v_t) (R7 i), so the ball
     falls at least as fast as under *linear* drag with k = kappa V; T_fall is the exact
     linear-drag time to fall from rest through h + vy0^2/2g (``analytical.flight_time``).
-    Exact in vacuum; otherwise loose (up to ~100x at high speed), so use it only as a cap.
+    Exact in vacuum; otherwise loose (measured up to ~7e5x), so use it only as a cap.
     """
     _check("v0", v0)
     _check("h", h)
