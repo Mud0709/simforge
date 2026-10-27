@@ -30,7 +30,7 @@ clear purpose).
 ### Physics Lab
 | Area | Contents |
 |---|---|
-| Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · Core: quadratic drag, angle sweep for both drag laws, best angle against drag strength, drag-law comparison · Ext: wind |
+| Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · ✅ quadratic drag (numerical, checked against the exact vertical flight, the c → 0 limit, terminal speed, the energy balance and a conserved quantity) · Core: angle sweep for both drag laws, best angle against drag strength, drag-law comparison · Ext: wind |
 | Oscillators | Core: simple, damped and driven harmonic oscillator, resonance curve · Ext: nonlinear pendulum (elliptic-integral period) |
 | Numerical methods workbench | ✅ Euler, RK4, implicit-drag Verlet convergence study (projectile) · Core: the same workbench for any time-stepping model, symplectic Euler and Verlet, long-run energy drift, event-location error · Ext: Boris pusher |
 | Collisions | Core: 1-D elastic and inelastic (restitution), 2-D discs, momentum and energy bookkeeping, animation |
@@ -98,8 +98,8 @@ drift, event-location error); generic sweeps; animation.
 
 | Step | Outcome | Status |
 |---|---|---|
-| 2.1 | **Quadratic drag.** Validated against the exact vertical `tanh` solution, the c → 0 limit, terminal speed and energy balance | 🔜 |
-| 2.2 | **Angle sweeps for both drag laws.** | ⏳ |
+| 2.1 | **Quadratic drag.** Validated against the exact vertical `tanh` solution, the c → 0 limit, terminal speed and energy balance, plus the hodograph invariant and two proved bounds; `/physics/projectile/quadratic-drag` (plan and amendments: `docs/plans/ROADMAP_2_1_PLAN.md`) | ✅ |
+| 2.2 | **Angle sweeps for both drag laws.** | 🔜 |
 | 2.3 | **Simple, damped and driven oscillators.** | ⏳ |
 | 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error | ⏳ |
 | 2.5 | **Generic sweeps.** | ⏳ |

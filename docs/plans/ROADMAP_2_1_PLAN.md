@@ -284,6 +284,72 @@ planning check (39.8 s against a bound of 3989 s at v₀ = 1000 m/s).
 - **Unverified:** the hodograph-method literature (not checked); the home page and
   navigation layout (not read in detail); whether the e2e suite's run time grows noticeably.
 
+## Amendments after building (slices 1-5, 2026-10-25 to 2026-10-27)
+The decisions above are left as they were taken. These are the places where building changed
+them, each with where it is recorded (module docstrings, code comments and commits
+ed2d77a, 74d3164, d5a4aaa, 9839c59). All are reversible defaults, like the plan.
+
+- **A1. Stiffness guard (D4): drag time, not the product of two loose bounds.** The guard
+  bounds the *drag time* S = ∫κ|v| dt (= κ × path length; the explicit step count grows like
+  S, measured 2.5 to 16 right-hand-side evaluations per unit of S for DOP853 above S = 100)
+  with the proved bound S ≤ ln(1 + κ·vx₀·T_bound) + ln(1 + vy₀²/v_t²) + κh
+  (`quadratic_model.drag_time_bound`; proof in its docstring; exact for vertical flights).
+  Its slack is additive and logarithmic. The plan's κ·max(v₀, v_t)·T_bound multiplies two
+  loose bounds: on a 1007-point grid within the planned limits it refused 323 runs for an
+  explicit method, **193 of which finish** in at most 38 000 evaluations; the S rule refused
+  130, none of which finished within 250 000 evaluations. Explicit methods are refused when
+  the bound exceeds 1e4 (the linear model's `EXPLICIT_STIFFNESS_LIMIT`).
+- **A2. No drag-time limit for Radau.** Radau is L-stable, so its step is not limited by the
+  drag rate; on the same grid every run the plan's 1e7 limit would have refused finished in
+  under 0.5 s. Radau's slow corner (atol far above the velocity scale, measured over 20 s) is
+  closed instead by an input rule (A4).
+- **A3. Integration cap 2·T_bound, not T_bound (D4).** T_bound is exact in vacuum, and a cap
+  equal to the landing time could leave the landing event at the very end of the interval,
+  where rounding can hide the sign change.
+- **A4. Two new input rules (D6), both measured in slice 3.** (i) `atol ≤ 0.01·min(v₀, v_t)`:
+  far above the smallest velocity scale the velocity is not error-controlled; runs took up to
+  10 s at 10× the scale and timed out or overflowed at 100-1000×, and at 10% one RK45 run
+  missed the exact vertical flight time by 1.1%; 1% was the largest fraction at which every
+  grid run also passed its own checks. (ii) The drag-free flight must last **at least 1 µs**:
+  SciPy locates the landing only to about 1e-15 s, and shorter flights crashed (a zero cap, or
+  the flight-time bound's root search failing). The drag-rate rule is computed as
+  max(κv₀, √(κg)), since κ·v_t = √(κg), so vacuum needs no 0·∞. Both new rules live on the
+  model's request, not on the shared `SolverSettings`.
+- **A5. Invariant residual normalisation (D8 left it open).** max|I − I₀| / max(1/vx²) over the
+  step nodes, a relative error of the state; normalising by I₀ can exceed 1e17 in an accurate
+  long fall. It is `null` with a reason for a vertical launch and when vx falls to ≤ 0 or
+  1/vx² overflows (below atol the solver does not control vx).
+- **A6. Per-run check thresholds.** 1e4 × accuracy + 1e-9, where the accuracy is
+  rtol + atol/v₀ for the energy balance, the bounds and the vertical comparison, and
+  **rtol + atol/min(vx₀, v_t)** for the invariant (the slice 2 review found that with atol/v₀
+  RK45 failed correct nearly vertical runs at default settings). Re-measured on 10 080 runs:
+  no check failed, largest value/threshold 0.18.
+- **A7. Replay tolerances (D8).** As planned, plus: rtol is floored at **1e-10** in every
+  solver-based rule (emulated last-bit differences at rtol = 1e-13 moved results by up to
+  1e-10 relative, and one Radau energy residual from 1.2e-13 to 6.5e-10); the energy rule is
+  10·(rtol + atol/v₀) and the invariant rule 10·(rtol + atol/min(vx₀, v_t)), the scales the
+  checks use; `drag_time_bound` and `flight_time_bound` 1e-12 relative (closed forms and a
+  Brent root); counts exact.
+- **A8. R2 in an overflow-safe form.** The fall time is computed from
+  arcosh(eˣ) = X + log1p(√(1 − e^(−2X))) (positive terms only), not τ·asinh(√expm1(2X)),
+  which overflows once 2X > 709.8 (strong drag, long drops). All closed forms are written as
+  the vacuum value times a correction factor that tends to 1, so vacuum is the same code path.
+- **A9. T_bound is far looser than planned.** The planning check said "up to about 100×"; the
+  slice 2 measurement found up to **~7e5×** within the input limits. Harmless as a cap; it is
+  why A1 avoids multiplying by it.
+- **A10. The wrong-coupling mutant also breaks the speed bound in some flights** (seam 2
+  said only R5 and R6 catch it): off the axes its drag is weaker than c|v|², so a falling ball
+  can pass v_t (measured 1.85% above max(v₀, v_t) for a horizontal launch below v_t). Not a
+  reliable detector, but not blind.
+- **A11. Smaller changes.** `drag_constant` defaults to 0.01 kg/m. An exactly vertical
+  launch sets vx₀ = 0 exactly (cos(π/2) is 6e-17, which would give a fake range and a defined
+  invariant). The vacuum has no speed-bound check (no bound exists). A drag-time
+  informational check reports the S bound on every run. The corners test skips 26 tight-Radau
+  requests that repeat another corner's computation (62 s → 19 s), asserting the rest still
+  cover every value. 46 test tolerances across the suite now use a purely relative
+  `rel_approx`, because `pytest.approx(rel=…)` silently kept an absolute floor of 1e-12
+  (074cf27).
+
 ## Out of scope
 The angle sweep for quadratic drag (2.2); the oscillators (2.3); a fixed-step integrator
 study or symplectic methods for quadratic drag (2.4); generic sweeps (2.5); animation (2.6);

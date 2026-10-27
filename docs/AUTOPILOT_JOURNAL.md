@@ -7,6 +7,21 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-27 ~13:30 UTC: roadmap 2.1 complete (built in chat); autopilot paused
+- **Did:** slice 4, the page /physics/projectile/quadratic-drag (5a31773); slice 5, docs
+  (plan amendments A1-A11, SCIENTIFIC_VALIDATION, guide Part 18, ARCHITECTURE decision 18,
+  README, ROADMAP 2.1 ✅ and 🔜 on 2.2); a docstring correction (cde59bc). Each with a builder
+  and a fresh reviewer. Status `waiting-review`; the 4-hourly task is paused.
+- **Checks run:** `scripts/check.sh --e2e` on the final code: exit 0 (pytest 1579, Vitest
+  211, Playwright 23). Guide excerpts: all three guides ALL OK after the docs review.
+- **Decisions taken for you:** the energy legend on the new page says "(constant for the true
+  motion)"; the shared Reproducibility component; no drag-law selector (as planned).
+- **Waiting for you:** a PR for 2.1.
+- **What this means for you:** quadratic drag is in the app, validated against every exact
+  special case, with its limits measured.
+- **Learning checkpoint:** why is the drag time S a better cost measure than flight time?
+- **Next:** after the merge, 2.2 with `grilling` (defaults) then `tdd`.
+
 ## 2026-10-25 08:30 UTC: 2.1 slices 1-3 built in chat; paused on the author's "stop after slice 3"
 - **Did:** slice 1 reference formulas (ed2d77a), slice 2 integrator and model (74d3164),
   slice 3 API, registry and golden run (d5a4aaa); also enforced 46 test tolerances that
