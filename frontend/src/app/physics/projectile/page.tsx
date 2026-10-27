@@ -17,6 +17,11 @@ export default function ProjectilePage() {
           it. Set <i>b</i> = 0 for motion in a vacuum.
         </p>
         <p>
+          <Link href="/physics/projectile/quadratic-drag">
+            Projectile motion with quadratic drag (no exact solution) →
+          </Link>
+        </p>
+        <p>
           <Link href="/physics/projectile/integrators">
             Compare fixed-step integrators on this problem →
           </Link>

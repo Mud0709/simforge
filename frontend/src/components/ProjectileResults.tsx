@@ -10,6 +10,7 @@ import { AssumptionsList } from "./AssumptionsList";
 import { AngleSweepPanel } from "./AngleSweepPanel";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
+import { Reproducibility } from "./Reproducibility";
 import type { ReferenceRun } from "./useReferenceRun";
 
 const ANALYTICAL = "#2563eb";
@@ -186,26 +187,7 @@ export function ProjectileValidation({ result }: Props) {
         </div>
       </dl>
 
-      <h3>Reproducibility</h3>
-      <dl className="meta">
-        <dt>Run ID</dt>
-        <dd>
-          <code>{metadata.run_id}</code>
-        </dd>
-        <dt>Input hash</dt>
-        <dd>
-          <code title={metadata.input_hash}>{metadata.input_hash.slice(0, 16)}…</code>
-        </dd>
-        <dt>Environment</dt>
-        <dd>
-          SimForge {metadata.simforge_version} · Python {metadata.python_version} · NumPy{" "}
-          {metadata.numpy_version} · SciPy {metadata.scipy_version}
-        </dd>
-        <dt>Compute time</dt>
-        <dd>{formatSig(metadata.elapsed_ms, 3)} ms</dd>
-        <dt>Saved to experiment log</dt>
-        <dd>{metadata.experiment_saved ? "Yes" : "No"}</dd>
-      </dl>
+      <Reproducibility metadata={metadata} />
     </>
   );
 }

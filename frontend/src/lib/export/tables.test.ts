@@ -3,6 +3,7 @@ import type {
   IntegratorStudyResponse,
   ProfileResponse,
   ProjectileResponse,
+  QuadraticDragResponse,
   SolowResponse,
 } from "@/lib/api/client";
 import { toCsv } from "./csv";
@@ -54,6 +55,45 @@ describe("exportTables", () => {
     ]);
     // A number cell is never prefixed, even when negative.
     expect(toCsv(tables[1]!).split("\r\n")[2]).toBe("0.5,148.78,56.4,-5.18");
+  });
+
+  it("quadratic drag: trajectory (with the drag-free one), speed and energy budget", () => {
+    // Units copied by hand from UNITS in backend/.../projectile/quadratic_model.py.
+    const response = {
+      model: { id: "physics.projectile.quadratic_drag" },
+      metadata,
+      units: { t: "s", x: "m", y: "m", speed: "m/s", energy: "J" },
+      series: {
+        t: [0, 1.2],
+        x: [0, 15.25],
+        y: [0, 8.125],
+        speed: [20, 12.5],
+        kinetic_energy: [200, 78.125],
+        potential_energy: [0, 79.68],
+        drag_work: [0, 42.195],
+        // The drag-free flight lasts longer: its own grid, with as many points (n_samples).
+        vacuum_t: [0, 2.88],
+        vacuum_x: [0, 40.79],
+        vacuum_y: [0, 0],
+      },
+    } as unknown as QuadraticDragResponse;
+
+    const tables = exportTables(response);
+    expect(tables.map((t) => t.name)).toEqual(["trajectory", "speed", "energy"]);
+    expect(tables.map((t) => t.label)).toEqual(["trajectory", "speed", "energy budget"]);
+    const traj = toCsv(tables[0]!).split("\r\n");
+    expect(traj.slice(0, 2)).toEqual([
+      "t [s],x [m],y [m],vacuum_t [s],vacuum_x [m],vacuum_y [m]",
+      "0,0,0,0,0,0",
+    ]);
+    // Each row pairs the i-th sample of both flights, at different times.
+    expect(traj[2]).toBe("1.2,15.25,8.125,2.88,40.79,0");
+    expect(headAndFirstRow(toCsv(tables[1]!))).toEqual(["t [s],speed [m/s]", "0,20"]);
+    expect(headAndFirstRow(toCsv(tables[2]!))).toEqual([
+      "t [s],kinetic_energy [J],potential_energy [J],drag_work [J]",
+      "0,200,0,0",
+    ]);
+    expect(toCsv(tables[2]!).split("\r\n")[2]).toBe("1.2,78.125,79.68,42.195");
   });
 
   it("angle sweep: range, flight time and height against launch angle", () => {
