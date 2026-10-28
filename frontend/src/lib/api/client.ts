@@ -5,6 +5,9 @@ export type ProjectileParameters = Schemas["ProjectileParameters"];
 export type SolverSettings = Schemas["SolverSettings"];
 export type ProjectileRequest = Schemas["ProjectileRequest"];
 export type ProjectileResponse = Schemas["ProjectileResponse"];
+export type QuadraticDragParameters = Schemas["QuadraticDragParameters"];
+export type QuadraticDragRequest = Schemas["QuadraticDragRequest"];
+export type QuadraticDragResponse = Schemas["QuadraticDragResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
 export type ReplayRequest = Schemas["ReplayRequest"];
 export type RunLabels = Schemas["RunLabels"];
@@ -86,6 +89,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function simulateProjectile(body: ProjectileRequest): Promise<ProjectileResponse> {
   return request("/physics/projectile/simulate", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function simulateQuadraticDrag(body: QuadraticDragRequest): Promise<QuadraticDragResponse> {
+  return request("/physics/projectile/quadratic-drag/simulate", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function runAngleSweep(body: AngleSweepRequest): Promise<AngleSweepResponse> {

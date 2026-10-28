@@ -348,6 +348,57 @@ describe("summary fields of the physics models, as their run records store them"
     });
   });
 
+  it("quadratic drag: numerical, terminal speed, vacuum (without its note), diagnostics", () => {
+    // As _quadratic_summary in backend/src/simforge/api/routes/physics.py stores it: the
+    // invariant's note and the vertical reference are shown, not stored.
+    const r = as({
+      model: { id: "physics.projectile.quadratic_drag", version: "1.0.0", name: "Q" },
+      numerical: { range: 30.5, method: "DOP853", n_steps: 31 },
+      numerical_note: "numerical: ...",
+      terminal_speed: null,
+      vacuum: { range: 40.79, flight_time: 2.88, method_note: "exact: ..." },
+      vertical_reference: { exact: { flight_time: 4 } },
+      diagnostics: {
+        max_energy_balance_residual: 3e-13,
+        max_invariant_residual: null,
+        invariant_note: "Undefined.",
+        drag_time_bound: 0.4,
+        flight_time_bound: 7.5,
+      },
+      metadata: meta("q"),
+    });
+    expect(summaryFields(r)).toEqual({
+      "numerical.range": 30.5,
+      "numerical.method": "DOP853",
+      "numerical.n_steps": 31,
+      terminal_speed: null,
+      "vacuum.range": 40.79,
+      "vacuum.flight_time": 2.88,
+      "diagnostics.max_energy_balance_residual": 3e-13,
+      "diagnostics.max_invariant_residual": null,
+      "diagnostics.drag_time_bound": 0.4,
+      "diagnostics.flight_time_bound": 7.5,
+    });
+  });
+
+  it("quadratic drag inputs: parameters, solver and n_samples (the number of samples)", () => {
+    const r = as({
+      model: { id: "physics.projectile.quadratic_drag", version: "1.0.0", name: "Q" },
+      parameters: { initial_speed: 20, drag_constant: 0.01 },
+      solver: { method: "RK45", rtol: 1e-8, atol: 1e-9 },
+      series: { t: [0, 1, 2], vacuum_t: [0, 1, 2] },
+      metadata: meta("q"),
+    });
+    expect(inputFields(r)).toEqual({
+      "parameters.initial_speed": 20,
+      "parameters.drag_constant": 0.01,
+      "solver.method": "RK45",
+      "solver.rtol": 1e-8,
+      "solver.atol": 1e-9,
+      n_samples: 3,
+    });
+  });
+
   it("angle sweep: the best angle and range, with and without drag", () => {
     const r = as({
       model: { id: "physics.projectile.angle_sweep", version: "1.0.0", name: "S" },

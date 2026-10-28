@@ -30,7 +30,7 @@ clear purpose).
 ### Physics Lab
 | Area | Contents |
 |---|---|
-| Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · Core: quadratic drag, angle sweep for both drag laws, best angle against drag strength, drag-law comparison · Ext: wind |
+| Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · ✅ quadratic drag (numerical, checked against the exact vertical flight, the c → 0 limit, terminal speed, the energy balance and a conserved quantity) · Core: angle sweep for both drag laws, best angle against drag strength, drag-law comparison · Ext: wind |
 | Oscillators | Core: simple, damped and driven harmonic oscillator, resonance curve · Ext: nonlinear pendulum (elliptic-integral period) |
 | Numerical methods workbench | ✅ Euler, RK4, implicit-drag Verlet convergence study (projectile) · Core: the same workbench for any time-stepping model, symplectic Euler and Verlet, long-run energy drift, event-location error · Ext: Boris pusher |
 | Collisions | Core: 1-D elastic and inelastic (restitution), 2-D discs, momentum and energy bookkeeping, animation |
@@ -90,14 +90,24 @@ vs adaptive), from-scratch integrator convergence study, range-against-angle swe
 Done when each lab has a real, validated feature in the same workspace and every run can be
 saved, reopened, replayed, compared and exported.
 
-No step is marked 🔜 at the moment: the author chooses the next step (Phase 2 in Track B, or
-a Track A module interleaved first, which never replaces or reorders a Track B step).
-
 ## Phase 2: Physics Lab, mechanics and numerical methods ⏳
 Quadratic drag (validated against the exact vertical `tanh` solution, the c → 0 limit,
 terminal speed and energy balance); angle sweeps for both drag laws; simple, damped and driven
 oscillators; the methods workbench for any time-stepping model (symplectic methods, energy
 drift, event-location error); generic sweeps; animation.
+
+| Step | Outcome | Status |
+|---|---|---|
+| 2.1 | **Quadratic drag.** Validated against the exact vertical `tanh` solution, the c → 0 limit, terminal speed and energy balance, plus the hodograph invariant and two proved bounds; `/physics/projectile/quadratic-drag` (plan and amendments: `docs/plans/ROADMAP_2_1_PLAN.md`) | ✅ |
+| 2.2 | **Angle sweeps for both drag laws.** | 🔜 |
+| 2.3 | **Simple, damped and driven oscillators.** | ⏳ |
+| 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error | ⏳ |
+| 2.5 | **Generic sweeps.** | ⏳ |
+| 2.6 | **Animation.** | ⏳ |
+
+Done when every item above is built and validated in the shared workspace: quadratic drag
+against its references, angle sweeps for both drag laws, the three oscillators, the methods
+workbench for any time-stepping model, generic sweeps and animation.
 
 ## Phase 3: Economy Lab, macro policy studio ⏳
 Multiplier, AD-AS, the backward-looking three-equation NK model with Okun's law; shock

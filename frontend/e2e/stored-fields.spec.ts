@@ -34,6 +34,20 @@ const CASES: [string, string, Record<string, unknown>][] = [
     { parameters: { drag_coefficient: 0.37, launch_angle_deg: 33 }, n_samples: 57 },
   ],
   [
+    "physics.projectile.quadratic_drag",
+    "/physics/projectile/quadratic-drag/simulate",
+    {
+      parameters: { drag_constant: 0.0173, launch_angle_deg: 29, launch_height: 1.7 },
+      solver: { method: "RK45", rtol: 1e-9, atol: 1e-9 },
+      n_samples: 61,
+    },
+  ],
+  [
+    "physics.projectile.quadratic_drag (vertical, vacuum: nulls)",
+    "/physics/projectile/quadratic-drag/simulate",
+    { parameters: { drag_constant: 0, launch_angle_deg: 90, initial_speed: 11.3 }, n_samples: 19 },
+  ],
+  [
     "physics.projectile.integrators",
     "/physics/projectile/integrators",
     { dt_values: [0.08, 0.04, 0.02], methods: ["euler", "rk4"] },

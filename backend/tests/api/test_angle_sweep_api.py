@@ -7,6 +7,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.approx import rel_approx
+
 URL = "/api/v1/physics/projectile/angle-sweep"
 G = 9.80665
 
@@ -24,7 +26,7 @@ def test_vacuum_sweep_finds_45_degrees_and_v_squared_over_g(client: TestClient) 
     assert body["angles_deg"][0] == 0.0
     assert body["angles_deg"][-1] == 90.0
     assert body["best_angle_deg"] == pytest.approx(45.0, abs=1e-6)
-    assert body["best_range"] == pytest.approx(100.0 / G, rel=1e-12)
+    assert body["best_range"] == rel_approx(100.0 / G, rel=1e-12)
     assert body["vacuum_best_angle_deg"] == pytest.approx(45.0, abs=1e-12)
 
 

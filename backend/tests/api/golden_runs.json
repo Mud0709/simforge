@@ -250,5 +250,60 @@
    "sample_id": null,
    "source": "upload"
   }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_samples": 400,
+   "parameters": {
+    "drag_constant": 0.02,
+    "gravity": 9.80665,
+    "initial_speed": 20.0,
+    "launch_angle_deg": 30.0,
+    "launch_height": 0.0,
+    "mass": 1.0
+   },
+   "solver": {
+    "atol": 1e-10,
+    "method": "DOP853",
+    "rtol": 1e-10
+   }
+  },
+  "model_id": "physics.projectile.quadratic_drag",
+  "model_version": "1.0.0",
+  "output_digest": "4bf3fc1faf16fffd4e732d4ff7440d6277ea2ccd3acdd46e3a54df4fbe6cb63c",
+  "summary": {
+   "diagnostics": {
+    "drag_time_bound": 0.7367202302308717,
+    "flight_time_bound": 2.122316270404709,
+    "max_energy_balance_residual": 6.517097972391639e-13,
+    "max_invariant_residual": 1.1515662325492034e-11
+   },
+   "numerical": {
+    "apex_time": 0.8757696630598631,
+    "atol": 1e-10,
+    "flight_time": 1.8304608727606597,
+    "impact_speed": 13.231358955313713,
+    "max_height": 4.131620873833654,
+    "method": "DOP853",
+    "n_rhs_evaluations": 152,
+    "n_steps": 10,
+    "range": 24.234500533490575,
+    "rtol": 1e-10
+   },
+   "terminal_speed": 22.143452756966337,
+   "vacuum": {
+    "apex_time": 1.019716212977928,
+    "flight_time": 2.039432425955856,
+    "impact_speed": 20.0,
+    "max_height": 5.09858106488964,
+    "range": 35.324005803589955
+   }
+  }
  }
 ]

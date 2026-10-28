@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
@@ -24,19 +24,22 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 - 2026-10-24 12:44 UTC (test tick 2, planning 1.6): 0.73 → 0.73, under 0.01 at the 1%
   resolution of the readings (5-hour window 0.24 → 0.27). Readings are rounded to 0.01, so
   costs below that show as 0.
+- 2026-10-25 04:27 UTC (planning Phase 2 and 2.1, one high-effort subagent): 0.00 → 0.02.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Plan Phase 2: split its ROADMAP paragraph into steps (every item, same order, 🔜 on 2.1), then
-grill 2.1's design decisions with defaults into `docs/plans/ROADMAP_2_1_PLAN.md`. Docs and plan
-only, no code, until PR #12 (roadmap 1.6) is merged; then build 2.1 with `tdd` on a new PR.
+None. Roadmap 2.1 (quadratic drag) is complete on the branch: slices 1-5 and reviews
+(ed2d77a, 74d3164, d5a4aaa, 9839c59, 5a31773, cde59bc, docs). 🔜 is on 2.2. No PR is open.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-Nothing.
+- Ask for a PR for 2.1 and merge it; then 2.2 (angle sweeps for both drag laws) can start.
 
 ## For your daily review (not blocking)
-- Merge PR #12 (roadmap 1.6). After the merge, approve or edit the 1.6 learning-log draft.
+- PR #12 is merged: a learning-log draft for 1.6 is in the journal entry of 2026-10-25 04:40.
+- Review the 2.1 defaults in `docs/plans/ROADMAP_2_1_PLAN.md`; reverse any in chat.
+- Roadmap question: the capability map lists "best angle against drag strength" and
+  "drag-law comparison", but no Phase 2 step schedules them. Add them to 2.2?
 - The weekly cap is 0.76 (your test setting); the default was 0.70.
