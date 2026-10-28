@@ -60,7 +60,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 from simforge.core.errors import ModelDomainError
-from simforge.core.schemas import ValidationCheck
+from simforge.core.schemas import ModelInfo, ValidationCheck
 from simforge.physics.projectile import quadratic_model
 from simforge.physics.projectile.model import EXPLICIT_STIFFNESS_LIMIT
 from simforge.physics.projectile.quadratic_model import QuadraticComputation
@@ -410,3 +410,41 @@ def run_angle_sweep(
         checks=_checks(result, max_rhs_evaluations),
         elapsed_ms=(time.perf_counter() - start) * 1e3,
     )
+
+
+# --- The model's identity, units and labels (plan D1, D9, D10; used by the API, slice 3) ----
+
+MODEL_INFO = ModelInfo(
+    id="physics.projectile.quadratic_angle_sweep",
+    version="1.0.0",
+    name="Range versus launch angle (quadratic drag)",
+    description="Range at evenly spaced launch angles from 0 to 90 degrees with quadratic drag "
+    "F = -c|v|v, each point one full run of the quadratic-drag model (no formula exists), and "
+    "the angle that maximises it, found by a bounded Brent search, with an estimate of its "
+    "accuracy. Compared with the exact drag-free curve and optimum.",
+)
+
+UNITS: dict[str, str] = {
+    "initial_speed": "m/s",
+    "launch_height": "m",
+    "mass": "kg",
+    "drag_constant": "kg/m",
+    "gravity": "m/s^2",
+    "angle": "deg",
+    "range": "m",
+    "flight_time": "s",
+    "max_height": "m",
+    "vacuum_range": "m",
+    "best_angle_uncertainty": "deg",
+    "terminal_speed": "m/s",
+    "n_rhs_evaluations": "count",
+}
+
+METHOD_NOTE = (
+    "numerical: every range is one full run of the quadratic-drag model (an adaptive "
+    "Runge-Kutta solve, SciPy solve_ivp), so each point equals a single run at that angle. "
+    "The best angle is the best grid point refined by a bounded Brent search (within about 1e-6 "
+    "degrees of the computed curve's flat peak); how far that peak can sit from the true one is "
+    "the stated uncertainty, an estimate, not a bound. The drag-free curve and optimum are "
+    "exact closed forms."
+)

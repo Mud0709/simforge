@@ -29,14 +29,14 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 - 2026-10-28 08:27 UTC (2.2 slice 1, builder + reviewer, both high): 0.47 → 0.49.
 - 2026-10-28 12:42 UTC (2.2 slice 2, builder + reviewer, both high; long measurements): 0.50 → 0.57.
   Estimated tick cost is now 0.07 (largest of the last three: 0.03, 0.02, 0.07).
+- 2026-10-28 16:26 UTC (2.2 slice 3, builder + security reviewer, both high): 0.57 → 0.64.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2: slices 1-2 committed. Next: slice 3, the API (schemas, route, ModelEntry,
-tolerances incl. the rule for u derived by last-bit emulation, registry, union, corners test,
-golden run, `make api-types`, `/security-review`). Do NOT expose max_rhs_evaluations in the API.
-Open points from the slice 2 review: peak count on an exactly flat top (0 with ties);
-`interior_peaks` is informational yet has a threshold.
+Roadmap 2.2: slices 1-3 committed. Next: slice 4, the frontend (generic AngleSweepPanel via a
+small per-model adapter, the quadratic page, the 1.6 wiring, Vitest, Playwright incl. two
+stored-fields cases). Slice 5 (docs) must also fix the plan's D7 wording: Brent can refine
+below the first grid step; the 1 µs rule still holds there because of the drag-rate rule.
 
 ## Remainder of the current unit
 —
@@ -50,6 +50,9 @@ Nothing.
 - Roadmap question: the capability map lists "best angle against drag strength" and
   "drag-law comparison", which no Phase 2 step schedules. Recommendation: add them to 2.2
   (they reuse the same sweep). Until you answer, 2.2 is built without them.
+- Deployment risk (security review of 2.2 slice 3): no rate limit or cap on concurrent sweeps;
+  each sweep can hold a worker for ~11 s, so a burst would slow every request. No change made
+  (auth and new services are out of scope); decide if it matters for how you run SimForge.
 - The weekly cap is 0.76 (your test setting); the default was 0.70.
 - Five optional clean-ups from the 2.1 code review (PR #13 description): a bound computed
   twice, duplicated dataclasses/copy code, two re-implemented helpers, duplicated form logic.

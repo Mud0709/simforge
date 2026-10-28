@@ -201,6 +201,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/projectile/quadratic-drag/angle-sweep": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Quadratic Drag Angle Sweep */
+    post: operations["quadratic_drag_angle_sweep_api_v1_physics_projectile_quadratic_drag_angle_sweep_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/projectile/quadratic-drag/simulate": {
     parameters: {
       query?: never;
@@ -1169,6 +1186,112 @@ export interface components {
       /** Y Numerical */
       y_numerical: number[];
     };
+    /**
+     * QuadraticAngleSweepRequest
+     * @description Every input rule is the 2.1 request's, checked once at the sweep's smallest flown angle
+     *     (plan D7): the drag-rate and atol rules do not depend on the angle, and the drag-free
+     *     flight time grows with it, so the 1-microsecond rule then holds at every grid angle. The
+     *     stiffness guard and the work budget are the sweep's own (checked when it runs); the
+     *     budget is a server limit, not a request field.
+     */
+    QuadraticAngleSweepRequest: {
+      /**
+       * N Angles
+       * @description Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).
+       * @default 91
+       */
+      n_angles?: number;
+      /** @description Projectile settings. launch_angle_deg is ignored: the sweep varies it. */
+      parameters?: components["schemas"]["QuadraticDragParameters"];
+      /**
+       * Save Experiment
+       * @description Record inputs and summary metrics in the experiment log.
+       * @default true
+       */
+      save_experiment?: boolean;
+      solver?: components["schemas"]["SolverSettings"];
+    };
+    /** QuadraticAngleSweepResponse */
+    QuadraticAngleSweepResponse: {
+      /** Angles Deg */
+      angles_deg: number[];
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /**
+       * Best Angle Deg
+       * @description Numerical: the best grid point refined by a bounded Brent search.
+       */
+      best_angle_deg: number;
+      /** Best Angle Note */
+      best_angle_note: string;
+      /**
+       * Best Angle Uncertainty Deg
+       * @description Estimate, not a bound: u = 2 sqrt(eps_R / K), eps_R = 10 (rtol R + atol), K = |R''| from the grid's second difference. Null, with the reason in best_angle_note, when the best grid point is at an edge or the curve is not bent downwards there.
+       */
+      best_angle_uncertainty_deg: number | null;
+      /**
+       * Best Range
+       * @description m, numerical: the range at best_angle_deg
+       */
+      best_range: number;
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      /**
+       * Flight Times
+       * @description s, numerical
+       */
+      flight_times: number[];
+      /**
+       * Max Heights
+       * @description m, numerical
+       */
+      max_heights: number[];
+      metadata: components["schemas"]["RunMetadata"];
+      /** Method Note */
+      method_note: string;
+      model: components["schemas"]["ModelInfo"];
+      /**
+       * N Rhs Evaluations
+       * @description Right-hand-side evaluations of the whole sweep.
+       */
+      n_rhs_evaluations: number;
+      /**
+       * N Runs
+       * @description Quadratic-drag runs: the flown grid angles plus Brent's.
+       */
+      n_runs: number;
+      parameters: components["schemas"]["QuadraticDragParameters"];
+      /**
+       * Ranges
+       * @description m, numerical: each a single quadratic-drag run at that angle (exactly 0 at 90 degrees, and at 0 degrees from the ground, which is no flight)
+       */
+      ranges: number[];
+      solver: components["schemas"]["SolverSettings"];
+      /**
+       * Terminal Speed
+       * @description sqrt(m g / c) in m/s (exact). Null in vacuum, where it is infinite.
+       */
+      terminal_speed: number | null;
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+      /**
+       * Vacuum Best Angle Deg
+       * @description Exact best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h).
+       */
+      vacuum_best_angle_deg: number;
+      /**
+       * Vacuum Best Range
+       * @description m, exact: (v0 / g) sqrt(v0^2 + 2 g h)
+       */
+      vacuum_best_range: number;
+      /**
+       * Vacuum Ranges
+       * @description m, exact: the same angles with no drag
+       */
+      vacuum_ranges: number[];
+    };
     /** QuadraticDiagnostics */
     QuadraticDiagnostics: {
       /**
@@ -1403,7 +1526,8 @@ export interface components {
         | components["schemas"]["AngleSweepResponse"]
         | components["schemas"]["SolowResponse"]
         | components["schemas"]["ProfileResponse"]
-        | components["schemas"]["QuadraticDragResponse"];
+        | components["schemas"]["QuadraticDragResponse"]
+        | components["schemas"]["QuadraticAngleSweepResponse"];
     };
     /**
      * ReferenceLine
@@ -2184,6 +2308,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["IntegratorStudyResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  quadratic_drag_angle_sweep_api_v1_physics_projectile_quadratic_drag_angle_sweep_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuadraticAngleSweepRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuadraticAngleSweepResponse"];
         };
       };
       /** @description Validation Error */

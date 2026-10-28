@@ -2052,7 +2052,7 @@ backend's address, and there are no cross-origin (CORS) problems.
 
 ### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:245-249 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:248-252 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2582,7 +2582,7 @@ explain the physics.)
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
 (`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:294-303 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:297-306 -->
 ```python
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
@@ -3004,7 +3004,7 @@ That is exactly what `POST /experiments/{id}/outputs` does. The log never stored
 (ARCHITECTURE decision 5: a projectile run has thousands of numbers, its inputs a dozen), so
 the curves of a stored run exist only after computing it again:
 
-<!-- src: backend/src/simforge/api/outputs.py:76-88 -->
+<!-- src: backend/src/simforge/api/outputs.py:81-93 -->
 ```python
 async def recompute_outputs(
     record: ExperimentRecord, body: RecomputeRequest, repo: ExperimentRepository
@@ -3842,7 +3842,7 @@ above. Three more pieces complete the picture.
 
 **The input field and the drag-rate rule** (`quadratic_schemas.py`):
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_schemas.py:64-89 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_schemas.py:65-90 -->
 ```python
     drag_constant: float = Field(
         default=0.01,

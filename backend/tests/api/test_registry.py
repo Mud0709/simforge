@@ -67,6 +67,16 @@ CASES: list[tuple[str, str, dict[str, Any], bytes | None]] = [
         {"parameters": {"drag_constant": 0.02, "launch_angle_deg": 30}},
         None,
     ),
+    (
+        "physics.projectile.quadratic_angle_sweep",
+        "/api/v1/physics/projectile/quadratic-drag/angle-sweep",
+        {
+            "parameters": {"drag_constant": 0.02, "launch_height": 2.0, "launch_angle_deg": 10},
+            "solver": {"method": "RK45"},
+            "n_angles": 31,
+        },
+        None,
+    ),
 ]
 
 
