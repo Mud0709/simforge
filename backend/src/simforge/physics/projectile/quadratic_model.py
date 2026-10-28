@@ -28,9 +28,9 @@ rule refused 130, none of which finished within 250 000 evaluations. Radau is L-
 its step is not limited by the drag rate: it gets no drag-time limit (on the same grid every
 run the plan's 1e7 limit would have refused finished in under 0.5 s).
 
-Not bounded yet (slice 3's input limits must close it): Radau's cost is not bounded by S
-either. When atol is far above the velocity scale min(v0, v_t) (measured: g = 0.01 m/s^2,
-v0 = 1e-3 m/s, v_t = 3e-5 to 1e-4 m/s, atol = 1e-3 to 0.1), the velocity is not
+Closed by the API (slice 3: atol <= 0.01 * min(v0, v_t), quadratic_schemas.ATOL_FRACTION): Radau
+cost is not bounded by S either. When atol is far above the velocity scale min(v0, v_t) (measured:
+g = 0.01 m/s^2, v0 = 1e-3 m/s, v_t = 3e-5 to 1e-4 m/s, atol = 1e-3 to 0.1), the velocity is not
 error-controlled and Radau ran for over 20 s (some runs over 50 s, with overflow warnings)
 even at S <= 1e6, which the plan's 1e7 limit would have accepted. At realistic scales (g =
 9.8 m/s^2, v_t = 1 m/s, h = 1e5 m, S ~ 1e6) every tolerance tried finished in under 4 s.
