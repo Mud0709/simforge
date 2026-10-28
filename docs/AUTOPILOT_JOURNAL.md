@@ -7,6 +7,35 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 06:50 UTC: PR #13 (roadmap 2.1) merged by the author's instruction; 2.2 next
+- **Did:** opened PR #13; CI first failed twice, both fixed: a speed-bound test compared
+  with no rounding allowance and failed on CI's Xeon 8573C (0421e1c), and the e2e job died
+  before any test because ubuntu-latest moved to 26.04, which Playwright 1.56.1 refuses
+  (pinned to ubuntu-24.04 by the author's choice, 13ec4fd). All 4 checks green on 13ec4fd;
+  merged as 646e996. Autopilot resumed for 2.2.
+- **Checks run:** GitHub CI on 13ec4fd: backend, frontend, API contract, end-to-end all
+  success. Locally before that: `scripts/check.sh --e2e` exit 0.
+- **Decisions taken for you:** none beyond the author's CI choice.
+- **Draft learning-log entry for PR #13 (add on your approval):**
+  ```
+  ## Roadmap 2.1: projectile motion with quadratic drag
+  - **Merged:** PR #13, `646e996` (2026-10-28).
+  - **What it does:** a new model and page for air resistance F = −c|v|v, with no exact 2-D
+    solution, checked against the exact vertical rise (tan) and fall (tanh), terminal speed
+    √(mg/c), the c → 0 limit, an energy balance and the hodograph invariant.
+  - **Key concepts:** validating without an exact answer; a wrong force law passes the 1-D
+    references but fails energy and the invariant; the drag time S = ∫κ|v| dt as the solver's
+    real cost; last-bit CPU differences need written tolerances.
+  - **Decisions and trade-offs:** a new model, not an option (keeps old runs replayable);
+    the guard redesigned after measuring the planned one over-refuse 193 of 1007 runs;
+    measured input rules (atol ≤ 1% of the slowest speed; flight ≥ 1 µs).
+  - **Revisit:** why exact step counts in replay can differ between CPUs.
+  - **Next:** 2.2, angle sweeps for both drag laws.
+  ```
+- **What this means for you:** Phase 2 has its first validated model on `main`.
+- **Learning checkpoint:** why did a test that passed here fail on CI's CPU at t = 0?
+- **Next:** plan 2.2 by default (`grilling`), then build it (`tdd`).
+
 ## 2026-10-27 ~13:30 UTC: roadmap 2.1 complete (built in chat); autopilot paused
 - **Did:** slice 4, the page /physics/projectile/quadratic-drag (5a31773); slice 5, docs
   (plan amendments A1-A11, SCIENTIFIC_VALIDATION, guide Part 18, ARCHITECTURE decision 18,

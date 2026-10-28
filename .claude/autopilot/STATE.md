@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: waiting-review
+status: running
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
@@ -28,18 +28,24 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-None. Roadmap 2.1 (quadratic drag) is complete on the branch: slices 1-5 and reviews
-(ed2d77a, 74d3164, d5a4aaa, 9839c59, 5a31773, cde59bc, docs). 🔜 is on 2.2. No PR is open.
+Roadmap 2.2 (angle sweeps for both drag laws), 🔜 in ROADMAP.md. Roadmap 2.1 is merged (PR #13,
+646e996, 2026-10-28). First unit: plan 2.2 by running `grilling` on yourself with defaults
+into `docs/plans/ROADMAP_2_2_PLAN.md`, then build it with `tdd` on a new PR (ask the author
+before opening it). Scope: exactly the 2.2 row; the two capability-map items below stay out
+unless the author says otherwise.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-- Ask for a PR for 2.1 and merge it; then 2.2 (angle sweeps for both drag laws) can start.
+Nothing.
 
 ## For your daily review (not blocking)
-- PR #12 is merged: a learning-log draft for 1.6 is in the journal entry of 2026-10-25 04:40.
-- Review the 2.1 defaults in `docs/plans/ROADMAP_2_1_PLAN.md`; reverse any in chat.
+- Approve or edit the learning-log drafts for PR #12 (journal, 2026-10-25 04:40) and PR #13
+  (journal, 2026-10-28 06:50); the autopilot never adds them itself.
 - Roadmap question: the capability map lists "best angle against drag strength" and
-  "drag-law comparison", but no Phase 2 step schedules them. Add them to 2.2?
+  "drag-law comparison", which no Phase 2 step schedules. Recommendation: add them to 2.2
+  (they reuse the same sweep). Until you answer, 2.2 is built without them.
 - The weekly cap is 0.76 (your test setting); the default was 0.70.
+- Five optional clean-ups from the 2.1 code review (PR #13 description): a bound computed
+  twice, duplicated dataclasses/copy code, two re-implemented helpers, duplicated form logic.
