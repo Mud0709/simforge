@@ -7,6 +7,29 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 17:12 UTC: 2.2 slice 3, the angle-sweep API
+- **Did:** POST /api/v1/physics/projectile/quadratic-drag/angle-sweep for the new model
+  `physics.projectile.quadratic_angle_sweep` v1.0.0: schemas, ModelEntry with one tolerance rule
+  per stored field (the rule for the accuracy estimate u derived and checked by last-bit
+  emulation, 892 reruns), registry, response union, corners test, golden run (additions only),
+  regenerated API types; four guide excerpts resynced. Autopilot commits since your last
+  message: 4 of 6.
+- **Usage:** 7-day 0.57 → 0.64; 5-hour 0.39 at start. Builder and security reviewer, both high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1751 passed in
+  157 s (was 255 s before the reviewer's test trimming); guide excerpts ALL OK after resync.
+  Playwright not run (no frontend change yet).
+- **Security review:** no bug; hostile inputs (subnormals, 1e30 angles, hidden budget field,
+  2 MB bodies, deep nesting) all refused cleanly; the budget cannot be set from a request.
+  Deployment risk recorded in STATE (no rate limit).
+- **Decisions taken for you:** the corners test skips cases equivalent to kept ones (mass with
+  no drag; equal κ), and keeps one real budget refusal (RK45) instead of all of them; the
+  slowest-case timing (~11 s) now rests on the slice 2 measurement, not on every push.
+- **Known limitation:** replay compares `n_rhs_evaluations` exactly; on another CPU it changed
+  in 479 of 892 emulated reruns, so replays elsewhere will often say "differs" on that alone.
+- **What this means for you:** the sweep is usable through the API and replayable.
+- **Learning checkpoint:** why does an exact step count make a poor replay check across CPUs?
+- **Next:** slice 4 (frontend) with `tdd`.
+
 ## 2026-10-28 13:50 UTC: 2.2 slice 2, the quadratic angle sweep core
 - **Did:** `quadratic_angle_sweep.py`: grid of 2.1 runs, bounded-Brent refinement (the grid
   point kept if better), accuracy estimate u (labelled an estimate), peak count, stiffness-guard

@@ -83,6 +83,16 @@ def logged(client: TestClient, run_id: str) -> dict[str, Any]:
             {"numerical": {"range": 10.183098861837907}, "terminal_speed": None},
             "range 10.1831 m, no drag",
         ),
+        (
+            "physics.projectile.quadratic_angle_sweep",
+            {"best_angle_deg": 42.97849, "best_range": 30.12345678, "terminal_speed": 31.31557},
+            "best angle 42.98°, range 30.1235 m, v_t 31.3156 m/s",
+        ),
+        (
+            "physics.projectile.quadratic_angle_sweep",
+            {"best_angle_deg": 45.0000001, "best_range": 10.19716212977928, "terminal_speed": None},
+            "best angle 45.00°, range 10.1972 m, no drag",
+        ),
     ],
 )
 def test_each_model_writes_its_own_headline(
