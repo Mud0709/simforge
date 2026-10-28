@@ -25,14 +25,12 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   resolution of the readings (5-hour window 0.24 → 0.27). Readings are rounded to 0.01, so
   costs below that show as 0.
 - 2026-10-25 04:27 UTC (planning Phase 2 and 2.1, one high-effort subagent): 0.00 → 0.02.
+- 2026-10-28 07:23 UTC (planning 2.2, one high-effort subagent): 0.44 → 0.47.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2 (angle sweeps for both drag laws), 🔜 in ROADMAP.md. Roadmap 2.1 is merged (PR #13,
-646e996, 2026-10-28). First unit: plan 2.2 by running `grilling` on yourself with defaults
-into `docs/plans/ROADMAP_2_2_PLAN.md`, then build it with `tdd` on a new PR (ask the author
-before opening it). Scope: exactly the 2.2 row; the two capability-map items below stay out
-unless the author says otherwise.
+Roadmap 2.2 planned and decided by default: `docs/plans/ROADMAP_2_2_PLAN.md` (D1-D15, 5 slices).
+Next: slice 1 (weak-drag reference helper and vacuum functions) with `tdd`.
 
 ## Remainder of the current unit
 —
