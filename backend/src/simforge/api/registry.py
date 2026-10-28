@@ -8,7 +8,12 @@ from __future__ import annotations
 from typing import Any
 
 from simforge.api.routes.economy import SOLOW
-from simforge.api.routes.physics import ANGLE_SWEEP, INTEGRATOR_STUDY, PROJECTILE
+from simforge.api.routes.physics import (
+    ANGLE_SWEEP,
+    INTEGRATOR_STUDY,
+    PROJECTILE,
+    QUADRATIC_DRAG,
+)
 from simforge.api.routes.quant import DATASET_PROFILE
 from simforge.api.runs import ModelEntry
 
@@ -18,6 +23,7 @@ ENTRIES: tuple[ModelEntry[Any, Any, Any], ...] = (
     ANGLE_SWEEP,
     SOLOW,
     DATASET_PROFILE,
+    QUADRATIC_DRAG,
 )
 
 _BY_ID = {entry.info.id: entry for entry in ENTRIES}

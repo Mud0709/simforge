@@ -13,6 +13,7 @@ from simforge.physics.projectile.schemas import (
     ProjectileRequest,
     SolverSettings,
 )
+from tests.approx import rel_approx
 
 
 def run(method: str = "DOP853", rtol: float = 1e-10, atol: float = 1e-10, **params: float):  # type: ignore[no-untyped-def]
@@ -32,8 +33,8 @@ def test_shallow_launch_from_the_ground_lands_at_the_exact_time(method: str, ang
     # flight time (closed-form state, landing root found by Brent; tested elsewhere).
     r = run(method=method, launch_height=0.0, launch_angle_deg=angle)
     assert r.analytical.flight_time > 0
-    assert r.numerical.flight_time == pytest.approx(r.analytical.flight_time, rel=1e-6)
-    assert r.numerical.range == pytest.approx(r.analytical.range, rel=1e-6)
+    assert r.numerical.flight_time == rel_approx(r.analytical.flight_time, rel=1e-6)
+    assert r.numerical.range == rel_approx(r.analytical.range, rel=1e-6)
 
 
 @pytest.mark.parametrize("method", ["RK45", "DOP853", "Radau"])
@@ -77,7 +78,7 @@ def test_drag_dissipates_energy() -> None:
 
 def test_series_ends_at_landing() -> None:
     r = run(drag_coefficient=0.2, launch_height=5.0)
-    assert r.series.t[-1] == pytest.approx(r.numerical.flight_time, rel=1e-15)
+    assert r.series.t[-1] == rel_approx(r.numerical.flight_time, rel=1e-15)
     assert abs(r.series.y_numerical[-1]) < 1e-8
     assert len(r.series.t) == 400
 

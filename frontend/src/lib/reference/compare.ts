@@ -64,6 +64,10 @@ export function inputFields(r: ModelResponse): Fields {
     // The time grid is linspace(0, flight_time, n_samples), so it has n_samples points.
     return flatten({ parameters: r.parameters, solver: r.solver, n_samples: r.series.t.length });
   }
+  if (isModelResponse(r, "physics.projectile.quadratic_drag")) {
+    // As for the linear model: the time grid has n_samples points.
+    return flatten({ parameters: r.parameters, solver: r.solver, n_samples: r.series.t.length });
+  }
   if (isModelResponse(r, "physics.projectile.angle_sweep")) {
     // A sweep does not use the launch angle; angles_deg is linspace(0, 90, n_angles).
     return flatten({
@@ -94,6 +98,21 @@ export function summaryFields(r: ModelResponse): Fields {
       analytical: without(r.analytical, "method_note"),
       numerical: r.numerical,
       comparison: r.comparison,
+    });
+  }
+  if (isModelResponse(r, "physics.projectile.quadratic_drag")) {
+    // The vertical comparison and the invariant's note are shown, not stored (plan D7).
+    const d = r.diagnostics;
+    return flatten({
+      numerical: r.numerical,
+      terminal_speed: r.terminal_speed,
+      vacuum: without(r.vacuum, "method_note"),
+      diagnostics: {
+        max_energy_balance_residual: d.max_energy_balance_residual,
+        max_invariant_residual: d.max_invariant_residual,
+        drag_time_bound: d.drag_time_bound,
+        flight_time_bound: d.flight_time_bound,
+      },
     });
   }
   if (isModelResponse(r, "physics.projectile.angle_sweep")) {

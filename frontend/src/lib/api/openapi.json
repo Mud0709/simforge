@@ -2088,6 +2088,437 @@
         "title": "ProjectileSeries",
         "type": "object"
       },
+      "QuadraticDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "drag_time_bound": {
+            "description": "Proved upper bound on the drag time, the integral of kappa |v| dt (dimensionless: the path length in drag lengths m/c).",
+            "title": "Drag Time Bound",
+            "type": "number"
+          },
+          "flight_time_bound": {
+            "description": "Proved upper bound on the flight time, s.",
+            "title": "Flight Time Bound",
+            "type": "number"
+          },
+          "invariant_note": {
+            "title": "Invariant Note",
+            "type": "string"
+          },
+          "max_energy_balance_residual": {
+            "description": "max |KE + PE + W - E0| / E0 over the solver's step nodes, with W the work against drag integrated from c|v|^3. Exactly 0 for the true motion.",
+            "title": "Max Energy Balance Residual",
+            "type": "number"
+          },
+          "max_invariant_residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "max |I - I0| / max(1/vx^2) over the step nodes, for the hodograph invariant I (constant for the true motion). Null when I is undefined: a vertical launch (vx = 0), or a run whose vx decayed below the solver's control.",
+            "title": "Max Invariant Residual"
+          }
+        },
+        "required": [
+          "max_energy_balance_residual",
+          "max_invariant_residual",
+          "invariant_note",
+          "drag_time_bound",
+          "flight_time_bound"
+        ],
+        "title": "QuadraticDiagnostics",
+        "type": "object"
+      },
+      "QuadraticDragParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "drag_constant": {
+            "default": 0.01,
+            "description": "Quadratic drag constant c in kg/m (drag force F = -c|v|v; for a ball c = rho C_d A / 2). Not the dimensionless drag coefficient C_d, and not the linear model's b in kg/s. 0 means vacuum.",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Drag Constant",
+            "type": "number"
+          },
+          "gravity": {
+            "default": 9.80665,
+            "description": "Gravitational acceleration in m/s^2 (default: standard gravity).",
+            "maximum": 1000.0,
+            "minimum": 0.01,
+            "title": "Gravity",
+            "type": "number"
+          },
+          "initial_speed": {
+            "default": 20.0,
+            "description": "Launch speed |v0| in m/s.",
+            "maximum": 10000.0,
+            "minimum": 0.001,
+            "title": "Initial Speed",
+            "type": "number"
+          },
+          "launch_angle_deg": {
+            "default": 45.0,
+            "description": "Launch angle above the horizontal, in degrees.",
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Launch Angle Deg",
+            "type": "number"
+          },
+          "launch_height": {
+            "default": 0.0,
+            "description": "Height of the launch point above the ground, in m.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Launch Height",
+            "type": "number"
+          },
+          "mass": {
+            "default": 1.0,
+            "description": "Projectile mass in kg.",
+            "maximum": 1000000.0,
+            "minimum": 1e-06,
+            "title": "Mass",
+            "type": "number"
+          }
+        },
+        "title": "QuadraticDragParameters",
+        "type": "object"
+      },
+      "QuadraticDragRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "n_samples": {
+            "default": 400,
+            "description": "Number of points in the resampled series.",
+            "maximum": 5000.0,
+            "minimum": 10.0,
+            "title": "N Samples",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/QuadraticDragParameters"
+          },
+          "save_experiment": {
+            "default": true,
+            "description": "Record inputs and summary metrics in the experiment log.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          }
+        },
+        "title": "QuadraticDragRequest",
+        "type": "object"
+      },
+      "QuadraticDragResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/QuadraticDiagnostics"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "numerical": {
+            "$ref": "#/components/schemas/NumericalResult"
+          },
+          "numerical_note": {
+            "title": "Numerical Note",
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/QuadraticDragParameters"
+          },
+          "series": {
+            "$ref": "#/components/schemas/QuadraticDragSeries"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          },
+          "terminal_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "sqrt(m g / c) in m/s (exact). Null in vacuum, where it is infinite.",
+            "title": "Terminal Speed"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "vacuum": {
+            "$ref": "#/components/schemas/QuadraticVacuumFlight"
+          },
+          "vertical_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuadraticVerticalReference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exact vertical flight and the numerical errors against it; null unless the launch angle is exactly 90 degrees (no exact 2-D solution exists)."
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "solver",
+          "units",
+          "assumptions",
+          "numerical",
+          "numerical_note",
+          "terminal_speed",
+          "vacuum",
+          "vertical_reference",
+          "diagnostics",
+          "checks",
+          "series",
+          "metadata"
+        ],
+        "title": "QuadraticDragResponse",
+        "type": "object"
+      },
+      "QuadraticDragSeries": {
+        "additionalProperties": false,
+        "description": "Uniformly resampled series for plotting, from the solver's dense output; the vacuum\ntrajectory (exact) on its own time grid, since it lasts longer.",
+        "properties": {
+          "drag_work": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Drag Work",
+            "type": "array"
+          },
+          "kinetic_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Kinetic Energy",
+            "type": "array"
+          },
+          "potential_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Potential Energy",
+            "type": "array"
+          },
+          "speed": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Speed",
+            "type": "array"
+          },
+          "t": {
+            "items": {
+              "type": "number"
+            },
+            "title": "T",
+            "type": "array"
+          },
+          "vacuum_t": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Vacuum T",
+            "type": "array"
+          },
+          "vacuum_x": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Vacuum X",
+            "type": "array"
+          },
+          "vacuum_y": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Vacuum Y",
+            "type": "array"
+          },
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "t",
+          "x",
+          "y",
+          "speed",
+          "kinetic_energy",
+          "potential_energy",
+          "drag_work",
+          "vacuum_t",
+          "vacuum_x",
+          "vacuum_y"
+        ],
+        "title": "QuadraticDragSeries",
+        "type": "object"
+      },
+      "QuadraticVacuumFlight": {
+        "additionalProperties": false,
+        "description": "The same launch with no drag (exact closed forms).",
+        "properties": {
+          "apex_time": {
+            "description": "s",
+            "title": "Apex Time",
+            "type": "number"
+          },
+          "flight_time": {
+            "description": "s",
+            "title": "Flight Time",
+            "type": "number"
+          },
+          "impact_speed": {
+            "description": "m/s",
+            "title": "Impact Speed",
+            "type": "number"
+          },
+          "max_height": {
+            "description": "m",
+            "title": "Max Height",
+            "type": "number"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "range": {
+            "description": "Horizontal distance at landing, m",
+            "title": "Range",
+            "type": "number"
+          }
+        },
+        "required": [
+          "flight_time",
+          "range",
+          "max_height",
+          "apex_time",
+          "impact_speed",
+          "method_note"
+        ],
+        "title": "QuadraticVacuumFlight",
+        "type": "object"
+      },
+      "QuadraticVerticalFlight": {
+        "additionalProperties": false,
+        "description": "The exact vertical flight with quadratic drag (R3).",
+        "properties": {
+          "apex_time": {
+            "description": "s, from launch to the top",
+            "title": "Apex Time",
+            "type": "number"
+          },
+          "fall_time": {
+            "description": "s, from the top to the ground",
+            "title": "Fall Time",
+            "type": "number"
+          },
+          "flight_time": {
+            "description": "s",
+            "title": "Flight Time",
+            "type": "number"
+          },
+          "impact_speed": {
+            "description": "m/s",
+            "title": "Impact Speed",
+            "type": "number"
+          },
+          "max_height": {
+            "description": "m above the ground",
+            "title": "Max Height",
+            "type": "number"
+          }
+        },
+        "required": [
+          "apex_time",
+          "max_height",
+          "fall_time",
+          "flight_time",
+          "impact_speed"
+        ],
+        "title": "QuadraticVerticalFlight",
+        "type": "object"
+      },
+      "QuadraticVerticalReference": {
+        "additionalProperties": false,
+        "properties": {
+          "apex_time": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "exact": {
+            "$ref": "#/components/schemas/QuadraticVerticalFlight"
+          },
+          "flight_time": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "impact_speed": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "max_height": {
+            "$ref": "#/components/schemas/ErrorMetric"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exact",
+          "flight_time",
+          "apex_time",
+          "max_height",
+          "impact_speed",
+          "method_note"
+        ],
+        "title": "QuadraticVerticalReference",
+        "type": "object"
+      },
       "RecomputeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2142,6 +2573,9 @@
               },
               {
                 "$ref": "#/components/schemas/ProfileResponse"
+              },
+              {
+                "$ref": "#/components/schemas/QuadraticDragResponse"
               }
             ],
             "title": "Response"
@@ -3588,6 +4022,47 @@
           }
         },
         "summary": "Integrator Study",
+        "tags": [
+          "physics"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/quadratic-drag/simulate": {
+      "post": {
+        "operationId": "simulate_quadratic_drag_api_v1_physics_projectile_quadratic_drag_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuadraticDragRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuadraticDragResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate Quadratic Drag",
         "tags": [
           "physics"
         ]

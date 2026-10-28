@@ -4,6 +4,7 @@ const PAGES: Record<string, string> = {
   // A sweep starts from the projectile page's parameters.
   "physics.projectile.angle_sweep": "/physics/projectile",
   "physics.projectile.integrators": "/physics/projectile/integrators",
+  "physics.projectile.quadratic_drag": "/physics/projectile/quadratic-drag",
   "economy.solow": "/economy/solow",
   "quant.dataset_profile": "/quant/datasets",
 };

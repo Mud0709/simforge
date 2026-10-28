@@ -7,6 +7,80 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-27 ~13:30 UTC: roadmap 2.1 complete (built in chat); autopilot paused
+- **Did:** slice 4, the page /physics/projectile/quadratic-drag (5a31773); slice 5, docs
+  (plan amendments A1-A11, SCIENTIFIC_VALIDATION, guide Part 18, ARCHITECTURE decision 18,
+  README, ROADMAP 2.1 ✅ and 🔜 on 2.2); a docstring correction (cde59bc). Each with a builder
+  and a fresh reviewer. Status `waiting-review`; the 4-hourly task is paused.
+- **Checks run:** `scripts/check.sh --e2e` on the final code: exit 0 (pytest 1579, Vitest
+  211, Playwright 23). Guide excerpts: all three guides ALL OK after the docs review.
+- **Decisions taken for you:** the energy legend on the new page says "(constant for the true
+  motion)"; the shared Reproducibility component; no drag-law selector (as planned).
+- **Waiting for you:** a PR for 2.1.
+- **What this means for you:** quadratic drag is in the app, validated against every exact
+  special case, with its limits measured.
+- **Learning checkpoint:** why is the drag time S a better cost measure than flight time?
+- **Next:** after the merge, 2.2 with `grilling` (defaults) then `tdd`.
+
+## 2026-10-25 08:30 UTC: 2.1 slices 1-3 built in chat; paused on the author's "stop after slice 3"
+- **Did:** slice 1 reference formulas (ed2d77a), slice 2 integrator and model (74d3164),
+  slice 3 API, registry and golden run (d5a4aaa); also enforced 46 test tolerances that
+  pytest.approx was loosening (074cf27). Each slice: builder (high effort) + fresh reviewer;
+  slice 3's review runs after its commit (the author asked to finish fast). Autopilot paused.
+- **Checks run:** slices 1-2: full `scripts/check.sh` passed (pytest 1502). Slice 3: the
+  builder's full `scripts/check.sh` passed (pytest 1570); after commit I re-ran 64 API,
+  registry and golden tests: passed. Playwright not run for 2.1 yet.
+- **Decisions taken for you:** the stiffness guard bounds drag time S = ∫κ|v|dt (proved), not
+  the plan's κV·T_bound (which refused 193 of 1007 grid runs that finish); new input rules
+  atol ≤ 0.01·min(v₀, v_t) and drag-free flight ≥ 1 µs (both measured); `drag_constant`
+  default 0.01 kg/m. All reversible; the plan gets amended in slice 5.
+- **Waiting for you:** "continue 2.1" for slices 4-5.
+- **What this means for you:** the quadratic-drag model works end to end through the API; there
+  is no page for it yet.
+- **Learning checkpoint:** why does an explicit solver's step count grow with S?
+- **Next:** slice 4 (frontend) with `tdd`, when you say so.
+
+## 2026-10-25 04:40 UTC: Phase 2 split into steps; 2.1 (quadratic drag) planned by default
+- **Did:** ROADMAP Phase 2 now has a step table (2.1-2.6, every item of the paragraph in its
+  order; 🔜 on 2.1). `docs/plans/ROADMAP_2_1_PLAN.md`: the autopilot grilled itself and took
+  its recommended answers. Autopilot commits since your last message: 1 of 6.
+- **Usage:** 7-day 0.00 → 0.02 (new week), 5-hour 0.04 at start. One subagent, effort high.
+- **Checks run:** none needed (docs only). The plan's formulas were checked numerically by the
+  planning subagent against an independent SciPy DOP853 integration (scratch script, not a
+  repository test): vertical flight to 5e-11 relative, invariant drift ≤ 3e-10. I re-checked
+  its key code claim (projectile runs hash their parameters, `api/routes/physics.py:114`).
+- **Decisions taken for you (defaults; reverse any in chat):**
+  - a **new model** `physics.projectile.quadratic_drag` and page, not a drag-law option on the
+    existing projectile (an option would change every stored projectile run's input hash, so
+    replay would refuse them);
+  - input `drag_constant` c in kg/m (F = −c|v|v); terminal speed √(mg/c) reported;
+  - references: vertical rise (tan) and fall (tanh), terminal speed, energy balance, c → 0
+    limit, and a hodograph invariant, the only one that tests the 2-D coupling (a wrong force
+    law passed the first four in the subagent's check);
+  - existing adaptive solver in a separate integrator (sharing code waits for 2.4);
+  - a new learning-guide Part 18; 5 test seams and 5 slices.
+- **Waiting for you:** nothing blocking. Review the defaults; a roadmap question in STATE.
+- **Draft learning-log entry for PR #12 (add on your approval):**
+  ```
+  ## Roadmap 1.6: comparison and export
+  - **Merged:** PR #12, `82ca0b2` (2026-10-25).
+  - **What it does:** pin a reference run and overlay a run of the same model, with a table
+    of input and summary changes; recompute a stored run's series (digest-checked); export
+    CSV in the browser and a versioned JSON record. Completes Phase 1.
+  - **Key concepts:** recompute, don't store (the digest proves a match); RFC 4180 and exact
+    number round-trip; CSV formula injection (numbers exempt); relative change undefined at
+    a zero reference; tolerances are not significance tests.
+  - **Decisions and trade-offs:** CSV made in the browser (covers unsaved runs and uploads);
+    reference in the URL, not the database; same-model overlay only; a fresh reviewer per
+    slice caught four bugs.
+  - **Revisit:** why "not bit-identical" no longer claims a cause.
+  - **Next:** Phase 2, starting with 2.1 quadratic drag.
+  ```
+- **What this means for you:** 2.1 is a *new* model so that every run you already saved still
+  replays exactly; the price is a little duplicated solver code until 2.4.
+- **Learning checkpoint:** why can't linear drag with any single b match quadratic drag?
+- **Next:** 2.1 slice 1 (reference functions) with `tdd`.
+
 ## 2026-10-24 21:05 UTC: Phase 2 authorised; self-grilling with defaults; every 4 hours (author)
 - **Did:** opened PR #12 (roadmap 1.6) at the author's request. Changed the protocol: a new
   step's design decisions are settled by running `grilling` on itself and accepting its own

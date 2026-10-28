@@ -36,7 +36,12 @@ simforge/
 │   │   │   ├── schemas.py             validated request/response contract (Pydantic)
 │   │   │   ├── integrator_study.py    convergence study engine (Verlet, stability, fit rule)
 │   │   │   ├── integrator_model.py    study orchestration + assumptions
-│   │   │   └── integrator_schemas.py  study API contract
+│   │   │   ├── integrator_schemas.py  study API contract
+│   │   │   ├── quadratic_reference.py quadratic drag: exact vertical flight, terminal speed,
+│   │   │   │                            hodograph invariant, proved bounds (roadmap 2.1)
+│   │   │   ├── quadratic_numerical.py quadratic drag ODE solve (state x, y, vx, vy, W)
+│   │   │   ├── quadratic_model.py     guard, references, diagnostics, per-run checks
+│   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules
 │   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
@@ -55,10 +60,12 @@ simforge/
 │   └── scripts/export_openapi.py    Writes the API contract for the frontend
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
 │   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
-│   │                                /economy/solow, /quant/datasets, /experiments
+│   │                                /physics/projectile/quadratic-drag, /economy/solow,
+│   │                                /quant/datasets, /experiments
 │   ├── src/components/              Workspace (shared layout, used by every model page),
 │   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel,
-│   │                                IntegratorLab/Results, QuantLab/Results, ChecksTable,
+│   │                                IntegratorLab/Results, QuadraticDragLab/Results,
+│   │                                QuantLab/Results, ChecksTable,
 │   │                                NumberField, PlotlyChart, ExperimentLog; the reference run
 │   │                                and export pieces: useReferenceRun, ReferenceRunPanel,
 │   │                                ComparisonTable, CsvDownloads
@@ -301,7 +308,7 @@ and any saved run's record as JSON. The plan and its decisions (D1-D8) are in
   bit-identical), false when both exist and differ, and null for a v1 record with no digest.
   The page labels a recomputed reference "recomputed, bit-identical", "recomputed, not
   bit-identical (cause not checked; usually another CPU or library version)" or "cannot be
-  checked". The response is a union of the five models' responses, told apart by
+  checked". The response is a union of the six models' responses, told apart by
   `model.id` (adding a literal field to tell them apart would have changed every digest).
 - **One refusal helper for every rerun.** Replay and recompute both start with
   `prepare_rerun` (`api/rerun.py`), so they refuse exactly the same cases with the same
@@ -354,6 +361,37 @@ On the page, the reference run is one more `Workspace` section, "Reference run",
 Visualisation; the CSV buttons sit in each model's Results (the angle sweep's in its own panel),
 and the experiment log has an "Export JSON" link per run.
 
+### 18. Quadratic drag is a new model, not an option (roadmap 2.1)
+`physics.projectile.quadratic_drag` v1.0.0 has its own parameters, endpoint, registry entry,
+page and four modules (`quadratic_reference.py`, `quadratic_numerical.py`,
+`quadratic_model.py`, `quadratic_schemas.py`); the plan and its amendments are in
+`docs/plans/ROADMAP_2_1_PLAN.md`. The choices that shape the code:
+
+- **A new model, because of input hashes and replay.** The linear model, the integrator study
+  and the angle sweep share `ProjectileParameters` and store it as dumped. A `drag_law` field
+  would enter every rebuilt request, so every stored run of those three models would hash
+  differently and replay would refuse it (409); their responses and digests would change too,
+  forcing three version bumps for unchanged physics. A new model is purely additive, and the
+  golden test shows the existing digests unchanged. It reuses `SolverSettings` and
+  `NumericalResult` unchanged; the cost is about 40 lines of event logic copied from
+  `numerical.py`, left for the methods workbench (roadmap 2.4) to share.
+- **A guard from a proved bound, not from an exact answer.** With no exact flight time, the
+  integration is capped at twice a proved flight-time bound, and explicit methods are refused
+  (422, with the reason) when a proved bound on the drag time `S = ∫κ|v| dt` exceeds 1e4,
+  the linear model's limit. `S` measures the cost of an explicit method directly; the plan's
+  `κ·max(v₀, v_t)·T_bound` multiplied two loose bounds and refused runs that finish. Radau
+  has no drag-time limit.
+- **Input rules where the measurements said so.** Besides the linear model's field bounds and
+  a drag-rate limit `κ·max(v₀, v_t) ≤ 1e4 s⁻¹`, the request requires
+  `atol ≤ 0.01·min(v₀, v_t)` (above it the velocity is not error-controlled and runs became
+  very slow) and a drag-free flight of at least 1 µs (the landing cannot be resolved below
+  it). Both live on this model's request, not on the shared `SolverSettings`, so the linear
+  model is untouched.
+- **Per-run checks and replay rules share their scales.** The energy balance and the
+  hodograph invariant are checked on every run against `1e4 × accuracy + 1e-9` (empirical),
+  and the replay tolerances for the same residuals use the same accuracy scales, with rtol
+  floored at 1e-10.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -363,6 +401,7 @@ and the experiment log has an "Export JSON" link per run.
 | POST | `/api/v1/physics/projectile/simulate` | Exact vs adaptive SciPy solution |
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
+| POST | `/api/v1/physics/projectile/quadratic-drag/simulate` | Quadratic drag: adaptive SciPy solution with the exact vertical flight, vacuum comparison, diagnostics and per-run checks |
 | GET | `/api/v1/economy/solow/info` | Model metadata |
 | POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |

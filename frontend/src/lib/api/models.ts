@@ -4,6 +4,7 @@ import type {
   ModelResponse,
   ProfileResponse,
   ProjectileResponse,
+  QuadraticDragResponse,
   SolowResponse,
 } from "./client";
 
@@ -12,6 +13,7 @@ export interface ResponseOf {
   "physics.projectile": ProjectileResponse;
   "physics.projectile.angle_sweep": AngleSweepResponse;
   "physics.projectile.integrators": IntegratorStudyResponse;
+  "physics.projectile.quadratic_drag": QuadraticDragResponse;
   "economy.solow": SolowResponse;
   "quant.dataset_profile": ProfileResponse;
 }

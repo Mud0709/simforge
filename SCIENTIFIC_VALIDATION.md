@@ -138,15 +138,16 @@ also appear in its API response under `comparison`.
 ### Known limitations
 
 - **Linear drag only.** Real balls experience drag closer to `F ∝ v²`, which has no
-  closed-form 2-D solution. That model will be validated against limits, invariants and
-  convergence studies instead (see ROADMAP).
+  closed-form 2-D solution. That is a separate model, `physics.projectile.quadratic_drag`
+  (below), validated against the exact vertical flight, limits, invariants and proved bounds
+  instead of an exact 2-D answer.
 - **Interpolation error is mixed in, not separated out.** Error metrics are evaluated at the
   solver's accepted step nodes, but the last node (the landing) and the event-located apex
   come from the dense-output interpolant, so they include interpolation error. Plotted curves
   also come from the interpolant. Interpolation error is not reported separately.
 - **The integration cap depends on the exact solution.** The numerical run uses `2 × T_exact`
-  as its integration cap. The answer is found independently, but a future model without
-  an exact solution will need a different bound.
+  as its integration cap. The answer is found independently. (The quadratic-drag model, which
+  has no exact flight time, uses twice a proved upper bound instead.)
 - **Bounds are pragmatic.** Input bounds keep runs fast and finite. They do not mark the
   physical validity range, which depends on the assumptions.
 - **Results are bit-identical across repeated runs on the same machine** (this is tested).
@@ -377,10 +378,332 @@ With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48�
 30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
 
 ### Limitations
-- Linear drag only. Quadratic drag (ROADMAP Phase 2) is expected to behave differently.
+- Linear drag only. Quadratic drag exists as its own model (roadmap 2.1, below) but has no angle sweep yet; sweeps for both drag laws are roadmap 2.2.
 - The single-peak property is checked on the tested cases, not proven in general. If a curve
   ever had two peaks, the refinement could miss the global maximum by up to one grid step.
 - Only the launch angle is swept. Other parameters are fixed.
+
+---
+
+## `physics.projectile.quadratic_drag` v1.0.0: projectile motion with quadratic drag
+
+Roadmap 2.1. The plan, with the decisions that changed while building, is
+`docs/plans/ROADMAP_2_1_PLAN.md` ("Amendments after building"). Learning guide: Part 18.
+
+### Model
+A point mass `m` under uniform gravity `g` with quadratic drag `F = −c|v|v`, `c` in kg/m
+(API field `drag_constant`; not the linear model's `b` in kg/s, and not the dimensionless
+`C_d` in `c = ½ρC_dA`). With `κ = c/m` (1/m):
+
+```
+dvx/dt = −κ |v| vx          dvy/dt = −g − κ |v| vy          |v| = √(vx² + vy²)
+```
+
+State `[x, y, vx, vy, W]`, where `W` is the work done against drag, integrated from
+`dW/dt = c|v|³` (coded from that formula, **not** from the force function, so that the energy
+balance can catch a wrong force law). Derived quantities: terminal speed `v_t = √(mg/c)`
+(m/s), time scale `τ = v_t/g` (s). `c = 0` means vacuum. SI units throughout; launch angle in
+degrees at the API boundary; an exactly vertical launch (90°) has `vx₀ = 0` exactly (not
+`cos(π/2) ≈ 6e-17`). Engine files in `backend/src/simforge/physics/projectile/`:
+`quadratic_reference.py` (closed forms, invariant, bounds), `quadratic_numerical.py` (the ODE
+solve), `quadratic_model.py` (guard, references, diagnostics, checks, assumptions),
+`quadratic_schemas.py` (the API contract and input rules).
+
+### No exact 2-D solution: what replaces it
+The speed `|v|` couples the two components, so the 2-D motion has no general closed form and
+is solved numerically: SciPy `solve_ivp` (RK45, DOP853 (default) or Radau; default
+`rtol = atol = 1e-10`), a terminal landing event with `direction = −1` and the linear model's
+"launch instant counts as above ground" guard, an apex event on `vy`, dense output. In place of
+an exact answer it is checked against:
+
+| | Reference | What it constrains | Genuinely 2-D? |
+|---|---|---|---|
+| R1-R3 | Exact vertical solution (`tan` rise, `tanh` fall, full flight) | Solver accuracy and events, at θ = 90° only | No (`vx = 0`) |
+| R4 | Terminal speed `√(mg/c)` | Long-time behaviour | No (the velocity tends to `(0, −v_t)`) |
+| `c → 0` | Textbook vacuum formulas, written in the tests | The drag-free limit | Yes, but drag-free |
+| R5 | Energy balance `KE + PE + W = E₀` | Consistency of motion and dissipation | Yes |
+| R6 | Hodograph invariant | The coupling of x and y | Yes |
+| R7 | Two bounds (speed, flight time), plus the drag-time bound | Integration cap and stiffness guard; must hold on every step node | Yes |
+
+**No comparison with linear drag beyond the shared vacuum limit**: no value of `b` makes `bv`
+equal `cv²` except at one speed, so a "low-speed agreement" test would need an arbitrary
+matching speed and an underived tolerance.
+
+### Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
+Derived in the plan ("Reference formulas") and, for the drag-time bound, in the docstring of
+`quadratic_model.drag_time_bound`. **Not checked against any literature source.**
+
+1. **R1, rise** (`v > 0`): `v(t) = v_t tan(φ₀ − t/τ)`, `φ₀ = arctan(v₀/v_t)`; apex time
+   `t_a = τφ₀`; `y(t) = h + (v_t²/g) ln(cos s + (v₀/v_t) sin s)`, `s = t/τ`; apex height
+   above launch `H = (v_t²/2g) ln(1 + v₀²/v_t²)`.
+2. **R2, fall from rest** through a drop `Y`: `w(s) = v_t tanh(s/τ)`, drop
+   `(v_t²/g) ln cosh(s/τ)`; with `X = gY/v_t²`, fall time `τ arcosh(eˣ)` and impact speed
+   `v_t √(1 − e^(−2X))`.
+3. **R3, vertical launch**: `Y = h + H`, `T = t_a + s_L`. From the ground the impact speed is
+   `v₀v_t/√(v₀² + v_t²) < v₀`, and the fall takes longer than the rise. As `c → 0`:
+   `t_a → v₀/g`, `H → v₀²/2g`, impact speed `→ v₀`.
+4. **R4, terminal speed**: `v_t = √(mg/c)`; from R2, `v_t − w ≈ 2v_t e^(−2s/τ)`.
+5. **R5, energy balance**: `d/dt(½mv² + mgy) = −c|v|³`, so `KE + PE + W = E₀`.
+6. **R6, hodograph invariant** (`vx₀ > 0`):
+   `I = 1/vx² + (κ/g)·[v·vy/vx² + asinh(vy/vx)]` is constant (s²/m²). `vx` never changes
+   sign, so `I` is defined for the whole flight; it is undefined for a vertical launch.
+7. **R7, bounds**: (i) speed `≤ max(v₀, v_t)` throughout; (ii) flight time
+   `≤ T_bound = vy₀/g + T_fall`, with `T_fall` the exact linear-drag time to fall from rest
+   through `h + vy₀²/2g` with `k = κ·max(v₀, v_t)`. Exact in vacuum, loose with drag.
+8. **Drag-time bound**: `S = ∫κ|v| dt ≤ ln(1 + κ·vx₀·T_bound) + ln(1 + vy₀²/v_t²) + κh`
+   (from `|v| ≤ |vx| + |vy|`, `vx ≤ vx₀/(1 + κvx₀t)` and the R1 climb bound). Exact for a
+   vertical flight; since `S ≥ κh`, it exceeds `S` by at most the two logarithms.
+
+**Smoothness caveat (proved):** `|v|v` is once but not twice differentiable at `v = 0`, which
+only a vertical launch reaches. The vertical tests allow 100 × rtol and state this reason.
+
+### Numerical-analysis issues handled
+Every closed form is written as *the vacuum value times a correction factor* that tends to 1
+as `v_t → ∞` (for example `t_a = (v₀/g)·atan(r)/r`, `r = v₀/v_t`), so vacuum is the same code
+path (no special case, no `0·∞`), weak drag does not cancel, and nothing overflows:
+- `H` and `y(t)` use `log1p` (`ln(1 + r²)` would round `1 + r²` first);
+  `test_naive_apex_height_loses_digits_for_weak_drag` shows the naive form losing digits.
+- `ln cosh u` is evaluated as `log1p(2 sinh²(u/2))` for `u ≤ 1` and `u − ln 2 + log1p(e^(−2u))`
+  above, with the series `1 − u²/6` below `u = 1e-4`.
+- **The fall time is not computed in the plan's form** `τ asinh(√expm1(2X))`, which overflows
+  once `2X > 709.8` (strong drag, long drops): it uses `arcosh(eˣ) = X + log1p(√(1 − e^(−2X)))`,
+  positive terms only (`test_plan_form_of_the_fall_time_overflows_for_strong_drag`).
+- `v_t` stays finite when `mg/c` overflows (tiny or subnormal `c`): square roots first.
+- The invariant uses `asinh(vy/vx)` instead of `ln((v + vy)/vx)`, which cancels when
+  `vy ≈ −v`; its residual is normalised by `max(1/vx²)` (below).
+
+### What is tested
+Every expected value comes from an independent source: the equations of motion written out
+in the test, hand-derived Taylor limits, separately derived closed forms, 50-digit stdlib
+`decimal` evaluations, or a test-local SciPy integration with its own right-hand side.
+
+**Reference formulas** (`backend/tests/physics/test_quadratic_reference.py`):
+
+| Check | Reference | Tolerance (each justified in the test) |
+|---|---|---|
+| `c v_t² = mg`; `v_t` finite when `mg/c` overflows | Force balance; 50-digit `decimal` | rel 1e-15 |
+| Rise and fall curves satisfy their ODEs | Central differences, truncation and rounding worked out per case | rel 1e-8 (+ abs 1e-7 where the rate passes 0) |
+| Fall time and impact speed consistent with the fall curve | Different formulas for the same numbers | rel 1e-14 |
+| Impact speed from the ground `= v₀v_t/√(v₀² + v_t²)`; fall longer than rise | Algebra; `asinh r − atan r > 0` | rel 4e-15; strict |
+| Weak drag: `r²` Taylor corrections to `t_a`, `H`, impact speed | Hand-derived series | rel 2e-15 (the correction itself ≥ 1e6× larger) |
+| `c = 0`, `1e-25`, `1e-320` → textbook vacuum flight | Textbook formulas | rel 4e-15 |
+| Apex time and height, rise curve, fall time, impact speed, fall distance | 50-digit `decimal` of the plain formulas (weak drag down to `X ≈ 1e-12`, strong to `X ≈ 1e9`) | rel 2e-15 to 6e-15 |
+| `I` is constant along `−κ|v|v`; the wrong coupling drifts it | Rate of change from the equations of motion, with a rounding budget | budget < 1e-6 of the scale; mutant ≥ 1e-2 |
+| Speed bound on exact vertical speeds; on 2-D flights | R3; test-local DOP853 at 1e-12 | rel 2ε; rel 1e-9 |
+| Flight-time bound: exact in vacuum; equals the proved formula; holds for exact vertical and 2-D flights | Textbook; a 50-digit bisection of the linear-drag fall; R3; test-local DOP853 | rel 1e-14; rel 1e-14; strict |
+| Non-finite and out-of-domain inputs rejected | Contract | — |
+
+**Integrator** (`backend/tests/physics/test_quadratic_numerical.py`; all three methods
+unless noted, default `rtol = atol = 1e-10`):
+
+| Check | Reference | Tolerance |
+|---|---|---|
+| Vertical launches (3 cases): flight time, apex time, apex height, impact speed; `x` and `vx` exactly 0 | R1-R3 | rel 1e-8 (100 × rtol, widened for the apex) |
+| The vertical path follows the rise and fall curves at every step node | R1, R2 | 3e-7 m (100 × (rtol·|y| + atol)) |
+| `c = 0` (3 angle/height cases): time, range, height, impact speed; `W` exactly 0 | Textbook vacuum formulas in the test | rel 1e-12 |
+| Range deviation from vacuum is first order in `c` (`c = 1e-4, 1e-6, 1e-8`; DOP853 at 1e-13) | Limit | ratio 100 within 2% |
+| Long fall (90° and 30°, ~200 τ) ends at `(0, −v_t)` | R4 | rel 1e-8 |
+| Energy balance closes (5 2-D cases) | R5 | 1e-8 of `E₀` |
+| Invariant conserved (4 cases); normalised by `I₀` it is meaningless in a long fall (> 1e-3) while the chosen residual is < 1e-8 | R6 | 1e-8 |
+| Speed and flight-time bounds on every step node (5 cases) | R7 | rel 1e-8; strict |
+| Shallow launches (0.001° to 1°) land at the real time, not t = 0 | Test-local DOP853 at 1e-12 | rel 1e-6 |
+| Horizontal launch starts at its apex | Exact | exact |
+| Error falls as rtol tightens (1e-4 → 1e-10; RK45): vertical flight time and 2-D energy residual | R3; R5 | > 1e3 × reduction |
+| `drag_acceleration(3, 4, 0.1) = (−1.5, −2)` | Hand-worked | rel 1e-15 |
+| **Wrong-coupling mutant** (`−κ|vx|vx`, `−κ|vy|vy`; DOP853): passes the vertical, vacuum, long-fall and (here) R7 checks; caught by R5 and R6 (> 1e-3, measured 0.16-0.34 and 0.16-0.24); breaks the speed bound in a horizontal launch below `v_t` (> 1%, measured 1.85%) | Mutation | — |
+
+**Model run** (`backend/tests/physics/test_quadratic_model.py`): the guard refuses a 100 km
+fall at `v_t = 3 m/s` for RK45 and DOP853 with a message naming the method, the 1e4 limit and
+Radau, and Radau runs it with no check failing; the guard accepts the case the plan's rule
+refused (`v₀ = 1000 m/s`, 60°, `v_t = 30 m/s`: plan rule 6.2e5, true `S` = 6.7) in under 1000
+RK45 steps; the drag-time bound holds against a test-local integration of `S` (4 cases, slack
+< 30) and is exact for vertical flights (rel 1e-10); vacuum runs have no terminal speed, no
+NaN or infinity anywhere, and no speed-bound check; the vacuum comparison matches the linear
+model's closed form with `b = 0` (a different code path); `vertical_reference` only at exactly
+90°; the invariant is `null` with a reason for a vertical launch and for a hand-made solution
+whose `vx` is ≤ 0 or makes `1/vx²` or `v·vy/vx²` overflow; in a ~200 s fall the invariant check
+is either informational or passes, never fails; checks are present, labelled and pass by
+default; the invariant check does not fail accurate nearly vertical runs or a long fall at
+`atol = 0.1`; the checks **fail** (energy and invariant) with the wrong-coupling mutant while
+the loose flight-time bound still passes; series end at landing and the vacuum series has its
+own grid.
+
+**API** (`backend/tests/api/test_quadratic_drag_api.py`, `test_quadratic_drag_limits.py`):
+a complete labelled default response; strict JSON in vacuum and vertical runs; terminal speed
+through `c v_t² = mg`; the vacuum run against the textbook; drag shortens the flight; the
+vertical comparison (3 solver/height cases); `NaN`, `±Infinity`, out-of-bound and unknown
+inputs rejected; a flat launch from the ground refused; a stiff explicit run gets an
+explanatory 422; identical inputs give identical hashes and results, and the hash ignores
+`save_experiment`; the stored summary has the same shape for every run; one tolerance rule per
+stored field for a 2-D, a vertical and a vacuum run, each replaying `identical`; the value
+rules survive emulated last-bit differences at `rtol = 1e-13` (5 seeds). Each input rule is
+tested at its boundary with values worked by hand, and the suggested `atol` in the refusal is
+itself accepted. **Corners:** every corner of (mass, speed, `c` = 0 or largest allowed, `g`,
+height, angle 0/1e-3/90) with every method at the tightest (`1e-13, 1e-14`) and loosest
+allowed tolerances either runs (finite, positive flight time; vacuum flight time to rel 1e-6)
+or gets a 422 with a reason; never a 500, and no request over 10 s. Tight-tolerance Radau
+skips 26 corners that repeat another corner's computation, with a check that the rest still
+cover every value of every axis.
+
+**Registry and reproducibility:** a case appended to `tests/api/test_registry.py` (2-D,
+`c = 0.02 kg/m`, 30°), so the registry, replay (`test_replay.py`), recompute
+(`test_run_outputs.py`) and golden-digest (`test_golden_digests.py`) tests pick it up; one
+golden entry appended to `tests/api/golden_runs.json`, the six existing entries unchanged.
+
+### Per-run checks shown in the app
+Every response carries a `checks` list (decision 12): **energy balance**
+(`max |KE + PE + W − E₀| / E₀` over the step nodes); **hodograph invariant**
+(`max |I − I₀| / max(1/vx²)`, or an informational row giving the smallest `vx` when `I` is
+undefined); **speed bound** (largest speed / `max(v₀, v_t)`, only with drag); **flight-time
+bound** (flight time / `T_bound`); for an exactly vertical launch, **flight time against R3**;
+and an informational **drag time** row (the bound on `S`). Thresholds:
+
+```
+threshold = 1e4 × accuracy + 1e-9        (bounds: 1 + that)
+accuracy  = rtol + atol/v₀               (energy, bounds, vertical comparison)
+accuracy  = rtol + atol/min(vx₀, v_t)    (invariant)
+```
+
+The factor 1e4 is **empirical**, not a theorem: an adaptive solver's global error is not
+bounded by rtol. On 2728 runs the worst residual / accuracy was 490 (energy), 8.5e3
+(invariant), 45 (speed bound), 61 (vertical flight time). The invariant uses its own scale
+because the slice 2 review found that with `atol/v₀` RK45 failed *correct* nearly vertical
+runs at default settings (`v₀ = 1 m/s`, 89.99°: `vx` off by 3.5e-6 relative, confirmed with
+DOP853 at 1e-13). Re-measured on 10 080 runs (5 speeds, 8 angles up to 89.999° and 90°,
+3 heights, `v_t` ∈ {1, 20, 1e3, ∞} m/s, 3 methods, 7 (rtol, atol) pairs from (1e-13, 1e-14)
+to (1e-6, 0.1)): no check failed; the largest value / threshold was 0.081 (invariant), 0.012
+(energy), 0.006 (speed bound) and 0.18 (vertical flight time). One machine, recorded in the
+comment above `GLOBAL_ERROR_FACTOR` in `quadratic_model.py`.
+
+`terminal_speed` (exact; `null` in vacuum) and `vacuum` (the same launch with no drag, exact)
+are labelled "exact"; `vertical_reference` (only at exactly 90°) gives the exact R3 values and
+the numerical errors against them; every numerical value is labelled with its solver and
+tolerances.
+
+### Input limits, the integration cap and the stiffness guard
+Single fields, as the linear model: speed 1e-3 to 1e4 m/s, angle 0 to 90°, height 0 to
+1e5 m, mass 1e-6 to 1e6 kg, `g` 0.01 to 1000 m/s²; `c` from 0 (vacuum) to 1e6 kg/m. Combined
+rules (`quadratic_schemas.py`), each tested at its boundary:
+
+| Rule | Why | Evidence |
+|---|---|---|
+| `κ·max(v₀, v_t) ≤ 1e4 s⁻¹`, computed as `max(κv₀, √(κg))` | The largest drag rate in the flight (R7 i), the same meaning as the linear `k ≤ 1e4 s⁻¹`; no `0·∞` in vacuum | Proved bound plus the linear model's limit |
+| `atol ≤ 0.01·min(v₀, v_t)` | Far above the smallest velocity scale the solver does not control the velocity | Measured (slice 3, corners grid): ≤ 0.2 s up to 1× the scale, 0.53 s at 5×, up to 10 s at 10×, 20 s timeouts and overflow at 100-1000× (mostly Radau); at 10% one RK45 run missed the exact vertical flight time by 1.1%; 1% is the largest fraction at which every grid run passed its own checks |
+| Drag-free flight ≥ 1 µs; no flight at 0° from 0 m | SciPy locates the landing only to about 1e-15 s; shorter flights crashed the run (a zero cap, or the bound's root search failing). With drag rates ≤ 1e4 s⁻¹, drag changes so short a flight by under 1% | Found by the corners test (angles 1e-100° and 1e-320° gave 500s before the rule) |
+
+**Integration cap:** `2 × T_bound` (exact in vacuum; twice it, so the landing is never at the
+very end of the interval, where rounding can hide the sign change). **Stiffness guard:**
+explicit methods (RK45, DOP853) are refused with a 422 when the drag-time bound exceeds 1e4;
+Radau has no drag-time limit (it is L-stable). The plan's rule, `κ·max(v₀, v_t)·T_bound`
+against 1e4 and 1e7, was replaced because it multiplies two loose bounds. Observed in slice 2
+(one machine; `quadratic_model.py` docstring) on a 1007-point grid within the limits: the
+plan's rule refused 323 explicit runs, **193 of which finish** in at most 38 000 evaluations;
+the drag-time rule refused 130, none of which finished within 250 000 evaluations; every run
+the plan's Radau limit would have refused finished in under 0.5 s. For DOP853 above `S = 100`
+the cost was 2.5 to 16 evaluations per unit of `S`.
+
+### Observed accuracy
+Measured on 2026-10-27 with Python 3.12.3, NumPy 2.5.4 and SciPy 1.18.1 on linux-x86_64
+(Intel Xeon @ 2.10 GHz), with scratch scripts, not repository tests. Errors are against an
+independent integration with its own right-hand side (DOP853 at `rtol = atol = 1e-13`;
+DOP853 and Radau at that setting agreed to 4e-13 relative or better). Observed, one machine;
+not guarantees for other inputs.
+
+`v₀ = 20 m/s`, `θ = 45°`, `h = 3 m`, `m = 1 kg`, `g = 9.80665 m/s²`, `rtol = atol = 1e-10`:
+
+| c (kg/m) | v_t (m/s) | Method | Rel. error, flight time | Rel. error, range | Max energy residual (×E₀) | Max invariant residual | Steps |
+|---|---|---|---|---|---|---|---|
+| 0 | ∞ | RK45 | 1.4e-16 | 3.3e-16 | 1.2e-16 | 0 | 5 |
+| 0 | ∞ | DOP853 | 1.7e-15 | 3.9e-15 | 2.1e-15 | 0 | 4 |
+| 0 | ∞ | Radau | 1.4e-16 | 6.5e-16 | 6.2e-16 | 0 | 5 |
+| 0.01 | 31.3 | RK45 | 2.8e-13 | 2.4e-12 | 1.3e-11 | 9.6e-12 | 42 |
+| 0.01 | 31.3 | DOP853 | 9.2e-12 | 8.5e-12 | 1.9e-12 | 3.3e-12 | 11 |
+| 0.01 | 31.3 | Radau | 3.2e-13 | 4.8e-13 | 3.6e-13 | 2.4e-12 | 282 |
+| 0.1 | 9.90 | RK45 | 8.1e-12 | 2.2e-12 | 3.0e-12 | 3.5e-11 | 84 |
+| 0.1 | 9.90 | DOP853 | 1.1e-11 | 3.9e-12 | 2.9e-12 | 6.8e-11 | 21 |
+| 0.1 | 9.90 | Radau | 1.4e-12 | 4.6e-13 | 2.3e-12 | 5.7e-12 | 513 |
+
+(As for the linear model, the vacuum rows say little: the vacuum path is a quadratic in `t`,
+which these methods integrate exactly apart from rounding.)
+
+Worst over 54 2-D cases (`v₀` ∈ {20, 100, 1000} m/s, θ ∈ {15, 45, 75}°, `h` ∈ {0, 10} m,
+`v_t` ∈ {5, 20, 100} m/s, default tolerances):
+
+| Method | Flight time | Range | Energy residual | Invariant residual (none null) | Steps (median, max) |
+|---|---|---|---|---|---|
+| RK45 | 1.8e-11 | 2.7e-11 | 8.5e-11 | 7.7e-11 | 144, 360 |
+| DOP853 | 3.0e-11 | 2.7e-11 | 1.6e-11 | 5.8e-10 | 36, 89 |
+| Radau | 2.5e-12 | 2.7e-12 | 5.7e-12 | 2.1e-11 | 758, 1763 |
+
+Vertical launches against the exact R3 values, worst relative error over 18 cases (`v₀` ∈
+{5, 30, 300} m/s, `h` ∈ {0, 40} m, `v_t` ∈ {3, 20, 100} m/s, default tolerances):
+
+| Method | Flight time | Apex time | Max height | Impact speed |
+|---|---|---|---|---|
+| RK45 | 1.2e-10 | 1.6e-9 | 2.7e-11 | 2.2e-10 |
+| DOP853 | 1.2e-9 | 4.4e-10 | 2.3e-11 | 2.7e-9 |
+| Radau | 6.4e-12 | 5.4e-12 | 3.5e-13 | 8.1e-12 |
+
+The vertical errors of the explicit methods (up to ~10-30 × rtol) are larger than their 2-D
+errors; this is consistent with the smoothness caveat at the vertical apex, but the cause was
+not separated. Any single run's own residuals appear in its response under `diagnostics`.
+
+**Earlier observations, kept for the record.** During planning, a scratch DOP853 integration
+at 1e-12 agreed with R1-R3 to 5e-11 relative on four cases, and a learning-guide scratch RK4
+(step 1e-4 s, tennis-ball values) closed the energy balance to 5e-15 of `E₀` with the correct
+law and 0.15 with the wrong one. These checked the derivations, not SimForge's code.
+
+### Replay tolerances
+Declared in `_quadratic_tolerances` (`api/routes/physics.py`), one rule per stored field
+(tested). Wherever a rule uses rtol, it uses **max(rtol, 1e-10)**: below 1e-10 rounding, not
+the solver's error control, sets the accuracy. Measured in the slice 3 review by emulating
+another CPU (each drag evaluation multiplied by 1 ± 1 or 2 ulp; 1728 reruns over speeds,
+angles up to 90°, heights, drag, all methods, rtol 1e-13 to 1e-3): at rtol = 1e-13 results
+moved by up to 1e-10 relative (a nearly vertical flight's range, DOP853) and one Radau energy
+residual from 1.2e-13 to 6.5e-10, up to 650 times the unfloored rule. At rtol ≥ 1e-10 (the
+default and the golden run) the floor changes nothing.
+
+| Field | Rule | Reason (short) |
+|---|---|---|
+| `numerical.*` values | `10·(rtol·|x| + atol)` | an adaptive solver's step decisions can flip on another machine (the linear model's rule) |
+| `numerical.n_steps`, `n_rhs_evaluations`, method, rtol, atol | exact | counts and copies of inputs |
+| `terminal_speed`, `vacuum.*` | 1e-12 relative | closed forms; `null` must stay `null` |
+| `diagnostics.max_energy_balance_residual` | absolute `10·(rtol + atol/v₀)` | the check's own accuracy scale |
+| `diagnostics.max_invariant_residual` | absolute `10·(rtol + atol/min(vx₀, v_t))`; exact (`null`) for a vertical launch | the check's own accuracy scale |
+| `diagnostics.drag_time_bound`, `flight_time_bound` | 1e-12 relative | closed forms and a Brent root converged to ~1e-15 |
+
+### Known limitations
+- Constant `C_d` (so constant `c`): no variation of drag with speed, no spin or lift, no wind,
+  no buoyancy. Validation shows the equations are solved, not that they describe a real ball.
+- **No exact 2-D reference.** The 2-D evidence is consistency (R5, R6, R7, `c → 0`) and
+  agreement with an independent integration, not a comparison with a true answer.
+- **The per-run thresholds are empirical** (1e4 × the requested accuracy), measured on one
+  machine on the grids above; not a theorem.
+- **Exact step counts may differ on another CPU.** The counts are replayed exactly by design
+  (a different step sequence is a different computation), so a replay on another machine can
+  report `differs` on `n_steps` or `n_rhs_evaluations` alone; the emulation above deliberately
+  leaves them out. The quadratic case's behaviour on CI's CPU is not recorded here.
+- **The invariant can switch between a number and `null` at extreme settings.** In a very long
+  fall the true `vx` decays far below atol (to ~1e-85 m/s in a ~200 s fall), where the solver
+  does not control its sign: on the pinning machine DOP853 dips to −9e-14 m/s (so `null`),
+  another CPU may keep it positive. Both are correct, but a replay then compares a number with
+  `null`, which no tolerance absorbs (`differs`).
+- **The atol rule is conservative for slow launches.** It ties atol to `min(v₀, v_t)`, so a
+  slow launch must use a small atol even where a larger one would have been fast and accurate;
+  it was set on a grid of corners, not derived.
+- **T_bound is loose**: up to ~7e5 times the flight time within the input limits (slice 2
+  measurement; the planning estimate of ~100× was far too low). It is used only as the cap and
+  inside the logarithm of the drag-time bound, and its looseness made the plan's guard refuse
+  feasible runs. The drag-time bound's slack is at most a few tens (measured ≤ 27 on the
+  1007-point grid), so the guard can still refuse a run whose true `S` is a little under 1e4.
+- **The invariant residual dilutes early errors**: dividing by the largest `1/vx²` makes
+  errors early in the flight, where `1/vx²` is small, count less.
+- **Reopening a run does not restore `n_samples`** on either projectile page: the pages have
+  no such field and send none, so the default 400 applies. A run saved through the API with another `n_samples`
+  reopens with 400, which is a different question (different input hash); replay and
+  recompute use the stored value.
+- About 40 lines of event logic are duplicated from the linear solver until roadmap 2.4.
+- The hodograph-method literature was not checked.
 
 ---
 
@@ -644,6 +967,7 @@ between environments. A test checks that every stored field matches exactly one 
 | projectile | `numerical.*` values | `10·(rtol·|x| + atol)` | an adaptive solver's step decisions can flip, moving results by up to its error control |
 | projectile | step and evaluation counts, solver settings | exact | counts and copies of inputs |
 | projectile | `comparison.*` (error estimates) | absolute, `10·(rtol·|x| + atol)` or `10·(rtol + atol/|x|)` | error estimates are rounding-sized, so only an absolute tolerance makes sense |
+| quadratic drag | `numerical.*` values; counts and settings; `terminal_speed`, `vacuum.*`, bounds; energy residual; invariant residual | `10·(rtol·|x| + atol)`; exact; 1e-12 rel; abs `10·(rtol + atol/v₀)`; abs `10·(rtol + atol/min(vx₀, v_t))` (rtol floored at 1e-10 throughout) | as the projectile; the residuals use the per-run checks' own scales; below rtol = 1e-10 rounding sets the accuracy (details in the quadratic-drag section) |
 | integrators | horizon; orders; fit points; theoretical order | 1e-12 rel; 1e-6 rel; exact; exact | fits use only points far above rounding |
 | integrators | finest max position error | 1e-9 m absolute | rounding-dominated at the finest RK4 step; ≲5e-10 m over 5e4 steps |
 | angle sweep | best angle; best range; vacuum values | 1e-5° abs; 1e-10 rel; 1e-12 rel | Brent's ~1e-6° tolerance at a flat maximum |
@@ -653,7 +977,8 @@ between environments. A test checks that every stored field matches exactly one 
 | dataset profile | every field | exact | counts and labels |
 
 **What is and is not established.** Measured: on one machine, every model's runs replay
-**bit-identically** (a test runs all six cases, locally and in CI). **Across machines they do
+**bit-identically** (a test runs every registry case: the six cases before roadmap 2.1
+locally and in CI; the seventh, quadratic drag, locally in the 2.1 slice checks). **Across machines they do
 not**: with the same code and the same locked libraries, GitHub's CI runners gave different
 output digests for the four floating-point models (the dataset profile, all counts, matched).
 Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specific routines
@@ -718,7 +1043,7 @@ names the usual cause but does not claim it: nothing compares the environments a
 point (a replay does).
 
 **Tested** (`backend/tests/api/test_run_outputs.py`):
-- All five models (six cases: the dataset profile both as a bundled sample and as an upload
+- All six models (seven cases: the dataset profile both as a bundled sample and as an upload
   sent again) recompute with `digest_match` true. The expected digest is the one stored with
   the original run, recorded before the recomputation. As an independent check, the test also
   hashes the response it received with a canonical-JSON function written in the test from the

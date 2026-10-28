@@ -73,6 +73,16 @@ def logged(client: TestClient, run_id: str) -> dict[str, Any]:
             {"rows": 10, "columns": 6, "missing_cells": 7, "duplicate_rows": 1},
             "10 rows \N{MULTIPLICATION SIGN} 6 columns, 7 missing cells, 1 duplicate rows",
         ),
+        (
+            "physics.projectile.quadratic_drag",
+            {"numerical": {"range": 30.12345678}, "terminal_speed": 31.31557},
+            "range 30.1235 m, v_t 31.3156 m/s",
+        ),
+        (
+            "physics.projectile.quadratic_drag",
+            {"numerical": {"range": 10.183098861837907}, "terminal_speed": None},
+            "range 10.1831 m, no drag",
+        ),
     ],
 )
 def test_each_model_writes_its_own_headline(

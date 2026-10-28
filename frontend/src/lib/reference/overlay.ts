@@ -69,6 +69,27 @@ export function referenceSeries(r: ModelResponse): ChartSeries {
       ],
     };
   }
+  if (isModelResponse(r, "physics.projectile.quadratic_drag")) {
+    const { series: s, units: u } = r;
+    const t = axis("t", s.t, u, "t");
+    return {
+      // The solver's curve, as for the linear model; the drag-free curve depends on the
+      // physical inputs alone.
+      trajectory: [
+        { label: "numerical trajectory", x: axis("x", s.x, u, "x"), y: axis("y", s.y, u, "y") },
+      ],
+      speed: [{ label: "speed", x: t, y: axis("speed", s.speed, u, "speed") }],
+      energy: [
+        { label: "kinetic energy", x: t, y: axis("kinetic_energy", s.kinetic_energy, u, "energy") },
+        {
+          label: "potential energy",
+          x: t,
+          y: axis("potential_energy", s.potential_energy, u, "energy"),
+        },
+        { label: "work against drag", x: t, y: axis("drag_work", s.drag_work, u, "energy") },
+      ],
+    };
+  }
   if (isModelResponse(r, "physics.projectile.angle_sweep")) {
     const u = r.units;
     return {

@@ -1,6 +1,7 @@
 import pytest
 
 from simforge.numerics.convergence import fit_order, local_orders
+from tests.approx import rel_approx
 
 
 def test_fit_recovers_exact_power_law() -> None:
@@ -9,7 +10,7 @@ def test_fit_recovers_exact_power_law() -> None:
     assert fit is not None
     assert fit.order == pytest.approx(2.0, abs=1e-12)
     assert fit.r_squared == pytest.approx(1.0, abs=1e-12)
-    assert 10**fit.log10_constant == pytest.approx(3.0, rel=1e-10)
+    assert 10**fit.log10_constant == rel_approx(3.0, rel=1e-10)
     assert (fit.h_min, fit.h_max, fit.n_points) == (0.0125, 0.1, 4)
 
 

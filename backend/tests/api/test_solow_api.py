@@ -6,6 +6,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.approx import rel_approx
+
 URL = "/api/v1/economy/solow/simulate"
 
 
@@ -47,13 +49,13 @@ def test_steady_states_and_golden_rule_match_formulas(client: TestClient) -> Non
     lam = 0.01 + 0.02 + 0.01 * 0.02 + 0.06
     for key, s in (("baseline_steady_state", 0.2), ("scenario_steady_state", 0.25)):
         ss = body[key]
-        assert ss["capital"] == pytest.approx((s / lam) ** (1 / 0.65), rel=1e-14)
-        assert ss["consumption"] == pytest.approx((1 - s) * ss["output"], rel=1e-15)
-        assert ss["capital_output_ratio"] == pytest.approx(s / lam, rel=1e-15)
+        assert ss["capital"] == rel_approx((s / lam) ** (1 / 0.65), rel=1e-14)
+        assert ss["consumption"] == rel_approx((1 - s) * ss["output"], rel=1e-15)
+        assert ss["capital_output_ratio"] == rel_approx(s / lam, rel=1e-15)
     assert body["golden_rule"]["savings_rate"] == 0.35
     conv = body["convergence"]
-    assert conv["effective_depreciation"] == pytest.approx(lam, rel=1e-15)
-    assert conv["one_minus_rho"] == pytest.approx(0.65 * lam / (1.01 * 1.02), rel=1e-14)
+    assert conv["effective_depreciation"] == rel_approx(lam, rel=1e-15)
+    assert conv["one_minus_rho"] == rel_approx(0.65 * lam / (1.01 * 1.02), rel=1e-14)
 
 
 def test_policy_year_timing_in_the_response(client: TestClient) -> None:

@@ -9,6 +9,7 @@ import type {
   IntegratorStudyResponse,
   ProfileResponse,
   ProjectileResponse,
+  QuadraticDragResponse,
   SolowResponse,
 } from "@/lib/api/client";
 import type { Cell, Column, Table } from "./csv";
@@ -41,6 +42,38 @@ export function projectileTables(r: ProjectileResponse): Table[] {
       label: "energy budget",
       columns: [
         col("t", s.t, u, "t"),
+        col("kinetic_energy", s.kinetic_energy, u, "energy"),
+        col("potential_energy", s.potential_energy, u, "energy"),
+        col("drag_work", s.drag_work, u, "energy"),
+      ],
+    },
+  ];
+}
+
+/** One table per chart. The drag-free trajectory has its own time grid (as many points,
+ *  over its longer flight), so it keeps its own time column, vacuum_t, beside the drag run's. */
+export function quadraticDragTables(r: QuadraticDragResponse): Table[] {
+  const { series: s, units: u } = r;
+  const t = col("t", s.t, u, "t");
+  return [
+    {
+      name: "trajectory",
+      label: "trajectory",
+      columns: [
+        t,
+        col("x", s.x, u, "x"),
+        col("y", s.y, u, "y"),
+        col("vacuum_t", s.vacuum_t, u, "t"),
+        col("vacuum_x", s.vacuum_x, u, "x"),
+        col("vacuum_y", s.vacuum_y, u, "y"),
+      ],
+    },
+    { name: "speed", label: "speed", columns: [t, col("speed", s.speed, u, "speed")] },
+    {
+      name: "energy",
+      label: "energy budget",
+      columns: [
+        t,
         col("kinetic_energy", s.kinetic_energy, u, "energy"),
         col("potential_energy", s.potential_energy, u, "energy"),
         col("drag_work", s.drag_work, u, "energy"),
@@ -166,6 +199,7 @@ export function profileTables(r: ProfileResponse): Table[] {
 
 export type ExportableResponse =
   | ProjectileResponse
+  | QuadraticDragResponse
   | AngleSweepResponse
   | IntegratorStudyResponse
   | SolowResponse
@@ -176,6 +210,8 @@ export function exportTables(response: ExportableResponse): Table[] {
   switch (response.model.id) {
     case "physics.projectile":
       return projectileTables(response as ProjectileResponse);
+    case "physics.projectile.quadratic_drag":
+      return quadraticDragTables(response as QuadraticDragResponse);
     case "physics.projectile.angle_sweep":
       return angleSweepTables(response as AngleSweepResponse);
     case "physics.projectile.integrators":

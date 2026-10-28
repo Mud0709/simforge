@@ -15,6 +15,7 @@ import pytest
 
 from simforge.physics.projectile import angle_sweep
 from simforge.physics.projectile.analytical import ProjectileSetup
+from tests.approx import rel_approx
 
 G = 9.80665
 GRID = list(np.linspace(0.0, 90.0, 91))
@@ -39,7 +40,7 @@ def test_vacuum_from_ground_is_optimal_at_45_degrees() -> None:
     result = angle_sweep.sweep(setup(), list(np.linspace(0.0, 90.0, 10)))
     assert 45.0 not in [p.angle_deg for p in result.points]
     assert result.best_angle_deg == pytest.approx(45.0, abs=1e-6)
-    assert result.best_range == pytest.approx(20.0**2 / G, rel=1e-12)
+    assert result.best_range == rel_approx(20.0**2 / G, rel=1e-12)
 
 
 @pytest.mark.parametrize("h", [5.0, 10.0, 50.0, 200.0])
@@ -50,17 +51,17 @@ def test_vacuum_from_height_matches_closed_form(h: float) -> None:
     expected_range = v * math.sqrt(v * v + 2 * G * h) / G
     result = angle_sweep.sweep(setup(v0=v, h=h), GRID)
     # The range is known almost exactly; the angle less so, because the peak is flat.
-    assert result.best_range == pytest.approx(expected_range, rel=1e-12)
+    assert result.best_range == rel_approx(expected_range, rel=1e-12)
     assert result.best_angle_deg == pytest.approx(expected_angle, abs=1e-5)
     assert result.vacuum_best_angle_deg == pytest.approx(expected_angle, abs=1e-12)
-    assert result.vacuum_best_range == pytest.approx(expected_range, rel=1e-14)
+    assert result.vacuum_best_range == rel_approx(expected_range, rel=1e-14)
 
 
 @pytest.mark.parametrize("angle", [15.0, 30.0, 40.0])
 def test_vacuum_complementary_angles_have_equal_range(angle: float) -> None:
     a = angle_sweep.evaluate(setup(), angle)
     b = angle_sweep.evaluate(setup(), 90.0 - angle)
-    assert a.range == pytest.approx(b.range, rel=1e-12)
+    assert a.range == rel_approx(b.range, rel=1e-12)
 
 
 def test_vacuum_peak_is_lower_than_45_degrees_when_launched_from_height() -> None:
@@ -81,7 +82,7 @@ def test_drag_lowers_the_best_angle_monotonically() -> None:
 def test_weak_drag_tends_to_vacuum_optimum() -> None:
     result = angle_sweep.sweep(setup(b=1e-6), GRID)
     assert result.best_angle_deg == pytest.approx(45.0, abs=1e-3)
-    assert result.best_range == pytest.approx(20.0**2 / G, rel=1e-5)
+    assert result.best_range == rel_approx(20.0**2 / G, rel=1e-5)
 
 
 @pytest.mark.parametrize("b", DRAGS)
@@ -111,8 +112,8 @@ def test_vacuum_sweep_points_match_textbook_formulas(angle: float, h: float) -> 
     v = 20.0
     vy = v * math.sin(math.radians(angle))
     point = angle_sweep.evaluate(setup(v0=v, h=h), angle)
-    assert point.flight_time == pytest.approx((vy + math.sqrt(vy * vy + 2 * G * h)) / G, rel=1e-13)
-    assert point.max_height == pytest.approx(h + vy * vy / (2 * G), rel=1e-13)
+    assert point.flight_time == rel_approx((vy + math.sqrt(vy * vy + 2 * G * h)) / G, rel=1e-13)
+    assert point.max_height == rel_approx(h + vy * vy / (2 * G), rel=1e-13)
 
 
 def test_drag_never_increases_the_maximum_range() -> None:
