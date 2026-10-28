@@ -7,6 +7,31 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 07:56 UTC: roadmap 2.2 (angle sweeps for both drag laws) planned by default
+- **Did:** `docs/plans/ROADMAP_2_2_PLAN.md`: self-grilled in three rounds, own defaults
+  accepted (D1-D15), 5 test-first slices. Fired on demand at the author's request.
+  Autopilot commits since your last message: 1 of 6.
+- **Usage:** 7-day 0.44 → 0.47; 5-hour 0.41 at start. One subagent, effort high, same model.
+- **Checks run:** none needed (docs only). I independently re-checked the plan's new weak-drag
+  result θ* = 45° − 6.0183°·ε (ε = (v₀/v_t)²) with my own DOP853 + bounded-minimiser script:
+  the gap to the formula fell 3.3e-4 → 8.2e-5 → 2.0e-5 as ε halved (×4 each time, i.e. the
+  next term is O(ε²)), and the range coefficient −0.783976 matched the same way.
+- **Decisions taken for you (defaults; reverse any in chat):**
+  - a new sweep model `physics.projectile.quadratic_angle_sweep`, not a drag-law option (keeps
+    every stored linear sweep replayable), on the quadratic page;
+  - best angle = grid best point refined by bounded Brent, with an accuracy *estimate*
+    (labelled, never a bound); "best angle below 45°" proved only to first order in weak drag,
+    otherwise observed;
+  - each angle reuses the 2.1 model (sweep points equal single runs by construction); a total
+    work budget, its value measured in slice 2;
+  - the existing angle-sweep panel made generic through a small adapter.
+- **Waiting for you:** nothing blocking. Still open: the two capability-map extras (the plan
+  costs them: each about one PR; drag-law comparison also needs a modelling choice).
+- **What this means for you:** 2.2 answers "how does air resistance change the best angle?",
+  with the weak-drag formula as an independent check.
+- **Learning checkpoint:** why can a perturbation formula check the solver only for weak drag?
+- **Next:** 2.2 slice 1 with `tdd`.
+
 ## 2026-10-28 06:50 UTC: PR #13 (roadmap 2.1) merged by the author's instruction; 2.2 next
 - **Did:** opened PR #13; CI first failed twice, both fixed: a speed-bound test compared
   with no rounding allowance and failed on CI's Xeon 8573C (0421e1c), and the e2e job died
