@@ -291,7 +291,7 @@ shift divided by the first-order prediction was 0.99956, 0.99459, 0.98393, 0.948
 R(45°)'s first-order residual was 7.5e-7, 7.4e-5, 6.5e-4, 6.8e-3 of v₀²/g (≈ 0.75 ε², slope
 2). At ε = 1e-4 the reference's own best angle (±1e-6°) limits the comparison, so tests use
 ε ≥ 5e-3. Default inputs (v₀ = 20 m/s, c = 0.01 kg/m, m = 1 kg) have ε = 0.41: too large for
-the first-order formula (it gives 42.54° against 42.98° computed), which the guide says.
+the first-order formula (it gives 42.55° against 42.98° computed), which the guide says.
 
 **RS4. Flatness and the stated accuracy.** Near the top, `R(θ) ≈ R* − ½K(θ − θ*)²`. If the
 computed curve is within ε_R of the true one everywhere near the top, its maximiser θ̂ has

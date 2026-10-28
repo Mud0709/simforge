@@ -7,6 +7,26 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 08:50 UTC: 2.2 slice 1, weak-drag and vacuum references
+- **Did:** RS3 helper `backend/tests/physics/weak_drag_reference.py` (first-order best angle
+  and range for weak drag, coefficients from their closed forms) and RS1 vacuum functions in
+  the new `quadratic_angle_sweep.py`; 62 tests. Plan typo fixed (42.54° → 42.55°).
+  Autopilot commits since your last message: 2 of 6.
+- **Usage:** 7-day 0.47 → 0.49; 5-hour 0.10 at start. Builder and reviewer, both effort high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1641 passed; after
+  my plan edit I re-ran the 62 new tests (passed) and ruff (clean). Playwright not run
+  (backend-only slice). Reviewer re-derived F(θ) by a different perturbation route: agrees to
+  4.4e-16; 7 mutants all caught.
+- **Decisions taken for you:** the reference helper lives in tests/ (the plan: nothing in the
+  product depends on it); the vacuum optimum is a documented copy of the linear sweep's formula
+  rather than an import (keeps the new model independent of the linear one).
+- **Waiting for you:** nothing blocking.
+- **What this means for you:** the sweep now has an exact check for weak drag before any
+  sweep code exists.
+- **Learning checkpoint:** why does the best *range* change only at first order when the best
+  *angle* shifts, i.e. why does the angle shift not change R* at first order?
+- **Next:** slice 2 (sweep core) with `tdd`.
+
 ## 2026-10-28 07:56 UTC: roadmap 2.2 (angle sweeps for both drag laws) planned by default
 - **Did:** `docs/plans/ROADMAP_2_2_PLAN.md`: self-grilled in three rounds, own defaults
   accepted (D1-D15), 5 test-first slices. Fired on demand at the author's request.

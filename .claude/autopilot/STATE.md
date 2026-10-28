@@ -26,11 +26,14 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   costs below that show as 0.
 - 2026-10-25 04:27 UTC (planning Phase 2 and 2.1, one high-effort subagent): 0.00 → 0.02.
 - 2026-10-28 07:23 UTC (planning 2.2, one high-effort subagent): 0.44 → 0.47.
+- 2026-10-28 08:27 UTC (2.2 slice 1, builder + reviewer, both high): 0.47 → 0.49.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2 planned and decided by default: `docs/plans/ROADMAP_2_2_PLAN.md` (D1-D15, 5 slices).
-Next: slice 1 (weak-drag reference helper and vacuum functions) with `tdd`.
+Roadmap 2.2: slice 1 committed (weak-drag reference RS3 in tests/, vacuum functions RS1 in
+quadratic_angle_sweep.py). Next: slice 2, the sweep core and run (grid, Brent, accuracy estimate,
+guard pre-check, work budget, aggregated checks). Use the cubic polish (or allow ~2e-6°) for the
+reference optimum, and ANGLE_COEFFICIENT_DEG, not the rounded 6.0183.
 
 ## Remainder of the current unit
 —
