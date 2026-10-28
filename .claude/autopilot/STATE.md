@@ -30,13 +30,14 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 - 2026-10-28 12:42 UTC (2.2 slice 2, builder + reviewer, both high; long measurements): 0.50 → 0.57.
   Estimated tick cost is now 0.07 (largest of the last three: 0.03, 0.02, 0.07).
 - 2026-10-28 16:26 UTC (2.2 slice 3, builder + security reviewer, both high): 0.57 → 0.64.
+- 2026-10-28 20:27 UTC (2.2 slice 4, builder + reviewer, both medium): 0.64 → 0.68.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2: slices 1-3 committed. Next: slice 4, the frontend (generic AngleSweepPanel via a
-small per-model adapter, the quadratic page, the 1.6 wiring, Vitest, Playwright incl. two
-stored-fields cases). Slice 5 (docs) must also fix the plan's D7 wording: Brent can refine
-below the first grid step; the 1 µs rule still holds there because of the drag-rate rule.
+Roadmap 2.2: slices 1-4 committed. Next: slice 5, docs (SCIENTIFIC_VALIDATION, guide Part 19,
+ARCHITECTURE decision 19, README, ROADMAP 2.2 ✅ and 🔜 to 2.3; fix the plan's D7 wording; add
+an "Amendments after building" section), then `scripts/check.sh --e2e` and a fresh review.
+Then 2.2 is complete: ask the author for the PR (6 of 6 commits will be reached).
 
 ## Remainder of the current unit
 —

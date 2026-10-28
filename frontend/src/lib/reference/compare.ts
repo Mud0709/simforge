@@ -75,6 +75,14 @@ export function inputFields(r: ModelResponse): Fields {
       n_angles: r.angles_deg.length,
     });
   }
+  if (isModelResponse(r, "physics.projectile.quadratic_angle_sweep")) {
+    // As the linear sweep, plus the solver: each point is a numerical run.
+    return flatten({
+      parameters: without(r.parameters, "launch_angle_deg"),
+      solver: r.solver,
+      n_angles: r.angles_deg.length,
+    });
+  }
   if (isModelResponse(r, "physics.projectile.integrators")) {
     return flatten({ parameters: r.parameters, dt_values: r.dt_values, methods: r.methods });
   }
@@ -121,6 +129,18 @@ export function summaryFields(r: ModelResponse): Fields {
       best_range: r.best_range,
       vacuum_best_angle_deg: r.vacuum_best_angle_deg,
       vacuum_best_range: r.vacuum_best_range,
+    };
+  }
+  if (isModelResponse(r, "physics.projectile.quadratic_angle_sweep")) {
+    // The curves, the checks and the best angle's note are shown, not stored (plan D10).
+    return {
+      best_angle_deg: r.best_angle_deg,
+      best_range: r.best_range,
+      best_angle_uncertainty_deg: r.best_angle_uncertainty_deg,
+      vacuum_best_angle_deg: r.vacuum_best_angle_deg,
+      vacuum_best_range: r.vacuum_best_range,
+      terminal_speed: r.terminal_speed,
+      n_rhs_evaluations: r.n_rhs_evaluations,
     };
   }
   if (isModelResponse(r, "physics.projectile.integrators")) {

@@ -146,6 +146,49 @@ describe("reopening a run", () => {
     expect(screen.getByLabelText(/^Drag constant c/)).toHaveValue("0.01");
   });
 
+  it("fills the quadratic-drag form from a quadratic sweep, keeping the launch angle", async () => {
+    const calls = mockApi(
+      record("physics.projectile.quadratic_angle_sweep", {
+        // As stored by the backend: no launch angle (a sweep varies it).
+        parameters: {
+          initial_speed: 16.3,
+          launch_height: 2.3,
+          mass: 0.5,
+          drag_constant: 0.0123,
+          gravity: 9.81,
+        },
+        solver: { method: "Radau", rtol: 1e-7, atol: 1e-8 },
+        n_angles: 11,
+      }),
+    );
+    openPage("/physics/projectile/quadratic-drag?run=0123456789abcdef");
+    render(<QuadraticDragLab />);
+    await screen.findByText(/Run the simulation, then sweep the launch angle/);
+    expect(screen.getByLabelText(/^Initial speed/)).toHaveValue("16.3");
+    expect(screen.getByLabelText(/^Drag constant c/)).toHaveValue("0.0123");
+    // The schema's default launch angle, 45°, stays: the sweep has none to restore.
+    expect(screen.getByLabelText(/^Launch angle/)).toHaveValue("45");
+    expect(screen.getByLabelText("Method")).toHaveValue("Radau");
+    expect(calls.filter((c) => c.startsWith("POST"))).toEqual([]);
+  });
+
+  it("refuses the other drag law's sweep on each projectile page", async () => {
+    mockApi(record("physics.projectile.angle_sweep", { parameters: {}, n_angles: 91 }));
+    openPage("/physics/projectile/quadratic-drag?run=0123456789abcdef");
+    const { unmount } = render(<QuadraticDragLab />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /physics\.projectile\.angle_sweep run/,
+    );
+    unmount();
+
+    mockApi(record("physics.projectile.quadratic_angle_sweep", { parameters: {}, n_angles: 91 }));
+    openPage("/physics/projectile?run=0123456789abcdef");
+    render(<ProjectileLab />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /physics\.projectile\.quadratic_angle_sweep run/,
+    );
+  });
+
   it("asks for the file again when the run profiled an upload", async () => {
     mockApi(
       record(
