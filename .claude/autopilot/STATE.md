@@ -27,13 +27,16 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 - 2026-10-25 04:27 UTC (planning Phase 2 and 2.1, one high-effort subagent): 0.00 → 0.02.
 - 2026-10-28 07:23 UTC (planning 2.2, one high-effort subagent): 0.44 → 0.47.
 - 2026-10-28 08:27 UTC (2.2 slice 1, builder + reviewer, both high): 0.47 → 0.49.
+- 2026-10-28 12:42 UTC (2.2 slice 2, builder + reviewer, both high; long measurements): 0.50 → 0.57.
+  Estimated tick cost is now 0.07 (largest of the last three: 0.03, 0.02, 0.07).
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2: slice 1 committed (weak-drag reference RS3 in tests/, vacuum functions RS1 in
-quadratic_angle_sweep.py). Next: slice 2, the sweep core and run (grid, Brent, accuracy estimate,
-guard pre-check, work budget, aggregated checks). Use the cubic polish (or allow ~2e-6°) for the
-reference optimum, and ANGLE_COEFFICIENT_DEG, not the rounded 6.0183.
+Roadmap 2.2: slices 1-2 committed. Next: slice 3, the API (schemas, route, ModelEntry,
+tolerances incl. the rule for u derived by last-bit emulation, registry, union, corners test,
+golden run, `make api-types`, `/security-review`). Do NOT expose max_rhs_evaluations in the API.
+Open points from the slice 2 review: peak count on an exactly flat top (0 with ties);
+`interior_peaks` is informational yet has a threshold.
 
 ## Remainder of the current unit
 —
