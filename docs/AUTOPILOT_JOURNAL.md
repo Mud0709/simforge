@@ -7,6 +7,28 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 13:50 UTC: 2.2 slice 2, the quadratic angle sweep core
+- **Did:** `quadratic_angle_sweep.py`: grid of 2.1 runs, bounded-Brent refinement (the grid
+  point kept if better), accuracy estimate u (labelled an estimate), peak count, stiffness-guard
+  pre-check at every angle, a work budget of 3e5 RHS evaluations, aggregated checks. 87 sweep
+  tests. Autopilot commits since your last message: 3 of 6.
+- **Usage:** 7-day 0.50 → 0.57 (the most expensive tick so far: two long measurement runs);
+  5-hour 0.00 at start. Builder and reviewer, both effort high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1689 passed; I
+  re-ran the 87 sweep tests (8.6 s), ruff and mypy: clean. Playwright not run (backend only).
+- **Decisions taken for you:** budget 3e5 evaluations, measured on 540 sweeps: admits every
+  method at the 2.1 defaults and keeps the slowest refusal near 11 s, under the website's 30 s
+  proxy timeout (refuses about half of Radau sweeps at default tolerance with 91 angles: use
+  fewer angles or an explicit method). Reverse by changing MAX_SWEEP_RHS_EVALUATIONS.
+- **Review fixes:** two tests made deterministic (the grid-point fallback, a single failing run
+  failing the aggregate), a test cache bug, one claim relabelled as observed; test time
+  19.8 s → 8 s.
+- **Waiting for you:** nothing blocking.
+- **What this means for you:** the sweep works and is checked against exact vacuum answers, the
+  weak-drag formula, single 2.1 runs and an independent integration.
+- **Learning checkpoint:** why is u (~0.002°) so much larger than the measured error (~3e-6°)?
+- **Next:** slice 3 (API) with `tdd`.
+
 ## 2026-10-28 08:50 UTC: 2.2 slice 1, weak-drag and vacuum references
 - **Did:** RS3 helper `backend/tests/physics/weak_drag_reference.py` (first-order best angle
   and range for weak drag, coefficients from their closed forms) and RS1 vacuum functions in
