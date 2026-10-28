@@ -381,7 +381,10 @@ def test_wrong_coupling_passes_every_one_dimensional_reference() -> None:
     assert rel_err(-fall.vy[-1], 10.0) < 1e-8
     two_d = make_setup(v0=100.0, angle=30.0, h=10.0, v_t=20.0)
     sol = solve(two_d)
-    assert np.all(np.hypot(sol.vx, sol.vy) <= qr.speed_bound(100.0, two_d.terminal_speed))
+    # At launch the speed equals the bound; hypot of the rounded components can exceed it by
+    # an ulp or two on another CPU (CI's Xeon 8573C did), so allow 8 eps, far below any bug.
+    bound = qr.speed_bound(100.0, two_d.terminal_speed)
+    assert np.all(np.hypot(sol.vx, sol.vy) <= bound * (1 + 8 * np.finfo(float).eps))
     assert sol.flight_time < qr.flight_time_bound(
         100.0, two_d.launch_angle_rad, 10.0, two_d.terminal_speed, G
     )
