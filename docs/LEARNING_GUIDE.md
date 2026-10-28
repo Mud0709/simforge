@@ -3784,7 +3784,7 @@ def mutant(monkeypatch: pytest.MonkeyPatch) -> Callable[..., tuple[float, float]
     return wrong_coupling
 ```
 
-<!-- src: backend/tests/physics/test_quadratic_numerical.py:390-402 -->
+<!-- src: backend/tests/physics/test_quadratic_numerical.py:393-405 -->
 ```python
 @pytest.mark.usefixtures("mutant")
 @pytest.mark.parametrize(("v0", "angle", "h", "v_t"), TWO_D[:3])
