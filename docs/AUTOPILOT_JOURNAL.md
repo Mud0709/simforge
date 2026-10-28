@@ -7,6 +7,27 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-28 20:50 UTC: 2.2 slice 4, the angle-sweep panel on the quadratic-drag page
+- **Did:** a generic sweep panel with a per-model adapter (the linear sweep unchanged in
+  behaviour); the quadratic sweep panel (best angle "± … (estimate)", drag-free curve and best
+  angle "(exact)", peak count, a number-of-angles field, checks over every run under
+  Validation); wiring into export, compare, overlay and reopen; two stored-fields e2e cases;
+  two guide excerpts resynced. Autopilot commits since your last message: 5 of 6.
+- **Usage:** 7-day 0.64 → 0.68; 5-hour 0.00 at start. Builder and reviewer, both medium.
+- **Checks run:** the reviewer's `scripts/check.sh --e2e`: exit 0; pytest 1751, Vitest 229,
+  Playwright 26. Guide excerpts ALL OK after resync.
+- **Review fixes:** the Validation note no longer assumes the server's check order (found by
+  id, with a test); the chosen number of angles now survives a new simulation (it reset to 91);
+  two reopen tests added.
+- **Decisions taken for you:** the sweep's checks get their own region under Validation; the
+  number-of-angles field exists on the quadratic page only.
+- **Left open (cosmetic):** "Maximum range" has no "(numerical)" tag on either sweep panel (the
+  shared panel's wording, unchanged from the linear page); notes shown twice under Validation.
+- **What this means for you:** you can now sweep launch angles for quadratic drag in the app.
+- **Learning checkpoint:** why does the sweep show the drag-free curve dashed next to the
+  numerical one?
+- **Next:** slice 5 (docs), the last of 2.2.
+
 ## 2026-10-28 17:12 UTC: 2.2 slice 3, the angle-sweep API
 - **Did:** POST /api/v1/physics/projectile/quadratic-drag/angle-sweep for the new model
   `physics.projectile.quadratic_angle_sweep` v1.0.0: schemas, ModelEntry with one tolerance rule

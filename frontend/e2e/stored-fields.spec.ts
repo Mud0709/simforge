@@ -58,6 +58,20 @@ const CASES: [string, string, Record<string, unknown>][] = [
     { parameters: { drag_coefficient: 0.23, launch_angle_deg: 17 }, n_angles: 23 },
   ],
   [
+    "physics.projectile.quadratic_angle_sweep",
+    "/physics/projectile/quadratic-drag/angle-sweep",
+    {
+      parameters: { drag_constant: 0.0191, launch_angle_deg: 21, launch_height: 2.3 },
+      solver: { method: "RK45", rtol: 1e-9, atol: 1e-9 },
+      n_angles: 15,
+    },
+  ],
+  [
+    "physics.projectile.quadratic_angle_sweep (vacuum: nulls)",
+    "/physics/projectile/quadratic-drag/angle-sweep",
+    { parameters: { drag_constant: 0, initial_speed: 9.7 }, n_angles: 10 },
+  ],
+  [
     "economy.solow",
     "/economy/solow/simulate",
     { policy: { policy_year: 7, new_savings_rate: 0.27 }, horizon_years: 33 },

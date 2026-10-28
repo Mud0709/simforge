@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 
 import {
   ApiError,
+  type QuadraticAngleSweepResponse,
   type QuadraticDragResponse,
   type SolverSettings,
   simulateQuadraticDrag,
@@ -15,6 +16,7 @@ import {
   toQuadraticDragParameters,
 } from "@/lib/projectile/quadraticFields";
 import { NumberField } from "./NumberField";
+import { QuadraticAngleSweepPanel, QuadraticSweepValidation } from "./QuadraticAngleSweepPanel";
 import {
   QuadraticDragAssumptions,
   QuadraticDragCharts,
@@ -32,8 +34,12 @@ const ALL_FIELDS: readonly NumericFieldSpec[] = [...QUADRATIC_PARAMETER_FIELDS, 
 const INITIAL_VALUES: FormValues = Object.fromEntries(
   ALL_FIELDS.map((f) => [f.name, String(f.default)]),
 );
-// A reference run is overlaid only on runs of the same model (roadmap 1.6, decision 17).
-const PAGE_MODELS = ["physics.projectile.quadratic_drag"] as const;
+// The page shows the simulation and, under its results, the launch-angle sweep (roadmap 2.2,
+// D2). A reference run is overlaid only on runs of the same model (roadmap 1.6, decision 17).
+const PAGE_MODELS = [
+  "physics.projectile.quadratic_drag",
+  "physics.projectile.quadratic_angle_sweep",
+] as const;
 
 export function QuadraticDragLab() {
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
@@ -46,11 +52,22 @@ export function QuadraticDragLab() {
   const [resultKey, setResultKey] = useState<string | null>(null);
   const currentKey = JSON.stringify([values, method]);
   const referenceRun = useReferenceRun();
+  // The sweep on screen, with the simulation run it was made from (its checks go under
+  // Validation, and only while that run is the one shown).
+  const [sweep, setSweep] = useState<{
+    forRun: string;
+    response: QuadraticAngleSweepResponse;
+  } | null>(null);
+  // The sweep's number of angles, kept here because the panel remounts with each simulation:
+  // a reopened sweep's, or the last one typed; undefined until then (the contract's default).
+  const [sweepAngles, setSweepAngles] = useState<string | undefined>(undefined);
 
+  // A sweep's stored parameters have no launch angle (it does not use one): keep the current.
   const reopened = useReopenedRun(PAGE_MODELS, (run) => {
     const inputs = run.inputs as {
       parameters: Record<string, number>;
       solver: { method: SolverSettings["method"]; rtol: number; atol: number };
+      n_angles?: number;
     };
     const stored: Record<string, number | undefined> = {
       ...inputs.parameters,
@@ -63,6 +80,10 @@ export function QuadraticDragLab() {
       ),
     );
     setMethod(inputs.solver.method);
+    if (run.model_id === "physics.projectile.quadratic_angle_sweep") {
+      if (inputs.n_angles !== undefined) setSweepAngles(String(inputs.n_angles));
+      return "Run the simulation, then sweep the launch angle.";
+    }
   });
 
   const errors = Object.fromEntries(
@@ -159,9 +180,34 @@ export function QuadraticDragLab() {
       visualisation={
         result && <QuadraticDragCharts result={result} reference={referenceRun.response} />
       }
-      results={result && <QuadraticDragSummary result={result} />}
+      results={
+        result && (
+          <>
+            <QuadraticDragSummary result={result} />
+            {/* Keyed by run, so a new simulation clears any earlier sweep. */}
+            <QuadraticAngleSweepPanel
+              key={result.metadata.run_id}
+              parameters={result.parameters}
+              solver={result.solver}
+              referenceRun={referenceRun}
+              initialAngles={sweepAngles}
+              onAnglesChange={setSweepAngles}
+              onSweep={(response) => setSweep({ forRun: result.metadata.run_id, response })}
+            />
+          </>
+        )
+      }
       assumptions={result && <QuadraticDragAssumptions result={result} />}
-      validation={result && <QuadraticDragValidation result={result} />}
+      validation={
+        result && (
+          <>
+            <QuadraticDragValidation result={result} />
+            {sweep?.forRun === result.metadata.run_id && (
+              <QuadraticSweepValidation sweep={sweep.response} />
+            )}
+          </>
+        )
+      }
       placeholders={{
         visualisation:
           "Set the parameters and run the simulation. The trajectory (with the drag-free one), " +

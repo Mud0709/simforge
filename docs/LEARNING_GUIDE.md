@@ -1999,7 +1999,7 @@ what's allowed.
 
 ### [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
 
-<!-- src: frontend/src/lib/api/client.ts:73-88 -->
+<!-- src: frontend/src/lib/api/client.ts:75-90 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -3142,7 +3142,7 @@ For each summary value, with reference value `a` and new value `b`, the table sh
 - the **change** `b − a`, in the value's own units;
 - the **relative change** `(b − a) / |a|`, as a percentage.
 
-<!-- src: frontend/src/lib/reference/compare.ts:210-228 -->
+<!-- src: frontend/src/lib/reference/compare.ts:230-248 -->
 ```ts
 export function summaryDiff(reference: ModelResponse, current: ModelResponse): SummaryRow[] {
   const [a, b] = [summaryFields(reference), summaryFields(current)];

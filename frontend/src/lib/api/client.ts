@@ -8,6 +8,8 @@ export type ProjectileResponse = Schemas["ProjectileResponse"];
 export type QuadraticDragParameters = Schemas["QuadraticDragParameters"];
 export type QuadraticDragRequest = Schemas["QuadraticDragRequest"];
 export type QuadraticDragResponse = Schemas["QuadraticDragResponse"];
+export type QuadraticAngleSweepRequest = Schemas["QuadraticAngleSweepRequest"];
+export type QuadraticAngleSweepResponse = Schemas["QuadraticAngleSweepResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
 export type ReplayRequest = Schemas["ReplayRequest"];
 export type RunLabels = Schemas["RunLabels"];
@@ -100,6 +102,15 @@ export function simulateQuadraticDrag(body: QuadraticDragRequest): Promise<Quadr
 
 export function runAngleSweep(body: AngleSweepRequest): Promise<AngleSweepResponse> {
   return request("/physics/projectile/angle-sweep", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function runQuadraticAngleSweep(
+  body: QuadraticAngleSweepRequest,
+): Promise<QuadraticAngleSweepResponse> {
+  return request("/physics/projectile/quadratic-drag/angle-sweep", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<IntegratorStudyResponse> {
