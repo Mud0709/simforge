@@ -9,6 +9,7 @@ import type {
   IntegratorStudyResponse,
   ProfileResponse,
   ProjectileResponse,
+  QuadraticAngleSweepResponse,
   QuadraticDragResponse,
   SolowResponse,
 } from "@/lib/api/client";
@@ -93,6 +94,24 @@ export function angleSweepTables(r: AngleSweepResponse): Table[] {
         col("range", r.ranges, u, "range"),
         col("flight_time", r.flight_times, u, "flight_time"),
         col("max_height", r.max_heights, u, "max_height"),
+      ],
+    },
+  ];
+}
+
+/** As the linear sweep, plus the exact drag-free range at the same angles. */
+export function quadraticAngleSweepTables(r: QuadraticAngleSweepResponse): Table[] {
+  const u = r.units;
+  return [
+    {
+      name: "range_vs_angle",
+      label: "range against angle",
+      columns: [
+        col("angle", r.angles_deg, u, "angle"),
+        col("range", r.ranges, u, "range"),
+        col("flight_time", r.flight_times, u, "flight_time"),
+        col("max_height", r.max_heights, u, "max_height"),
+        col("vacuum_range", r.vacuum_ranges, u, "vacuum_range"),
       ],
     },
   ];
@@ -201,6 +220,7 @@ export type ExportableResponse =
   | ProjectileResponse
   | QuadraticDragResponse
   | AngleSweepResponse
+  | QuadraticAngleSweepResponse
   | IntegratorStudyResponse
   | SolowResponse
   | ProfileResponse;
@@ -214,6 +234,8 @@ export function exportTables(response: ExportableResponse): Table[] {
       return quadraticDragTables(response as QuadraticDragResponse);
     case "physics.projectile.angle_sweep":
       return angleSweepTables(response as AngleSweepResponse);
+    case "physics.projectile.quadratic_angle_sweep":
+      return quadraticAngleSweepTables(response as QuadraticAngleSweepResponse);
     case "physics.projectile.integrators":
       return integratorTables(response as IntegratorStudyResponse);
     case "economy.solow":

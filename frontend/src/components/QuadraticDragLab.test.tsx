@@ -2,12 +2,18 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
-import type { QuadraticDragResponse } from "@/lib/api/client";
+import type { QuadraticAngleSweepResponse, QuadraticDragResponse } from "@/lib/api/client";
 import { QuadraticDragLab } from "./QuadraticDragLab";
 
 // Plotly needs a real browser; the E2E test draws the charts. Here each chart's traces are
 // recorded by title, so a test can read what would be drawn.
-type Trace = { name?: string; x?: number[]; y?: number[]; line?: { dash?: string } };
+type Trace = {
+  name?: string;
+  x?: number[];
+  y?: number[];
+  mode?: string;
+  line?: { dash?: string };
+};
 const charts = new Map<string, Trace[]>();
 vi.mock("./PlotlyChart", () => ({
   PlotlyChart: ({ title, data }: { title: string; data: Trace[] }) => {
@@ -137,6 +143,69 @@ const VERTICAL_VACUUM = {
     check("hodograph_invariant", "Hodograph invariant (not available)", 0, null),
   ],
 } as unknown as QuadraticDragResponse;
+
+/** A hand-made sweep response (values typed by hand, shaped like the backend's). */
+const sweepCheck = (
+  id: string,
+  label: string,
+  value: number,
+  threshold: number | null,
+  note: string,
+) => ({
+  id,
+  label,
+  value,
+  threshold,
+  passed: threshold === null ? null : value <= threshold,
+  kind: threshold === null ? "informational" : "numerical_diagnostic",
+  note,
+});
+const SWEEP_BASE = {
+  model: {
+    id: "physics.projectile.quadratic_angle_sweep",
+    version: "1.0.0",
+    name: "Range versus launch angle (quadratic drag)",
+    description: "",
+  },
+  parameters: BASE.parameters,
+  solver: BASE.solver,
+  units: { angle: "deg", range: "m", flight_time: "s", max_height: "m", vacuum_range: "m" },
+  assumptions: [],
+  angles_deg: [0, 45, 90],
+  ranges: [0, 31.3, 0],
+  flight_times: [0, 2.7, 3.9],
+  max_heights: [0, 9.1, 17.5],
+  vacuum_ranges: [0, 40.7886, 0],
+  best_angle_deg: 42.97583,
+  best_range: 31.399867,
+  best_angle_uncertainty_deg: 0.0019559,
+  best_angle_note: "Estimate, not a bound: u = 2 sqrt(eps_R / K).",
+  vacuum_best_angle_deg: 45,
+  vacuum_best_range: 40.788649,
+  terminal_speed: 31.3,
+  n_runs: 18,
+  n_rhs_evaluations: 3024,
+  checks: [
+    sweepCheck(
+      "energy_balance",
+      "Energy balance KE + PE + W = E0",
+      6.1e-11,
+      1.05e-6,
+      "Exactly 0 for the true motion. Across the sweep: 18 runs, 0 failed; the largest value / threshold is at 60°.",
+    ),
+    sweepCheck(
+      "interior_peaks",
+      "Interior peaks on the grid",
+      1,
+      1,
+      "Grid points whose range beats both neighbours.",
+    ),
+    sweepCheck("sweep_cost", "Runs and solver evaluations", 3024, null, "18 runs used 3,024."),
+  ],
+  method_note: "numerical: every range is one full run of the quadratic-drag model.",
+  metadata: { ...BASE.metadata, run_id: "qs-run-1" },
+};
+const SWEEP = SWEEP_BASE as unknown as QuadraticAngleSweepResponse;
 
 function mockFetch(status: number, body: unknown) {
   const fetchMock = vi.fn().mockResolvedValue(
@@ -370,5 +439,153 @@ describe("QuadraticDragLab", () => {
     expect(alert).toHaveTextContent("use atol <= 0.2");
     expect(alert).not.toHaveTextContent("Value error");
     expect(region("Results").queryByText("Range (numerical)")).not.toBeInTheDocument();
+  });
+});
+
+describe("QuadraticDragLab: the launch-angle sweep", () => {
+  async function sweep(body: unknown = SWEEP, angles = "13", status = 200) {
+    render(<QuadraticDragLab />);
+    await run();
+    const results = region("Results");
+    const n = results.getByLabelText(/^Number of angles/);
+    await userEvent.clear(n);
+    await userEvent.type(n, angles);
+    const fetchMock = mockFetch(status, body);
+    await userEvent.click(results.getByRole("button", { name: "Sweep launch angle" }));
+    return fetchMock;
+  }
+
+  it("sweeps with the run's parameters and solver and the chosen number of angles", async () => {
+    const fetchMock = await sweep();
+    expect(await screen.findByTestId("best-angle")).toBeInTheDocument();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("/api/v1/physics/projectile/quadratic-drag/angle-sweep");
+    expect(JSON.parse(init.body)).toEqual({
+      parameters: BASE.parameters,
+      solver: BASE.solver,
+      n_angles: 13,
+    });
+  });
+
+  it("shows the best angle with its estimate, the best range, the vacuum optimum and the peaks", async () => {
+    await sweep();
+    // 42.97583 to 2 decimals; u = 0.0019559 to 1 significant figure.
+    expect(await screen.findByTestId("best-angle")).toHaveTextContent("42.98° ± 0.002° (estimate)");
+    expect(screen.getByText("Best angle (numerical)")).toBeInTheDocument();
+    expect(screen.getByTestId("best-range")).toHaveTextContent("31.3999 m");
+    expect(screen.getByTestId("vacuum-angle")).toHaveTextContent("45.00° · 40.7886 m");
+    expect(screen.getByText("Best angle in a vacuum (formula)")).toBeInTheDocument();
+    expect(screen.getByTestId("peak-count")).toHaveTextContent("1");
+    expect(screen.getByText(/Estimate, not a bound/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download range against angle (CSV)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("draws the range with the exact drag-free curve dashed and both best angles marked", async () => {
+    await sweep();
+    await screen.findByTestId("best-angle");
+    const traces = charts.get("Range against launch angle")!;
+    expect(traces.map((t) => t.name)).toEqual([
+      "Range (numerical, DOP853)",
+      "No drag (exact)",
+      "Best angle (numerical)",
+      "Best angle, no drag (exact)",
+    ]);
+    expect(traces[0]!.y).toEqual([0, 31.3, 0]);
+    expect(traces[1]!.y).toEqual([0, 40.7886, 0]);
+    expect(traces[1]!.line?.dash).toBe("dash");
+    expect(traces[2]!.x).toEqual([42.97583]);
+    expect(traces[2]!.y).toEqual([31.399867]);
+    expect(traces[3]!.x).toEqual([45]);
+    expect(traces[3]!.y).toEqual([40.788649]);
+  });
+
+  it("puts the sweep's aggregated checks under Validation, naming the worst angle", async () => {
+    await sweep();
+    await screen.findByTestId("best-angle");
+    const checks = within(
+      region("Validation").getByRole("region", { name: "Angle sweep: checks over every run" }),
+    );
+    expect(checks.getByTestId("check-energy_balance")).toHaveTextContent("Pass");
+    expect(checks.getByTestId("check-interior_peaks")).toHaveTextContent("Pass");
+    expect(checks.getByText(/largest value \/ threshold is at 60°/)).toBeInTheDocument();
+    expect(checks.getByText("qs-run-1")).toBeInTheDocument();
+  });
+
+  it("names the sweep's own checks by id, whatever order the server sends them in", async () => {
+    const [energy, peaks, cost] = SWEEP_BASE.checks;
+    await sweep({ ...SWEEP_BASE, checks: [cost, peaks, energy] });
+    await screen.findByTestId("best-angle");
+    const checks = within(
+      region("Validation").getByRole("region", { name: "Angle sweep: checks over every run" }),
+    );
+    expect(
+      checks.getByText(
+        /The sweep's own checks are Interior peaks on the grid and Runs and solver evaluations\./,
+      ),
+    ).toBeInTheDocument();
+    expect(checks.queryByText(/last two rows/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the chosen number of angles for the next simulation's sweep", async () => {
+    await sweep();
+    await screen.findByTestId("best-angle");
+    mockFetch(200, { ...BASE, metadata: { ...BASE.metadata, run_id: "q-run-2" } });
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    await screen.findByText(/Showing run q-run-2/);
+    expect(region("Results").getByLabelText(/^Number of angles/)).toHaveValue("13");
+  });
+
+  it("says when the best angle has no estimate (an edge), without a ± value", async () => {
+    await sweep({
+      ...SWEEP_BASE,
+      best_angle_deg: 90,
+      best_angle_uncertainty_deg: null,
+      best_angle_note: "No estimate: the best grid point is at an edge of the sweep.",
+    });
+    expect(await screen.findByTestId("best-angle")).toHaveTextContent(/^90\.00°$/);
+    expect(screen.getByText(/best grid point is at an edge/)).toBeInTheDocument();
+  });
+
+  it("shows the server's refusals (the work budget, the stiffness guard) as messages", async () => {
+    const budget =
+      "The sweep needed more than 300,000 right-hand-side evaluations (300,555 after 83 of " +
+      "361 angles); use fewer angles, a looser tolerance, or DOP853 where the drag-time bound allows.";
+    await sweep({ detail: budget }, "13", 422);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/^The sweep needed more than 300,000/);
+    expect(alert).toHaveTextContent("use fewer angles");
+    expect(screen.queryByTestId("best-angle")).not.toBeInTheDocument();
+  });
+
+  it("checks the number of angles before calling the API", async () => {
+    render(<QuadraticDragLab />);
+    await run();
+    const results = region("Results");
+    const n = results.getByLabelText(/^Number of angles/);
+    // The contract's default, 91 (1-degree steps).
+    expect(n).toHaveValue("91");
+    await userEvent.clear(n);
+    await userEvent.type(n, "9");
+    const fetchMock = mockFetch(200, SWEEP);
+    await userEvent.click(results.getByRole("button", { name: "Sweep launch angle" }));
+    expect(results.getByText("Must be ≥ 10")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("can pin the sweep as the reference run, and a new simulation clears it", async () => {
+    await sweep();
+    await screen.findByTestId("best-angle");
+    await userEvent.click(screen.getByRole("button", { name: "Pin sweep as reference run" }));
+    expect(screen.getByText("This sweep is the reference run.")).toBeInTheDocument();
+
+    mockFetch(200, { ...BASE, metadata: { ...BASE.metadata, run_id: "q-run-2" } });
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    await screen.findByText(/Showing run q-run-2/);
+    expect(screen.queryByTestId("best-angle")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Angle sweep: checks over every run" }),
+    ).not.toBeInTheDocument();
   });
 });

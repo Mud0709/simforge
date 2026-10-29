@@ -2088,6 +2088,200 @@
         "title": "ProjectileSeries",
         "type": "object"
       },
+      "QuadraticAngleSweepRequest": {
+        "additionalProperties": false,
+        "description": "Every input rule is the 2.1 request's, checked once at the sweep's smallest flown angle\n(plan D7): the drag-rate and atol rules do not depend on the angle, and the drag-free\nflight time grows with it, so the 1-microsecond rule then holds at every grid angle. The\nstiffness guard and the work budget are the sweep's own (checked when it runs); the\nbudget is a server limit, not a request field.",
+        "properties": {
+          "n_angles": {
+            "default": 91,
+            "description": "Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).",
+            "maximum": 361.0,
+            "minimum": 10.0,
+            "title": "N Angles",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/QuadraticDragParameters",
+            "description": "Projectile settings. launch_angle_deg is ignored: the sweep varies it."
+          },
+          "save_experiment": {
+            "default": true,
+            "description": "Record inputs and summary metrics in the experiment log.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          }
+        },
+        "title": "QuadraticAngleSweepRequest",
+        "type": "object"
+      },
+      "QuadraticAngleSweepResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "angles_deg": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Angles Deg",
+            "type": "array"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "best_angle_deg": {
+            "description": "Numerical: the best grid point refined by a bounded Brent search.",
+            "title": "Best Angle Deg",
+            "type": "number"
+          },
+          "best_angle_note": {
+            "title": "Best Angle Note",
+            "type": "string"
+          },
+          "best_angle_uncertainty_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimate, not a bound: u = 2 sqrt(eps_R / K), eps_R = 10 (rtol R + atol), K = |R''| from the grid's second difference. Null, with the reason in best_angle_note, when the best grid point is at an edge or the curve is not bent downwards there.",
+            "title": "Best Angle Uncertainty Deg"
+          },
+          "best_range": {
+            "description": "m, numerical: the range at best_angle_deg",
+            "title": "Best Range",
+            "type": "number"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "flight_times": {
+            "description": "s, numerical",
+            "items": {
+              "type": "number"
+            },
+            "title": "Flight Times",
+            "type": "array"
+          },
+          "max_heights": {
+            "description": "m, numerical",
+            "items": {
+              "type": "number"
+            },
+            "title": "Max Heights",
+            "type": "array"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "n_rhs_evaluations": {
+            "description": "Right-hand-side evaluations of the whole sweep.",
+            "title": "N Rhs Evaluations",
+            "type": "integer"
+          },
+          "n_runs": {
+            "description": "Quadratic-drag runs: the flown grid angles plus Brent's.",
+            "title": "N Runs",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/QuadraticDragParameters"
+          },
+          "ranges": {
+            "description": "m, numerical: each a single quadratic-drag run at that angle (exactly 0 at 90 degrees, and at 0 degrees from the ground, which is no flight)",
+            "items": {
+              "type": "number"
+            },
+            "title": "Ranges",
+            "type": "array"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          },
+          "terminal_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "sqrt(m g / c) in m/s (exact). Null in vacuum, where it is infinite.",
+            "title": "Terminal Speed"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          },
+          "vacuum_best_angle_deg": {
+            "description": "Exact best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h).",
+            "title": "Vacuum Best Angle Deg",
+            "type": "number"
+          },
+          "vacuum_best_range": {
+            "description": "m, exact: (v0 / g) sqrt(v0^2 + 2 g h)",
+            "title": "Vacuum Best Range",
+            "type": "number"
+          },
+          "vacuum_ranges": {
+            "description": "m, exact: the same angles with no drag",
+            "items": {
+              "type": "number"
+            },
+            "title": "Vacuum Ranges",
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "solver",
+          "units",
+          "assumptions",
+          "angles_deg",
+          "ranges",
+          "flight_times",
+          "max_heights",
+          "vacuum_ranges",
+          "best_angle_deg",
+          "best_range",
+          "best_angle_uncertainty_deg",
+          "best_angle_note",
+          "vacuum_best_angle_deg",
+          "vacuum_best_range",
+          "terminal_speed",
+          "n_runs",
+          "n_rhs_evaluations",
+          "checks",
+          "method_note",
+          "metadata"
+        ],
+        "title": "QuadraticAngleSweepResponse",
+        "type": "object"
+      },
       "QuadraticDiagnostics": {
         "additionalProperties": false,
         "properties": {
@@ -2576,6 +2770,9 @@
               },
               {
                 "$ref": "#/components/schemas/QuadraticDragResponse"
+              },
+              {
+                "$ref": "#/components/schemas/QuadraticAngleSweepResponse"
               }
             ],
             "title": "Response"
@@ -4022,6 +4219,47 @@
           }
         },
         "summary": "Integrator Study",
+        "tags": [
+          "physics"
+        ]
+      }
+    },
+    "/api/v1/physics/projectile/quadratic-drag/angle-sweep": {
+      "post": {
+        "operationId": "quadratic_drag_angle_sweep_api_v1_physics_projectile_quadratic_drag_angle_sweep_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuadraticAngleSweepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuadraticAngleSweepResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Quadratic Drag Angle Sweep",
         "tags": [
           "physics"
         ]

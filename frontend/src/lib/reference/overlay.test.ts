@@ -35,6 +35,14 @@ const QUADRATIC = {
   },
 } as unknown as ModelResponse;
 
+const QUADRATIC_SWEEP = {
+  model: { id: "physics.projectile.quadratic_angle_sweep", version: "1.0.0" },
+  units: { angle: "deg", range: "m", vacuum_range: "m" },
+  angles_deg: [0, 45, 90],
+  ranges: [0, 31.25, 0],
+  vacuum_ranges: [0, 40.79, 0],
+} as unknown as ModelResponse;
+
 const PROFILE = { model: { id: "quant.dataset_profile", version: "1.0.0" } } as ModelResponse;
 
 describe("reference series", () => {
@@ -76,6 +84,24 @@ describe("reference series", () => {
     expect(overlayFor(QUADRATIC, "physics.projectile.quadratic_drag").speed).toHaveLength(1);
     // Never over the linear model's charts (decision 17: one model only).
     expect(overlayFor(QUADRATIC, "physics.projectile")).toEqual({});
+  });
+
+  it("quadratic angle sweep: the computed range curve, under the range chart", () => {
+    // The computed curve only: the drag-free curve depends on the physical inputs alone.
+    expect(referenceSeries(QUADRATIC_SWEEP)).toEqual({
+      range: [
+        {
+          label: "range",
+          x: { name: "angle", unit: "deg", values: [0, 45, 90] },
+          y: { name: "range", unit: "m", values: [0, 31.25, 0] },
+        },
+      ],
+    });
+    expect(
+      overlayFor(QUADRATIC_SWEEP, "physics.projectile.quadratic_angle_sweep").range,
+    ).toHaveLength(1);
+    // Never over the linear sweep's chart (decision 17: one model only).
+    expect(overlayFor(QUADRATIC_SWEEP, "physics.projectile.angle_sweep")).toEqual({});
   });
 
   it("has no curves for a dataset profile", () => {

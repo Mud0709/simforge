@@ -41,7 +41,11 @@ simforge/
 │   │   │   │                            hodograph invariant, proved bounds (roadmap 2.1)
 │   │   │   ├── quadratic_numerical.py quadratic drag ODE solve (state x, y, vx, vy, W)
 │   │   │   ├── quadratic_model.py     guard, references, diagnostics, per-run checks
-│   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules
+│   │   │   ├── quadratic_angle_sweep.py quadratic-drag angle sweep: a grid of 2.1 runs,
+│   │   │   │                            Brent refinement, accuracy estimate, work budget,
+│   │   │   │                            aggregated checks (roadmap 2.2)
+│   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules (both
+│   │   │                                quadratic models)
 │   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
@@ -63,7 +67,10 @@ simforge/
 │   │                                /physics/projectile/quadratic-drag, /economy/solow,
 │   │                                /quant/datasets, /experiments
 │   ├── src/components/              Workspace (shared layout, used by every model page),
-│   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel,
+│   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel
+│   │                                (the shared SweepPanel and a per-model SweepAdapter; the
+│   │                                linear adapter), QuadraticAngleSweepPanel (the quadratic
+│   │                                adapter and its Validation block),
 │   │                                IntegratorLab/Results, QuadraticDragLab/Results,
 │   │                                QuantLab/Results, ChecksTable,
 │   │                                NumberField, PlotlyChart, ExperimentLog; the reference run
@@ -392,6 +399,39 @@ page and four modules (`quadratic_reference.py`, `quadratic_numerical.py`,
   and the replay tolerances for the same residuals use the same accuracy scales, with rtol
   floored at 1e-10.
 
+### 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
+`physics.projectile.quadratic_angle_sweep` v1.0.0 lives in `quadratic_angle_sweep.py`, with
+its request and response appended to `quadratic_schemas.py` and its route and `ModelEntry`
+appended to `api/routes/physics.py`; the plan and its amendments are in
+`docs/plans/ROADMAP_2_2_PLAN.md`. The choices that shape the code:
+
+- **A new model, for the reason of decision 18.** A `drag_law` field on the linear sweep's
+  request would change the input hash of every stored linear sweep, and a quadratic sweep
+  needs inputs the linear one lacks (`drag_constant` in kg/m, the solver settings). The linear
+  model, its sweep and the 2.1 model keep their versions and digests; the golden test shows it.
+- **Each point is a call to the 2.1 model, not a new solver.** The sweep calls
+  `quadratic_model.run` per angle, so every point is bit-identical to a single 2.1 run on the
+  same machine and gets the same guard, events and checks; no 2.1 code changed. The 2.1
+  checks are aggregated per check id over every run (passed only if all passed; the run
+  closest to its limit is reported with its angle). The ~25 lines of grid-and-Brent logic are
+  repeated from `angle_sweep.py` rather than shared, until generic sweeps (roadmap 2.5) give a
+  shared layer more than two users.
+- **A work budget in right-hand-side evaluations.** A sweep is ~100 numerical solves, so it is
+  capped at 3e5 evaluations in total (a server constant, not a request field), checked after
+  each run, and refused with a 422 that says what to change. A count is reproducible on one
+  machine; a timeout is not. The value was measured against the Next.js proxy's 30 s timeout.
+  The stiffness guard runs at every grid angle before any solve, and the 2.1 input rules are
+  checked once, at the sweep's smallest flown angle.
+- **An accuracy estimate, labelled as one.** The response carries `best_angle_uncertainty_deg`
+  (`u = 2√(ε_R/K)`, `null` with a reason at an edge), and its replay rule is derived from how
+  `u` is computed; the best angle replays within `max(1e-5°, u)`.
+- **One panel, two adapters.** `AngleSweepPanel.tsx` holds a generic `SweepPanel` and a
+  `SweepAdapter` interface (run function, labels, optional drag-free curve, extra stats, an
+  optional angles field); the linear page's adapter keeps its behaviour, and the quadratic
+  page's (`QuadraticAngleSweepPanel.tsx`) adds the estimate, the dashed drag-free curve, the
+  peak count and a number-of-angles field. No cross-model overlay (decision 17 stays
+  same-model only).
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -402,6 +442,7 @@ page and four modules (`quadratic_reference.py`, `quadratic_numerical.py`,
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
 | POST | `/api/v1/physics/projectile/quadratic-drag/simulate` | Quadratic drag: adaptive SciPy solution with the exact vertical flight, vacuum comparison, diagnostics and per-run checks |
+| POST | `/api/v1/physics/projectile/quadratic-drag/angle-sweep` | Range against launch angle with quadratic drag (one 2.1 run per angle), the refined best angle with an accuracy estimate, the exact drag-free curve and optimum, and checks over every run |
 | GET | `/api/v1/economy/solow/info` | Model metadata |
 | POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |

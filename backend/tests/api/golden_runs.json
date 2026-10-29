@@ -305,5 +305,40 @@
     "range": 35.324005803589955
    }
   }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_angles": 31,
+   "parameters": {
+    "drag_constant": 0.02,
+    "gravity": 9.80665,
+    "initial_speed": 20.0,
+    "launch_height": 2.0,
+    "mass": 1.0
+   },
+   "solver": {
+    "atol": 1e-10,
+    "method": "RK45",
+    "rtol": 1e-10
+   }
+  },
+  "model_id": "physics.projectile.quadratic_angle_sweep",
+  "model_version": "1.0.0",
+  "output_digest": "67e97f85646f58ea8ae240c7f48f8d0d76491312174c32e571f400b5473cee01",
+  "summary": {
+   "best_angle_deg": 39.40473489594955,
+   "best_angle_uncertainty_deg": 0.0021910266746024087,
+   "best_range": 27.47408883863581,
+   "n_rhs_evaluations": 11334,
+   "terminal_speed": 22.143452756966337,
+   "vacuum_best_angle_deg": 43.660470360402165,
+   "vacuum_best_range": 42.74188159279543
+  }
  }
 ]

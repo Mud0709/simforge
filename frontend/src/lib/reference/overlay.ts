@@ -102,6 +102,19 @@ export function referenceSeries(r: ModelResponse): ChartSeries {
       ],
     };
   }
+  if (isModelResponse(r, "physics.projectile.quadratic_angle_sweep")) {
+    // The computed curve only: the drag-free one depends on the physical inputs alone.
+    const u = r.units;
+    return {
+      range: [
+        {
+          label: "range",
+          x: axis("angle", r.angles_deg, u, "angle"),
+          y: axis("range", r.ranges, u, "range"),
+        },
+      ],
+    };
+  }
   if (isModelResponse(r, "physics.projectile.integrators")) {
     const u = r.units;
     const errors = (q: "position" | "velocity"): NamedSeries[] =>
