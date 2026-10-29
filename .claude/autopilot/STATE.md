@@ -17,6 +17,11 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 - weekly cap near reset: 0.90. Applies when the 7-day window resets within 12 hours (what is
   left at the reset is lost anyway).
 - five-hour cap: 0.50. Above this, the author is probably working: skip.
+- daily allowance: 0.08 of the 7-day window per day (set by the author on 2026-10-29). Days
+  run 24 h from 02:00 UTC; the week starts Sunday 02:00 UTC (the seven-day reset). Counts only
+  the autopilot's measured tick costs dated that day; the weekly cap applies on top.
+- notifications: one push per day (summary of the previous day) and one whenever the
+  autopilot stops for the author or reaches the daily allowance. Last daily summary: none yet.
 - starting estimate of a tick's cost: 0.03 of the 7-day window. Replaced by the largest of
   the last three measurements once there are three.
 

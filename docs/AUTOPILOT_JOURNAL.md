@@ -7,6 +7,22 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-29 11:40 UTC: daily allowance and push notifications (author's request)
+- **Why:** from 07:23 on 28 Oct to 00:45 on 29 Oct the ticks used 0.44 → 0.74 of the week
+  (30%). The only spending rule was the weekly cap (0.76), which stops the autopilot at the top
+  of the week but does not pace it, and the author was not notified.
+- **Did:** a daily allowance of 8% of the week (the author's choice), days from Sunday 02:00 UTC
+  (the seven-day reset), counting only the autopilot's own measured spend; push notifications
+  once a day (yesterday's summary) and whenever it stops for the author or hits the daily limit
+  (the author's choice). Skill step 0b and 7, STATE "Budget", CLAUDE.md updated. Opened PR #14
+  (roadmap 2.2) at the author's request; merging once its 4 checks pass.
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** the day boundary at 02:00 UTC (same hour as the weekly reset).
+- **What this means for you:** at most 8% a day goes to the autopilot (about 2 build runs), so a
+  week's autopilot use is bounded by 56% and still by the 76% ceiling.
+- **Learning checkpoint:** why does a cap on the *total* not limit the *rate* of spending?
+- **Next:** merge PR #14 when green; the autopilot resumes 2.3 when the author says so.
+
 ## 2026-10-29 00:45 UTC: 2.2 slice 5, docs; roadmap 2.2 complete; paused for your review
 - **Did:** plan amendments B1-B10; SCIENTIFIC_VALIDATION section for the quadratic angle sweep;
   learning-guide Part 19; ARCHITECTURE decision 19; README; ROADMAP 2.2 ✅ and 🔜 on 2.3.
