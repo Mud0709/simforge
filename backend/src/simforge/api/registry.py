@@ -12,6 +12,7 @@ from simforge.api.routes.physics import (
     ANGLE_SWEEP,
     INTEGRATOR_STUDY,
     PROJECTILE,
+    QUADRATIC_ANGLE_SWEEP,
     QUADRATIC_DRAG,
 )
 from simforge.api.routes.quant import DATASET_PROFILE
@@ -24,6 +25,7 @@ ENTRIES: tuple[ModelEntry[Any, Any, Any], ...] = (
     SOLOW,
     DATASET_PROFILE,
     QUADRATIC_DRAG,
+    QUADRATIC_ANGLE_SWEEP,
 )
 
 _BY_ID = {entry.info.id: entry for entry in ENTRIES}

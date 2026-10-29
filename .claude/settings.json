@@ -11,5 +11,46 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "data@synced": false,
+    "productivity@synced": false,
+    "cowork-plugin-management@synced": false,
+    "learn-with-coursera@synced": false,
+    "humanize-kit@synced": false
+  },
+  "skillOverrides": {
+    "anthropic-skills:built-in-browser": "off",
+    "built-in-browser": "off",
+    "anthropic-skills:computer-use": "off",
+    "computer-use": "off",
+    "anthropic-skills:deep-research": "off",
+    "deep-research": "off",
+    "anthropic-skills:doc-coauthoring": "off",
+    "doc-coauthoring": "off",
+    "anthropic-skills:docs": "off",
+    "docs": "off",
+    "anthropic-skills:docx": "off",
+    "docx": "off",
+    "anthropic-skills:google-workspace": "off",
+    "google-workspace": "off",
+    "anthropic-skills:ib-ia-builder": "off",
+    "ib-ia-builder": "off",
+    "anthropic-skills:import-memory": "off",
+    "import-memory": "off",
+    "anthropic-skills:learn": "off",
+    "learn": "off",
+    "anthropic-skills:morning": "off",
+    "morning": "off",
+    "anthropic-skills:my-writing-style": "off",
+    "my-writing-style": "off",
+    "anthropic-skills:pdf": "off",
+    "pdf": "off",
+    "anthropic-skills:pptx": "off",
+    "pptx": "off",
+    "anthropic-skills:setup-writing-style": "off",
+    "setup-writing-style": "off",
+    "anthropic-skills:xlsx": "off",
+    "xlsx": "off"
   }
 }

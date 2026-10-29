@@ -19,6 +19,7 @@ from simforge.api.routes.physics import (
     ANGLE_SWEEP,
     INTEGRATOR_STUDY,
     PROJECTILE,
+    QUADRATIC_ANGLE_SWEEP,
     QUADRATIC_DRAG,
 )
 from simforge.api.routes.quant import DATASET_PROFILE
@@ -27,7 +28,10 @@ from simforge.core.schemas import StrictModel
 from simforge.economy.solow.schemas import SolowResponse
 from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
 from simforge.physics.projectile.integrator_schemas import IntegratorStudyResponse
-from simforge.physics.projectile.quadratic_schemas import QuadraticDragResponse
+from simforge.physics.projectile.quadratic_schemas import (
+    QuadraticAngleSweepResponse,
+    QuadraticDragResponse,
+)
 from simforge.physics.projectile.schemas import AngleSweepResponse, ProjectileResponse
 from simforge.quant.profiling.schemas import ProfileResponse
 
@@ -41,14 +45,15 @@ def _model_id(value: Any) -> str | None:
 
 
 # The responses share no literal field to discriminate on, and adding one would change every
-# output digest, so the union is told apart by ``model.id`` (one schema checked, not six).
+# output digest, so the union is told apart by ``model.id`` (one schema checked, not seven).
 ModelResponse = Annotated[
     Annotated[ProjectileResponse, Tag(PROJECTILE.info.id)]
     | Annotated[IntegratorStudyResponse, Tag(INTEGRATOR_STUDY.info.id)]
     | Annotated[AngleSweepResponse, Tag(ANGLE_SWEEP.info.id)]
     | Annotated[SolowResponse, Tag(SOLOW.info.id)]
     | Annotated[ProfileResponse, Tag(DATASET_PROFILE.info.id)]
-    | Annotated[QuadraticDragResponse, Tag(QUADRATIC_DRAG.info.id)],
+    | Annotated[QuadraticDragResponse, Tag(QUADRATIC_DRAG.info.id)]
+    | Annotated[QuadraticAngleSweepResponse, Tag(QUADRATIC_ANGLE_SWEEP.info.id)],
     Discriminator(_model_id),
 ]
 

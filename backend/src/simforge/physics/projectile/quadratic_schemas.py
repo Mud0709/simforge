@@ -32,7 +32,8 @@ from __future__ import annotations
 import math
 from typing import Self
 
-from pydantic import Field, model_validator
+import numpy as np
+from pydantic import Field, ValidationError, model_validator
 
 from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel, ValidationCheck
 from simforge.physics.projectile import quadratic_reference as qr
@@ -237,4 +238,96 @@ class QuadraticDragResponse(StrictModel):
     diagnostics: QuadraticDiagnostics
     checks: list[ValidationCheck]
     series: QuadraticDragSeries
+    metadata: RunMetadata
+
+
+# --- Angle sweep (roadmap 2.2, plan D7, D8, D10) ------------------------------------------
+
+
+class QuadraticAngleSweepRequest(StrictModel):
+    """Every input rule is the 2.1 request's, checked once at the sweep's smallest flown angle
+    (plan D7): the drag-rate and atol rules do not depend on the angle, and the drag-free
+    flight time grows with it, so the 1-microsecond rule then holds at every grid angle. The
+    stiffness guard and the work budget are the sweep's own (checked when it runs); the
+    budget is a server limit, not a request field."""
+
+    parameters: QuadraticDragParameters = Field(
+        default_factory=QuadraticDragParameters,
+        description="Projectile settings. launch_angle_deg is ignored: the sweep varies it.",
+    )
+    solver: SolverSettings = Field(default_factory=SolverSettings)
+    n_angles: int = Field(
+        default=91,
+        ge=10,
+        le=361,
+        description="Number of evenly spaced angles from 0 to 90 degrees (91 = 1-degree steps).",
+    )
+    save_experiment: bool = Field(
+        default=True, description="Record inputs and summary metrics in the experiment log."
+    )
+
+    def smallest_flown_angle(self) -> float:
+        """0 degrees from a height; from the ground (where 0 degrees is no flight) the first
+        grid step, taken from the sweep's own grid so it is the very angle that is run."""
+        if self.parameters.launch_height > 0:
+            return 0.0
+        return float(np.linspace(0.0, 90.0, self.n_angles)[1])
+
+    @model_validator(mode="after")
+    def _valid_at_the_smallest_angle(self) -> Self:
+        # From the ground, Brent's refinement can fly angles *below* the first grid step when
+        # the best grid point is that step (seen at v0/v_t = 1e5 on a 10-angle grid: best grid
+        # point 10°, a refinement run at 4.7°), which the argument above does not cover. The
+        # drag-rate rule does: from the ground the drag-free flight time at angle theta is
+        # 2 v0 sin(theta) / g, so one under a microsecond at theta >= 1° needs v0/g < 2.9e-5 s,
+        # and then (v0/v_t)^2 = (kappa v0)(v0/g) <= 1e4 x 2.9e-5 = 0.29: weak drag, whose best
+        # angle is near 45° (observed: 43.0° at 0.41), far from the low peak that sends Brent
+        # below the first step (observed, not proved: the lowest best angle from the ground
+        # at the strongest drag allowed, v0/v_t = 1e5, was 9.6°).
+        angle = self.smallest_flown_angle()
+        at = self.parameters.model_copy(update={"launch_angle_deg": angle})
+        try:
+            QuadraticDragRequest(parameters=at, solver=self.solver, save_experiment=False)
+        except ValidationError as exc:
+            reasons = "; ".join(str(e.get("ctx", {}).get("error", e["msg"])) for e in exc.errors())
+            raise ValueError(f"at the sweep's smallest angle {angle:.10g}°: {reasons}") from None
+        return self
+
+
+class QuadraticAngleSweepResponse(StrictModel):
+    model: ModelInfo
+    parameters: QuadraticDragParameters
+    solver: SolverSettings
+    units: dict[str, str]
+    assumptions: list[Assumption]
+    angles_deg: list[float]
+    ranges: list[float] = Field(
+        description="m, numerical: each a single quadratic-drag run at that angle (exactly 0 at "
+        "90 degrees, and at 0 degrees from the ground, which is no flight)"
+    )
+    flight_times: list[float] = Field(description="s, numerical")
+    max_heights: list[float] = Field(description="m, numerical")
+    vacuum_ranges: list[float] = Field(description="m, exact: the same angles with no drag")
+    best_angle_deg: float = Field(
+        description="Numerical: the best grid point refined by a bounded Brent search."
+    )
+    best_range: float = Field(description="m, numerical: the range at best_angle_deg")
+    best_angle_uncertainty_deg: float | None = Field(
+        description="Estimate, not a bound: u = 2 sqrt(eps_R / K), eps_R = 10 (rtol R + atol), "
+        "K = |R''| from the grid's second difference. Null, with the reason in "
+        "best_angle_note, when the best grid point is at an edge or the curve is not bent "
+        "downwards there."
+    )
+    best_angle_note: str
+    vacuum_best_angle_deg: float = Field(
+        description="Exact best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h)."
+    )
+    vacuum_best_range: float = Field(description="m, exact: (v0 / g) sqrt(v0^2 + 2 g h)")
+    terminal_speed: float | None = Field(
+        description="sqrt(m g / c) in m/s (exact). Null in vacuum, where it is infinite."
+    )
+    n_runs: int = Field(description="Quadratic-drag runs: the flown grid angles plus Brent's.")
+    n_rhs_evaluations: int = Field(description="Right-hand-side evaluations of the whole sweep.")
+    checks: list[ValidationCheck]
+    method_note: str
     metadata: RunMetadata

@@ -7,6 +7,179 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-29 11:40 UTC: daily allowance and push notifications (author's request)
+- **Why:** from 07:23 on 28 Oct to 00:45 on 29 Oct the ticks used 0.44 → 0.74 of the week
+  (30%). The only spending rule was the weekly cap (0.76), which stops the autopilot at the top
+  of the week but does not pace it, and the author was not notified.
+- **Did:** a daily allowance of 8% of the week (the author's choice), days from Sunday 02:00 UTC
+  (the seven-day reset), counting only the autopilot's own measured spend; push notifications
+  once a day (yesterday's summary) and whenever it stops for the author or hits the daily limit
+  (the author's choice). Skill step 0b and 7, STATE "Budget", CLAUDE.md updated. Opened PR #14
+  (roadmap 2.2) at the author's request; merging once its 4 checks pass.
+- **Checks run:** none needed (protocol and docs only).
+- **Decisions taken for you:** the day boundary at 02:00 UTC (same hour as the weekly reset).
+- **What this means for you:** at most 8% a day goes to the autopilot (about 2 build runs), so a
+  week's autopilot use is bounded by 56% and still by the 76% ceiling.
+- **Learning checkpoint:** why does a cap on the *total* not limit the *rate* of spending?
+- **Next:** merge PR #14 when green; the autopilot resumes 2.3 when the author says so.
+
+## 2026-10-29 00:45 UTC: 2.2 slice 5, docs; roadmap 2.2 complete; paused for your review
+- **Did:** plan amendments B1-B10; SCIENTIFIC_VALIDATION section for the quadratic angle sweep;
+  learning-guide Part 19; ARCHITECTURE decision 19; README; ROADMAP 2.2 ✅ and 🔜 on 2.3.
+  Autopilot commits since your last message: 6 of 6, so the autopilot is paused
+  (`waiting-review`) and the 4-hourly task disabled.
+- **Usage:** 7-day 0.69 → 0.74 (cap 0.76); 5-hour 0.21 at start. Docs writer and reviewer,
+  both medium.
+- **Checks run:** `scripts/check.sh --e2e` on the final code: exit 0 (pytest 1751, Vitest 229,
+  Playwright 26). Guide excerpts: ALL OK after the docs review.
+- **Docs review:** nothing false in substance; four overstated details fixed (e.g. "u at least
+  ~600× the error" recomputed as ~2300× on the seven current test cases).
+- **Decisions taken for you:** none beyond the writing.
+- **Waiting for you:** a PR for 2.2; "resume autopilot" to continue with 2.3.
+- **What this means for you:** 2.2 is done end to end: model, API, page, docs.
+- **Learning checkpoint:** what does the dashed drag-free curve on the sweep chart let you see?
+- **Next:** after the merge, 2.3 (simple, damped and driven oscillators) by default.
+
+## 2026-10-28 20:50 UTC: 2.2 slice 4, the angle-sweep panel on the quadratic-drag page
+- **Did:** a generic sweep panel with a per-model adapter (the linear sweep unchanged in
+  behaviour); the quadratic sweep panel (best angle "± … (estimate)", drag-free curve and best
+  angle "(exact)", peak count, a number-of-angles field, checks over every run under
+  Validation); wiring into export, compare, overlay and reopen; two stored-fields e2e cases;
+  two guide excerpts resynced. Autopilot commits since your last message: 5 of 6.
+- **Usage:** 7-day 0.64 → 0.68; 5-hour 0.00 at start. Builder and reviewer, both medium.
+- **Checks run:** the reviewer's `scripts/check.sh --e2e`: exit 0; pytest 1751, Vitest 229,
+  Playwright 26. Guide excerpts ALL OK after resync.
+- **Review fixes:** the Validation note no longer assumes the server's check order (found by
+  id, with a test); the chosen number of angles now survives a new simulation (it reset to 91);
+  two reopen tests added.
+- **Decisions taken for you:** the sweep's checks get their own region under Validation; the
+  number-of-angles field exists on the quadratic page only.
+- **Left open (cosmetic):** "Maximum range" has no "(numerical)" tag on either sweep panel (the
+  shared panel's wording, unchanged from the linear page); notes shown twice under Validation.
+- **What this means for you:** you can now sweep launch angles for quadratic drag in the app.
+- **Learning checkpoint:** why does the sweep show the drag-free curve dashed next to the
+  numerical one?
+- **Next:** slice 5 (docs), the last of 2.2.
+
+## 2026-10-28 17:12 UTC: 2.2 slice 3, the angle-sweep API
+- **Did:** POST /api/v1/physics/projectile/quadratic-drag/angle-sweep for the new model
+  `physics.projectile.quadratic_angle_sweep` v1.0.0: schemas, ModelEntry with one tolerance rule
+  per stored field (the rule for the accuracy estimate u derived and checked by last-bit
+  emulation, 892 reruns), registry, response union, corners test, golden run (additions only),
+  regenerated API types; four guide excerpts resynced. Autopilot commits since your last
+  message: 4 of 6.
+- **Usage:** 7-day 0.57 → 0.64; 5-hour 0.39 at start. Builder and security reviewer, both high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1751 passed in
+  157 s (was 255 s before the reviewer's test trimming); guide excerpts ALL OK after resync.
+  Playwright not run (no frontend change yet).
+- **Security review:** no bug; hostile inputs (subnormals, 1e30 angles, hidden budget field,
+  2 MB bodies, deep nesting) all refused cleanly; the budget cannot be set from a request.
+  Deployment risk recorded in STATE (no rate limit).
+- **Decisions taken for you:** the corners test skips cases equivalent to kept ones (mass with
+  no drag; equal κ), and keeps one real budget refusal (RK45) instead of all of them; the
+  slowest-case timing (~11 s) now rests on the slice 2 measurement, not on every push.
+- **Known limitation:** replay compares `n_rhs_evaluations` exactly; on another CPU it changed
+  in 479 of 892 emulated reruns, so replays elsewhere will often say "differs" on that alone.
+- **What this means for you:** the sweep is usable through the API and replayable.
+- **Learning checkpoint:** why does an exact step count make a poor replay check across CPUs?
+- **Next:** slice 4 (frontend) with `tdd`.
+
+## 2026-10-28 13:50 UTC: 2.2 slice 2, the quadratic angle sweep core
+- **Did:** `quadratic_angle_sweep.py`: grid of 2.1 runs, bounded-Brent refinement (the grid
+  point kept if better), accuracy estimate u (labelled an estimate), peak count, stiffness-guard
+  pre-check at every angle, a work budget of 3e5 RHS evaluations, aggregated checks. 87 sweep
+  tests. Autopilot commits since your last message: 3 of 6.
+- **Usage:** 7-day 0.50 → 0.57 (the most expensive tick so far: two long measurement runs);
+  5-hour 0.00 at start. Builder and reviewer, both effort high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1689 passed; I
+  re-ran the 87 sweep tests (8.6 s), ruff and mypy: clean. Playwright not run (backend only).
+- **Decisions taken for you:** budget 3e5 evaluations, measured on 540 sweeps: admits every
+  method at the 2.1 defaults and keeps the slowest refusal near 11 s, under the website's 30 s
+  proxy timeout (refuses about half of Radau sweeps at default tolerance with 91 angles: use
+  fewer angles or an explicit method). Reverse by changing MAX_SWEEP_RHS_EVALUATIONS.
+- **Review fixes:** two tests made deterministic (the grid-point fallback, a single failing run
+  failing the aggregate), a test cache bug, one claim relabelled as observed; test time
+  19.8 s → 8 s.
+- **Waiting for you:** nothing blocking.
+- **What this means for you:** the sweep works and is checked against exact vacuum answers, the
+  weak-drag formula, single 2.1 runs and an independent integration.
+- **Learning checkpoint:** why is u (~0.002°) so much larger than the measured error (~3e-6°)?
+- **Next:** slice 3 (API) with `tdd`.
+
+## 2026-10-28 08:50 UTC: 2.2 slice 1, weak-drag and vacuum references
+- **Did:** RS3 helper `backend/tests/physics/weak_drag_reference.py` (first-order best angle
+  and range for weak drag, coefficients from their closed forms) and RS1 vacuum functions in
+  the new `quadratic_angle_sweep.py`; 62 tests. Plan typo fixed (42.54° → 42.55°).
+  Autopilot commits since your last message: 2 of 6.
+- **Usage:** 7-day 0.47 → 0.49; 5-hour 0.10 at start. Builder and reviewer, both effort high.
+- **Checks run:** the reviewer's `scripts/check.sh` (no e2e): exit 0, pytest 1641 passed; after
+  my plan edit I re-ran the 62 new tests (passed) and ruff (clean). Playwright not run
+  (backend-only slice). Reviewer re-derived F(θ) by a different perturbation route: agrees to
+  4.4e-16; 7 mutants all caught.
+- **Decisions taken for you:** the reference helper lives in tests/ (the plan: nothing in the
+  product depends on it); the vacuum optimum is a documented copy of the linear sweep's formula
+  rather than an import (keeps the new model independent of the linear one).
+- **Waiting for you:** nothing blocking.
+- **What this means for you:** the sweep now has an exact check for weak drag before any
+  sweep code exists.
+- **Learning checkpoint:** why does the best *range* change only at first order when the best
+  *angle* shifts, i.e. why does the angle shift not change R* at first order?
+- **Next:** slice 2 (sweep core) with `tdd`.
+
+## 2026-10-28 07:56 UTC: roadmap 2.2 (angle sweeps for both drag laws) planned by default
+- **Did:** `docs/plans/ROADMAP_2_2_PLAN.md`: self-grilled in three rounds, own defaults
+  accepted (D1-D15), 5 test-first slices. Fired on demand at the author's request.
+  Autopilot commits since your last message: 1 of 6.
+- **Usage:** 7-day 0.44 → 0.47; 5-hour 0.41 at start. One subagent, effort high, same model.
+- **Checks run:** none needed (docs only). I independently re-checked the plan's new weak-drag
+  result θ* = 45° − 6.0183°·ε (ε = (v₀/v_t)²) with my own DOP853 + bounded-minimiser script:
+  the gap to the formula fell 3.3e-4 → 8.2e-5 → 2.0e-5 as ε halved (×4 each time, i.e. the
+  next term is O(ε²)), and the range coefficient −0.783976 matched the same way.
+- **Decisions taken for you (defaults; reverse any in chat):**
+  - a new sweep model `physics.projectile.quadratic_angle_sweep`, not a drag-law option (keeps
+    every stored linear sweep replayable), on the quadratic page;
+  - best angle = grid best point refined by bounded Brent, with an accuracy *estimate*
+    (labelled, never a bound); "best angle below 45°" proved only to first order in weak drag,
+    otherwise observed;
+  - each angle reuses the 2.1 model (sweep points equal single runs by construction); a total
+    work budget, its value measured in slice 2;
+  - the existing angle-sweep panel made generic through a small adapter.
+- **Waiting for you:** nothing blocking. Still open: the two capability-map extras (the plan
+  costs them: each about one PR; drag-law comparison also needs a modelling choice).
+- **What this means for you:** 2.2 answers "how does air resistance change the best angle?",
+  with the weak-drag formula as an independent check.
+- **Learning checkpoint:** why can a perturbation formula check the solver only for weak drag?
+- **Next:** 2.2 slice 1 with `tdd`.
+
+## 2026-10-28 06:50 UTC: PR #13 (roadmap 2.1) merged by the author's instruction; 2.2 next
+- **Did:** opened PR #13; CI first failed twice, both fixed: a speed-bound test compared
+  with no rounding allowance and failed on CI's Xeon 8573C (0421e1c), and the e2e job died
+  before any test because ubuntu-latest moved to 26.04, which Playwright 1.56.1 refuses
+  (pinned to ubuntu-24.04 by the author's choice, 13ec4fd). All 4 checks green on 13ec4fd;
+  merged as 646e996. Autopilot resumed for 2.2.
+- **Checks run:** GitHub CI on 13ec4fd: backend, frontend, API contract, end-to-end all
+  success. Locally before that: `scripts/check.sh --e2e` exit 0.
+- **Decisions taken for you:** none beyond the author's CI choice.
+- **Draft learning-log entry for PR #13 (add on your approval):**
+  ```
+  ## Roadmap 2.1: projectile motion with quadratic drag
+  - **Merged:** PR #13, `646e996` (2026-10-28).
+  - **What it does:** a new model and page for air resistance F = −c|v|v, with no exact 2-D
+    solution, checked against the exact vertical rise (tan) and fall (tanh), terminal speed
+    √(mg/c), the c → 0 limit, an energy balance and the hodograph invariant.
+  - **Key concepts:** validating without an exact answer; a wrong force law passes the 1-D
+    references but fails energy and the invariant; the drag time S = ∫κ|v| dt as the solver's
+    real cost; last-bit CPU differences need written tolerances.
+  - **Decisions and trade-offs:** a new model, not an option (keeps old runs replayable);
+    the guard redesigned after measuring the planned one over-refuse 193 of 1007 runs;
+    measured input rules (atol ≤ 1% of the slowest speed; flight ≥ 1 µs).
+  - **Revisit:** why exact step counts in replay can differ between CPUs.
+  - **Next:** 2.2, angle sweeps for both drag laws.
+  ```
+- **What this means for you:** Phase 2 has its first validated model on `main`.
+- **Learning checkpoint:** why did a test that passed here fail on CI's CPU at t = 0?
+- **Next:** plan 2.2 by default (`grilling`), then build it (`tdd`).
+
 ## 2026-10-27 ~13:30 UTC: roadmap 2.1 complete (built in chat); autopilot paused
 - **Did:** slice 4, the page /physics/projectile/quadratic-drag (5a31773); slice 5, docs
   (plan amendments A1-A11, SCIENTIFIC_VALIDATION, guide Part 18, ARCHITECTURE decision 18,

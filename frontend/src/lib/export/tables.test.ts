@@ -3,6 +3,7 @@ import type {
   IntegratorStudyResponse,
   ProfileResponse,
   ProjectileResponse,
+  QuadraticAngleSweepResponse,
   QuadraticDragResponse,
   SolowResponse,
 } from "@/lib/api/client";
@@ -113,6 +114,34 @@ describe("exportTables", () => {
       "angle [deg],range [m],flight_time [s],max_height [m]",
       "0,0,0,0",
     ]);
+  });
+
+  it("quadratic angle sweep: range, flight time, height and the drag-free range against angle", () => {
+    const response = {
+      model: { id: "physics.projectile.quadratic_angle_sweep" },
+      metadata,
+      // Copied by hand from UNITS in backend/.../quadratic_angle_sweep.py.
+      units: {
+        angle: "deg",
+        range: "m",
+        flight_time: "s",
+        max_height: "m",
+        vacuum_range: "m",
+        best_angle_uncertainty: "deg",
+      },
+      angles_deg: [0, 45, 90],
+      ranges: [0, 31.25, 0],
+      flight_times: [0, 2.7, 3.9],
+      max_heights: [0, 9.1, 17.5],
+      vacuum_ranges: [0, 40.79, 0],
+    } as unknown as QuadraticAngleSweepResponse;
+
+    const tables = exportTables(response);
+    expect(tables.map((t) => t.name)).toEqual(["range_vs_angle"]);
+    const lines = toCsv(tables[0]!).split("\r\n");
+    expect(lines[0]).toBe("angle [deg],range [m],flight_time [s],max_height [m],vacuum_range [m]");
+    expect(lines[1]).toBe("0,0,0,0,0");
+    expect(lines[2]).toBe("45,31.25,2.7,9.1,40.79");
   });
 
   it("integrator study: every run of each method, and the plotted trajectories", () => {

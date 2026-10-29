@@ -282,6 +282,27 @@ describe("input diff", () => {
     ]);
   });
 
+  it("quadratic angle sweep: parameters without the launch angle, the solver and n_angles", () => {
+    // As the backend's QUADRATIC_ANGLE_SWEEP entry stores them (api/routes/physics.py).
+    const sweep = (angle: number, n: number) =>
+      as({
+        model: { id: "physics.projectile.quadratic_angle_sweep", version: "1.0.0", name: "S" },
+        parameters: { initial_speed: 20, launch_angle_deg: angle, drag_constant: 0.01 },
+        solver: { method: "Radau", rtol: 1e-8, atol: 1e-9 },
+        angles_deg: Array.from({ length: n }, (_, i) => (90 * i) / (n - 1)),
+        metadata: meta("s"),
+      });
+    expect(inputFields(sweep(30, 11))).toEqual({
+      "parameters.initial_speed": 20,
+      "parameters.drag_constant": 0.01,
+      "solver.method": "Radau",
+      "solver.rtol": 1e-8,
+      "solver.atol": 1e-9,
+      n_angles: 11,
+    });
+    expect(inputDiff(sweep(30, 11), sweep(60, 11))).toEqual([]);
+  });
+
   it("compares list inputs (step sizes, methods) as whole values", () => {
     const study = (dt: number[]) =>
       as({
@@ -397,6 +418,38 @@ describe("summary fields of the physics models, as their run records store them"
       "solver.atol": 1e-9,
       n_samples: 3,
     });
+  });
+
+  it("quadratic angle sweep: the stored headline values, nulls kept in a vacuum", () => {
+    const sweep = (u: number | null, vT: number | null) =>
+      as({
+        model: { id: "physics.projectile.quadratic_angle_sweep", version: "1.0.0", name: "S" },
+        parameters: {},
+        solver: { method: "DOP853", rtol: 1e-10, atol: 1e-10 },
+        angles_deg: [0, 90],
+        best_angle_deg: 42.98,
+        best_range: 31.4,
+        best_angle_uncertainty_deg: u,
+        best_angle_note: "not stored",
+        vacuum_best_angle_deg: 45,
+        vacuum_best_range: 40.79,
+        terminal_speed: vT,
+        n_runs: 18,
+        n_rhs_evaluations: 3024,
+        metadata: meta("s"),
+      });
+    expect(summaryFields(sweep(0.002, 31.3))).toEqual({
+      best_angle_deg: 42.98,
+      best_range: 31.4,
+      best_angle_uncertainty_deg: 0.002,
+      vacuum_best_angle_deg: 45,
+      vacuum_best_range: 40.79,
+      terminal_speed: 31.3,
+      n_rhs_evaluations: 3024,
+    });
+    const vacuum = summaryFields(sweep(null, null));
+    expect(vacuum.best_angle_uncertainty_deg).toBeNull();
+    expect(vacuum.terminal_speed).toBeNull();
   });
 
   it("angle sweep: the best angle and range, with and without drag", () => {

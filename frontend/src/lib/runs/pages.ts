@@ -5,6 +5,8 @@ const PAGES: Record<string, string> = {
   "physics.projectile.angle_sweep": "/physics/projectile",
   "physics.projectile.integrators": "/physics/projectile/integrators",
   "physics.projectile.quadratic_drag": "/physics/projectile/quadratic-drag",
+  // Each drag law's sweep starts from its own page's parameters (plan D2).
+  "physics.projectile.quadratic_angle_sweep": "/physics/projectile/quadratic-drag",
   "economy.solow": "/economy/solow",
   "quant.dataset_profile": "/quant/datasets",
 };

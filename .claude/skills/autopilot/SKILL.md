@@ -48,6 +48,14 @@ cost something. So each tick first decides whether it may run at all.
    - either window's status is not `allowed`.
    A skipped tick changes no files and replies with one line, e.g. "Autopilot: skipped,
    7-day at 72% (cap 70%, resets 2026-10-25 02:00 UTC)." It does not journal or commit.
+   - **the daily allowance would be exceeded** (added 2026-10-29 by the author, after one day
+     of ticks used 30% of the week): the author's week starts at the seven-day window's reset
+     (Sunday 02:00 UTC); each day runs 24 h from 02:00 UTC. The autopilot's own spend today is
+     the sum of the "Measured tick costs" in STATE dated within the current day. Skip if
+     spend today + the estimated tick cost > the daily allowance in STATE. This counts only
+     the autopilot's spend, so the author's own use never blocks it; the weekly cap still
+     applies on top. A tick skipped by this rule sends the daily-limit push (step 7) once per
+     day.
 4. Otherwise note the seven-day utilisation as "before", run the tick, read it again at the
    end as "after", and add the difference to "Measured tick costs" in STATE. The estimated
    tick cost is the largest of the last three measurements (the starting estimate until
@@ -193,3 +201,13 @@ The author reads these replies, so they follow `CLAUDE.md`'s format, like any ot
 - **Recommended skill for the next step:** the skill, why, and how to use it.
 A tick that only skips or waits still gives the easy summary and the recommended skill, in a
 few lines. The journal holds the full record; the reply never contradicts it.
+
+**Push notifications (the author asked for them: they do not read every reply).** Use the
+`PushNotification` tool (one line, under 200 characters, leading with what to act on):
+- **Once a day:** on the first tick of each day (02:00 UTC boundary), send a summary of the
+  previous day: what was built (step and slices), the autopilot's spend that day and the 7-day
+  total, and what is next. Record the date sent in STATE ("Last daily summary").
+- **Whenever it stops for the author:** status set to `blocked`, `paused` or `waiting-review`,
+  or the daily allowance reached (once per day). Say why and what the author should do.
+Nothing else: no push for routine progress. A "not sent" result is fine (the author was at
+the terminal).

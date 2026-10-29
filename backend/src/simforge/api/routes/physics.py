@@ -11,6 +11,7 @@ from simforge.core import formatting as fmt
 from simforge.core.schemas import ModelInfo, RunMetadata
 from simforge.physics.projectile import integrator_model
 from simforge.physics.projectile import model as projectile
+from simforge.physics.projectile import quadratic_angle_sweep as qas
 from simforge.physics.projectile import quadratic_model as quadratic
 from simforge.physics.projectile.integrator_schemas import (
     IntegratorStudyRequest,
@@ -18,6 +19,8 @@ from simforge.physics.projectile.integrator_schemas import (
 )
 from simforge.physics.projectile.quadratic_numerical import QuadraticSetup
 from simforge.physics.projectile.quadratic_schemas import (
+    QuadraticAngleSweepRequest,
+    QuadraticAngleSweepResponse,
     QuadraticDiagnostics,
     QuadraticDragParameters,
     QuadraticDragRequest,
@@ -551,3 +554,183 @@ async def simulate_quadratic_drag(
     request: QuadraticDragRequest, repo: Repository
 ) -> QuadraticDragResponse:
     return await execute(QUADRATIC_DRAG, request, repo, save=request.save_experiment)
+
+
+# --- Quadratic-drag angle sweep (roadmap 2.2) -----------------------------------------------
+
+
+def _quadratic_sweep_run(
+    request: QuadraticAngleSweepRequest,
+) -> qas.QuadraticAngleSweepComputation:
+    setup = _quadratic_setup(request.parameters)  # its launch angle is ignored by the sweep
+    return qas.run_angle_sweep(setup, request.solver, request.n_angles)
+
+
+def _quadratic_sweep_response(
+    request: QuadraticAngleSweepRequest,
+    c: qas.QuadraticAngleSweepComputation,
+    metadata: RunMetadata,
+) -> QuadraticAngleSweepResponse:
+    s = c.sweep
+    return QuadraticAngleSweepResponse(
+        model=qas.MODEL_INFO,
+        parameters=request.parameters,
+        solver=request.solver,
+        units=qas.UNITS,
+        assumptions=quadratic.ASSUMPTIONS,
+        angles_deg=[p.angle_deg for p in s.points],
+        ranges=[p.range for p in s.points],
+        flight_times=[p.flight_time for p in s.points],
+        max_heights=[p.max_height for p in s.points],
+        vacuum_ranges=c.vacuum_ranges,
+        best_angle_deg=s.best_angle_deg,
+        best_range=s.best_range,
+        best_angle_uncertainty_deg=s.best_angle_uncertainty_deg,
+        best_angle_note=s.best_angle_note,
+        vacuum_best_angle_deg=c.vacuum_best_angle_deg,
+        vacuum_best_range=c.vacuum_best_range,
+        terminal_speed=c.terminal_speed,
+        n_runs=len(s.runs),
+        n_rhs_evaluations=s.n_rhs_evaluations,
+        checks=c.checks,
+        method_note=qas.METHOD_NOTE,
+        metadata=metadata,
+    )
+
+
+def _quadratic_sweep_summary(c: qas.QuadraticAngleSweepComputation) -> dict[str, Any]:
+    # Plan D10: the headline numbers; the curves and checks are shown, not stored.
+    return {
+        "best_angle_deg": c.sweep.best_angle_deg,
+        "best_range": c.sweep.best_range,
+        "best_angle_uncertainty_deg": c.sweep.best_angle_uncertainty_deg,
+        "vacuum_best_angle_deg": c.vacuum_best_angle_deg,
+        "vacuum_best_range": c.vacuum_best_range,
+        "terminal_speed": c.terminal_speed,
+        "n_rhs_evaluations": c.sweep.n_rhs_evaluations,
+    }
+
+
+# Brent's stall on a flat top and last bits on another CPU: the linear sweep's floor for the
+# best angle, in degrees. Measured for this model in slice 3 by last-bit emulation (scratch,
+# one machine: 223 sweeps x 4 reruns with each drag evaluation x (1 +- 1 or 2 ulp); v0 in
+# {1, 10, 20, 300} m/s, c from 0 to 1 kg/m, h from 0 to 1e5 m, all three methods, (rtol, atol)
+# in {(1e-6, 1e-6), (1e-10, 1e-10), (1e-13, 1e-14)}, 10 to 361 angles; 17 sweeps over budget):
+# every value stayed within its rule (largest fraction used: best angle 0.08, best range
+# 0.0023, u 0.0025); n_rhs_evaluations changed in 479 of the 892 reruns, so on another CPU a
+# replay will often report "differs" on that count (exact by design, plan D11 and Risks).
+_BEST_ANGLE_FLOOR = 1e-5
+
+
+def _uncertainty_rule(inputs: dict[str, Any], summary: dict[str, Any]) -> Tolerance:
+    """The replay rule for u = 2 sqrt(eps_R / K), derived from how K is computed.
+
+    K = |d2| / step^2, with d2 = R(i+1) - 2 R(i) + R(i-1) the grid's second difference. If
+    each range may move by dR = 10 (rtol' R + atol) on a replay (the best_range rule), d2
+    moves by at most 4 dR, so u (proportional to K^-1/2) moves by at most 2 dR / |d2| relative,
+    to first order. |d2| is not stored, but it follows from u itself: K = 4 eps_R / u^2 (u in
+    radians), with eps_R = 10 (rtol R + atol) the value the model used (its real rtol)."""
+    u = summary["best_angle_uncertainty_deg"]
+    if u is None:
+        return Tolerance.exact(
+            "Null when the best grid point is at an edge, or the grid curve is not bent "
+            "downwards there: null must stay null (a replay that finds the best grid point "
+            "elsewhere is a different computation)."
+        )
+    rtol, atol = inputs["solver"]["rtol"], inputs["solver"]["atol"]
+    rtol_replay = max(rtol, _REPLAY_RTOL_FLOOR)
+    best = abs(summary["best_range"])
+    step = math.radians(90.0 / (inputs["n_angles"] - 1))
+    u_rad = math.radians(u)
+    relative = (rtol_replay * best + atol) * u_rad**2 / (2 * (rtol * best + atol) * step**2)
+    return Tolerance(
+        relative=relative,
+        absolute=0.0,
+        reason="u comes from a second difference d2 of three grid ranges. If each range moves "
+        "by up to dR = 10 (rtol' R + atol) (the best_range rule, rtol' = max(rtol, 1e-10)), "
+        "d2 moves by at most 4 dR and u by at most 2 dR / |d2| relative, to first order; |d2| "
+        "follows from u itself (K = 4 eps_R / u^2). Measured in slice 3 by emulating another "
+        "CPU (each drag evaluation x (1 +- 1 or 2 ulp); 892 reruns of 223 sweeps, all "
+        "three methods, rtol 1e-13 to 1e-6, 10 to 361 angles): u moved by at most 0.0025 of "
+        "this tolerance (3.4e-6 relative), and the best grid point never moved. A replay "
+        "whose best grid point moves to a neighbour is a different computation and is "
+        "reported as differing.",
+    )
+
+
+def _quadratic_sweep_tolerances(
+    inputs: dict[str, Any], summary: dict[str, Any]
+) -> dict[str, Tolerance]:
+    rtol = max(inputs["solver"]["rtol"], _REPLAY_RTOL_FLOOR)
+    atol = inputs["solver"]["atol"]
+    u = summary["best_angle_uncertainty_deg"]
+    return {
+        "best_range": Tolerance(
+            relative=10 * rtol,
+            absolute=10 * atol,
+            reason="A numerical range at a flat maximum: the solver rule 10 (rtol' |x| + atol) "
+            "of the quadratic-drag model, with rtol' = max(rtol, 1e-10), below which rounding "
+            "sets the accuracy. An angle error of 1e-5 degrees changes the range only by "
+            "about 1e-14 relative, so the solver rule alone sets it (last-bit emulation: at "
+            "most 0.0023 of this tolerance).",
+        ),
+        "best_angle_deg": Tolerance(
+            relative=0.0,
+            absolute=_BEST_ANGLE_FLOOR if u is None else max(_BEST_ANGLE_FLOOR, u),
+            reason="max(1e-5 degrees, u) absolute: the run's own stated uncertainty u (an "
+            "estimate of how far the solver's error can move the peak), floored by the "
+            "linear sweep's rule for Brent's stall on a flat top; 1e-5 degrees when u is null "
+            "(an edge). Measured in slice 3 with last-bit emulation (the 892 reruns of the u "
+            "rule): the best angle moved by at most 0.08 of this tolerance (5.6e-6 degrees "
+            "at rtol = 1e-13, 6.8e-3 degrees at rtol = 1e-6, where u is larger still).",
+        ),
+        "best_angle_uncertainty_deg": _uncertainty_rule(inputs, summary),
+        "vacuum_best_*": Tolerance(relative=1e-12, absolute=0.0, reason=_CLOSED_FORM),
+        "terminal_speed": Tolerance(
+            relative=1e-12,
+            absolute=0.0,
+            reason="sqrt(m g / c), a closed form with a few roundings (null in vacuum must "
+            "stay null); 1e-12 relative leaves a wide margin.",
+        ),
+        "n_rhs_evaluations": Tolerance.exact(
+            "A count over every run of the sweep: a different number of evaluations is a "
+            "different computation."
+        ),
+    }
+
+
+def _quadratic_sweep_headline(s: dict[str, Any]) -> str:
+    v_t = s["terminal_speed"]
+    drag = "no drag" if v_t is None else f"v_t {fmt.sig(v_t)} m/s"
+    return f"best angle {s['best_angle_deg']:.2f}°, range {fmt.sig(s['best_range'])} m, {drag}"
+
+
+QUADRATIC_ANGLE_SWEEP = ModelEntry(
+    info=qas.MODEL_INFO,
+    request_type=QuadraticAngleSweepRequest,
+    compute=_quadratic_sweep_run,
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs (and a
+    # rebuilt request uses the default angle), as for the linear sweep.
+    inputs=lambda req, _: {
+        "parameters": req.parameters.model_dump(exclude={"launch_angle_deg"}),
+        "solver": req.solver.model_dump(),
+        "n_angles": req.n_angles,
+    },
+    summary=_quadratic_sweep_summary,
+    respond=_quadratic_sweep_response,
+    elapsed_ms=lambda c: c.elapsed_ms,
+    rebuild=lambda inputs, _: QuadraticAngleSweepRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+    tolerances=_quadratic_sweep_tolerances,
+    # The response echoes the request's launch angle, which a sweep does not use.
+    digest_exclude={"parameters": {"launch_angle_deg": True}},
+    headline=_quadratic_sweep_headline,
+)
+
+
+@router.post("/projectile/quadratic-drag/angle-sweep")
+async def quadratic_drag_angle_sweep(
+    request: QuadraticAngleSweepRequest, repo: Repository
+) -> QuadraticAngleSweepResponse:
+    return await execute(QUADRATIC_ANGLE_SWEEP, request, repo, save=request.save_experiment)

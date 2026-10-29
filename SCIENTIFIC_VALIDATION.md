@@ -378,7 +378,7 @@ With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48�
 30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
 
 ### Limitations
-- Linear drag only. Quadratic drag exists as its own model (roadmap 2.1, below) but has no angle sweep yet; sweeps for both drag laws are roadmap 2.2.
+- Linear drag only. Quadratic drag has its own sweep model, `physics.projectile.quadratic_angle_sweep` (roadmap 2.2, below); the two sweeps are not compared beyond their shared vacuum limit.
 - The single-peak property is checked on the tested cases, not proven in general. If a curve
   ever had two peaks, the refinement could miss the global maximum by up to one grid step.
 - Only the launch angle is swept. Other parameters are fixed.
@@ -707,6 +707,221 @@ default and the golden run) the floor changes nothing.
 
 ---
 
+## `physics.projectile.quadratic_angle_sweep` v1.0.0: range against launch angle with quadratic drag
+
+Roadmap 2.2. The plan, with the decisions that changed while building, is
+`docs/plans/ROADMAP_2_2_PLAN.md` ("Amendments after building", B1-B10). Learning guide:
+Part 19. Engine: `backend/src/simforge/physics/projectile/quadratic_angle_sweep.py` (pure);
+request and response at the end of `quadratic_schemas.py`; route and registry entry at the
+end of `api/routes/physics.py`; endpoint `POST /api/v1/physics/projectile/quadratic-drag/angle-sweep`.
+
+### What it computes
+For fixed speed, height, mass, drag constant `c`, gravity and solver settings, the range is
+computed at `n_angles` evenly spaced angles from 0° to 90° (10 to 361, default 91). There is
+no formula for a quadratic-drag range, so **every point is one full 2.1 run**
+(`quadratic_model.run`, the `physics.projectile.quadratic_drag` model above), with the setup
+built exactly as the 2.1 route builds it. 0° from the ground is not run (no flight: range,
+time and height exactly 0); 90° is exactly vertical (range exactly 0). The best grid point is
+then refined by SciPy's bounded Brent search (`xatol = 1e-7°`) on its neighbouring interval,
+and the grid point is kept if it beats the refinement. Reported alongside, all **exact**: the
+drag-free range at every grid angle, the drag-free optimum `tan θ* = v₀/√(v₀² + 2gh)`,
+`R* = (v₀/g)√(v₀² + 2gh)`, and the terminal speed `√(mg/c)` (`null` in vacuum).
+
+Labels in the response: `ranges`, `flight_times`, `max_heights`, `best_angle_deg` and
+`best_range` are **numerical**; `vacuum_*` and `terminal_speed` are **exact**;
+`best_angle_uncertainty_deg` is an **estimate, not a bound** (below).
+
+Symbols: `κ = c/m` (1/m), `v_t = √(mg/c)` (m/s), and the dimensionless drag strength
+**`ε = κv₀²/g = (v₀/v_t)²`** (0 in vacuum; 0.41 at the 2.1 defaults `v₀ = 20 m/s`,
+`c = 0.01 kg/m`, `m = 1 kg`).
+
+### Mathematical results (proved on paper)
+1. **RS1, vacuum.** `R(θ) = v₀cos θ·(v₀ sin θ + √(v₀² sin²θ + 2gh))/g`, maximal at the
+   closed-form optimum above (45° and `v₀²/g` from the ground). Textbook.
+2. **RS2, consistency.** Each sweep point *is* a single 2.1 run at that angle: true by
+   construction (the sweep calls the 2.1 model), so it holds bit for bit on one machine.
+3. **RS3, weak drag from the ground, first order in ε.**
+   `R(θ) = (v₀²/g)·[sin 2θ − ε F(θ)] + O(ε²)` with
+   `F(θ) = c s² + c³ s A + c(1 + s²)/4 − c⁵A/(4s)` (`c = cos θ`, `s = sin θ`,
+   `A = asinh(tan θ)`), so
+   `θ* = 45° − 6.0183°·ε + O(ε²)` and `R*/(v₀²/g) = 1 − 0.783976·ε + O(ε²)`, with
+   `F(π/4) = 7/(8√2) + (3/16) ln(1 + √2)` and `F'(π/4) = (3√2 − ln(1 + √2))/8 = 0.420158`.
+   **Provenance:** derived by hand for the 2.2 plan (regular perturbation of the vacuum path
+   about its apex); independently re-derived by the slice 1 reviewer by a different
+   perturbation route (agreement in `F(θ)` to 4.4e-16); **not checked against any literature
+   source**. The `O(ε²)` remainder is **not bounded**, so how small ε must be for "weak" is not
+   quantified.
+4. **"The best angle is below 45° and falls as drag grows."** Since `F'(π/4) > 0`, the best
+   angle from the ground is below 45° **to first order in ε** (proved for weak drag only). For
+   stronger drag, from a height, and for "keeps falling as drag grows", the evidence is
+   **observed** on measured grids (below), not proved.
+5. **RS4, flatness.** Near the top `R(θ) ≈ R* − ½K(θ − θ*)²`, `K = |R''(θ*)|` (m/rad²). If the
+   computed curve is within `ε_R` of the true one near the top, its maximiser lies within
+   `2√(ε_R/K)` rad of `θ*`, *to the quadratic approximation*. This is the basis of `u` below;
+   the step from it to `u` uses an unproved error scale, so `u` is not a proved bound.
+
+### The accuracy estimate u (an estimate, not a bound)
+`u = 2√(ε_R/K)` in degrees, with `ε_R = 10·(rtol·R̂ + atol)` (the project's solver-error
+scale, **not** a proved bound on the solver's global error) and `K` from the grid's second
+difference at the best grid point. `null`, with the reason in `best_angle_note`, when the best
+grid point is at an edge (no centred difference) or the grid curve is not bent downwards
+there. **Observed to be pessimistic** by orders of magnitude (below): the solver's
+error is smooth in the angle, so it shifts the peak far less than `ε_R` allows. The app shows
+the best angle as "42.98° ± 0.002° (estimate)".
+
+### What is tested
+Every expected value comes from an independent source: closed forms written out in the tests,
+the linear model's exact solution at `b = 0` (a different code path), 50-digit `decimal`
+evaluations, `scipy.integrate.quad`, or a test-local DOP853 integration with its own
+right-hand side and landing event (`rtol = atol = 1e-13`). Files:
+`backend/tests/physics/weak_drag_reference.py` (the RS3 helper, test-side only) and
+`test_weak_drag_reference.py`; `backend/tests/physics/test_quadratic_angle_sweep.py`;
+`backend/tests/api/test_quadratic_angle_sweep_api.py` and
+`test_quadratic_angle_sweep_limits.py`.
+
+| Ref. | Check | Reference | Tolerance (justified in the test) | File |
+|---|---|---|---|---|
+| RS1 | Vacuum range at one angle: `v₀² sin 2θ/g`, a hand-worked case from 15 m, horizontal launch `v₀√(2h/g)`, exactly 0 at 90° and at 0° from the ground; matches the linear model at `b = 0` | Textbook; hand-worked; independent code path | rel 1e-14 / 1e-15; exact | `test_quadratic_angle_sweep.py` |
+| RS1 | Vacuum optimum: 45° and `v₀²/g`; a hand-worked case from 15 m; lower from greater heights; slope 0 and curve bending down there (central differences); matches the linear sweep's refined optimum at `b = 0` | Closed form; independent search | rel 2ε to 1e-12; 1e-5° | `test_quadratic_angle_sweep.py` |
+| RS1 | Vacuum sweeps (h = 0 with all three methods on 91 angles; h = 1, 10, 100, 1000 m with DOP853 on 31): every point to rel 1e-13, best angle to 1e-5°, best range to rel 1e-13 | Closed form | measured ≤ 5.8e-15 rel per point; best angle ≤ 1.85e-6° | `test_quadratic_angle_sweep.py` |
+| RS1 | `u` in vacuum equals `2√(ε_R/4R*)` | `K = 4R*` from `sin 2θ` | rel 1e-3 | `test_quadratic_angle_sweep.py` |
+| RS2 | Every grid point and every refinement run is bit-identical to an independent single 2.1 run; the sweep's evaluation count is their sum (DOP853, RK45) | The 2.1 model | exact | `test_quadratic_angle_sweep.py` |
+| RS2 | Over HTTP: every point equals a separate 2.1 request at that angle | The 2.1 endpoint | exact | `test_quadratic_angle_sweep_api.py` |
+| RS3 | `F(π/4)` and `F'(π/4)` follow from `F`'s definition; the float coefficients match 50-digit closed forms; `F` matches a 50-digit evaluation and quadrature of the J integrals | 50-digit `decimal`; `quad` | ≤ a few ε | `test_weak_drag_reference.py` |
+| RS3 | First-order range, best angle and best range leave an `ε²` residual against the independent integration | Independent DOP853 at 1e-13 | fitted slope 2 | `test_weak_drag_reference.py` |
+| RS3 | **Order test on the sweep** (ε = 5e-3, 1e-2, 2e-2, 4e-2): residuals from the first-order angle and range shrink like ε² | `weak_drag_reference.py` | slope 2 ± 0.3 (angle), 2 ± 0.1 (range); measured 1.986 and 1.983 on the 11 angles the test uses (1.983 and 1.983 on 91) | `test_quadratic_angle_sweep.py` |
+| RS3 | **Wrong-coupling mutant** (`−κ|vx|vx`, `−κ|vy|vy`) fails the order test | Mutation | slopes < 1.5; measured 1.010 and 1.047 | `test_quadratic_angle_sweep.py` |
+| RS4 | Best angle and range at stronger drag (c = 0.01 kg/m with DOP853 and RK45 on 91 angles; c = 0.1, 1 kg/m and from 5 m on 31; Radau on 10) against the independent integration, its optimum polished by a least-squares cubic through 21 ranges | Independent DOP853 at 1e-13 | error ≤ u **and** ≤ 2e-5°; range rel `10·(rtol + atol/R)` | `test_quadratic_angle_sweep.py` |
+| RS5 | 0° from the ground is "no flight" (no solve, all exactly 0); 0° from a height is a real flight; 90° lands at exactly 0 and is checked against the exact vertical flight by its 2.1 run | Exact | exact | `test_quadratic_angle_sweep.py` |
+| RS5 | Best angle falls as drag grows, from the ground, at 8 drag values from 0 to 1 kg/m (**observed**, labelled so) | Physical property | strict ordering | `test_quadratic_angle_sweep.py` |
+| RS6 | Every 2.1 check passes in every run of the RS1 sweeps from the ground and the RS4 sweeps (10 sweeps, all methods) | The 2.1 per-run checks | as 2.1 | `test_quadratic_angle_sweep.py` |
+| — | Aggregated checks report the worst run and its angle (recomputed from single runs); a planted failing run fails its aggregate; the mutant fails energy and invariant | Independent single runs; mutation | exact | `test_quadratic_angle_sweep.py` |
+| — | Edge: best grid point at 0° (v₀ = 10 m/s from 1e5 m) gives `u = null` with the reason, 0 interior peaks, and Brent still finds the closed-form optimum | Closed form | 1e-5°; rel 1e-13 | `test_quadratic_angle_sweep.py` (the null `u` and its reason also over HTTP, in `test_quadratic_angle_sweep_api.py`) |
+| — | Peak count 1 on a real curve; a planted two-peak force is flagged (not passed); the grid point is kept when it beats the refinement (Brent replaced by a stand-in) | Construction | exact | `test_quadratic_angle_sweep.py` |
+| — | The stiffness guard refuses an explicit method **before any solve** and names the worst angle; the budget refuses between runs, deterministically, with the same message twice; the default sweep fits the budget with both explicit methods | Construction; independent single-run counts | exact | `test_quadratic_angle_sweep.py` |
+| API | Complete labelled response; drag lowers the best angle and range; `c v_t² = mg`; vacuum from the ground and from a height; launch angle ignored in results and hash; NaN/±Infinity and invalid inputs rejected; identical inputs give identical hashes; one tolerance rule per stored field, each replaying `identical`; the best-angle rule is `max(1e-5°, u)`; the value rules survive emulated last-bit differences (4 cases) | Closed forms; contract | as stated | `test_quadratic_angle_sweep_api.py` |
+| Limits | The 2.1 rules checked at the smallest flown angle (prefix "at the sweep's smallest angle …°"), worked by hand at their boundaries; **corners** of (mass, speed, `c` = 0 or largest, `g`, height) × three methods × tightest and loosest tolerances on 10 angles: a result or an explained 422, never a 500, each under 25 s, the budget refusal exercised | Contract | as stated | `test_quadratic_angle_sweep_limits.py` |
+
+**Registry and reproducibility:** a case appended to `tests/api/test_registry.py` (RK45,
+`c = 0.02 kg/m`, h = 2 m, 31 angles), so the registry, replay, recompute and golden-digest
+tests pick it up; one golden entry appended to `tests/api/golden_runs.json`, the existing
+entries unchanged; two headline cases in `test_experiment_log.py`. Frontend: Vitest for the
+panel, export, compare and overlay, and Playwright (`e2e/quadratic.spec.ts`, two cases in
+`e2e/stored-fields.spec.ts`).
+
+### Per-run checks shown in the app
+One row per 2.1 check id, **aggregated over every run of the sweep**: passed only if every
+run passed; value and threshold from the run with the largest value/threshold (thresholds
+differ per angle), and the note names that angle, the number of runs and those where the check
+was unavailable (for example the invariant at 90°). Two of the sweep's own: **interior peaks
+on the grid** (expected 1, observed in every case measured; more than 1 is shown as not passed,
+because Brent searches only next to the best grid point and may have found a local maximum),
+and **runs and solver evaluations** against the budget (informational).
+
+### Observed accuracy and cost (one machine)
+Intel Xeon @ 2.10 GHz, linux-x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1. Observed, not
+guaranteed for other inputs or machines.
+
+- **Best angle against the independent reference** (default tolerances `rtol = atol = 1e-10`,
+  v₀ = 20 m/s): 1.2e-7° to 3.4e-6° on the six cases measured in slice 2 (all on 91 angles; the
+  largest RK45 at c = 0.1 kg/m), 2.0e-8° to 8.5e-7° on the seven cases now in the tests; the
+  best range within 1.5e-11 relative. `u` in the seven tested cases was 2.0e-3° to 3.0e-3°
+  (recomputed 2026-10-29), so at least ~2300 times the observed error in each of those seven.
+- **Vacuum:** every point within 5.8e-15 relative of the closed form; the best angle within
+  1.85e-6° (Brent's stall on a flat top; the plan estimated 7e-7°).
+- **Weak drag:** the sweep's residuals from the first-order formula shrink like ε² (fitted
+  slopes 1.983 and 1.983); at the 2.1 defaults (ε = 0.41) the first-order angle is 42.55°
+  against 42.98° computed: 0.43° off, so ε = 0.41 is not "weak".
+- **Best angle against drag** (planning scratch with the independent integration, v₀ = 20 m/s,
+  0.5° grid then Brent, 10 values of ε from 1e-3 to 1e3): one interior peak in all 30 cases;
+  from the ground 44.994° → 40.98° → 20.34° at ε = 1e-3 → 1 → 1e3, falling throughout; from
+  h = 5v₀²/g nearly flat between ε = 1 and 3 (12.549° → 12.527°).
+- **Default sweeps, 91 angles, measured 2026-10-29** (a scratch script calling
+  `run_angle_sweep`; v₀ = 20 m/s, m = 1 kg, h = 0, default tolerances):
+
+| c (kg/m) | Method | Best angle | Best range (m) | u (estimate) | Runs | RHS evaluations | Wall time |
+|---|---|---|---|---|---|---|---|
+| 0 | DOP853 | 45.000001° | 40.788649 | 1.83e-3° | 109 | 6 518 | 0.19 s |
+| 0 | RK45 | 45.000000° | 40.788649 | 1.83e-3° | 96 | 2 790 | 0.14 s |
+| 0 | Radau | 45.000000° | 40.788649 | 1.83e-3° | 96 | 3 503 | 0.45 s |
+| 0.01 | DOP853 | 42.975833° | 31.399867 | 1.96e-3° | 98 | 16 675 | 0.29 s |
+| 0.01 | RK45 | 42.975832° | 31.399867 | 1.96e-3° | 98 | 22 876 | 0.45 s |
+| 0.01 | Radau | 42.975834° | 31.399867 | 1.96e-3° | 100 | 189 011 | 5.63 s |
+
+  (Wall time includes a single process's warm-up; one run each.)
+
+### Input limits and the work budget
+- **Inputs:** the 2.1 parameters and solver settings with the 2.1 field bounds; `n_angles`
+  10 to 361. The request is valid if and only if a 2.1 request with the same parameters and
+  solver is valid **at the sweep's smallest flown angle** (0° from a height, else the first
+  grid step 90°/(n − 1)); refusals say where they were checked. Why that suffices: the
+  drag-rate and atol rules do not depend on the angle, and the drag-free flight time grows
+  with it. From the ground, Brent can fly angles below the first grid step (seen at
+  v₀/v_t = 1e5 on 10 angles: a refinement run at 4.7°); there the 1 µs rule still holds,
+  because a sub-microsecond flight at θ ≥ 1° forces ε ≤ 0.29 by the drag-rate rule, i.e. weak
+  drag with its best angle near 45° (that last step **observed**: the lowest best angle from
+  the ground at the strongest drag allowed was 9.6°). The request's own launch angle is
+  ignored (and not hashed).
+- **Stiffness guard:** before any solve, the 2.1 drag-time bound is computed at every grid
+  angle, and an explicit method is refused (422) if any exceeds 1e4, naming the worst angle;
+  refinement angles are guarded again inside each run.
+- **Work budget: 3e5 right-hand-side evaluations** over the whole sweep, a server constant
+  (not a request field), checked after each run, so at most one run in progress overshoots.
+  Counted in evaluations, not seconds, because a count is reproducible on one machine and a
+  timeout depends on load. **Justification (measured, 540 sweeps of 91 angles; grid in the
+  comment at `MAX_SWEEP_RHS_EVALUATIONS`):** the browser reaches the API through the Next.js
+  proxy, which gives up after 30 s by default; at 3e5 the slowest refusals took 11.4 s (Radau,
+  rtol = 1e-13), so a machine about 2× slower still answers in time, while 5e5 took 19.4 s.
+  3e5 admits every sweep at the 2.1 defaults with every method.
+
+### Replay tolerances
+Declared in `_quadratic_sweep_tolerances` (`api/routes/physics.py`), one rule per stored field
+(tested), with `rtol' = max(rtol, 1e-10)` as in 2.1. Derived or checked by last-bit
+emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, v₀ ∈ {1, 10,
+20, 300} m/s, c from 0 to 1 kg/m, h from 0 to 1e5 m, all methods, rtol 1e-13 to 1e-6, 10 to
+361 angles).
+
+| Field | Rule | Reason | Largest fraction used in the emulation |
+|---|---|---|---|
+| `best_range` | `10·(rtol'·|x| + atol)` | the 2.1 solver rule; an angle error of 1e-5° changes a flat-top range only by ~1e-14 relative | 0.0023 |
+| `best_angle_deg` | absolute `max(1e-5°, u)` (1e-5° when `u` is null) | the run's own estimate, floored by the linear sweep's rule for Brent's stall | 0.08 |
+| `best_angle_uncertainty_deg` | relative `(rtol'·R + atol)·u²/(2(rtol·R + atol)Δ²)` (u, Δ in rad); `null` must stay `null` | `u` comes from a second difference `d₂`; each range moving by `dR` moves `d₂` by ≤ 4dR and `u` by ≤ 2dR/|d₂| relative, with |d₂| recovered from `u` | 0.0025 (3.4e-6 relative); the best grid point never moved |
+| `vacuum_best_*`, `terminal_speed` | 1e-12 relative; `null` stays `null` | closed forms | — |
+| `n_rhs_evaluations` | exact | a count: a different step sequence is a different computation | changed in 479 of 892 reruns (see limitations) |
+
+### Known limitations
+- **Every limitation of the 2.1 model applies at every angle** (constant `C_d`, no spin, lift,
+  wind or buoyancy; no exact 2-D reference; empirical per-run thresholds).
+- **Exact evaluation counts across CPUs.** `n_rhs_evaluations` is replayed exactly and sums
+  ~100 runs: in the emulation it changed in **479 of 892** reruns, so a replay on another CPU
+  will often report `differs` on that count alone. For the same reason, a sweep very near the
+  budget could be admitted on one machine and refused on another.
+- **No rate limit or concurrency cap** (slice 3 security review). One sweep can hold a worker
+  for ~11 s, so a burst of requests would slow every request. Not changed (no authentication or
+  new services in scope); a deployment decision for the author.
+- **Radau at 91 angles is often refused.** In the budget measurement Radau completed 30 of 60
+  cases at the default tolerances and 12 of 60 at (1e-13, 1e-14); at the 2.1 defaults it is
+  admitted (1.9e5 evaluations, ~6 s). Use fewer angles, a looser tolerance, or an explicit
+  method where the guard allows.
+- **`u` is an estimate, not a bound,** and pessimistic by orders of magnitude; the error scale
+  `10·(rtol·R + atol)` is a convention, not a proved bound.
+- **Local maxima.** Brent searches only next to the best grid point; one interior peak was
+  observed in every case measured, which is evidence, not a proof. The peak-count check makes
+  a second peak visible; it does not fix it.
+- **Peak count with exact ties.** A peak is a grid point *strictly* above both neighbours, so
+  a flat top made of two exactly equal grid ranges counts 0 peaks, and the check's note then
+  suggests the best point is at an edge, although the curve has one interior peak.
+- **"Falls as drag grows" is observed only** (from the ground on measured grids; nearly flat
+  between ε = 1 and 3 at large heights), and "below 45°" is proved only to first order in ε.
+- **The RS3 formula is not checked against the literature,** and its `O(ε²)` remainder is not
+  bounded.
+- **UI:** "Maximum range" has no "(numerical)" tag in the shared sweep panel (on either page);
+  the sweep's notes appear twice under Validation. A sweep shows "Sweeping…" with no progress.
+- About 25 lines of grid-and-Brent logic are duplicated from `angle_sweep.py` until roadmap
+  2.5 (generic sweeps).
+
+---
+
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 
 Engine: `backend/src/simforge/economy/solow/simulation.py` (pure). Orchestration and per-run
@@ -968,6 +1183,7 @@ between environments. A test checks that every stored field matches exactly one 
 | projectile | step and evaluation counts, solver settings | exact | counts and copies of inputs |
 | projectile | `comparison.*` (error estimates) | absolute, `10·(rtol·|x| + atol)` or `10·(rtol + atol/|x|)` | error estimates are rounding-sized, so only an absolute tolerance makes sense |
 | quadratic drag | `numerical.*` values; counts and settings; `terminal_speed`, `vacuum.*`, bounds; energy residual; invariant residual | `10·(rtol·|x| + atol)`; exact; 1e-12 rel; abs `10·(rtol + atol/v₀)`; abs `10·(rtol + atol/min(vx₀, v_t))` (rtol floored at 1e-10 throughout) | as the projectile; the residuals use the per-run checks' own scales; below rtol = 1e-10 rounding sets the accuracy (details in the quadratic-drag section) |
+| quadratic angle sweep | best range; best angle; `u`; vacuum values, terminal speed; `n_rhs_evaluations` | `10·(rtol'·|x| + atol)`; abs `max(1e-5°, u)`; relative, derived from how `u` is computed (`null` stays `null`); 1e-12 rel; exact | the solver rule; the run's own estimate floored by Brent's stall; checked by last-bit emulation (892 reruns; details in the quadratic angle-sweep section) |
 | integrators | horizon; orders; fit points; theoretical order | 1e-12 rel; 1e-6 rel; exact; exact | fits use only points far above rounding |
 | integrators | finest max position error | 1e-9 m absolute | rounding-dominated at the finest RK4 step; ≲5e-10 m over 5e4 steps |
 | angle sweep | best angle; best range; vacuum values | 1e-5° abs; 1e-10 rel; 1e-12 rel | Brent's ~1e-6° tolerance at a flat maximum |
@@ -978,7 +1194,7 @@ between environments. A test checks that every stored field matches exactly one 
 
 **What is and is not established.** Measured: on one machine, every model's runs replay
 **bit-identically** (a test runs every registry case: the six cases before roadmap 2.1
-locally and in CI; the seventh, quadratic drag, locally in the 2.1 slice checks). **Across machines they do
+locally and in CI; the seventh, quadratic drag, locally in the 2.1 slice checks; the eighth, the quadratic angle sweep, locally in the 2.2 slice checks). **Across machines they do
 not**: with the same code and the same locked libraries, GitHub's CI runners gave different
 output digests for the four floating-point models (the dataset profile, all counts, matched).
 Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specific routines

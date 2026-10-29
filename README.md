@@ -46,6 +46,15 @@ bounds. The page shows the trajectory beside the drag-free one, speed against ti
 terminal speed, and the energy budget. It is a separate model from the linear one, so every
 run saved before it replays exactly as before.
 
+**Angle sweep with quadratic drag.** The quadratic-drag page has its own "Range against launch
+angle" panel. There is no formula for any range, so every point of the curve is a full
+quadratic-drag simulation (about 100 per sweep), and the best angle is found by refining the
+best grid point with a Brent search. It is reported with an accuracy *estimate* (for example
+"42.98° ± 0.002° (estimate)" at the defaults), beside the exact drag-free curve and optimum,
+and every check of every run is summarised under Validation. A work budget (300 000 solver
+evaluations per sweep) keeps one request from running for minutes; for weak drag the result is
+checked against a hand-derived formula, θ* ≈ 45° − 6.02°·(v₀/v_t)².
+
 **Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
 RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed
 time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted only over step
