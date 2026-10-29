@@ -7,6 +7,23 @@ state: `.claude/autopilot/STATE.md`.
 
 ---
 
+## 2026-10-29 00:45 UTC: 2.2 slice 5, docs; roadmap 2.2 complete; paused for your review
+- **Did:** plan amendments B1-B10; SCIENTIFIC_VALIDATION section for the quadratic angle sweep;
+  learning-guide Part 19; ARCHITECTURE decision 19; README; ROADMAP 2.2 ✅ and 🔜 on 2.3.
+  Autopilot commits since your last message: 6 of 6, so the autopilot is paused
+  (`waiting-review`) and the 4-hourly task disabled.
+- **Usage:** 7-day 0.69 → 0.74 (cap 0.76); 5-hour 0.21 at start. Docs writer and reviewer,
+  both medium.
+- **Checks run:** `scripts/check.sh --e2e` on the final code: exit 0 (pytest 1751, Vitest 229,
+  Playwright 26). Guide excerpts: ALL OK after the docs review.
+- **Docs review:** nothing false in substance; four overstated details fixed (e.g. "u at least
+  ~600× the error" recomputed as ~2300× on the seven current test cases).
+- **Decisions taken for you:** none beyond the writing.
+- **Waiting for you:** a PR for 2.2; "resume autopilot" to continue with 2.3.
+- **What this means for you:** 2.2 is done end to end: model, API, page, docs.
+- **Learning checkpoint:** what does the dashed drag-free curve on the sweep chart let you see?
+- **Next:** after the merge, 2.3 (simple, damped and driven oscillators) by default.
+
 ## 2026-10-28 20:50 UTC: 2.2 slice 4, the angle-sweep panel on the quadratic-drag page
 - **Did:** a generic sweep panel with a per-model adapter (the linear sweep unchanged in
   behaviour); the quadratic sweep panel (best angle "± … (estimate)", drag-free curve and best

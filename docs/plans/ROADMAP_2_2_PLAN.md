@@ -399,6 +399,98 @@ the explicit methods are refused there by the drag-time guard. Brent used 6-19 e
   behaviour on CI's CPU; the RS5 properties outside the measured grid; the hodograph-method
   literature (as in 2.1).
 
+## Amendments after building (slices 1-5, 2026-10-28 to 2026-10-29)
+The decisions above are left as they were taken. These are the places where building changed
+or sharpened them, each with where it is recorded (module docstrings, code comments, the
+autopilot journal and commits 12436a9, 7d91435, 097b0c8, 174306f). All are reversible
+defaults, like the plan. Measurements are from one machine (Intel Xeon @ 2.10 GHz, Python
+3.12.3, NumPy 2.5.4, SciPy 1.18.1) unless stated.
+
+- **B1. D7's argument does not cover every refined angle; the rule still holds.** D7 says the
+  1 µs rule, checked at the smallest grid angle, holds at every larger angle. From the ground,
+  Brent's refinement can fly angles **below** the first grid step when the best grid point is
+  that step (seen at v₀/v_t = 1e5 on a 10-angle grid: best grid point 10°, a refinement run at
+  4.7°), which the monotonicity argument does not reach. Found in slice 3 (security review).
+  The rule is kept, because the drag-rate rule closes the gap: from the ground the drag-free
+  flight time is `2v₀ sin θ/g`, so a flight under 1 µs at θ ≥ 1° needs v₀/g < 2.9e-5 s, and
+  then `ε = (κv₀)(v₀/g) ≤ 1e4 × 2.9e-5 = 0.29`: weak drag, whose best angle is near 45°, far
+  from the low peak that sends Brent below the first step. The last step is **observed, not
+  proved** (the lowest best angle from the ground at the strongest drag allowed, v₀/v_t = 1e5,
+  was 9.6°). Recorded in `QuadraticAngleSweepRequest._valid_at_the_smallest_angle`.
+- **B2. The budget is 3e5 right-hand-side evaluations, measured (D8).** 540 sweeps of 91
+  angles: v₀ ∈ {1, 20, 300, 1e4} m/s × ε ∈ {0, 0.1, 1, 10, 100} × h ∈ {0, 10, 1e4} m × three
+  methods × (rtol, atol) ∈ {(1e-6, 1e-6), (1e-10, 1e-10), (1e-13, 1e-14)}. Cost per evaluation
+  in large sweeps: DOP853 9-13 µs, RK45 11-15 µs, Radau 34-42 µs. The ceiling is **latency**:
+  the browser reaches the API through Next.js rewrites, whose proxy gives up after **30 s** by
+  default (`next/dist/server/lib/router-utils/proxy-request.js`; this answers the Risk "not
+  checked"). At 3e5 the slowest refusals took 11.4 s (Radau, rtol = 1e-13, v₀ = 20 m/s,
+  ε = 100, h = 1e4 m), including the one run that may overshoot; at 5e5 they took 19.4 s, too
+  close. 3e5 admits every sweep at the 2.1 defaults with every method (Radau ~1.9e5), the
+  explicit methods at default tolerances in 52 of the 56 cases their guard allows, and Radau in
+  60/60 cases at (1e-6, 1e-6), **30/60 at the defaults** and 12/60 at (1e-13, 1e-14). The
+  budget is a server constant, not a request field (the security review confirmed it cannot be
+  set from a request). Recorded at `MAX_SWEEP_RHS_EVALUATIONS`.
+- **B3. Brent's stall needed a polish in the test references (RS1, RS3, RS4).** The reference
+  integration's own Brent search stopped up to **1.75e-6°** apart between brackets (slice 1),
+  too coarse for an order test whose smallest angle residual is ~8e-5°. The reference optimum
+  is therefore the stationary point of a least-squares **cubic through 21 ranges within
+  ±0.2°** of Brent's answer (agreement between brackets and widths 2.4e-11°). The sweep itself
+  keeps plain Brent (D5): in vacuum its best angle was measured up to 1.85e-6° from the closed
+  form (h = 100 m), above the plan's 7e-7° estimate, so the tests use 1e-5°.
+- **B4. u is pessimistic, as the plan expected, by more (D6).** At the 2.1 defaults u is
+  about 2e-3° (1.96e-3° at c = 0.01 kg/m on 91 angles); the measured error against the
+  independent reference was 2.0e-8° to 8.5e-7° on the seven RS4 test cases now kept, and
+  1.2e-7° to 3.4e-6° on the original six (all on 91 angles). The tests check both `error ≤ u`
+  and `error ≤ 2e-5°`. Labelled an estimate everywhere it appears.
+- **B5. The replay rule for u, derived (D11 left it open).** K = |d₂|/Δ², so if each grid range
+  may move by dR = 10·(rtol'·R + atol) (the `best_range` rule), d₂ moves by at most 4·dR and u
+  by at most 2·dR/|d₂| relative, to first order; |d₂| follows from u itself (K = 4ε_R/u²). The
+  rule is that relative tolerance; a `null` u must stay `null`. Checked by last-bit emulation
+  (each drag evaluation × (1 ± 1 or 2 ulp); **892 reruns of 223 sweeps**, v₀ ∈ {1, 10, 20, 300}
+  m/s, c from 0 to 1 kg/m, h from 0 to 1e5 m, all methods, rtol 1e-13 to 1e-6, 10 to 361
+  angles; 17 sweeps over budget): u moved by at most 0.0025 of its tolerance (3.4e-6
+  relative), the best grid point never moved, the best angle used at most 0.08 of
+  `max(1e-5°, u)` and the best range at most 0.0023 of its rule. A four-case sample runs in
+  the test suite (`test_value_rules_survive_last_bit_differences`).
+- **B6. `n_rhs_evaluations` stays exact, and will often differ elsewhere.** In the same
+  emulation it changed in **479 of the 892** reruns, so a replay on another CPU will often say
+  "differs" on that count alone (the Risk, measured). Kept exact by design (a different step
+  sequence is a different computation); recorded as a known limitation.
+- **B7. Test time: grids and corners thinned, with the reasons in the tests.** Tests that read
+  only the refined optimum use 11 angles (the grid only seeds the bracket; 11 instead of 91
+  moved the RS3 optima by ≤ 9.7e-7°), stronger-drag RS4 cases 31 angles, Radau 10. The
+  corners test (seam 4) skips requests equivalent to kept ones (mass with no drag; equal κ at
+  v₀ = 1e4 m/s) and keeps one cheap budget refusal (RK45) instead of every tight-tolerance
+  Radau refusal (9.2-11.6 s each): it had made 182 requests in 55 s. The slowest-case timing
+  now rests on the B2 measurement, not on every push. The whole pytest run went from 255 s to
+  157 s in the slice 3 review.
+- **B8. Measurements the plan left open.** The wrong-coupling mutant fails the RS3 order test
+  as predicted: fitted slopes 1.010 (angle) and 1.047 (range) against 2 ± 0.3 and 2 ± 0.1; the
+  true law gives 1.983 and 1.983. The grid-point fallback (D5) is tested with a stand-in for
+  Brent, because whether Brent's nearby point loses to an exact grid optimum by rounding
+  depends on the CPU's last bits.
+- **B9. Frontend (D12, D13): the adapter was taken.** `AngleSweepPanel.tsx` now holds a
+  generic `SweepPanel` and a `SweepAdapter` interface (run function, model id, labels,
+  optional vacuum curve, extra stats, notes, optional angles field); the linear panel is a
+  thin adapter with unchanged behaviour (its Vitest tests unchanged), and
+  `QuadraticAngleSweepPanel.tsx` is the quadratic adapter plus `QuadraticSweepValidation`.
+  Additions to D12: a **number-of-angles field** on the quadratic page only (the value survives
+  a new simulation), the interior-peak count among the stats, and the sweep's checks in their
+  own region under Validation ("Angle sweep: checks over every run", found by id, not by
+  position). Left open (cosmetic): "Maximum range" has no "(numerical)" tag on either sweep
+  panel (the shared panel's wording), and the notes appear twice under Validation.
+- **B10. Smaller changes.** The aggregated checks are as D10, plus a note "not available in N
+  runs (at …°)" where a 2.1 check is undefined (the invariant at 90°); the sweep's own checks
+  have ids `interior_peaks` and `sweep_cost`. The RS3 helper lives in `tests/physics/` (nothing
+  in the product depends on it); the vacuum optimum is a documented copy of the linear sweep's
+  formula, so the new model does not import the linear one. Plan typo fixed in slice 1
+  (42.54° → 42.55°). The security review found no bug; it recorded a deployment risk (no rate
+  limit or cap on concurrent sweeps, each of which can hold a worker for ~11 s), for the
+  author.
+- **Still unverified:** behaviour on CI's CPU (beyond the emulation); the RS5 properties
+  outside the measured grid; whether bounded Brent can evaluate a bracket end exactly; the
+  hodograph-method and weak-drag literature.
+
 ## Out of scope (awaiting the author)
 - **Best angle against drag strength** (capability map, Core). A chart of θ* against
   ε = (v₀/v_t)² (and against b for linear drag). Cost: roughly one PR the size of 2.2. Each
