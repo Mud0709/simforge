@@ -9,7 +9,8 @@ covers the angle sweep (added in `cf3a870`). Part 12 points to the **Economy Lab
 This guide stays the home of the Physics Lab and of the engineering shared by every lab:
 Parts 13-17 cover the working tools, the review lessons, replay, the experiment log, and
 comparison and export. Part 18 covers quadratic drag, the first Physics Lab model with no
-exact 2-D answer, and how it is checked anyway. Every line number points at the code as it is
+exact 2-D answer, and how it is checked anyway. Part 19 covers the angle sweep for quadratic
+drag: finding a best angle when every point is a full simulation. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -50,6 +51,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
 11. **Quadratic drag:** Part 18. It needs Parts 2-3 (the linear model), 6.7 (an invariant as a
    check) and 15.1 (input hashes, for 18.12). The derivations in 18.4-18.5 use IB HL
    integration; 18.8 and 18.10 are Beyond IB and can be skimmed on a first pass.
+12. **The quadratic angle sweep:** Part 19. It needs Part 11 (grids, Brent, flat peaks) and
+   Part 18; 19.9 also uses 15.4 (declared tolerances). The derivation outline in 19.3 is
+   Beyond IB, but its last step (setting the slope to zero) is IB HL.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -73,6 +77,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 16 — The experiment log: find, reopen, replay, label](#part-16--the-experiment-log-find-reopen-replay-label)
 - [Part 17 — Comparison and export: a reference run, CSV and JSON](#part-17--comparison-and-export-a-reference-run-csv-and-json)
 - [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
+- [Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down](#part-19--angle-sweeps-for-both-drag-laws-finding-a-maximum-you-cannot-write-down)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Four name clashes to know before reading code
@@ -123,7 +128,9 @@ A third projectile page, `/physics/projectile/quadratic-drag`, uses air resistan
 with the **square** of the speed, which is closer to what a real ball feels. That case has no
 exact 2-D formula, so the comparison trick above is not available; Part 18 explains how its
 numbers are checked instead (an exact throw straight up, limits, an energy balance, a
-conserved quantity and proved bounds).
+conserved quantity and proved bounds). That page has its own "Range against launch angle"
+panel too, where every point of the curve is a full simulation; Part 19 explains how its best
+angle is found and how accurately it is known.
 
 ---
 
@@ -2619,7 +2626,8 @@ treat them as different experiments.
 **Not shown:**
 - **Single peak for every allowed input.** It's checked for `v₀ = 20 m/s`, from ground
   level, at five drag strengths. It's very plausible physically, but not proven.
-- **Anything about quadratic drag.** Every number here uses linear drag (see Part 9).
+- **Anything about quadratic drag.** Every number here uses linear drag (see Part 9). The
+  quadratic-drag sweep, where no range has a formula, is Part 19.
 
 ### 11.7 Exercises (no solutions printed)
 
@@ -3994,6 +4002,429 @@ another in a very long fall, because there `vx` has decayed below what the solve
 
 ---
 
+## Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
+
+**Code:** `backend/src/simforge/physics/projectile/quadratic_angle_sweep.py` (roadmap 2.2,
+commits `12436a9` to `174306f`), the request and response at the end of
+`quadratic_schemas.py`, the route and registry entry at the end of `api/routes/physics.py`,
+and the panel `frontend/src/components/QuadraticAngleSweepPanel.tsx`. The weak-drag formula
+lives in a test-side helper, `backend/tests/physics/weak_drag_reference.py`. **Read after:**
+Part 11 (the linear sweep, grids, Brent, flat peaks) and Part 18 (the quadratic-drag model).
+
+The quadratic-drag page now has the same panel the linear page has: **"Range against launch
+angle"**. Keep the speed, height, mass, drag and gravity fixed, try every angle from 0° to 90°,
+draw range against angle and find the angle that throws furthest. On the linear page each
+range came from an exact formula (Part 11.2). Here there is no formula for even *one* range
+(Part 18), so every point on the curve is a full computer simulation. That changes three
+things: the sweep is expensive, the best angle's accuracy has to be *estimated* rather than
+read off, and we need new ways to know the answer is right.
+
+### 19.1 Why drag lowers the best angle **[IB core idea]**
+**Intuition first.** In a vacuum, 45° balances two things: a higher throw stays up longer, a
+flatter throw moves forward faster. Drag tips the balance.
+- A high lob spends a long time in the air, and drag keeps eating its horizontal speed for the
+  whole of that time. So extra flight time is worth less than it was in a vacuum.
+- Quadratic drag punishes speed: drag grows like `v²`, so the fast early part of every flight
+  loses the most. A high throw climbs slowly and falls slowly, but its horizontal motion is
+  still being braked all the way.
+
+So the best angle moves below 45°, and further below as drag grows. The quadratic page shows
+`42.98°` at its defaults (`v₀ = 20 m/s`, `c = 0.01 kg/m`, `m = 1 kg`, from the ground), and
+the range falls from `40.79 m` (no drag) to `31.40 m`.
+
+Is "below 45°" a theorem? Only partly. 19.3 *proves* it for weak drag, to first order. For
+strong drag, and for "it keeps falling as drag grows", SimForge has measurements on grids of
+cases, labelled **observed**. That difference matters, and the app keeps it.
+
+### 19.2 One number for "how strong is the drag": ε **[IB core]**
+Drag on the ball at its launch speed is `c·v₀²`; its weight is `m·g`. Their ratio is
+
+`ε = c·v₀²/(m·g) = (v₀/v_t)²`     (no units; `ε = 0` in a vacuum)
+
+because `v_t² = mg/c` (18.3). So `ε` says how many times the ball's weight the drag is at the
+moment of launch. At the defaults, `ε = 0.01 × 400/(1 × 9.80665) = 0.41`: drag starts at 41%
+of the weight.
+
+⚠️ **Name clash.** Everywhere else in this guide `ε` means **machine epsilon** (1.7). In this
+Part, `ε` is the **drag strength**, as in the code (`eps`), and machine epsilon is written
+`ε_mach`.
+
+### 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
+For small `ε` there is a result derived by hand for the 2.2 plan:
+
+`θ* ≈ 45° − 6.02°·ε`     and     `R*/(v₀²/g) ≈ 1 − 0.784·ε`     (from the ground)
+
+**Where it comes from, in outline.** Treat drag as a small change to the vacuum flight
+(a **perturbation**). To first order in `ε` the range is
+
+`R(θ) = (v₀²/g)·[sin 2θ − ε·F(θ)] + (terms of size ε²)`
+
+where `F(θ)` is the fraction of range lost to drag, per unit `ε`. It is found by integrating
+the drag along the *vacuum* path (the speed along the parabola, integrated over the flight,
+using the path's symmetry about its apex):
+
+`F(θ) = cos θ sin²θ + cos³θ sin θ·A + cos θ(1 + sin²θ)/4 − cos⁵θ·A/(4 sin θ)`, `A = asinh(tan θ)`
+
+(Careful: `cos θ` here, not the drag constant `c`.) You do not need to derive `F` to use the
+result; the IB-level step is the next one. The best angle is where the slope is zero:
+
+`dR/dθ = (v₀²/g)·[2 cos 2θ − ε·F′(θ)] = 0`.
+
+Near 45°, `cos 2θ ≈ −2(θ − π/4)` (the slope of `cos` at `π/2` is −1), so
+`−4(θ − π/4) ≈ ε·F′(π/4)`, i.e. `θ* − π/4 ≈ −ε·F′(π/4)/4`. With
+`F′(π/4) = (3√2 − ln(1 + √2))/8 = 0.420158` (per radian), and 180/π degrees per radian,
+that is `−(57.2958 × 0.420158/4)·ε = −6.0183°·ε`. **`F′(π/4) > 0`, so the angle goes down.**
+
+And the range? At a maximum the slope is zero, so moving the angle a little changes the range
+only at second order (11.4: the drop goes like `δ²`). That leaves only the direct loss,
+`F(π/4) = 7/(8√2) + (3/16) ln(1 + √2) = 0.783976`. The code computes both coefficients from
+these closed forms, not from rounded decimals:
+
+<!-- src: backend/tests/physics/weak_drag_reference.py:49-56 -->
+```python
+_LN_1_PLUS_SQRT2 = math.log1p(math.sqrt(2.0))  # = asinh(1)
+
+# F(pi/4) = 7/(8 sqrt 2) + (3/16) ln(1 + sqrt 2): first-order loss of range at 45 degrees.
+RANGE_COEFFICIENT = 7.0 / (8.0 * math.sqrt(2.0)) + 3.0 / 16.0 * _LN_1_PLUS_SQRT2
+# F'(pi/4) = (3 sqrt 2 - ln(1 + sqrt 2)) / 8 (per rad). Positive, so drag lowers the angle.
+F_PRIME_AT_45 = (3.0 * math.sqrt(2.0) - _LN_1_PLUS_SQRT2) / 8.0
+# d theta* / d eps at eps = 0, in degrees: (180/pi) F'(pi/4) / 4 = 6.0183...
+ANGLE_COEFFICIENT_DEG = math.degrees(F_PRIME_AT_45) / 4.0
+```
+
+| Line | Meaning |
+|---|---|
+| 49 | `ln(1 + √2)`, which is also `asinh(1)` (the `A` of `F` at 45°, since `tan 45° = 1`). `log1p(x)` computes `ln(1 + x)` without rounding `1 + x` first. |
+| 52 | `F(π/4)`, the first-order loss of range at 45°: the `0.783976` above. |
+| 54 | `F′(π/4)`, positive: the reason the best angle falls. |
+| 56 | The slope `dθ*/dε` at `ε = 0`, in degrees: `6.0183…`. |
+
+**How far does "first order" go?** Computed by the sweep (DOP853, 91 angles, `v₀ = 20 m/s`,
+from the ground; a short script, 2026-10-29, one machine):
+
+| ε | Sweep's best angle | 45° − 6.0183°·ε | Gap | Sweep's `R*/(v₀²/g)` | 1 − 0.784·ε |
+|---|---|---|---|---|---|
+| 0.01 | 44.9401° | 44.9398° | 0.00033° | 0.99224 | 0.99216 |
+| 0.04 | 44.7644° | 44.7593° | 0.0051° | 0.96982 | 0.96864 |
+| 0.1 | 44.4290° | 44.3982° | 0.031° | 0.92856 | 0.92160 |
+| 0.408 (defaults) | 42.9758° | 42.5452° | 0.43° | 0.76982 | 0.68023 |
+| 1 | 40.9775° | 38.9817° | 2.0° | 0.59361 | 0.21602 |
+| 4.08 | 36.1188° | 20.4453° | 15.7° | 0.30013 | −2.2 |
+
+When `ε` grows 4×, from 0.01 to 0.04, the gap grows about 16× (0.00033° → 0.0051°): the
+leftover is of size `ε²`, exactly as "first order" promises. At the defaults the formula is
+already 0.43° off, and at `ε = 4` it predicts a *negative* range. So: **the formula is a check
+for weak drag, not a way to compute the answer.**
+
+**Status, honestly.** The derivation was done by hand for the plan, and a reviewer re-derived
+`F` by a different perturbation route (they agreed to 4 × 10⁻¹⁶). It was **not** checked
+against any published source. The leftover `ε²` term is not bounded, so nobody has said how
+small "weak" must be. "Below 45°" is therefore **proved to first order in ε**; beyond that it
+is **observed**: in scratch measurements over `ε` from 10⁻³ to 10³ at three heights, every
+curve had one peak, and from the ground the best angle fell all the way (44.994° → 40.98° →
+20.34° at `ε` = 10⁻³ → 1 → 10³).
+
+### 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
+There is no range formula, so each grid angle is **one complete quadratic-drag simulation**,
+the same function the single-run page calls (`quadratic_model.run`), with the same guard,
+events and checks. That gives a strong, simple test (**RS2**): every point of the sweep must
+be *bit-identical* to a single 2.1 run at that angle, and the tests compare them exactly.
+
+Two angles need no solver:
+- **0° from the ground** is not a flight at all (a 2.1 request refuses it: the flight time would be zero). The sweep
+  does not run it: range, time and height are exactly 0, labelled "no flight".
+- **90°** is straight up: the 2.1 model sets `vx₀ = 0` exactly, so the range is exactly 0, and
+  that run is also checked against the exact vertical flight (18.4-18.5).
+
+At the defaults a sweep makes 98 runs: 90 grid angles (0° is skipped) plus 8 more for the
+refinement (19.5). Each 2.1 check is then reported **over every run**: it passes only if every
+run passed, and it shows the run closest to its limit and names its angle, so a single bad
+angle cannot hide in an average.
+
+### 19.5 Refining the best angle with Brent **[Beyond IB]**
+This is the method of Part 11.3, unchanged: take the best grid point, use its two neighbours
+as a bracket, and let SciPy's bounded **Brent** search (golden-section steps mixed with
+parabola fits) find the top of the curve inside it.
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:285-295 -->
+```python
+    i = max(range(n_angles), key=lambda j: points[j].range)
+    refined = minimize_scalar(
+        minus_range,
+        bounds=(grid[max(i - 1, 0)], grid[min(i + 1, n_angles - 1)]),
+        method="bounded",
+        options={"xatol": ANGLE_XATOL},
+    )
+    best = (float(refined.x), -float(refined.fun))
+    if points[i].range > best[1]:  # the optimum sits on a grid point (to rounding)
+        best = (points[i].angle_deg, points[i].range)
+    uncertainty, note = _uncertainty(points, i, best, solver)
+```
+
+| Line | Meaning |
+|---|---|
+| 285 | `i`, the index of the best grid point. |
+| 286-291 | Brent on the bracket of `i`'s neighbours (stopping at the edge of the grid). `minus_range` runs one full 2.1 simulation at the angle Brent asks for and returns `−R`, because `minimize_scalar` finds minima. |
+| 292 | The refined angle and range (undoing the minus sign). |
+| 293-294 | The safety net of Part 11: if a grid point beats the refinement, keep the grid point. |
+| 295 | The accuracy estimate `u`, with a note saying what it is (19.6). |
+
+Two things are new compared with the linear sweep. First, each of Brent's guesses is a whole
+simulation, so the refinement costs about 6 to 19 extra runs. Second, Brent finds a **local**
+maximum: if the curve had two peaks, it would climb whichever one is next to the best grid
+point. Every curve measured had one peak, but that is evidence, not proof, so the response
+reports the number of interior peaks on the grid, and the check is marked not passed if there
+is more than one.
+
+### 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
+**Intuition first.** Near a maximum, a curve is nearly flat (11.4). If the computed curve is
+a tiny bit wrong, say every range is off by a millimetre, the top of the curve can slide
+sideways by a *lot* more than you might expect, because a flat top barely changes height when
+you move along it.
+
+Make it precise. Near the top, `R(θ) ≈ R* − ½K(θ − θ*)²`, where `K = |R″(θ*)|` (m per rad²)
+says how sharply the curve bends. Suppose every computed range is within `ε_R` metres of the
+true one. The computed maximum `θ̂` is at least as high as the computed value at `θ*`, so in
+truth `R(θ̂) ≥ R* − 2ε_R` (one `ε_R` from each end). Then `½K(θ̂ − θ*)² ≤ 2ε_R`, so
+
+`|θ̂ − θ*| ≤ 2√(ε_R/K)`.
+
+A **square root**: halving the range error only improves the angle by a factor of √2 ≈ 1.4.
+SciPy cannot help: Brent finds the top of the *computed* curve to about 10⁻⁶°, but that is not
+the top of the *true* curve.
+
+SimForge turns this into an estimate `u` for every sweep:
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:216-225 -->
+```python
+    d2 = points[i + 1].range - 2 * points[i].range + points[i - 1].range
+    if not d2 < 0:
+        return None, (
+            "No estimate: the grid curve is not bent downwards at its best point (second "
+            f"difference {d2:.3g} m), so K, and with it u, is undefined."
+        )
+    step = math.radians(points[1].angle_deg - points[0].angle_deg)
+    curvature = -d2 / step**2  # K, m/rad^2
+    eps_r = SOLVER_ERROR_FACTOR * (solver.rtol * best_range + solver.atol)
+    u = math.degrees(2 * math.sqrt(eps_r / curvature))
+```
+
+| Line | Meaning |
+|---|---|
+| 216 | The **second difference** `d₂ = R(θᵢ₊₁) − 2R(θᵢ) + R(θᵢ₋₁)`: the grid's version of a second derivative times `Δ²`. Negative at a maximum. |
+| 217-221 | If the grid curve is not bent down here, there is no `K`, and no estimate: `null`, with the reason. (At an edge of the grid the estimate is also `null`, earlier in the function.) |
+| 222-223 | `K ≈ −d₂/Δ²`, with the grid step `Δ` in radians. |
+| 224 | `ε_R = 10·(rtol·R + atol)`: the project's usual *scale* for a solver's error (the same factor 10 as the replay rules). It is a convention, **not** a proved bound on the error. |
+| 225 | `u = 2√(ε_R/K)`, converted to degrees. |
+
+**A worked number** (the defaults, DOP853, computed by the code). The best grid point is 43°:
+`R(42°) = 31.38386 m`, `R(43°) = 31.39986 m`, `R(44°) = 31.38228 m`, so `d₂ = −0.03358 m` and,
+with `Δ = 1° = 0.017453 rad`, `K = 0.03358/0.017453² = 110.2 m/rad²`. With
+`rtol = atol = 10⁻¹⁰`, `ε_R = 10 × (10⁻¹⁰ × 31.4 + 10⁻¹⁰) = 3.24 × 10⁻⁸ m`. Then
+`u = 2√(3.24 × 10⁻⁸/110.2) = 3.43 × 10⁻⁵ rad = 0.00196°`. A range error of 32 nanometres
+becomes an angle uncertainty of two thousandths of a degree.
+
+**Why u is labelled an estimate, and why it is pessimistic.** Two honest caveats.
+1. `ε_R` is a scale, not a guarantee, and the quadratic picture is only an approximation, so
+   `u` is **not a bound**. The app says "42.98° ± 0.002° (estimate)".
+2. Measured against an independent, much tighter integration, the sweep's best angle was
+   wrong by only 2 × 10⁻⁸° to 8.5 × 10⁻⁷° in the seven cases tested, while `u` was 0.0020° to
+   0.0030° there: `u` was at least about 2000 times too big. The reason: the solver's error is *smooth* in the angle. If every range
+   is too long by nearly the same amount, the whole curve moves up and its top does not move
+   sideways at all. Only the difference of the error between neighbouring angles moves the
+   peak, and that is far smaller than `ε_R`. The argument above assumed the worst case, an
+   error that is `+ε_R` at one angle and `−ε_R` at the next, which a smooth error never does.
+
+So `u` is safe to quote and the app shows the angle to two decimals, which `u` supports; the
+true accuracy is better, but that is an observation, not something the code can promise.
+
+### 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
+A default sweep with DOP853 used 16 675 evaluations of the right-hand side (the function that
+computes the accelerations, 18.13) and took 0.29 s; the same sweep with Radau used 189 011 and
+took 5.6 s (2026-10-29, one machine). At tight tolerances and strong drag a single Radau run
+can take seconds. Without a limit, one request could keep the server busy for minutes, and the
+browser would give up first: requests pass through the Next.js server, whose proxy stops
+waiting after **30 s**.
+
+So every sweep has a **budget**: at most 300 000 right-hand-side evaluations in total, checked
+after each run.
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:254-270 -->
+```python
+    def solve(angle_deg: float) -> QuadraticComputation:
+        nonlocal total
+        computation = quadratic_model.run(_at(setup, angle_deg), solver, n_samples=N_SAMPLES)
+        runs.append(SweepRun(angle_deg, computation))
+        total += computation.numerical.n_rhs_evaluations
+        if total > max_rhs_evaluations:
+            if len(points) < n_angles:  # this run is grid point number len(points) + 1
+                progress = f"after {len(points) + 1} of {n_angles} angles"
+            else:
+                n_refine = len(runs) - sum(p.flew for p in points)
+                progress = f"after all {n_angles} angles and {n_refine} refinement runs"
+            raise ModelDomainError(
+                f"The sweep needed more than {max_rhs_evaluations:,} right-hand-side "
+                f"evaluations ({total:,} {progress}); use fewer angles, a looser tolerance, "
+                "or DOP853 where the drag-time bound allows."
+            )
+        return computation
+```
+
+| Line | Meaning |
+|---|---|
+| 256 | One full 2.1 run at this angle (`_at` builds the launch at the new angle, as the 2.1 route does). `N_SAMPLES = 10`: the trajectory is thrown away, so it is resampled as cheaply as allowed. |
+| 257-258 | Remember the run (its checks are aggregated later) and add its evaluations to the total. |
+| 259-264 | Over budget: say how far the sweep got (a grid angle, or the refinement). |
+| 265-269 | Refuse with a 422 that says what to change. |
+
+**Why evaluations and not seconds?** A time limit depends on how busy the machine is, so the
+same request could succeed now and fail in a minute; a replay of a stored run could fail where
+the original succeeded. A count of evaluations is the same every time on the same machine.
+(Not across machines: 19.9.) The check happens *after* a run, so at most one run in progress
+can overshoot.
+
+**Why 300 000?** It was measured, not guessed: 540 sweeps over speeds, drag strengths,
+heights, methods and tolerances. Each evaluation costs about 9-15 µs for the explicit methods
+and 34-42 µs for Radau, so Radau sets the worst wall time. At 3 × 10⁵ the slowest refusal took
+11.4 s, leaving room for a machine twice as slow inside the 30 s; at 5 × 10⁵ it took 19.4 s,
+too close. 3 × 10⁵ admits every sweep at the 2.1 defaults with every method, but refuses about
+half of the Radau sweeps measured at default tolerances with 91 angles: the message tells you
+to use fewer angles (the quadratic page has a "Number of angles" field), a looser tolerance,
+or DOP853 where the stiffness guard allows.
+
+Two cheaper checks run **before** any solve: the 2.1 stiffness guard (18.10) at every grid
+angle, which refuses an explicit method at once and names the worst angle; and the 2.1 input
+rules, checked once at the sweep's **smallest flown angle**:
+
+<!-- src: backend/src/simforge/physics/projectile/quadratic_schemas.py:269-274 -->
+```python
+    def smallest_flown_angle(self) -> float:
+        """0 degrees from a height; from the ground (where 0 degrees is no flight) the first
+        grid step, taken from the sweep's own grid so it is the very angle that is run."""
+        if self.parameters.launch_height > 0:
+            return 0.0
+        return float(np.linspace(0.0, 90.0, self.n_angles)[1])
+```
+
+The shortest flight is the flattest one (the drag-free flight time grows with the angle), so
+if "at least 1 µs" (18.10) holds there, it holds at every grid angle. (One gap was found while
+building: from the ground, Brent can try angles *below* the first grid step. The rule still
+holds there for a different reason, the drag-rate limit, explained in the comment beside this
+function; its last step is observed, not proved.)
+
+### 19.8 Why a new model again
+The obvious design would be a `drag_law` option on the existing sweep. It is rejected for the
+reason of 18.12, replay: the linear sweep stores its parameters as dumped and hashes them
+(15.1). A new field would change every stored linear sweep's input hash, and replay would
+refuse every one of them. A quadratic sweep also needs inputs the linear one does not have
+(`drag_constant` in kg/m, and the solver settings, because there is no exact range). So it is
+a new model, `physics.projectile.quadratic_angle_sweep` v1.0.0, with its own endpoint
+(`POST /api/v1/physics/projectile/quadratic-drag/angle-sweep`) and registry entry:
+
+<!-- src: backend/src/simforge/api/routes/physics.py:708-718 -->
+```python
+QUADRATIC_ANGLE_SWEEP = ModelEntry(
+    info=qas.MODEL_INFO,
+    request_type=QuadraticAngleSweepRequest,
+    compute=_quadratic_sweep_run,
+    # The launch angle does not affect a sweep, so it is left out of the hashed inputs (and a
+    # rebuilt request uses the default angle), as for the linear sweep.
+    inputs=lambda req, _: {
+        "parameters": req.parameters.model_dump(exclude={"launch_angle_deg"}),
+        "solver": req.solver.model_dump(),
+        "n_angles": req.n_angles,
+    },
+```
+
+| Line | Meaning |
+|---|---|
+| 709-711 | The model's identity, its request type and the function that computes it. |
+| 712-718 | The **hashed inputs**: the parameters without the launch angle (a sweep tries every angle, so the field is unused, as in 11.5), the solver settings, and the number of angles. Change any of these and it is a different question. |
+
+On screen, both pages share one panel. `AngleSweepPanel.tsx` became a generic `SweepPanel`
+with a small **adapter** per model: how to run it, how to label the curve ("Range
+(analytical)" against "Range (numerical, DOP853)"), whether to draw the exact drag-free curve
+dashed beside it, and whether to show an angles field. The linear page behaves exactly as
+before. "Both drag laws" therefore means each law's sweep on its own page; drawing linear and
+quadratic results on one chart needs a rule for which `b` matches which `c`, which is a
+separate decision the roadmap has not made.
+
+### 19.9 Replay: what may move on another computer
+Each stored number has its own rule (15.4), and each rule has a reason:
+- **Best range:** the 2.1 solver rule, `10·(rtol·R + atol)`.
+- **Best angle:** within `max(10⁻⁵°, u)`, the run's own estimate, with the linear sweep's
+  floor for Brent's stall.
+- **u itself:** it comes from a second difference of three ranges, so if each range may move
+  by `dR`, `d₂` may move by up to `4·dR`; `u` goes like `1/√K`, so it moves by half of `K`'s
+  relative change, at most `2·dR/|d₂|`. The rule follows from that argument, and was then checked by
+  **emulating another CPU**: every drag evaluation multiplied by `1 ± 1` or `2` units in the
+  last place, 892 reruns. Every value stayed well inside its rule.
+- **The evaluation count** is compared **exactly**: a different number of evaluations is a
+  different computation. But in the same emulation it changed in **479 of 892** reruns, because
+  a last-bit change can flip one of the solver's step decisions in one of ~100 runs. So a
+  replay on another computer will often say "differs" on that count alone, even when every
+  physical number agrees. That is a known, documented limitation, not a bug.
+
+### 19.10 What the evidence does and does not show
+**Shown** (tests, every push): the vacuum sweep reproduces 45° and `v₀²/g` and the exact
+optimum from a height (RS1); every point equals a single 2.1 run (RS2); for weak drag the
+sweep's residual from the first-order formula shrinks like `ε²` (RS3), and a wrong force law
+fails that test; at stronger drag the best angle agrees with an independent integration
+within `u` and within `2 × 10⁻⁵°` (RS4); 0° and 90° are exact (RS5); every 2.1 check passes in
+every run of the tested sweeps (RS6); the budget and the guard refuse cleanly; no corner of
+the allowed inputs gives a server error.
+
+**Not shown:** that the curve has one peak for every allowed input (observed only); that the
+best angle falls as drag grows outside the measured cases; that the weak-drag formula agrees
+with the literature (not checked); that `u` is a bound (it is an estimate). Every limitation of
+the 2.1 model (Part 18.14) applies at every angle. The full list, with every measurement and
+the versions used, is in the quadratic angle-sweep section of `SCIENTIFIC_VALIDATION.md`.
+
+### 19.11 Checkpoint
+1. Explain without equations why air resistance lowers the best launch angle.
+2. What does `ε = (v₀/v_t)²` compare? Why is it a better measure of "strong drag" than `c`
+   alone?
+3. The weak-drag formula moves the best angle at first order in `ε`, but the best *range*
+   changes only through `F(π/4)` at that order. Why does moving the angle not change `R*` at
+   first order?
+4. Why does an error of a few times 10⁻⁸ m in each range give an angle uncertainty of about
+   0.002°? Where does the square root come from?
+5. Why is `u` hundreds of times (or more) larger than the measured error? What property of the
+   solver's error is responsible?
+6. Why is the sweep's budget counted in right-hand-side evaluations and not in seconds?
+7. Why does an exact evaluation count make a poor replay check across different CPUs?
+8. "The best angle is below 45°": which part of that statement is proved, and which part is
+   only observed?
+
+### 19.12 Exercises
+- **E19.1** Using the table in 19.3, estimate the coefficient of the `ε²` term in the best
+  angle (assume the gap is `a·ε²` and fit `a` from two rows). Use it to predict the gap at
+  `ε = 0.2`, then check your prediction with the app (choose `c` to make `ε = 0.2` at
+  `v₀ = 20 m/s`, `m = 1 kg`).
+- **E19.2** Show that `cos 2θ ≈ −2(θ − π/4)` near `θ = π/4`, and use it to derive
+  `θ* − π/4 ≈ −ε·F′(π/4)/4` from `2 cos 2θ − ε·F′(θ) = 0`. Then convert `F′(π/4) = 0.420158`
+  into the `6.02°` per unit `ε`.
+- **E19.3** In a vacuum from the ground, `R = (v₀²/g) sin 2θ`. Find `K = |R″(45°)|` and show
+  that `u = 2√(ε_R/(4R*))`. For `v₀ = 20 m/s` and `rtol = atol = 10⁻¹⁰`, compute `u` in
+  degrees, and compare it with the "± …" the app shows for a sweep with `c = 0`.
+- **E19.4** The grid's second difference over a step `Δ` gives `K·sin²Δ/Δ²` for `sin 2θ`, not
+  `K`. Show this, and find how big the error in `u` is on a 1° grid. Should SimForge worry
+  about it?
+- **E19.5** Run a default sweep with Radau, then with DOP853, and compare the "Runs and solver
+  evaluations" rows. Predict, before running, roughly how the number of evaluations changes if
+  you halve the number of angles, and explain why it does not exactly halve.
+- **E19.6** Explain, in your own words, why a sweep that is accepted on one computer could be
+  refused by the budget on another, even with the same code and inputs.
+- **E19.7** (stretch) Set up a launch from a height of 5 v₀²/g and sweep several drag
+  strengths in the app. Does the best angle keep falling? Compare with the "nearly flat"
+  observation in 19.3's status paragraph, and explain physically why strong drag makes the
+  launch height stop mattering.
+- **E19.8** (thinking about tests) Imagine a bug that computes `u` with `Δ` in degrees instead
+  of radians. By what factor would `u` be wrong, and which test in
+  `backend/tests/physics/test_quadratic_angle_sweep.py` would catch it?
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -4041,12 +4472,30 @@ another in a very long fall, because there `vx` has decayed below what the solve
 | `I` (Part 18) | hodograph invariant `1/vx² + (κ/g)[v·vy/vx² + asinh(vy/vx)]`. Not Part 6's `I`! | s²/m² | `hodograph_invariant` |
 | `T_bound` | proved upper bound on the flight time | s | `flight_time_bound` |
 | `S` | drag time `∫κ\|v\| dt` (path length in drag lengths `m/c`) | — | `drag_time_bound` (its bound) |
+| `ε` (Part 19) | drag strength `κv₀²/g = (v₀/v_t)²`: launch drag over weight. Not machine epsilon (`ε_mach` in Part 19)! | — | `eps` |
+| `F(θ)` | first-order fraction of range lost to drag, `R = (v₀²/g)[sin 2θ − εF(θ)] + O(ε²)` | — | `range_correction` (test helper) |
+| `K` | how sharply the range curve bends at its top, `\|R″(θ*)\|` | m/rad² | `curvature` |
+| `Δ` | grid step between angles (radians in `K`) | degrees, rad | `step` |
+| `d₂` | the grid's second difference `R(θᵢ₊₁) − 2R(θᵢ) + R(θᵢ₋₁)` | m | `d2` |
+| `ε_R` | solver-error scale in a range, `10·(rtol·R + atol)` (a convention, not a bound) | m | `eps_r` |
+| `u` (Part 19) | estimated accuracy of the best angle, `2√(ε_R/K)` (an estimate, not a bound). Not Part 3's `u = k·t`! | degrees | `best_angle_uncertainty_deg` |
 
 ---
 
 ## Changes from the previous version of this guide
 
-**This version (roadmap 2.1, quadratic drag):**
+**This version (roadmap 2.2, angle sweeps for both drag laws):**
+- **Added Part 19:** why drag lowers the best angle; the drag strength `ε = (v₀/v_t)²`; the
+  weak-drag result `θ* ≈ 45° − 6.02°·ε` (derivation in outline, a table of how far first order
+  goes, and what is proved against observed); the sweep as ~100 runs of the 2.1 model; Brent's
+  refinement and its local-maximum caveat; the flat top and the accuracy estimate `u`, with a
+  worked number and why it is pessimistic; the work budget counted in evaluations; why it is a
+  new model again; replay rules; checkpoint and exercises E19.1-E19.8.
+- **Added** Part 19 to the header, the reading order (stage 12), the contents and Part 0; a
+  pointer from 11.6; symbol-table rows (`ε` (Part 19), `F(θ)`, `K`, `Δ`, `d₂`, `ε_R`, `u`
+  (Part 19)), with the clashes flagged.
+
+**The previous version (roadmap 2.1, quadratic drag):**
 - **Completed Part 18** (drafted from the plan before the code): the draft-status box is gone,
   every code placeholder is now a checked excerpt (the rise and fall formulas, the invariant
   and its residual, the integration cap, the guard, the mutant test, the input rule, the

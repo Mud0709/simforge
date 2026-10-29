@@ -3,7 +3,7 @@
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
 edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
 
-status: running
+status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
 scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
 failures: none
@@ -31,19 +31,19 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   Estimated tick cost is now 0.07 (largest of the last three: 0.03, 0.02, 0.07).
 - 2026-10-28 16:26 UTC (2.2 slice 3, builder + security reviewer, both high): 0.57 → 0.64.
 - 2026-10-28 20:27 UTC (2.2 slice 4, builder + reviewer, both medium): 0.64 → 0.68.
+- 2026-10-29 00:27 UTC (2.2 slice 5, docs writer + reviewer, both medium; full e2e check): 0.69 → 0.74.
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-Roadmap 2.2: slices 1-4 committed. Next: slice 5, docs (SCIENTIFIC_VALIDATION, guide Part 19,
-ARCHITECTURE decision 19, README, ROADMAP 2.2 ✅ and 🔜 to 2.3; fix the plan's D7 wording; add
-an "Amendments after building" section), then `scripts/check.sh --e2e` and a fresh review.
-Then 2.2 is complete: ask the author for the PR (6 of 6 commits will be reached).
+None. Roadmap 2.2 is complete on the branch (slices 1-5, reviewed; 6 of 6 autopilot commits since
+the author's last message). 🔜 is on 2.3 (oscillators). No PR is open: the author asks for it.
 
 ## Remainder of the current unit
 —
 
 ## Waiting for you (blocking)
-Nothing.
+- Ask for a PR for 2.2 (and merge it); then the autopilot starts 2.3. Say "resume autopilot"
+  to reset the 6-commit limit.
 
 ## For your daily review (not blocking)
 - Approve or edit the learning-log drafts for PR #12 (journal, 2026-10-25 04:40) and PR #13
