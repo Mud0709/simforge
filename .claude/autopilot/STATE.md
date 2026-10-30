@@ -21,7 +21,7 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   run 24 h from 02:00 UTC; the week starts Sunday 02:00 UTC (the seven-day reset). Counts only
   the autopilot's measured tick costs dated that day; the weekly cap applies on top.
 - notifications: one push per day (summary of the previous day) and one whenever the
-  autopilot stops for the author or reaches the daily allowance. Last daily summary: none yet.
+  autopilot stops for the author or reaches the daily allowance. Last daily summary: 2026-10-30 (for 2026-10-29).
 - starting estimate of a tick's cost: 0.03 of the 7-day window. Replaced by the largest of
   the last three measurements once there are three.
 
