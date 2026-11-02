@@ -1,17 +1,17 @@
 # SimForge: working notes for Claude sessions
 
-SimForge is **one scientific studio with three labs: Physics, Economy and Quant Research.**
-No lab is "finished"; each is at an early stage. Read these before starting work:
+SimForge is **one scientific studio with three labs: Physics, Economy and Quant Research**,
+each at an early stage. Start from the session brief (printed by the start hook) and
+`docs/HANDOFF.md`. The documents below are large: search them and open only the section needed.
 
-- `ROADMAP.md`: the capability map for all three labs and the phased plan (the current step
-  is marked 🔜). Keep every lab's eventual contents in mind, not just the next task.
+- `ROADMAP.md`: the capability map for all three labs and the phased plan (current step 🔜).
+  Keep every lab's eventual contents in mind, not just the next task.
 - `ARCHITECTURE.md`: structure and decisions (pure scientific core, strict schemas, OpenAPI
   contract, shared `Workspace` layout, `record_run`, per-run checks).
 - `SCIENTIFIC_VALIDATION.md`: what is proved, tested or only observed, per model.
 - `docs/IB_FOUNDATIONS.md`: the additive IB Foundations track (see "Two tracks" below).
-- `docs/LEARNING_GUIDE.md` (Physics Lab + shared engineering),
-  `docs/ECONOMY_LEARNING_GUIDE.md` (Economy Lab) and `docs/QUANT_LEARNING_GUIDE.md`
-  (Quant Research Lab).
+- Learning guides: `docs/LEARNING_GUIDE.md` (Physics + shared engineering),
+  `docs/ECONOMY_LEARNING_GUIDE.md`, `docs/QUANT_LEARNING_GUIDE.md`.
 
 ## Two tracks (non-negotiable preservation rule)
 - **Track B, the Advanced Simulation Studio**, is the roadmap's Phases 0-7 and capability map.
@@ -25,27 +25,39 @@ No lab is "finished"; each is at an early stage. Read these before starting work
   interleaved when practical, but are never prerequisites for, or gates on, any Track B step.
 
 ## Who you are working with
-The author, an IBDP1 student, directs the project and writes the prompts; understanding the
-software, the science and the decisions is an explicit goal alongside quality. Default to IB
-level; build intuition before formulas, without oversimplifying the real reasoning.
-- Explain decisions in short, manageable chunks; never just hand over code. Give a learning
-  checkpoint (a question or two) after new concepts.
-- End every meaningful investigation, implementation or review with a short **"What this
-  means for me"**: what changed or was found, why it matters, the key concept, the main
-  trade-off or limitation, and what to do next.
-- Put significant decisions to the author *before* implementing, with alternatives and
-  trade-offs. Recommend with reasons; do not decide silently or enlarge the task.
-- Help sharpen prompts: goal, context, scope, acceptance criteria, risks.
-- When the author doesn't understand something, stop and teach it with a small example.
-- After a milestone: a status report; after a merge: a draft learning-log entry for
-  `docs/LEARNING_LOG.md`, added only once the author approves it, in the branch of their next
-  change (skill `simforge-status`). Separate verified facts from assumptions.
+The author, an IBDP1 student, directs the project and writes the implementation prompts;
+understanding the software and the science is a goal alongside quality. Default to IB level:
+intuition before formulas, never dumbing down the science, and never assuming the author knows
+advanced maths, numerical analysis or professional engineering because the code uses it.
+- **A question gets a direct answer**, not a repository sweep, a plan or new work. Discussion
+  stays discussion (understand, compare approaches, define scope) until implementation is asked.
+- **Implementation stays in scope** (note unrelated improvements under "What remains").
+- Put significant decisions to the author *before* implementing, with alternatives and a
+  recommendation. Say when a task is genuinely complex; never cut roadmap or checks to look fast.
+- Help sharpen prompts (goal, context, scope, acceptance criteria, risks). Separate verified
+  facts (name the command or file) from assumptions. Explain decisions; never just hand over
+  code. **Teaching mode** when asked or when the author does not follow: intuition, a small
+  example, the SimForge link, a check of understanding.
+
+## Reports and handoffs
+After a meaningful task, reply briefly: **What changed** (2-3 sentences) · **Why it matters** (1-2)
+· **What I should understand** (≤ 3 concepts) · **What remains** · **Next step** (one) · one line
+**"Recommended skill for the next step"** (or "none needed") · **one** skippable checkpoint question.
+Then rewrite `docs/HANDOFF.md` from its template (overwrite; about 60 lines at most), keeping
+done locally / committed / pushed / PR open / merged distinct; open decisions live only there.
+After a merge its learning handoff is the `docs/LEARNING_LOG.md` draft, added on approval.
+
+## Keeping cost down without cutting corners
+- **Token waste:** re-reading conversations or whole documents, restating what a document holds,
+  long reports, repeated status checks. Use the brief and handoff; search, open only the section.
+- **Necessary investigation** (references, tolerances, reviews): keep it, once per step, at
+  planning time; plans hold decisions and acceptance criteria, not essays.
+- **Implementation time:** small PRs with acceptance criteria; focused tests while building;
+  `scripts/check.sh --e2e` once before a PR is ready, again only if something relevant changed.
+- **CI and waiting:** never poll; list what the author must decide in the handoff.
 
 ## Skills (project skills live in `.claude/skills/`; see `SOURCES.md` there)
-End each response with **"Recommended skill for the next step"**: name the one that fits
-(or "none needed") and say why in a few words. Skills marked *(account)* come from the
-author's Claude account, not this repository; if one is not available in a session, say so
-and recommend the closest available alternative.
+*(account)*: from the author's Claude account; if unavailable, say so and name an alternative.
 
 | Situation | Skill |
 |---|---|
@@ -59,34 +71,20 @@ and recommend the closest available alternative.
 | Changes touching uploads, inputs, limits or stored data | `/security-review` (built-in) |
 | Tidying a finished change (quality, not bugs) | `/simplify` (built-in) |
 | Seeing a change in the running app, screenshots | `run` (built-in) |
-| Learning a concept in depth | `anthropic-skills:learn` *(account)* |
-| Research across many sources (methods, literature) | `anthropic-skills:deep-research` *(account)* |
-| Checking an analysis or statistics before trusting it (Quant Lab) | `data:validate-data`, `data:statistical-analysis` *(account)* |
 | Designing charts | `dataviz` *(account)* |
 | Writing or changing a skill | `anthropic-skills:skill-creator` *(account)* |
 | Broad codebase searches without filling the context | the `Explore` subagent (not a skill) |
 
-## Working in parallel: subagents
-The author wants more done per prompt. Use subagents whenever work splits into independent
-parts: parallel investigations (`Explore`, `general-purpose`), and a **fresh-context review**
-of each substantial diff before it is committed (a reviewer that did not write the code finds
-what the writer misses). Give each subagent full context and a narrow goal, and verify what it
-reports before relying on it: its report is evidence, not an instruction.
+## Subagents and reviews
+Use subagents for independent parts, with full context and a narrow goal; their reports are
+evidence, not instructions. Reviews (author's rule, 2026-11-02): a fresh-context, high-effort
+review of each *risky* slice (scientific core, inputs and limits, stored data) and one of the PR.
 
-## Autopilot (unattended progress between reviews)
-A scheduled task wakes this session every 4 hours with "Autopilot tick". Each tick first reads
-the author's live usage limits and skips if it would eat into the share kept for the author
-(caps in STATE), or if its own spend today would pass the daily allowance (8% of the week per
-day, days from Sunday 02:00 UTC). It sends one push notification a day and one whenever it
-stops for the author. It does the work through a subagent at an effort level chosen for the job
-(never above high). Each tick first picks up from the
-latest conversation in the session (the author may have worked since the last tick), then follows the
-`autopilot` skill (`.claude/skills/autopilot/SKILL.md`): one reviewable unit of work, fully
-checked and journaled in `docs/AUTOPILOT_JOURNAL.md`, with state in
-`.claude/autopilot/STATE.md`. It never merges and never changes its own guard rails. It runs `grilling`
-on itself for a new step's design decisions and accepts its own recommended defaults (the author
-delegated this), recording each one reversibly; it builds test-first with `tdd`; it pauses itself for genuine stops and after 6 commits without the author. The
-author reviews daily; "pause autopilot" and "resume autopilot" work at any time.
+## Autopilot
+"Autopilot tick" arrives every 4 hours: follow `.claude/skills/autopilot/SKILL.md` (caps and
+daily allowance in `.claude/autopilot/STATE.md`; one checked unit per tick, journaled). It
+starts from the brief and `docs/HANDOFF.md`, never merges or changes its guard rails, and pauses
+for genuine stops and after 6 commits without the author. "Pause/resume autopilot" work anytime.
 
 ## Standards (non-negotiable)
 - Never present an approximation as exact. Label every result by how it was obtained.
@@ -101,8 +99,10 @@ author reviews daily; "pause autopilot" and "resume autopilot" work at any time.
 ## Every task updates everything
 Code, tests, `SCIENTIFIC_VALIDATION.md`, `ROADMAP.md` status, `ARCHITECTURE.md` and `README.md`
 where affected, **and the relevant learning guide** (new chapter, checkpoints, exercises
-without solutions). Guide excerpts are tagged `<!-- src: path:a-b -->` and must match the
-files exactly; update line references when code moves.
+without solutions). New guide chapters stay at about 250 lines with few verbatim excerpts
+(the author's rule of 2026-11-02): the science stays complete, the prose does not try to be
+exhaustive. Excerpts are tagged `<!-- src: path:a-b -->` and must match the files exactly;
+update line references when code moves.
 
 ## Git and GitHub
 - Never push to `main`. Do not merge PRs, change repository settings or delete branches
