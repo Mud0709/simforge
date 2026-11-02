@@ -33,9 +33,11 @@ the relevant roadmap step; open decisions; the single most useful next action.
 **Task Completion Handoff (end of a meaningful task):** reply in `CLAUDE.md`'s format, then
 **overwrite** `docs/HANDOFF.md` from the template already in that file (keep its headings, so
 the hook can read them; about 60 lines at most). Rules for it:
-- `Last updated: <sha> <YYYY-MM-DD>`, where the sha is the latest commit the handoff
-  describes. Writing the handoff is the last step of a task, so the handoff's own commit
-  comes after that sha; the hook warns once HEAD is more than 3 commits past it.
+- `Last updated: <sha> <YYYY-MM-DD>`, where the sha is the latest commit the handoff describes,
+  then `Working branch: <branch>` (the fresh-session autopilot reads it from `main`, so a change
+  of branch reaches it only once merged). Writing the handoff is the last step of a task, so the
+  handoff's own commit comes after that sha; the hook warns once HEAD is more than 3 commits
+  past it.
 - States stay distinct: done locally, committed, pushed, PR open, merged. Name the commit
   or PR for each claim.
 - Checks: exact commands that ran and their results; say what did not run.
