@@ -9,20 +9,30 @@
 #    failures are listed at the end.
 set -uo pipefail
 
-cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}" || exit 1
+if ! cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"; then
+  [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && exit 1
+  exit 0
+fi
 
 # Prints at most $1 lines of the "## $2" section of docs/HANDOFF.md, then a pointer if longer.
+# Tolerates CRLF and trailing spaces on the heading; says so when the heading is missing.
 handoff_section() {
   awk -v want="## $2" -v max="$1" '
-    /^## / { inside = ($0 == want); next }
+    { sub(/\r$/, "") }
+    /^## / { h = $0; sub(/[ \t]+$/, "", h); inside = (h == want); if (inside) seen = 1; next }
     inside && NF { n++; if (n <= max) print "  " $0 }
-    END { if (n > max) printf "  (+%d more lines in docs/HANDOFF.md)\n", n - max }
+    END {
+      if (!seen) print "  (section missing from docs/HANDOFF.md)"
+      else if (n == 0) print "  (none)"
+      else if (n > max) printf "  (+%d more lines in docs/HANDOFF.md)\n", n - max
+    }
   ' docs/HANDOFF.md
 }
 
 brief() {
   local branch head base ahead behind dirty step merge sha since
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || { echo "SimForge brief: not a git checkout"; return; }
+  [ "$branch" = "HEAD" ] && branch="(detached HEAD)"
   head=$(git log -1 --format='%h %s' HEAD)
   echo "== SimForge session brief (git, no network; origin/main as last fetched) =="
   echo "Branch: $branch @ $head"
@@ -36,7 +46,7 @@ brief() {
   else
     echo "Latest merge on main: unknown (no origin/main ref)"
   fi
-  dirty=$(git status --porcelain | wc -l)
+  dirty=$(git --no-optional-locks status --porcelain | wc -l)
   [ "$dirty" -gt 0 ] && echo "Uncommitted: $dirty file(s) changed"
   step=$(grep -m1 '| 🔜 |' ROADMAP.md 2>/dev/null | cut -d'|' -f2-3 | sed 's/\*\*//g; s/|/ /; s/  */ /g; s/^ //; s/ $//')
   echo "Roadmap 🔜: ${step:-not found in ROADMAP.md}"
