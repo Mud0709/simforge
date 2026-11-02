@@ -1,19 +1,32 @@
-Last updated: deb170f 2026-11-02
+Last updated: 32588ec 2026-11-02
+Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
-start hook prints "Next action" and "Open decisions". Sha = latest commit described here. -->
+start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
+"Working branch" from this file on main. Sha = latest commit described here. -->
 
 # SimForge handoff
 
 ## Next action
-Review and merge PR #15 (handoff system) once CI is green; you merge it.
-Then approve the autopilot fresh-session proposal (shown in chat 2026-11-02; not applied).
+Merge PR #15 once CI is green (you merge). Then: the follow-up PR with the autopilot skill
+edits (list below), one watched test run, and only then the 4-hour schedule.
 
 ## Open decisions
-- Autopilot: fresh session per run, approved 2026-11-02; the exact scheduled-task change awaits your OK (proposal in chat). Weekly cap 0.76 (test) or back to 0.70?
+- Autopilot: weekly cap 0.76 (test) or back to 0.70?
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
+
+## Autopilot: fresh session per run (approved 2026-11-02; in progress)
+- **Done:** new scheduled task `trig_01LWbTdfvYfXswNkcewkKTUU`, a fresh session per run,
+  model Sonnet 5.5, **no schedule yet** (fires only by hand). Old task
+  `trig_01D81BmGR4kh1SUbMrdbJi4F` stays disabled, not deleted.
+- **Follow-up PR (after #15):** budget gate reads the current session; drop the
+  author-message lookup; model by difficulty (Sonnet for routine units, Opus subagents for
+  planning, scientific core and risky reviews; journal records the model); stop when an open
+  decision blocks; skipping runs change no files; new task id in STATE.
+- **Unverified until the test run:** that a fresh session can attach the repo (`add_repo`),
+  push to the working branch, and use GitHub tools (the task holds no connectors).
 
 ## Last task: handoff system and lighter workflow
 - **Completed:** start-hook brief; `CLAUDE.md` working style and 5-part report; status and
