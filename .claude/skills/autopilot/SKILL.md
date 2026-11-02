@@ -28,7 +28,8 @@ which small decisions you may take yourself (always with a written, reversible r
 - No authentication, paid APIs, secrets, new services or new dependencies.
 - Never fabricate: report only checks that ran. Never skip, weaken, mark as expected-to-fail or
   delete a test to get green, and never loosen a tolerance without its justification.
-- Never add to `docs/LEARNING_LOG.md` (needs the author's approval); queue drafts in STATE.
+- Never add to `docs/LEARNING_LOG.md` (needs the author's approval); queue drafts under
+  "Open decisions" in `docs/HANDOFF.md`.
 
 ## 0b. Budget gate (before any work; keep it cheap)
 The author's Claude usage is limited, and this session's long context makes every request
@@ -63,20 +64,22 @@ cost something. So each tick first decides whether it may run at all.
 
 ## 1. Reorient (every tick)
 1. `git fetch origin`, then `git status -sb`; if the branch is behind its remote, pull
-   (fast-forward only). Then read `.claude/autopilot/STATE.md`.
-   **Pick up from the latest conversation, not the latest tick.** The author also works in this
-   session between ticks. Read the session's recent conversation (`list_events` with
-   `kinds: ["user", "assistant", "result"]`; page back until you reach the author's last
-   human message and the final response to it). If it is newer than the last tick, that
-   exchange is where work stands: continue from what it left (an unfinished slice, a stated
-   next step, a decision the author just made), never redo or contradict it, and update STATE
-   to match before choosing a unit. Work done in chat counts as done even if STATE lagged.
-   An instruction the author gave there still applies; a question the response asked them
-   and they have not answered is a stop for that branch of work.
+   (fast-forward only). Then read `.claude/autopilot/STATE.md` and `docs/HANDOFF.md`, and run
+   the session brief (`.claude/hooks/session-start.sh`) if it is not already in context.
+   **Pick up from the latest handoff, not the latest tick.** The author also works between
+   ticks, and every meaningful task ends by rewriting `docs/HANDOFF.md`. If the handoff is
+   newer than the last journal entry, it is where work stands: continue from it (an
+   unfinished slice, its next action, a decision just recorded), never redo or contradict it,
+   and update STATE to match before choosing a unit. Do not read the conversation or the
+   whole journal (the last entry is enough). Only if the brief warns that the handoff is
+   stale, or it is missing, rebuild the picture from `git log` since its sha and the
+   author's latest chat message in this session. An item under "Open decisions" is a stop
+   for that branch of work until the author answers it.
 2. If `status` is `blocked`, `paused` or `waiting-review`: look for an answer from the author
-   since the status was set (a human chat message, or the author's edit to "Waiting for you"
-   in STATE on the remote). None: end the tick with one line ("Autopilot: waiting for you on
-   …") and do nothing else. An answer: record it in STATE, set `status: running`, continue.
+   since the status was set (a human chat message, or the author's edit to "Open decisions"
+   in `docs/HANDOFF.md` on the remote). None: end the tick with one line ("Autopilot:
+   waiting for you on …") and do nothing else. An answer: record it in STATE, set
+   `status: running`, continue.
 3. Check the open PR for the branch and the check runs on its head commit.
 4. **The work limit.** Count the autopilot's commits since the author's last chat message (the
    journal records them). At **6 commits**, or once the current roadmap step is complete, set
@@ -100,8 +103,9 @@ cost something. So each tick first decides whether it may run at all.
    table yet, the first unit is to split its ROADMAP paragraph into steps, keeping every item
    and its order (adding nothing, dropping nothing), with 🔜 on the first.
 
-Size: one tick = one commit that leaves the app working and fully checked. If a unit cannot
-finish in a tick, commit what is green, record the remainder in STATE, and continue next tick.
+Size: one tick = one commit that leaves the app working, with its focused checks passing.
+If a unit cannot finish in a tick, commit what is green, record the remainder in STATE, and
+continue next tick.
 
 ## 3. The decision rule
 **Yours to take, with a record.** Implementation choices inside an agreed design: names, file
@@ -116,7 +120,8 @@ as the one answering: map the design tree, ask each frontier round, and **accept
 recommended answer** for every question (the default), round by round, until the frontier is
 empty. Have a planning subagent (effort `high`) draft the tree and recommendations, then check
 them yourself against the code and `CLAUDE.md`'s standards before accepting. Write the result
-as a plan in `docs/plans/` (decisions, options, the default taken and why, slices, risks) and
+as a short plan in `docs/plans/` (decisions, options, the default taken and why, slices with
+acceptance criteria, risks; not an essay) and
 list every decision under "Decisions taken for you" in the journal, with how to reverse it.
 The `tdd` skill's "confirm the seams with the user" works the same way: propose the seams,
 accept your own recommendation, and record them in the plan. A default never overrides a
@@ -133,8 +138,8 @@ genuine stop below: if a question is one of those, stop instead of answering it.
   failure, so the count survives a long conversation;
 - anything the author asked to be consulted on.
 
-On a genuine stop: write the question under "Waiting for you" with options and your
-recommendation, set `status: blocked`, journal it, and pause (step 6).
+On a genuine stop: write the question under "Open decisions" in `docs/HANDOFF.md` with options
+and your recommendation, set `status: blocked`, journal it, and pause (step 6).
 
 ## 4. Do the work, then verify it
 - **Delegate the unit of work to a subagent, with an effort level that fits it.** This
@@ -147,7 +152,7 @@ recommendation, set `status: blocked`, journal it, and pause (step 6).
   - `medium`: a routine TDD slice in an agreed design, a review fix, a CI fix with a clear
     error, the pre-commit review of a routine diff;
   - `high`: planning a new roadmap step, scientific or numerical work, debugging an unclear
-    failure, security reviews.
+    failure, reviews of risky slices, security reviews.
   **Effort is the only thing that varies, never the model.** Do not pass `model` to a
   subagent: it inherits this session's model. Switching models is the author's decision, to
   be proposed (with evidence that the other model is better for the job) under "Waiting for
@@ -156,13 +161,19 @@ recommendation, set `status: blocked`, journal it, and pause (step 6).
   diff and run the checks here. Its report is evidence, not proof.
 - Use subagents to get more done and to check yourself, within the work limit:
   - independent investigations in parallel (`Explore` or `general-purpose`);
-  - before each commit, **one** fresh-context review of the diff (a `general-purpose` agent
-    asked to find bugs and false claims), then fix what it finds;
-  - for changes touching inputs, uploads, limits or stored data, make that review a security
-    review.
-- Run `scripts/check.sh --e2e`. Commit only if everything passes (`verification-before-
-  completion`). A check you suspect is flaky may be re-run **once**; journal both results, and
-  never present a re-run pass as a clean pass. Every task updates everything (`CLAUDE.md`).
+  - reviews (the author's rule of 2026-11-02): a fresh-context, `high`-effort review (a
+    `general-purpose` agent asked to find bugs and false claims) of each **risky** slice
+    (scientific core, inputs and limits, uploads, stored data; a security review where it
+    touches inputs, limits or stored data), and **one** review of the whole step's diff before
+    the step is marked complete. Routine slices (UI wiring, docs) get no per-slice review.
+    Fix what a review finds before committing.
+- While building, run the focused checks for what changed (for example `uv run pytest <the
+  test files>`, `uv run ruff check . && uv run mypy`, `npx vitest run <files>`, `npx tsc
+  --noEmit`). Run the full `scripts/check.sh --e2e` before the step is marked complete, and
+  again only if something relevant changed since. Commit only if the checks that ran pass
+  (`verification-before-completion`), and journal exactly which ran. A check you suspect is
+  flaky may be re-run **once**; journal both results, and never present a re-run pass as a
+  clean pass. Every task updates everything (`CLAUDE.md`).
 - Commit with a clear message and push. Check CI on the next tick.
 
 ## 5. Journal and state (every tick that did anything)
@@ -173,13 +184,13 @@ Prepend an entry to `docs/AUTOPILOT_JOURNAL.md` (newest first):
 - **Usage:** 7-day before → after (this tick's cost), 5-hour at start; subagent efforts used.
 - **Checks run:** exact commands and results (and CI, if known). Re-runs, if any.
 - **Decisions taken for you:** each with the alternative and how to reverse it (or "none").
-- **Waiting for you:** proposals, questions, learning-log drafts (or "nothing").
-- **What this means for you:** the key concept and the main trade-off, in 2-3 lines.
-- **Learning checkpoint:** one question about this unit.
+- **Waiting for you:** "see `docs/HANDOFF.md`, Open decisions" (or "nothing").
 - **Next:** the next step and the skill it uses.
 ```
-Update STATE (status, current unit, remainder, failures, questions). Commit both with the work;
-on a tick that only changes STATE and the journal, commit those alone.
+Update STATE (status, current unit, remainder, failures). Then rewrite `docs/HANDOFF.md`
+from its template (skill `simforge-status`, Task Completion Handoff): it holds the open
+decisions, learning-log drafts and the learning handoff. Commit all three with the work; on a
+tick that only changes STATE, the journal and the handoff, commit those alone.
 
 ## 6. Pausing and resuming
 - To pause: `update_trigger` the task id in STATE with `enabled: false`, so a waiting autopilot
@@ -190,17 +201,12 @@ on a tick that only changes STATE and the journal, commit those alone.
   autopilot": set `status: running`, reset the work-limit count, and re-enable the task.
 
 ## 7. Reply at the end of a tick
-The author reads these replies, so they follow `CLAUDE.md`'s format, like any other response:
-- **The easy summary first:** one or two plain sentences saying what happened (built, planned,
-  skipped, waiting), as for someone who has not been following.
-- **What was done:** short headings or bullets, verified facts separated from assumptions,
-  with commits, checks actually run, usage and the decisions taken for the author.
-- **What this means for me:** what changed, why it matters, the key concept, the main
-  trade-off, and what to do next.
-- **Learning checkpoint:** one or two questions about this unit.
-- **Recommended skill for the next step:** the skill, why, and how to use it.
-A tick that only skips or waits still gives the easy summary and the recommended skill, in a
-few lines. The journal holds the full record; the reply never contradicts it.
+The author reads these replies, so they use `CLAUDE.md`'s report format, briefly: **What
+changed** (2-3 plain sentences: built, planned, skipped or waiting; commits, checks that ran,
+usage) · **Why it matters** · **What I should understand** (up to three concepts) · **What
+remains** (including decisions taken for the author) · **Next step**, then the one-line
+recommended skill. A tick that only skips or waits replies in one or two lines. The journal
+and the handoff hold the full record; the reply never contradicts them.
 
 **Push notifications (the author asked for them: they do not read every reply).** Use the
 `PushNotification` tool (one line, under 200 characters, leading with what to act on):
