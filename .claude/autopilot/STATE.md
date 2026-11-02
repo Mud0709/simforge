@@ -1,7 +1,7 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
+edit it too: change `status` to `paused`, or answer a question under "Open decisions" in `docs/HANDOFF.md`.
 
 status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm
@@ -21,7 +21,7 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   run 24 h from 02:00 UTC; the week starts Sunday 02:00 UTC (the seven-day reset). Counts only
   the autopilot's measured tick costs dated that day; the weekly cap applies on top.
 - notifications: one push per day (summary of the previous day) and one whenever the
-  autopilot stops for the author or reaches the daily allowance. Last daily summary: none yet.
+  autopilot stops for the author or reaches the daily allowance. Last daily summary: 2026-10-30 (for 2026-10-29).
 - starting estimate of a tick's cost: 0.03 of the 7-day window. Replaced by the largest of
   the last three measurements once there are three.
 
@@ -40,25 +40,11 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-None. Roadmap 2.2 is complete on the branch (slices 1-5, reviewed; 6 of 6 autopilot commits since
-the author's last message). 🔜 is on 2.3 (oscillators). No PR is open: the author asks for it.
+None. Roadmap 2.2 is merged (PR #14, `0ea819a`); 🔜 is on 2.3 (oscillators), not started.
 
 ## Remainder of the current unit
 —
 
-## Waiting for you (blocking)
-- Ask for a PR for 2.2 (and merge it); then the autopilot starts 2.3. Say "resume autopilot"
-  to reset the 6-commit limit.
-
-## For your daily review (not blocking)
-- Approve or edit the learning-log drafts for PR #12 (journal, 2026-10-25 04:40) and PR #13
-  (journal, 2026-10-28 06:50); the autopilot never adds them itself.
-- Roadmap question: the capability map lists "best angle against drag strength" and
-  "drag-law comparison", which no Phase 2 step schedules. Recommendation: add them to 2.2
-  (they reuse the same sweep). Until you answer, 2.2 is built without them.
-- Deployment risk (security review of 2.2 slice 3): no rate limit or cap on concurrent sweeps;
-  each sweep can hold a worker for ~11 s, so a burst would slow every request. No change made
-  (auth and new services are out of scope); decide if it matters for how you run SimForge.
-- The weekly cap is 0.76 (your test setting); the default was 0.70.
-- Five optional clean-ups from the 2.1 code review (PR #13 description): a bound computed
-  twice, duplicated dataclasses/copy code, two re-implemented helpers, duplicated form logic.
+## Waiting for you
+Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
+decisions"), since 2026-11-02. This file keeps the autopilot's own state.
