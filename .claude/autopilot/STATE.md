@@ -7,8 +7,8 @@ the author says "resume autopilot" (which also resets `work limit from:`).
 
 status: running
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
-  session per run, model Sonnet 5.5; no schedule until the watched test run, then
-  `26 */4 * * *` UTC). The old task trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is
+  session per run, model Sonnet 5.5, repository attached, auto-fix off; once a day at 02:59
+  UTC, `59 2 * * *`, switched on 2026-11-02 after the third watched test run). The old task trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is
   disabled and kept; never re-enable it.
 work limit from: 3908bac
 failures: none

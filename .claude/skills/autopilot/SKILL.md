@@ -44,7 +44,9 @@ reversible record).
 ## 0b. Budget gate (before any work; keep it cheap)
 The author's Claude usage is limited, so each tick first decides whether it may run at all.
 A fresh session cannot read the author's live usage (no `get_session`/`list_events`; test run
-of 2026-11-02), so the gate counts runs in git instead (the author's rule of 2026-11-02).
+of 2026-11-02), so the gate counts runs in git instead (the author's rule of 2026-11-02). The
+limit is enforced twice: the task fires once a day (02:59 UTC), and the git count below also
+catches runs the author fires by hand.
 0. Read STATE. If `status` is `paused`, `blocked` or `waiting-review`, go straight to step 1.2.
 1. **The daily run cap.** A day runs 24 h from 02:00 UTC. Count today's working runs on the
    working branch: `git log --first-parent --since="<today> 02:00:00 +0000"
@@ -121,9 +123,9 @@ of 2026-11-02), so the gate counts runs in git instead (the author's rule of 202
    table yet, the first unit is to split its ROADMAP paragraph into steps, keeping every item
    and its order (adding nothing, dropping nothing), with 🔜 on the first.
 
-Size: one tick = one commit that leaves the app working, with its focused checks passing.
-If a unit cannot finish in a tick, commit what is green, record the remainder in STATE, and
-continue next tick.
+Size: one run = one unit = one commit that leaves the app working, with its focused checks
+passing. If a unit cannot finish in a run, commit what is green, record the remainder in
+STATE, and continue in the next run.
 
 ## 3. The decision rule
 **Yours to take, with a record.** Implementation choices inside an agreed design: names, file
@@ -161,31 +163,42 @@ On a genuine stop: write the question under "Open decisions" in `docs/HANDOFF.md
 and your recommendation, set `status: blocked`, journal it, and pause (step 6).
 
 ## 4. Do the work, then verify it
-- **Delegate the unit of work to a subagent, with a model and effort that fit it.** Keep the
-  tick itself (Sonnet 5.5, set on the scheduled task) to the budget gate, choosing the unit,
-  delegating, verifying and journaling. Give the subagent everything it needs: the unit, the
-  relevant files, `CLAUDE.md`'s standards, the hard rules above, and "do not commit or push".
-  Choose its `effort` (never above `high`):
-  - `low`: journal or state only, re-running checks, formatting, small doc fixes;
-  - `medium`: a routine TDD slice in an agreed design, a review fix, a CI fix with a clear
-    error, the pre-commit review of a routine diff;
-  - `high`: planning a new roadmap step, scientific or numerical work, debugging an unclear
-    failure, reviews of risky slices, security reviews.
-  **Model by difficulty** (the author's experiment of 2026-11-02): pass `model: "sonnet"` for
-  `low` and `medium` work, and `model: "opus"` for `high` work (planning, scientific or
-  numerical work, unclear debugging, reviews of risky slices, security reviews). Changing these
-  rules is the author's decision, proposed under "Open decisions" with evidence. Record each
-  subagent's model and effort in the journal entry, with what its work needed afterwards (review
-  findings, failed checks), so the author can compare the models. Then verify its work yourself:
-  read the diff and run the checks here. Its report is evidence, not proof.
-- Use subagents to get more done and to check yourself, within the work limit:
-  - independent investigations in parallel (`Explore` or `general-purpose`);
-  - reviews (the author's rule of 2026-11-02): a fresh-context, `high`-effort review (a
-    `general-purpose` agent asked to find bugs and false claims) of each **risky** slice
-    (scientific core, inputs and limits, uploads, stored data; a security review where it
-    touches inputs, limits or stored data), and **one** review of the whole step's diff before
-    the step is marked complete. Routine slices (UI wiring, docs) get no per-slice review.
-    Fix what a review finds before committing.
+- **Delegate the unit of work; the run itself (Sonnet 5.5, set on the scheduled task) never
+  writes production code or a plan.** It keeps to the budget gate, choosing the unit,
+  delegating, verifying and journaling. Give each subagent the unit, the relevant files,
+  `CLAUDE.md`'s standards, the hard rules above, and "do not commit or push".
+- **Model and effort come from this table, not from judgement on the day** (the author's rule
+  of 2026-11-02). Classify the unit by its plan slice; if it fits two rows, or you are unsure,
+  take the Opus row (fail safe).
+
+  | Unit | Worker | Review before commit |
+  |---|---|---|
+  | Plan a new roadmap step | `opus`, high | content check by the run (below) |
+  | Slice in the scientific core, numerics, inputs/limits, uploads or stored data | `opus`, high | fresh `opus` high review (security review for inputs, limits, stored data) |
+  | Routine slice in an agreed design: UI wiring, API plumbing, docs | `sonnet`, medium | none per slice |
+  | CI fix or review fix with a clear cause | `sonnet`, medium | none |
+  | Unclear failure (`systematic-debugging`) | `opus`, high | none |
+  | Whole-step review before the step is marked complete | `opus`, high | (it is the review) |
+  | Journal, STATE, handoff, formatting | the run itself | none |
+
+  **Escalation:** if a `sonnet` worker's result fails the focused checks twice, or a review
+  finds a scientific error in it, redo the unit once with `opus`, high, and journal
+  "escalated". **Size:** at most one worker and one reviewer per run, plus that one
+  escalation; never parallel workers.
+- **Verify content, never only structure.** Before committing, the run itself checks and
+  journals under "Verified:" what it checked: (a) at least three claims the work cites
+  (a file and line, a formula, a test name) against the repository; (b) for code, that the
+  promised tests exist in the diff and the focused checks pass here; (c) for a plan, that its
+  scope matches the `ROADMAP.md` row and capability map (nothing added, nothing dropped),
+  that each decision names its options and a reason, and that it says no more than the
+  decisions need. If the run cannot verify the content, it commits the work marked
+  "unverified" in `docs/HANDOFF.md` (an open decision, `blocks:` the next unit) instead of
+  building on it.
+- **Record the evidence for the model comparison:** for each subagent, the journal records
+  unit type, model, effort, and what its work needed afterwards (review findings, failed
+  checks, escalation).
+- Reviews follow the table: a reviewer is a fresh-context `general-purpose` agent asked to
+  find bugs and false claims. Fix what a review finds before committing.
 - While building, run the focused checks for what changed (for example `uv run pytest <the
   test files>`, `uv run ruff check . && uv run mypy`, `npx vitest run <files>`, `npx tsc
   --noEmit`). Run the full `scripts/check.sh --e2e` before the step is marked complete, and
@@ -193,7 +206,7 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   (`verification-before-completion`), and journal exactly which ran. A check you suspect is
   flaky may be re-run **once**; journal both results, and never present a re-run pass as a
   clean pass. Every task updates everything (`CLAUDE.md`).
-- Commit with a clear message and push. Check CI on the next tick.
+- Commit with a clear message and push. Check CI on the next run.
 
 ## 5. Journal and state (every tick that did anything)
 Prepend an entry to `docs/AUTOPILOT_JOURNAL.md` (newest first):
@@ -205,6 +218,7 @@ Prepend an entry to `docs/AUTOPILOT_JOURNAL.md` (newest first):
   runs (N of the daily cap); each subagent's model
   and effort, and what its work needed afterwards (review findings, failed checks).
 - **Checks run:** exact commands and results (and CI, if known). Re-runs, if any.
+- **Verified:** what the run checked in the work's content (step 4), or "unverified".
 - **Decisions taken for you:** each with the alternative and how to reverse it (or "none").
 - **Waiting for you:** "see `docs/HANDOFF.md`, Open decisions" (or "nothing").
 - **Next:** the next step and the skill it uses.
@@ -235,12 +249,7 @@ the full record; the reply never contradicts them.
 
 **Push notifications (the author asked for them: they do not read every reply).** Use the
 `PushNotification` tool (one line, under 200 characters, leading with what to act on):
-- **Once a day:** the run that starts between 02:00 and 06:00 UTC (one per day on the 4-hour
-  schedule) sends a summary of the previous day: what was built (step and slices), CI as
-  checked (or "not checked"), and what is next. Decided by the clock, so nothing is recorded
-  (a skipped run sends it too).
-- **Whenever it stops for the author:** status set to `blocked`, `paused` or `waiting-review`,
-  or a blocking open decision. Say why and what the author should do. Reaching the daily run
-  cap is routine: no push.
-Nothing else: no push for routine progress. A "not sent" result is fine (the author was at
-the terminal). If the session has no `PushNotification` tool, say so in the reply.
+- **One push per run** (the task runs once a day at 02:59 UTC, so one a day): what the run did
+  (unit, commit, CI as checked or "not run"/"not checked", what is next), or why it skipped
+  or stopped and what the author should do. Nothing else. A "not sent" result is fine (the
+  author was at the terminal). If the session has no `PushNotification` tool, say so.

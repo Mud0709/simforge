@@ -1,4 +1,4 @@
-Last updated: 207c935 2026-11-02
+Last updated: 037df73 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,53 +8,46 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Third watched run done: 2.3 planned (`docs/plans/ROADMAP_2_3_PLAN.md`, not yet read by you).
-Read the plan; then switch the schedule on (agreed `26 */4 * * *`). Next unit: slice 1.
+Read `docs/plans/ROADMAP_2_3_PLAN.md` (first open decision). The autopilot runs daily at
+02:59 UTC and waits on that decision before building slice 1.
 
 ## Open decisions
-- Branch rule on GitHub (your click; I have no settings tool): turn on "Require a pull request before merging" for `main`; leave "Require approvals" off (every PR is authored as you, and you cannot approve your own). "Only you merge" rests on the never-merge rules in the skill and the task prompt. Not blocking.
-- Schedule: the claude.ai edit set `35 * * * *` (hourly); the task is switched off until a test works. Agreed plan: `26 */4 * * *`. Not blocking.
-- Auto-fix PRs is on: its fix sessions spend usage outside the 1-run-per-day cap. Keep it? Not blocking.
-- CI on the working branch: CI runs only on PRs and pushes to `main`, so autopilot pushes get no CI until a PR is open. Option: add `push` for `claude/**` branches to `.github/workflows/ci.yml` (your call; a guard-rail file). Not blocking.
-- Autopilot: weekly cap 0.76 (test) or back to 0.70? Now used only when a run can read usage (rarely).
+- 2.3 plan unverified by content (blocks: 2.3 slice 1): the planner (Opus) wrote D1-D17; the run checked only its structure. Read it, or ask for a content review; then add `Answer: plan accepted` (or your changes) here.
+- Open a PR for the working branch when you want CI on it (autopilot runs may open one; only you merge). CI runs only on PRs and pushes to `main`. Not blocking.
+- Branch rules: GitHub offers branch protection on public repositories for personal accounts too (this repo is public), if you want "PRs required" on `main` later. Not blocking.
+- Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
 
-- Test run 3 (2026-11-02, Sonnet 5.5 + Opus planner): repository present, branch checked out, GitHub `list_pull_requests` worked, unauthenticated CI read worked (0 check runs, no PR); push and PushNotification: see the reply. `update_trigger` not used (nothing to pause).
-
-## Last task: autopilot in a fresh session per run
-- **Completed:** each run starts a fresh session (Sonnet 5.5) that reads only the brief, this
-  file, git and the last journal entry; branch from the line above on `main`; an
-  `Autopilot-run` commit trailer tells its writes from yours; explicit `Answer:` lines;
-  work limit counts only working-run commits; only `(blocks: …)` decisions stop a run, and
-  the stop pauses the task; skipped runs change no files; Opus subagents for high-effort
-  work, Sonnet for the rest, recorded in the journal.
-- **Files:** `.claude/skills/autopilot/SKILL.md`, `.claude/skills/simforge-status/SKILL.md`,
-  `.claude/autopilot/STATE.md`, `CLAUDE.md` (Autopilot paragraph), `docs/HANDOFF.md`.
-- **Scheduled tasks:** new `trig_01LWbTdfvYfXswNkcewkKTUU` (fresh session, model
-  `claude-sonnet-5-5` confirmed in its config, **no schedule**; prompt matches the skill).
-  Old `trig_01D81BmGR4kh1SUbMrdbJi4F` disabled, kept.
-- **Checks run:** one fresh-context review (11 findings, fixed in `751e243`); `CLAUDE.md`
-  115 lines with Two tracks, Standards, Git and Checks unchanged; hook runs, exit 0. Not
-  run: `scripts/check.sh` (no code changed). CI on PR #16: all 4 checks passed.
-- **State:** merged in PR #16 (`3908bac`, checks green on `966092c`). Autopilot resumed:
-  STATE `running`, `work limit from: 3908bac`; task has no schedule yet.
-- **Test runs 2026-11-02** (Sonnet 5.5, no files changed, $0.12 + $0.10): both stopped at
-  step 0. The second called `mcp__claude-code-remote__add_repo` directly: not available, so
-  the session has no repository (tag `config:no-git-repo`). PushNotification worked;
-  `get_session`/`list_events`, GitHub tools and `update_trigger` were not available to it.
-  Untested: push, CI read, the budget gate.
+## Last task: autopilot made live and made "genuine"
+- **Third test run** (2026-11-02 12:38 UTC, session `cse_01DMcXP2cESzL5QMkKFotK4s`, $2.71):
+  repository present, working branch checked out and **pushed** (`037df73`, trailer
+  `Autopilot-run: work`), cap counted (1 of 1), CI read: "not run (no PR)", GitHub
+  `list_pull_requests` worked, planner on Opus high. Weak spots: plan checked by structure
+  only; handoff only partly rewritten.
+- **Changed after it:** model and effort from a fixed table by unit type (Opus for plans,
+  scientific core, inputs/limits and unclear failures; Sonnet for routine slices and clear
+  fixes; unsure → Opus); one escalation to Opus after two failed checks; at most one worker
+  and one reviewer per run; content verification journaled under "Verified:"; one push per
+  run; schedule wording now daily.
+- **Scheduled task** `trig_01LWbTdfvYfXswNkcewkKTUU`: daily `59 2 * * *` (02:59 UTC, 18:59
+  Pacific), switched on; auto-fix off (author); never-merge in its prompt.
+- **Files:** `.claude/skills/autopilot/SKILL.md`, `.claude/autopilot/STATE.md`, this file.
+- **Checks run:** the run's push and trailer confirmed with `git log`; skill lines checked for
+  length. Not run: `scripts/check.sh` (no code changed). CI: not run (no PR).
+- **State:** committed and pushed to the working branch; no PR open; `main` unchanged since
+  PR #16 (`3908bac`).
 
 ## Learning handoff
-- **What it does:** every autopilot run starts with an empty memory and rebuilds its picture
-  from files and git, so its cost per run stays flat instead of growing.
-- **Why it matters:** the old autopilot re-read an ever-longer conversation each time; now
-  what it knows is exactly what you can read in this file.
-- **Key concept:** provenance: a fresh run can only trust what it can trace, so its own
-  commits carry a marker and only unmarked, explicit edits count as your answers.
-- **Trade-off:** state that used to live in memory (who wrote what, whether a push was sent)
-  must now be written down or computed from the clock, which adds rules.
-- **You should be able to explain:** why the run reads the branch name from `main`, and why
-  a commit trailer is needed when every commit has the same author name.
+- **What it does:** the autopilot runs once a day in a fresh session, picks its model from a
+  fixed table, and must check the content of what it builds before committing.
+- **Why it matters:** a rule only works if it is enforced; the schedule enforces the daily
+  limit, and the "Verified:" line makes checking visible instead of assumed.
+- **Key concept:** separation of duties: the cheaper model coordinates and checks, the
+  stronger model does the hard thinking, and neither marks its own work as verified.
+- **Trade-off:** the "unverified blocks the next unit" rule can stall progress until you read
+  a plan, in exchange for never building on something nobody checked.
+- **You should be able to explain:** why Sonnet checking Opus's plan "by structure" is not a
+  real check, and what the run now has to check instead.
