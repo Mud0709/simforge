@@ -17,21 +17,16 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 2026-10-24. Defaults: the autopilot grills itself and takes its recommended answers.
 
 ## Budget (the author may edit these numbers)
-- weekly cap: 0.76 (raised from 0.70 by the author on 2026-10-24 for a test tick). A tick never starts if it would take the 7-day window above this. The
-  other 30% is kept for the author.
-- weekly cap near reset: 0.90. Applies when the 7-day window resets within 12 hours (what is
-  left at the reset is lost anyway).
-- five-hour cap: 0.50. Above this, the author is probably working: skip.
-- daily allowance: 0.08 of the 7-day window per day (set by the author on 2026-10-29). Days
-  run 24 h from 02:00 UTC; the week starts Sunday 02:00 UTC (the seven-day reset). Counts only
-  the autopilot's measured tick costs dated that day; the weekly cap applies on top.
+- working runs per day: 1 (the author's rule of 2026-11-02). Days run 24 h from 02:00 UTC.
+  Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
+  usage. This replaces the 0.08 daily allowance, which needed live readings.
+- Used only when a run can read live usage (see the skill, 0b.2): weekly cap 0.76 (raised from
+  0.70 by the author on 2026-10-24 for a test tick); weekly cap near reset 0.90 (within 12 h
+  of the 7-day reset); five-hour cap 0.50.
 - notifications: one push per day (summary of the previous day) and one whenever the
-  autopilot stops for the author or reaches the daily allowance; both are decided by the
-  clock and STATE, so nothing is recorded for them (since 2026-11-02).
-- starting estimate of a tick's cost: 0.03 of the 7-day window. Replaced by the largest of
-  the last three measurements once there are three.
+  autopilot stops for the author; decided by the clock and STATE, nothing recorded.
 
-## Measured tick costs (7-day utilisation before → after)
+## Measured tick costs (7-day utilisation before → after; only when readable)
 - 2026-10-24 12:44 UTC (test tick 2, planning 1.6): 0.73 → 0.73, under 0.01 at the 1%
   resolution of the readings (5-hour window 0.24 → 0.27). Readings are rounded to 0.01, so
   costs below that show as 0.

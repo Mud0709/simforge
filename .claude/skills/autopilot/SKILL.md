@@ -43,37 +43,24 @@ reversible record).
 
 ## 0b. Budget gate (before any work; keep it cheap)
 The author's Claude usage is limited, so each tick first decides whether it may run at all.
-0. Read STATE. If `status` is `paused`, `blocked` or `waiting-review`, go straight to step 1.2
-   (no usage reading needed).
-1. Read the author's live limits: `get_session` (no id) for the current session's id, then
-   `list_events` on it with `kinds: ["rate_limit_event"]`, `limit: 100`; take the newest event's
-   `unifiedWindows.five_hour.utilization` and `.seven_day.utilization` (fractions, 0-1) and
-   their `resetsAt` (Unix seconds, UTC). No reading found: skip the tick ("Autopilot:
-   skipped, no usage reading") rather than guess.
-2. Read the caps and the estimated tick cost from STATE's "Budget" section.
-3. **Skip the tick** if any of these holds:
-   - five-hour utilisation ≥ the five-hour cap (the author may be working right now);
-   - seven-day utilisation + estimated tick cost > the weekly cap. Use the higher
-     "near reset" cap if the weekly window resets within 12 hours: allowance left at the
-     reset is lost anyway;
-   - either window's status is not `allowed`.
-   A skipped tick changes no files and replies with one line, e.g. "Autopilot: skipped,
-   7-day at 72% (cap 70%, resets 2026-10-25 02:00 UTC)." It does not journal or commit (its
-   pushes need no record: step 7 decides them from the clock and STATE).
-   - **the daily allowance would be exceeded** (added 2026-10-29 by the author, after one day
-     of ticks used 30% of the week): the author's week starts at the seven-day window's reset
-     (Sunday 02:00 UTC); each day runs 24 h from 02:00 UTC. The autopilot's own spend today is
-     the sum of the "Measured tick costs" in STATE dated within the current day. Skip if
-     spend today + the estimated tick cost > the daily allowance in STATE. This counts only
-     the autopilot's spend, so the author's own use never blocks it; the weekly cap still
-     applies on top. A tick skipped by this rule sends the daily-limit push (step 7) only if
-     the newest "Measured tick costs" entry is from the previous scheduled run (under 4.5 h
-     ago): that run reached the limit, so the push goes out once.
-4. Otherwise note the seven-day utilisation as "before", run the tick, read it again just
-   before the final commit as "after" (so the cost of committing and replying is not
-   counted; label it so), and add the difference to "Measured tick costs" in STATE. The estimated
-   tick cost is the largest of the last three measurements (the starting estimate until
-   there are three). Never assume a tick is cheaper than measured.
+A fresh session cannot read the author's live usage (no `get_session`/`list_events`; test run
+of 2026-11-02), so the gate counts runs in git instead (the author's rule of 2026-11-02).
+0. Read STATE. If `status` is `paused`, `blocked` or `waiting-review`, go straight to step 1.2.
+1. **The daily run cap.** A day runs 24 h from 02:00 UTC. Count today's working runs on the
+   working branch: `git log --first-parent --since="<today> 02:00:00 +0000"
+   --grep='^Autopilot-run: work' --format=%h origin/<working branch>` (use yesterday's date
+   before 02:00 UTC). If the count is at least STATE's `working runs per day`, **skip**.
+2. **Live usage, only if readable.** If this session does have `get_session` and
+   `list_events` (for example a run the author started by hand elsewhere), also read the
+   newest `rate_limit_event` and skip if five-hour utilisation ≥ the five-hour cap, seven-day
+   utilisation ≥ the weekly cap (the near-reset cap within 12 hours of the reset), or either
+   window is not `allowed`. Without those tools, rely on the run cap and write "usage not
+   read" in the journal; never estimate a reading.
+3. A skipped tick changes no files and replies in one line, e.g. "Autopilot: skipped, today's
+   1 working run is done." It does not journal, commit or push a notification.
+4. A run that goes ahead is one working run: at most one unit and one `Autopilot-run: work`
+   commit (plus a STATE-only failure commit if it fails). If a usage reading was possible,
+   record before → after in "Measured tick costs" in STATE.
 
 ## 1. Reorient (every tick)
 1. `git fetch origin`, then `git status -sb`; if the branch is behind its remote, pull
@@ -98,8 +85,15 @@ The author's Claude usage is limited, so each tick first decides whether it may 
    hard rules). None: end the tick with one line ("Autopilot: waiting for you on …") and do
    nothing else. An answer: record it in STATE, set `status: running`, set `work limit from:`
    to HEAD, and continue.
-3. Check the open PR for the branch and the check runs on its head commit (GitHub tools; if
-   the session has none, say so and treat CI as "not checked", never as green).
+3. **CI.** The repository is public, so read the check runs on the branch's head commit
+   without a token: `curl -s https://api.github.com/repos/Mud0709/simforge/commits/<sha>/check-runs`
+   (unset `GH_TOKEN` and `GITHUB_TOKEN` first: an invalid token makes GitHub refuse the
+   request). CI runs only on pull requests and pushes to `main` (`.github/workflows/ci.yml`),
+   so with no PR open there are no checks: write "CI not run (no PR)". If the request fails or
+   the checks are still running, write "CI not checked". Either way, record it in
+   `docs/HANDOFF.md` and never treat it as green; the run's own local checks still apply.
+   Pull requests: with GitHub tools, find the open PR for the branch; without, the check runs
+   above show whether one exists only indirectly, so say "PR status unknown".
 4. **The work limit.** Count the working runs' commits since STATE's `work limit from:` sha
    (`git rev-list --count --first-parent --grep='^Autopilot-run: work' <sha>..HEAD`; an
    answer in step 2 and "resume autopilot" reset it to HEAD). At **6 commits**, or once the
@@ -115,8 +109,10 @@ The author's Claude usage is limited, so each tick first decides whether it may 
    started by hand): address them.
 3. **A half-finished unit** recorded in STATE, or found in a dirty tree: finish it.
 4. **The PR was merged** (its commits are on `origin/main`): merge `origin/main` into the
-   branch (a merge commit, never a rebase), and open a new PR only once the branch differs
-   from `main`.
+   branch (a merge commit, never a rebase). When the branch holds a finished step, open a PR
+   if the session has GitHub tools; otherwise write "PR not opened (no GitHub access in this
+   session): the author opens it" under "Next action". **Never merge**, whatever CI says: the
+   author merges.
 5. **The 🔜 roadmap step**, Track B order. Do not start a new step while the branch's PR still
    holds an earlier, unmerged step: one capability per PR (`CLAUDE.md`). Then, until it is
    merged, only finish or fix that PR, or plan the next step in the journal (no code).
@@ -205,7 +201,8 @@ Prepend an entry to `docs/AUTOPILOT_JOURNAL.md` (newest first):
 ## <UTC date and time>: <one-line summary>
 - **Did:** the unit type (plan, TDD slice, review fix, CI fix, docs), what changed, commit
   hash, PR. Working-run commits since the work-limit sha: N of 6.
-- **Usage:** 7-day before → after (this tick's cost), 5-hour at start; each subagent's model
+- **Usage:** 7-day before → after and 5-hour at start, or "usage not read"; today's working
+  runs (N of the daily cap); each subagent's model
   and effort, and what its work needed afterwards (review findings, failed checks).
 - **Checks run:** exact commands and results (and CI, if known). Re-runs, if any.
 - **Decisions taken for you:** each with the alternative and how to reverse it (or "none").
@@ -239,11 +236,11 @@ the full record; the reply never contradicts them.
 **Push notifications (the author asked for them: they do not read every reply).** Use the
 `PushNotification` tool (one line, under 200 characters, leading with what to act on):
 - **Once a day:** the run that starts between 02:00 and 06:00 UTC (one per day on the 4-hour
-  schedule) sends a summary of the previous day: what was built (step and slices), the
-  autopilot's spend that day and the 7-day total, and what is next. Decided by the clock, so
-  nothing is recorded (a skipped run sends it too).
+  schedule) sends a summary of the previous day: what was built (step and slices), CI as
+  checked (or "not checked"), and what is next. Decided by the clock, so nothing is recorded
+  (a skipped run sends it too).
 - **Whenever it stops for the author:** status set to `blocked`, `paused` or `waiting-review`,
-  a blocking open decision, or the daily allowance reached (once, by the rule in 0b.3). Say why
-  and what the author should do.
+  or a blocking open decision. Say why and what the author should do. Reaching the daily run
+  cap is routine: no push.
 Nothing else: no push for routine progress. A "not sent" result is fine (the author was at
 the terminal). If the session has no `PushNotification` tool, say so in the reply.
