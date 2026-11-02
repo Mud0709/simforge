@@ -1,4 +1,4 @@
-Last updated: 3908bac 2026-11-02
+Last updated: 2379dce 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,10 +8,11 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Autopilot resumed (2026-11-02): its next unit is planning roadmap 2.3 (oscillators). The
-first fresh-session run is a watched test; the 4-hour schedule is added only after it.
+Decide how a fresh-session run limits its own spend (first open decision): it cannot read
+your usage. Then a second watched test run; the 4-hour schedule only after that works.
 
 ## Open decisions
+- Autopilot budget (blocks: the 4-hour schedule): fresh sessions have no `get_session`/`list_events`, so the usage gate always skips. Options: (a) a git-counted cap on working runs per day; (b) a persistent "autopilot home" session that has the usage tools; (c) you run it by hand. Recommend (a).
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? (until answered, STATE's 0.76 applies)
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
@@ -35,9 +36,12 @@ first fresh-session run is a watched test; the 4-hour schedule is added only aft
   run: `scripts/check.sh` (no code changed). CI on PR #16: all 4 checks passed.
 - **State:** merged in PR #16 (`3908bac`, checks green on `966092c`). Autopilot resumed:
   STATE `running`, `work limit from: 3908bac`; task has no schedule yet.
-- **Unverified until the test run:** `add_repo` and pushing to the working branch, GitHub
-  tools (the task holds no connectors), a usage reading (`get_session`, `list_events`),
-  `PushNotification` and `update_trigger` in a fresh session.
+- **Test run 2026-11-02 09:27 UTC** (session `cse_01DMcXP187FL8rU1Sykwh6Np`, Sonnet 5.5,
+  $0.12, no files changed): stopped at step 0 because it searched for `add_repo` by its short
+  name (the full `mcp__claude-code-remote__add_repo` is available; prompt fixed). Present:
+  `add_repo`, `update_trigger`, PushNotification (push sent). Missing: `get_session` and
+  `list_events` (no usage reading), GitHub tools (`gh` token invalid). Push to the branch
+  still untested.
 
 ## Learning handoff
 - **What it does:** every autopilot run starts with an empty memory and rebuilds its picture
