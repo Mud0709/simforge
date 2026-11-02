@@ -1,4 +1,4 @@
-Last updated: 751e243 2026-11-02
+Last updated: 3908bac 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,8 +8,8 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Merge PR #16 (you merge). Then say "resume autopilot" (sets status running, resets the work
-limit), then one watched test run; the 4-hour schedule only after that.
+Autopilot resumed (2026-11-02): its next unit is planning roadmap 2.3 (oscillators). The
+first fresh-session run is a watched test; the 4-hour schedule is added only after it.
 
 ## Open decisions
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? (until answered, STATE's 0.76 applies)
@@ -32,9 +32,9 @@ limit), then one watched test run; the 4-hour schedule only after that.
   Old `trig_01D81BmGR4kh1SUbMrdbJi4F` disabled, kept.
 - **Checks run:** one fresh-context review (11 findings, fixed in `751e243`); `CLAUDE.md`
   115 lines with Two tracks, Standards, Git and Checks unchanged; hook runs, exit 0. Not
-  run: `scripts/check.sh` (no code changed); CI on PR #16 not yet checked.
-- **State:** committed and pushed (`c3076d1`, merge `2842566`, `a7b8024`, `751e243`, then
-  this file); PR #16 open, not merged. Autopilot `waiting-review`, no schedule.
+  run: `scripts/check.sh` (no code changed). CI on PR #16: all 4 checks passed.
+- **State:** merged in PR #16 (`3908bac`, checks green on `966092c`). Autopilot resumed:
+  STATE `running`, `work limit from: 3908bac`; task has no schedule yet.
 - **Unverified until the test run:** `add_repo` and pushing to the working branch, GitHub
   tools (the task holds no connectors), a usage reading (`get_session`, `list_events`),
   `PushNotification` and `update_trigger` in a fresh session.

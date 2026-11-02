@@ -5,12 +5,12 @@ edit it too: change `status`, or add a line starting `Answer:` under an item in 
 decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
 the author says "resume autopilot" (which also resets `work limit from:`).
 
-status: waiting-review
+status: running
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
   session per run, model Sonnet 5.5; no schedule until the watched test run, then
   `26 */4 * * *` UTC). The old task trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is
   disabled and kept; never re-enable it.
-work limit from: 2842566
+work limit from: 3908bac
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
 Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
