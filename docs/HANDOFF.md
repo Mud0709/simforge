@@ -1,4 +1,4 @@
-Last updated: d9209ef 2026-11-02
+Last updated: 823de30 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,16 +8,14 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Re-enable your GitHub ruleset aimed at `main` (not this branch), then read
-`docs/plans/ROADMAP_2_3_PLAN.md` (it blocks the autopilot's slice 1).
+On GitHub: Settings → General → Default branch → `main` (it is this working branch, which is
+why the home page shows it); then the ruleset checks and branch clean-up below.
 
 ## Open decisions
 - 2.3 plan unverified by content (blocks: 2.3 slice 1): the planner (Opus) wrote D1-D17; the run checked only its structure. Read it, or ask for a content review; then add `Answer: plan accepted` (or your changes) here.
-- Ruleset 26367084 is disabled. It targeted this working branch, where "require a pull request" blocks every direct push (the autopilot's too). Re-enable it targeting `main` only, with "Require status checks". Not blocking.
-- GitHub email privacy: tick Settings → Emails → "Keep my email addresses private", so GitHub web merges use your noreply address, not your personal one. Not blocking.
-- Second identity layer: add to the cloud environment's environment variables `GIT_AUTHOR_NAME=Mud0709`, `GIT_AUTHOR_EMAIL=324319297+Mud0709@users.noreply.github.com`, `GIT_COMMITTER_NAME=Mud0709`, `GIT_COMMITTER_EMAIL=324319297+Mud0709@users.noreply.github.com`. Do not add `GIT_CONFIG_*` variables (they switch off the proxy's git set-up). Not blocking.
-- Backup branches `backup/main-before-rewrite`, `backup/branch-before-rewrite`: keep, or delete once you are happy. Not blocking.
-- Signing: commits are now unsigned (no "Verified" badge). To get the badge back, add your own SSH signing key to GitHub; not possible from cloud sessions. Not blocking.
+- Ruleset on `main` (re-targeted by you): "Require status checks" has no checks selected, so it requires nothing. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
+- Branch clean-up (your clicks; this session cannot delete branches): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` (old history then exists only as hashes in `docs/history-rewrite-map.txt`) and `claude/epic-sagan-30vpv3` (5 early learning-guide commits from 2026-10-15, superseded, never merged). Keep `main` and the working branch. Not blocking.
+- Done by you 2026-11-02 (not verifiable from here): email privacy on; `GIT_AUTHOR_*`/`GIT_COMMITTER_*` added to the environment (they apply to new sessions).
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
