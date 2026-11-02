@@ -1,4 +1,4 @@
-Last updated: 370ac79 2026-11-02
+Last updated: 672d1c2 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,10 +8,11 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Autopilot's next unit: plan roadmap 2.3 (oscillators). A second watched test run does it;
-the 4-hour schedule only after that run works. PRs: the author opens and merges them.
+Attach the repository to the autopilot's scheduled task on claude.ai (first open decision);
+then a third watched test run (planning 2.3); the 4-hour schedule only after it works.
 
 ## Open decisions
+- Autopilot repository (blocks: every autopilot run): runs start with no repository and cannot attach one (`add_repo` is not callable in them). On claude.ai, edit the scheduled task "SimForge autopilot (fresh session)" and select the repository `Mud0709/simforge` (and the GitHub connector, if offered, which would also let runs open PRs). If GitHub access is missing, reconnect it at https://claude.ai/connect-github.
 - GitHub access for autopilot runs: their `gh` token is invalid and they hold no GitHub tools, so they cannot open PRs (CI is still readable: the repo is public). Fix the token, or recreate the task with the GitHub connector. Not blocking.
 - CI on the working branch: CI runs only on PRs and pushes to `main`, so autopilot pushes get no CI until a PR is open. Option: add `push` for `claude/**` branches to `.github/workflows/ci.yml` (your call; a guard-rail file). Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Now used only when a run can read usage (rarely).
@@ -37,12 +38,11 @@ the 4-hour schedule only after that run works. PRs: the author opens and merges 
   run: `scripts/check.sh` (no code changed). CI on PR #16: all 4 checks passed.
 - **State:** merged in PR #16 (`3908bac`, checks green on `966092c`). Autopilot resumed:
   STATE `running`, `work limit from: 3908bac`; task has no schedule yet.
-- **Test run 2026-11-02 09:27 UTC** (session `cse_01DMcXP187FL8rU1Sykwh6Np`, Sonnet 5.5,
-  $0.12, no files changed): stopped at step 0 because it searched for `add_repo` by its short
-  name (the full `mcp__claude-code-remote__add_repo` is available; prompt fixed). Present:
-  `add_repo`, `update_trigger`, PushNotification (push sent). Missing: `get_session` and
-  `list_events` (no usage reading), GitHub tools (`gh` token invalid). Push to the branch
-  still untested.
+- **Test runs 2026-11-02** (Sonnet 5.5, no files changed, $0.12 + $0.10): both stopped at
+  step 0. The second called `mcp__claude-code-remote__add_repo` directly: not available, so
+  the session has no repository (tag `config:no-git-repo`). PushNotification worked;
+  `get_session`/`list_events`, GitHub tools and `update_trigger` were not available to it.
+  Untested: push, CI read, the budget gate.
 
 ## Learning handoff
 - **What it does:** every autopilot run starts with an empty memory and rebuilds its picture
