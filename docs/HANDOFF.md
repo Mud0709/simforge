@@ -1,4 +1,4 @@
-Last updated: 672d1c2 2026-11-02
+Last updated: 6ff6c33 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,12 +8,13 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Attach the repository to the autopilot's scheduled task on claude.ai (first open decision);
-then a third watched test run (planning 2.3); the 4-hour schedule only after it works.
+Third watched test run (repository now attached; planning 2.3). The schedule is switched on
+only after a run works; PRs are opened by runs and merged only by you.
 
 ## Open decisions
-- Autopilot repository (blocks: every autopilot run): runs start with no repository and cannot attach one (`add_repo` is not callable in them). On claude.ai, edit the scheduled task "SimForge autopilot (fresh session)" and select the repository `Mud0709/simforge` (and the GitHub connector, if offered, which would also let runs open PRs). If GitHub access is missing, reconnect it at https://claude.ai/connect-github.
-- GitHub access for autopilot runs: their `gh` token is invalid and they hold no GitHub tools, so they cannot open PRs (CI is still readable: the repo is public). Fix the token, or recreate the task with the GitHub connector. Not blocking.
+- Branch rule on GitHub (your click; I have no settings tool): turn on "Require a pull request before merging" for `main`; leave "Require approvals" off (every PR is authored as you, and you cannot approve your own). "Only you merge" rests on the never-merge rules in the skill and the task prompt. Not blocking.
+- Schedule: the claude.ai edit set `35 * * * *` (hourly); the task is switched off until a test works. Agreed plan: `26 */4 * * *`. Not blocking.
+- Auto-fix PRs is on: its fix sessions spend usage outside the 1-run-per-day cap. Keep it? Not blocking.
 - CI on the working branch: CI runs only on PRs and pushes to `main`, so autopilot pushes get no CI until a PR is open. Option: add `push` for `claude/**` branches to `.github/workflows/ci.yml` (your call; a guard-rail file). Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Now used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
