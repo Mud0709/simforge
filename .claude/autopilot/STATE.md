@@ -1,8 +1,9 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status` to `paused`, or answer a question under "Open decisions" in
-`docs/HANDOFF.md`.
+edit it too: change `status`, or add a line starting `Answer:` under an item in "Open
+decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
+the author says "resume autopilot" (which also resets `work limit from:`).
 
 status: waiting-review
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
@@ -25,7 +26,8 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
   run 24 h from 02:00 UTC; the week starts Sunday 02:00 UTC (the seven-day reset). Counts only
   the autopilot's measured tick costs dated that day; the weekly cap applies on top.
 - notifications: one push per day (summary of the previous day) and one whenever the
-  autopilot stops for the author or reaches the daily allowance. Last daily summary: 2026-10-30 (for 2026-10-29).
+  autopilot stops for the author or reaches the daily allowance; both are decided by the
+  clock and STATE, so nothing is recorded for them (since 2026-11-02).
 - starting estimate of a tick's cost: 0.03 of the 7-day window. Replaced by the largest of
   the last three measurements once there are three.
 
