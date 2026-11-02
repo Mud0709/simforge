@@ -15,13 +15,13 @@ their next change (never directly on `main`).
   grid angle refined by bounded Brent, and an accuracy estimate for that angle; a sweep panel
   on the quadratic-drag page (export, compare, reopen). The linear sweep is unchanged. Also
   adds the autopilot's daily allowance and push notifications.
-- **Key concepts:** at a smooth maximum the curve is flat, so an error ε_R in the range moves
-  the best angle by about 2√(ε_R/K) (a square root, so the angle is less certain than the
-  range); validating against the vacuum answer (45°) and a weak-drag first-order result; a
+- **Key concepts:** at a smooth maximum the curve is flat, so if the computed range is within
+  ε_R of the true one, the best angle is within about 2√(ε_R/K) (to a quadratic
+  approximation; a square root, so the angle is less certain than the range); validating against the vacuum answer (45°) and a weak-drag first-order result; a
   work budget (300 000 force evaluations) so a request finishes within the 30 s proxy limit.
 - **Decisions and trade-offs:** a new model rather than an option on 2.1; the accuracy is
-  labelled an estimate, not a bound; Brent's answer is kept only if it beats the best grid
-  point.
+  labelled an estimate, not a bound; the best grid point is kept if it beats Brent's
+  refinement.
 - **Revisit:** why the angle accuracy scales with the square root of the range accuracy.
 - **Next:** 2.3, simple, damped and driven oscillators.
 

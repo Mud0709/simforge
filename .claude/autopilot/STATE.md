@@ -1,7 +1,7 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status` to `paused`, or answer a question under "Waiting for you".
+edit it too: change `status` to `paused`, or answer a question under "Open decisions" in `docs/HANDOFF.md`.
 
 status: waiting-review
 session: session_01KiMGHphJdZSjdXKDzmfkvm

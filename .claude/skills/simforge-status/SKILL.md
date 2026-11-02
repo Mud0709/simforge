@@ -14,8 +14,9 @@ keep it short. Never re-read the whole conversation or whole documents to reorie
 1. **The session brief** printed by the start hook (`.claude/hooks/session-start.sh`): branch,
    HEAD, latest merge on `main`, unmerged work, the 🔜 step and the handoff's next action and
    open decisions. If it is not in context, run the hook script; it needs no network.
-2. **`docs/HANDOFF.md`**, read in full (it is short). If the brief warns that it is stale, or
-   it is missing, rebuild the facts from `git log` since its `Last updated` sha.
+2. **`docs/HANDOFF.md`**, read in full (it is short). If the brief warns that it is stale,
+   rebuild the facts from `git log` since its `Last updated` sha; if it is missing, from
+   `git log` since the latest merge on `main`.
 3. Only if needed: `git fetch origin` (the brief uses the last fetched `origin/main`); open
    PRs and the check runs on their head commit (GitHub tools), noted as passed, failed,
    pending or not run; the `ROADMAP.md` row for the 🔜 step (search for it, do not read the

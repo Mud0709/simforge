@@ -71,10 +71,13 @@ cost something. So each tick first decides whether it may run at all.
    newer than the last journal entry, it is where work stands: continue from it (an
    unfinished slice, its next action, a decision just recorded), never redo or contradict it,
    and update STATE to match before choosing a unit. Do not read the conversation or the
-   whole journal (the last entry is enough). Only if the brief warns that the handoff is
-   stale, or it is missing, rebuild the picture from `git log` since its sha and the
-   author's latest chat message in this session. An item under "Open decisions" is a stop
-   for that branch of work until the author answers it.
+   whole journal (the last entry is enough). **The author's latest message** (needed for
+   answers in step 2 and the work limit in step 4): one narrow `list_events` call (this
+   session, `kinds: ["user"]`, `limit: 20`), taking the newest human message and its time;
+   never page through the conversation. If the brief warns that the handoff is stale, or it
+   is missing, rebuild the picture from `git log` since its sha (or since the latest merge
+   on `main`) and that message. An item under "Open decisions" is a stop for that branch of
+   work until the author answers it.
 2. If `status` is `blocked`, `paused` or `waiting-review`: look for an answer from the author
    since the status was set (a human chat message, or the author's edit to "Open decisions"
    in `docs/HANDOFF.md` on the remote). None: end the tick with one line ("Autopilot:
@@ -155,8 +158,8 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
     failure, reviews of risky slices, security reviews.
   **Effort is the only thing that varies, never the model.** Do not pass `model` to a
   subagent: it inherits this session's model. Switching models is the author's decision, to
-  be proposed (with evidence that the other model is better for the job) under "Waiting for
-  you", never taken alone.
+  be proposed (with evidence that the other model is better for the job) under "Open
+  decisions" in `docs/HANDOFF.md`, never taken alone.
   Record the effort chosen in the journal entry. Then verify its work yourself: read the
   diff and run the checks here. Its report is evidence, not proof.
 - Use subagents to get more done and to check yourself, within the work limit:
