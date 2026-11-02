@@ -8,6 +8,11 @@
 #    Install output goes to stderr; each step runs even if an earlier one failed. Failures
 #    are reported on stdout as the brief's last line and the hook still exits 0, because
 #    Claude Code adds a SessionStart hook's stdout to the context only on exit 0.
+# 3. Sets this repository's commit identity to the author (the author's rule of 2026-11-02):
+#    every commit is authored and committed by Mud0709 with the GitHub noreply address,
+#    unsigned (the platform's signing key is Claude's, so signing would mark the author's
+#    commits "Unverified"), and .githooks/commit-msg adds the Claude co-author trailer.
+#    Repository-level config overrides the session's global "Claude" identity.
 set -uo pipefail
 
 if ! cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"; then
@@ -74,6 +79,11 @@ brief() {
   echo "Open decisions:"
   handoff_section 6 "Open decisions"
 }
+
+git config user.name "Mud0709" 2>/dev/null
+git config user.email "324319297+Mud0709@users.noreply.github.com" 2>/dev/null
+git config commit.gpgsign false 2>/dev/null
+git config core.hooksPath .githooks 2>/dev/null
 
 brief 2>/dev/null || true
 

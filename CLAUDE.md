@@ -108,6 +108,9 @@ update line references when code moves.
 - Never push to `main`. Do not merge PRs, change repository settings or delete branches
   unless the user explicitly asks. Open a PR only when asked.
 - One coherent, reviewable capability per PR.
+- Commits are the author's: `Mud0709 <324319297+Mud0709@users.noreply.github.com>`, unsigned,
+  with a `Co-Authored-By: Claude` trailer (set by the start hook and `.githooks/commit-msg`).
+  Never rewrite pushed history unless the author says so (once: `docs/history-rewrite-map.txt`).
 
 ## Checks
 `scripts/check.sh --e2e` runs everything CI runs (ruff, mypy, pytest, API contract, ESLint,

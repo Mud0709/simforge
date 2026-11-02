@@ -21,6 +21,11 @@ reversible record).
   journal it, and finish or commit it.
 - Push only to the **working branch** named on the `Working branch:` line of `docs/HANDOFF.md`
   on `origin/main` (the author's rule of 2026-11-02); never to `main`. Never change that line.
+- **Commit identity** (the author's rule of 2026-11-02): commits are authored and committed as
+  `Mud0709 <324319297+Mud0709@users.noreply.github.com>`, unsigned, with a
+  `Co-Authored-By: Claude` trailer. The start hook sets this and `.githooks/commit-msg` adds the
+  trailer; before the first commit, check `git var GIT_AUTHOR_IDENT` and, if it is not the
+  author, run the hook's `git config` lines. Never rewrite or force-push pushed history.
 - **Every autopilot commit carries the trailer `Autopilot-run: work`** (a working run) or
   `Autopilot-run: state` (a STATE-only bookkeeping commit). That trailer is how a run tells its
   own writes from the author's: commits without it come from the author or a session working
