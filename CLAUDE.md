@@ -40,9 +40,9 @@ advanced maths, numerical analysis or professional engineering because the code 
   example, the SimForge link, a check of understanding.
 
 ## Reports and handoffs
-After a meaningful task, reply briefly: **What changed** (2-3 sentences) · **Why it matters**
-(1-2) · **What I should understand** (up to three concepts) · **What remains** · **Next step**
-(one) · one line **"Recommended skill for the next step"** (or "none needed", and why).
+After a meaningful task, reply briefly: **What changed** (2-3 sentences) · **Why it matters** (1-2)
+· **What I should understand** (≤ 3 concepts) · **What remains** · **Next step** (one) · one line
+**"Recommended skill for the next step"** (or "none needed") · **one** skippable checkpoint question.
 Then rewrite `docs/HANDOFF.md` from its template (overwrite; about 60 lines at most), keeping
 done locally / committed / pushed / PR open / merged distinct; open decisions live only there.
 After a merge its learning handoff is the `docs/LEARNING_LOG.md` draft, added on approval.

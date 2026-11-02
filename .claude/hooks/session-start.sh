@@ -5,8 +5,9 @@
 #    network (origin/main is as last fetched) and never fails the hook.
 # 2. In Claude Code cloud sessions only, installs SimForge's dependencies so the checks in
 #    scripts/check.sh can run straight away (local machines use scripts/setup.sh instead).
-#    Install output goes to stderr; each step runs even if an earlier one failed, and
-#    failures are listed at the end.
+#    Install output goes to stderr; each step runs even if an earlier one failed. Failures
+#    are reported on stdout as the brief's last line and the hook still exits 0, because
+#    Claude Code adds a SessionStart hook's stdout to the context only on exit 0.
 set -uo pipefail
 
 if ! cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"; then
@@ -111,5 +112,6 @@ fi
 
 if [ ${#failed[@]} -gt 0 ]; then
   printf 'SimForge setup failed: %s\n' "${failed[@]}" >&2
-  exit 1
+  printf 'WARNING setup failed (checks may not run): %s\n' "${failed[*]}"
 fi
+exit 0

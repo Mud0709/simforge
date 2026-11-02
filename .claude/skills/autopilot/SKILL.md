@@ -208,8 +208,9 @@ The author reads these replies, so they use `CLAUDE.md`'s report format, briefly
 changed** (2-3 plain sentences: built, planned, skipped or waiting; commits, checks that ran,
 usage) · **Why it matters** · **What I should understand** (up to three concepts) · **What
 remains** (including decisions taken for the author) · **Next step**, then the one-line
-recommended skill. A tick that only skips or waits replies in one or two lines. The journal
-and the handoff hold the full record; the reply never contradicts them.
+recommended skill, then one skippable checkpoint question on the most important new concept.
+A tick that only skips or waits replies in one or two lines. The journal and the handoff hold
+the full record; the reply never contradicts them.
 
 **Push notifications (the author asked for them: they do not read every reply).** Use the
 `PushNotification` tool (one line, under 200 characters, leading with what to act on):
