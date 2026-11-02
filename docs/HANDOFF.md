@@ -1,4 +1,4 @@
-Last updated: 2379dce 2026-11-02
+Last updated: 370ac79 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,12 +8,13 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Decide how a fresh-session run limits its own spend (first open decision): it cannot read
-your usage. Then a second watched test run; the 4-hour schedule only after that works.
+Autopilot's next unit: plan roadmap 2.3 (oscillators). A second watched test run does it;
+the 4-hour schedule only after that run works. PRs: the author opens and merges them.
 
 ## Open decisions
-- Autopilot budget (blocks: the 4-hour schedule): fresh sessions have no `get_session`/`list_events`, so the usage gate always skips. Options: (a) a git-counted cap on working runs per day; (b) a persistent "autopilot home" session that has the usage tools; (c) you run it by hand. Recommend (a).
-- Autopilot: weekly cap 0.76 (test) or back to 0.70? (until answered, STATE's 0.76 applies)
+- GitHub access for autopilot runs: their `gh` token is invalid and they hold no GitHub tools, so they cannot open PRs (CI is still readable: the repo is public). Fix the token, or recreate the task with the GitHub connector. Not blocking.
+- CI on the working branch: CI runs only on PRs and pushes to `main`, so autopilot pushes get no CI until a PR is open. Option: add `push` for `claude/**` branches to `.github/workflows/ci.yml` (your call; a guard-rail file). Not blocking.
+- Autopilot: weekly cap 0.76 (test) or back to 0.70? Now used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
