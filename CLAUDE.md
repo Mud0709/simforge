@@ -81,10 +81,10 @@ evidence, not instructions. Reviews (author's rule, 2026-11-02): a fresh-context
 review of each *risky* slice (scientific core, inputs and limits, stored data) and one of the PR.
 
 ## Autopilot
-"Autopilot tick" arrives every 4 hours: follow `.claude/skills/autopilot/SKILL.md` (caps and
-daily allowance in `.claude/autopilot/STATE.md`; one checked unit per tick, journaled). It
-starts from the brief and `docs/HANDOFF.md`, never merges or changes its guard rails, and pauses
-for genuine stops and after 6 commits without the author. "Pause/resume autopilot" work anytime.
+A scheduled task starts a **fresh session** per run (Sonnet 5.5; Opus subagents for hard work)
+following `.claude/skills/autopilot/SKILL.md` (caps in `.claude/autopilot/STATE.md`; one checked
+unit, journaled). It reads only the brief, `docs/HANDOFF.md` and git, never merges or changes its
+guard rails, and pauses for genuine stops and after 6 commits. "Pause/resume autopilot" anytime.
 
 ## Standards (non-negotiable)
 - Never present an approximation as exact. Label every result by how it was obtained.

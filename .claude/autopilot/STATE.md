@@ -1,13 +1,17 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status` to `paused`, or answer a question under "Open decisions" in `docs/HANDOFF.md`.
+edit it too: change `status` to `paused`, or answer a question under "Open decisions" in
+`docs/HANDOFF.md`.
 
 status: waiting-review
-session: session_01KiMGHphJdZSjdXKDzmfkvm
-scheduled task: SimForge autopilot, id trig_01D81BmGR4kh1SUbMrdbJi4F (every 4 hours, UTC)
+scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
+  session per run, model Sonnet 5.5; no schedule until the watched test run, then
+  `26 */4 * * *` UTC). The old task trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is
+  disabled and kept; never re-enable it.
+work limit from: 2842566
 failures: none
-branch: claude/laughing-brahmagupta-50jkiy
+branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
 Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
 2026-10-24. Defaults: the autopilot grills itself and takes its recommended answers.
 
