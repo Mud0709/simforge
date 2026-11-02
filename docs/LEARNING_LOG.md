@@ -3,10 +3,55 @@
 One short entry per merged milestone, newest first: what was built, what it taught, and what
 to revisit. Detail lives in the learning guides, `ARCHITECTURE.md` and
 `SCIENTIFIC_VALIDATION.md`; this log only points to it. New entries are added after each
-merge: the `simforge-status` skill drafts them, and an entry is added only once the author
-approves it, in the branch of their next change (never directly on `main`).
+merge: the `simforge-status` skill drafts them from the learning handoff in
+`docs/HANDOFF.md`, and an entry is added only once the author approves it, in the branch of
+their next change (never directly on `main`).
 
 ---
+
+## Roadmap 2.2: angle sweeps for both drag laws
+- **Merged:** PR #14, `0ea819a` (2026-10-29).
+- **What it does:** the best launch angle with quadratic drag: a grid of 2.1 runs, the best
+  grid angle refined by bounded Brent, and an accuracy estimate for that angle; a sweep panel
+  on the quadratic-drag page (export, compare, reopen). The linear sweep is unchanged. Also
+  adds the autopilot's daily allowance and push notifications.
+- **Key concepts:** at a smooth maximum the curve is flat, so an error ε_R in the range moves
+  the best angle by about 2√(ε_R/K) (a square root, so the angle is less certain than the
+  range); validating against the vacuum answer (45°) and a weak-drag first-order result; a
+  work budget (300 000 force evaluations) so a request finishes within the 30 s proxy limit.
+- **Decisions and trade-offs:** a new model rather than an option on 2.1; the accuracy is
+  labelled an estimate, not a bound; Brent's answer is kept only if it beats the best grid
+  point.
+- **Revisit:** why the angle accuracy scales with the square root of the range accuracy.
+- **Next:** 2.3, simple, damped and driven oscillators.
+
+## Roadmap 2.1: projectile motion with quadratic drag
+- **Merged:** PR #13, `646e996` (2026-10-28).
+- **What it does:** a new model and page for air resistance F = −c|v|v, with no exact 2-D
+  solution, checked against the exact vertical rise (tan) and fall (tanh), terminal speed
+  √(mg/c), the c → 0 limit, an energy balance and the hodograph invariant.
+- **Key concepts:** validating without an exact answer; a wrong force law passes the 1-D
+  references but fails energy and the invariant; the drag time S = ∫κ|v| dt as the solver's
+  real cost; last-bit CPU differences need written tolerances.
+- **Decisions and trade-offs:** a new model, not an option (keeps old runs replayable);
+  the guard redesigned after measuring the planned one over-refuse 193 of 1007 runs;
+  measured input rules (atol ≤ 1% of the slowest speed; flight ≥ 1 µs).
+- **Revisit:** why exact step counts in replay can differ between CPUs.
+- **Next:** 2.2, angle sweeps for both drag laws.
+
+## Roadmap 1.6: comparison and export
+- **Merged:** PR #12, `82ca0b2` (2026-10-25).
+- **What it does:** pin a reference run and overlay a run of the same model, with a table
+  of input and summary changes; recompute a stored run's series (digest-checked); export
+  CSV in the browser and a versioned JSON record. Completes Phase 1.
+- **Key concepts:** recompute, don't store (the digest proves a match); RFC 4180 and exact
+  number round-trip; CSV formula injection (numbers exempt); relative change undefined at
+  a zero reference; tolerances are not significance tests.
+- **Decisions and trade-offs:** CSV made in the browser (covers unsaved runs and uploads);
+  reference in the URL, not the database; same-model overlay only; a fresh reviewer per
+  slice caught four bugs.
+- **Revisit:** why "not bit-identical" no longer claims a cause.
+- **Next:** Phase 2, starting with 2.1 quadratic drag.
 
 ## Roadmap 1.5: a usable experiment log; the autopilot
 - **Merged:** PR #11, `d949170` (2026-10-24).
