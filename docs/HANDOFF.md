@@ -1,4 +1,4 @@
-Last updated: 6ff6c33 2026-11-02
+Last updated: 207c935 2026-11-02
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -8,8 +8,8 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-Third watched test run (repository now attached; planning 2.3). The schedule is switched on
-only after a run works; PRs are opened by runs and merged only by you.
+Third watched run done: 2.3 planned (`docs/plans/ROADMAP_2_3_PLAN.md`, not yet read by you).
+Read the plan; then switch the schedule on (agreed `26 */4 * * *`). Next unit: slice 1.
 
 ## Open decisions
 - Branch rule on GitHub (your click; I have no settings tool): turn on "Require a pull request before merging" for `main`; leave "Require approvals" off (every PR is authored as you, and you cannot approve your own). "Only you merge" rests on the never-merge rules in the skill and the task prompt. Not blocking.
@@ -21,6 +21,8 @@ only after a run works; PRs are opened by runs and merged only by you.
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
+
+- Test run 3 (2026-11-02, Sonnet 5.5 + Opus planner): repository present, branch checked out, GitHub `list_pull_requests` worked, unauthenticated CI read worked (0 check runs, no PR); push and PushNotification: see the reply. `update_trigger` not used (nothing to pause).
 
 ## Last task: autopilot in a fresh session per run
 - **Completed:** each run starts a fresh session (Sonnet 5.5) that reads only the brief, this

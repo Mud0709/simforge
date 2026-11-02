@@ -41,10 +41,10 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 For scale: on 2026-10-24 a short reply in this session moved the 7-day window by about 0.01.
 
 ## Current unit
-None. Roadmap 2.2 is merged (PR #14, `0ea819a`); 🔜 is on 2.3 (oscillators), not started.
+Roadmap 2.3 planned (`docs/plans/ROADMAP_2_3_PLAN.md`, 2026-11-02). Next: slice 1 (exact solution, TDD).
 
 ## Remainder of the current unit
-—
+Slices 1-5 of the plan; none built.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
