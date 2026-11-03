@@ -1,4 +1,4 @@
-Last updated: 4882fc4 2026-11-03
+Last updated: 192d10a 2026-11-03
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,8 +9,8 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-2.3 is being built in the author's session: slice 1 (exact solution) done in 4882fc4, slice 2
-in progress; the autopilot is paused meanwhile. On GitHub: Default branch → `main`.
+2.3 slice 1 (exact solution) done in 4882fc4. Slice 2 is on hold (author, 2026-11-03): its
+builder was stopped before writing any file; restart it from the plan. Autopilot paused.
 
 ## Open decisions
 - Ruleset on `main` (re-targeted by you): "Require status checks" has no checks selected, so it requires nothing. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
