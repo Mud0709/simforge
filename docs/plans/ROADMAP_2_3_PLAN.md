@@ -1,10 +1,33 @@
-# Roadmap 2.3 plan: simple, damped and driven oscillators (decided by default)
+# Roadmap 2.3 plan: simple, damped and driven oscillators (grilled with the author)
 
-Written on 2026-11-02 by a planning subagent. **Decided by default**: the author delegated
-Phase 2's design questions ("agree to defaults", STATE: authorised phase), so the planner ran
-`grilling` on itself and accepted its own recommendation for every question (D1-D17). Every
-decision is **reversible** and is reviewed by the author; nothing is built until this plan has
-been read. Not committed.
+Drafted on 2026-11-02 by a planning subagent (decided by default, D1-D17), then **grilled with
+the author on 2026-11-03** in three rounds; the author accepted every decision with the
+amendments below (G1-G4), which take precedence over the text of the decisions they modify.
+
+## Grilling record (2026-11-03)
+- **Round 1:** D1 one model with UI presets; D2 SI inputs and the Damped defaults; D4 adaptive
+  solvers only (symplectic methods in 2.4, where the author writes them); D9 the formula
+  resonance curve (the simulated one in 2.5). **G1:** Claude builds slices 1-5 test-first,
+  scientific core (slices 1-3) with an Opus worker and a fresh Opus review each.
+- **Round 2:** D3 the unified exact form with pitfalls (i)-(iii) tested; D6 limits provisional,
+  measured in slice 2; D7 the three independent references; D10 exact Q with the IB energy
+  ratio labelled approximate ("IB definition"); D11 a new package and route module.
+  **G2 (amends D5):** the scale X also includes the **predicted** amplitude, an exact formula
+  of the inputs: X = max(|x₀|, |v₀|/ω₀, A, B_max), with A the steady-state amplitude (OR1) when
+  b > 0 and B_max the bound of the undamped driven part over the run (OR3) when b = 0. The plan's
+  X was F₀/k at resonance while the motion is Q·F₀/k, which made every check Q times stricter
+  than intended.
+- **Round 3:** D8 checks with measured thresholds; D12 stored fields; D13 replay tolerances
+  (step counts exact until the separate open decision); D14 the page; D15 the 1.6 wiring; D16
+  docs (Part 20 ≈ 250 lines, IB claims checked against `docs/IB_FOUNDATIONS.md`).
+  **G3 (amends D6 and D3 iv):** no Q limit unless slice 1 measures the exact solution's error
+  near resonance at Q = 1e4, 1e6, 1e8 above 1e-12 of X; then the limit is the measured edge.
+  **G4:** each slice ends with this plan's status updated and its documentation written.
+
+## Slice status
+- Slice 1 (exact solution): not started.
+- Slice 2 (numerical solve and run): not started.
+- Slices 3-5: not started.
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance

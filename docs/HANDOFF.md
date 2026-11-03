@@ -8,11 +8,10 @@ it stops that unit; answer one by adding a line starting "Answer:" under it. -->
 # SimForge handoff
 
 ## Next action
-On GitHub: Settings → General → Default branch → `main` (it is this working branch, which is
-why the home page shows it); then the ruleset checks and branch clean-up below.
+2.3 is being built in the author's session (plan grilled 2026-11-03; slices 1-2 in progress);
+the autopilot is paused meanwhile. On GitHub: Default branch → `main`; ruleset checks below.
 
 ## Open decisions
-- 2.3 plan unverified by content (blocks: 2.3 slice 1): the planner (Opus) wrote D1-D17; the run checked only its structure. Read it, or ask for a content review; then add `Answer: plan accepted` (or your changes) here.
 - Ruleset on `main` (re-targeted by you): "Require status checks" has no checks selected, so it requires nothing. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
 - Branch clean-up (your clicks; this session cannot delete branches): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` (old history then exists only as hashes in `docs/history-rewrite-map.txt`) and `claude/epic-sagan-30vpv3` (5 early learning-guide commits from 2026-10-15, superseded, never merged). Keep `main` and the working branch. Not blocking.
 - Done by you 2026-11-02 (not verifiable from here): email privacy on; `GIT_AUTHOR_*`/`GIT_COMMITTER_*` added to the environment (they apply to new sessions).
