@@ -2,7 +2,10 @@
 # SimForge SessionStart hook.
 # 1. Prints the Session Start Brief (stdout, which Claude Code adds to Claude's context): git
 #    facts, the 🔜 roadmap step and the handoff in docs/HANDOFF.md. Runs everywhere, uses no
-#    network (origin/main is as last fetched) and never fails the hook.
+#    network (origin refs are as last fetched) and never fails the hook. The working branch is
+#    read from the "Working branch:" line of docs/HANDOFF.md on origin/main; a chat on any other
+#    branch is warned and shown that branch's handoff (origin/<working branch>), because a new
+#    chat starts on a fresh branch made from main, whose handoff lags until a PR is merged.
 # 2. In Claude Code cloud sessions only, installs SimForge's dependencies so the checks in
 #    scripts/check.sh can run straight away (local machines use scripts/setup.sh instead).
 #    Install output goes to stderr; each step runs even if an earlier one failed. Failures
@@ -20,8 +23,8 @@ if ! cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"; then
   exit 0
 fi
 
-# Prints at most $1 lines of the "## $2" section of docs/HANDOFF.md, then a pointer if longer.
-# Tolerates CRLF and trailing spaces on the heading; says so when the heading is missing.
+# Prints at most $1 lines of the "## $2" section of the handoff file $3, then a pointer if
+# longer. Tolerates CRLF and trailing spaces on the heading; says so when it is missing.
 handoff_section() {
   awk -v want="## $2" -v max="$1" '
     { sub(/\r$/, "") }
@@ -32,23 +35,41 @@ handoff_section() {
       else if (n == 0) print "  (none)"
       else if (n > max) printf "  (+%d more lines in docs/HANDOFF.md)\n", n - max
     }
-  ' docs/HANDOFF.md
+  ' "$3"
 }
 
 brief() {
-  local branch head base ahead behind dirty step merge sha since
+  local branch head base ahead behind dirty step merge sha since wb src ref from tmp=""
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || { echo "SimForge brief: not a git checkout"; return; }
   [ "$branch" = "HEAD" ] && branch="(detached HEAD)"
   head=$(git log -1 --format='%h %s' HEAD)
-  echo "== SimForge session brief (git, no network; origin/main as last fetched) =="
-  echo "Branch: $branch @ $head"
+  # The working branch is named on main (docs/HANDOFF.md), so every new chat can find it.
+  wb=$(git show origin/main:docs/HANDOFF.md 2>/dev/null | sed -n 's/^Working branch:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+  echo "== SimForge session brief (git, no network; origin refs as last fetched) =="
+  echo "Branch: $branch @ $head (working branch: ${wb:-unknown, no line on origin/main})"
+  # Defaults: this checkout's handoff, staleness measured from HEAD.
+  src=docs/HANDOFF.md; ref=HEAD; from="this checkout"
+  if [ -n "$wb" ] && [ "$branch" != "$wb" ]; then
+    echo "WARNING: This chat is on \`$branch\`; the latest work is on \`$wb\`. Switch with \`git switch $wb\` before working, and make sure no other chat or autopilot run is working on it."
+    if git rev-parse --verify -q "origin/$wb" >/dev/null; then
+      tmp=$(mktemp)
+      if git show "origin/$wb:docs/HANDOFF.md" > "$tmp" 2>/dev/null; then
+        src=$tmp; ref="origin/$wb"; from="origin/$wb"
+      else
+        rm -f "$tmp"; tmp=""; src=/nonexistent
+        from="origin/$wb (it has no docs/HANDOFF.md)"
+      fi
+    else
+      from="this checkout (origin/$wb not fetched)"
+    fi
+  fi
   if git rev-parse --verify -q origin/main >/dev/null; then
     base=origin/main
     merge=$(git log -1 --merges --format='%h %s (%cs)' "$base")
     echo "Latest merge on main: ${merge:-none}"
-    ahead=$(git rev-list --count "$base"..HEAD)
-    behind=$(git rev-list --count HEAD.."$base")
-    echo "Unmerged work: $ahead commit(s) ahead of main, $behind behind"
+    ahead=$(git rev-list --count "$base".."$ref")
+    behind=$(git rev-list --count "$ref".."$base")
+    echo "Unmerged work ($ref): $ahead commit(s) ahead of main, $behind behind"
   else
     echo "Latest merge on main: unknown (no origin/main ref)"
   fi
@@ -57,27 +78,29 @@ brief() {
   step=$(grep -m1 '| 🔜 |' ROADMAP.md 2>/dev/null | cut -d'|' -f2-3 | sed 's/\*\*//g; s/|/ /; s/  */ /g; s/^ //; s/ $//')
   echo "Roadmap 🔜: ${step:-not found in ROADMAP.md}"
 
-  if [ ! -f docs/HANDOFF.md ]; then
-    echo "Handoff: no handoff yet (docs/HANDOFF.md is missing)"
+  if [ ! -f "$src" ]; then
+    echo "Handoff ($from): no handoff yet (docs/HANDOFF.md is missing)"
     return
   fi
-  sha=$(sed -n 's/^Last updated: \([0-9a-f]\{7,40\}\).*/\1/p' docs/HANDOFF.md | head -1)
+  sha=$(sed -n 's/^Last updated: \([0-9a-f]\{7,40\}\).*/\1/p' "$src" | head -1)
   if [ -z "$sha" ]; then
-    echo "Handoff: WARNING no 'Last updated: <sha> <date>' line in docs/HANDOFF.md"
+    echo "Handoff ($from): WARNING no 'Last updated: <sha> <date>' line in docs/HANDOFF.md"
   elif ! git cat-file -e "$sha^{commit}" 2>/dev/null; then
-    echo "Handoff: WARNING last updated at $sha, which is not in this checkout"
+    echo "Handoff ($from): WARNING last updated at $sha, which is not in this checkout"
   else
-    since=$(git rev-list --count "$sha"..HEAD)
+    since=$(git rev-list --count "$sha".."$ref")
     if [ "$since" -gt 3 ]; then
-      echo "Handoff: WARNING stale, HEAD is $since commits ahead of its sha $sha"
+      echo "Handoff ($from): WARNING stale, $ref is $since commits ahead of its sha $sha"
     else
-      echo "Handoff: covers $sha (HEAD is $since commit(s) ahead)"
+      echo "Handoff ($from): covers $sha ($ref is $since commit(s) ahead)"
     fi
   fi
   echo "Next action:"
-  handoff_section 3 "Next action"
+  handoff_section 3 "Next action" "$src"
   echo "Open decisions:"
-  handoff_section 6 "Open decisions"
+  handoff_section 5 "Open decisions" "$src"
+  [ -n "$tmp" ] && rm -f "$tmp"
+  return 0
 }
 
 git config user.name "Mud0709" 2>/dev/null

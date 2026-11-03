@@ -108,6 +108,8 @@ update line references when code moves.
 - Never push to `main`. Do not merge PRs, change repository settings or delete branches
   unless the user explicitly asks. Open a PR only when asked.
 - One coherent, reviewable capability per PR.
+- One chat per branch: work only on the working branch named in `docs/HANDOFF.md` (the start
+  brief warns otherwise), and only when no other chat or autopilot run is working on it.
 - Commits are the author's: `Mud0709 <324319297+Mud0709@users.noreply.github.com>`, unsigned,
   with a `Co-Authored-By: Claude` trailer (set by the start hook and `.githooks/commit-msg`).
   Never rewrite pushed history unless the author says so (once: `docs/history-rewrite-map.txt`).

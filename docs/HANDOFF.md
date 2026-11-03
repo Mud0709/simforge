@@ -1,15 +1,16 @@
-Last updated: 823de30 2026-11-02
+Last updated: 4882fc4 2026-11-03
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
 "Working branch" from this file on main. Mark an open decision "(blocks: <unit>)" only if
-it stops that unit; answer one by adding a line starting "Answer:" under it. -->
+it stops that unit; answer one by adding a line starting "Answer:" under it. A chat on any
+other branch is warned by the start brief and shown this file from origin/<working branch>. -->
 
 # SimForge handoff
 
 ## Next action
-2.3 is being built in the author's session (plan grilled 2026-11-03; slices 1-2 in progress);
-the autopilot is paused meanwhile. On GitHub: Default branch → `main`; ruleset checks below.
+2.3 is being built in the author's session: slice 1 (exact solution) done in 4882fc4, slice 2
+in progress; the autopilot is paused meanwhile. On GitHub: Default branch → `main`.
 
 ## Open decisions
 - Ruleset on `main` (re-targeted by you): "Require status checks" has no checks selected, so it requires nothing. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
