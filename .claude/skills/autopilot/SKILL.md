@@ -50,8 +50,8 @@ reversible record).
 The author's Claude usage is limited, so each tick first decides whether it may run at all.
 A fresh session cannot read the author's live usage (no `get_session`/`list_events`; test run
 of 2026-11-02), so the gate counts runs in git instead (the author's rule of 2026-11-02). The
-limit is enforced twice: the task fires once a day (02:59 UTC), and the git count below also
-catches runs the author fires by hand.
+limit is enforced twice: the task fires twice a day (02:59 and 12:59 UTC), and the git count
+below also catches runs the author fires by hand.
 0. Read STATE. If `status` is `paused`, `blocked` or `waiting-review`, go straight to step 1.2.
 1. **The daily run cap.** A day runs 24 h from 02:00 UTC. Count today's working runs on the
    working branch: `git log --first-parent --since="<today> 02:00:00 +0000"
@@ -254,7 +254,7 @@ the full record; the reply never contradicts them.
 
 **Push notifications (the author asked for them: they do not read every reply).** Use the
 `PushNotification` tool (one line, under 200 characters, leading with what to act on):
-- **One push per run** (the task runs once a day at 02:59 UTC, so one a day): what the run did
+- **One push per run** (the task runs at 02:59 and 12:59 UTC, so two a day): what the run did
   (unit, commit, CI as checked or "not run"/"not checked", what is next), or why it skipped
   or stopped and what the author should do. Nothing else. A "not sent" result is fine (the
   author was at the terminal). If the session has no `PushNotification` tool, say so.

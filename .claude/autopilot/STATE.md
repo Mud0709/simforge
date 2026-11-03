@@ -5,11 +5,11 @@ edit it too: change `status`, or add a line starting `Answer:` under an item in 
 decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
 the author says "resume autopilot" (which also resets `work limit from:`).
 
-status: running
+status: paused
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
-  session per run, model Sonnet 5.5, repository attached, auto-fix off; once a day at 02:59
-  UTC, `59 2 * * *`, switched on 2026-11-02 after the third watched test run). The old task trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is
-  disabled and kept; never re-enable it.
+  session per run, model Sonnet 5.5, repository attached, auto-fix off; twice a day at 02:59
+  and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
+  trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
 work limit from: 8e7596e
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -17,7 +17,7 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 2026-10-24. Defaults: the autopilot grills itself and takes its recommended answers.
 
 ## Budget (the author may edit these numbers)
-- working runs per day: 1 (the author's rule of 2026-11-02). Days run 24 h from 02:00 UTC.
+- working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
   Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
   usage. This replaces the 0.08 daily allowance, which needed live readings.
 - Used only when a run can read live usage (see the skill, 0b.2): weekly cap 0.76 (raised from
