@@ -25,7 +25,16 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   **G4:** each slice ends with this plan's status updated and its documentation written.
 
 ## Slice status
-- Slice 1 (exact solution): not started.
+- **Slice 1 (exact solution): done 2026-11-03.** `physics/oscillator/analytical.py` and 317
+  tests against a 90-digit reference; fresh Opus review in three passes, all findings fixed;
+  documented in `SCIENTIFIC_VALIDATION.md`. Amendments from the review, decided by the author:
+  **A (reverses G3):** Q ≤ 1e4 when b > 0, because the error relative to the motion actually
+  reached grows like ε·Q. **B (replaces G2's formula):** X = √(x₀² + (v₀/ω₀)²) + D, a proved
+  upper bound on |x| over the run (D: the smallest of six proved caps on the driven part).
+  **Under D6's measured limits:** a minimum duration max(ω₀, ω, γ)·T ≥ 1, enforced at the API
+  in slice 3. Error model (measured): c·ε·(Q + ω₀T + A/X + 1)·X with c ≤ 1.5. For slice 2:
+  checks are scaled by this X; velocity scale V = max(ω₀, ω)·X; the Q = 1e4 resonance error
+  (≈ 6e-12 of X) is the exact solution's own floor.
 - Slice 2 (numerical solve and run): not started.
 - Slices 3-5: not started.
 
