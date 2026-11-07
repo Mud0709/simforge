@@ -1,4 +1,4 @@
-Last updated: 192d10a 2026-11-03
+Last updated: 485cfd6 2026-11-07
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,50 +9,50 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-2.3 slice 1 (exact solution) done in 4882fc4. Slice 2 is on hold (author, 2026-11-03): its
-builder was stopped before writing any file; restart it from the plan. Autopilot paused.
+Review the autopilot protocol upgrade (on this branch; not merged). Then:
+2.3 slice 2, whose first unit is now to add its Acceptance block. Autopilot paused.
 
 ## Open decisions
+- Scheduled task prompt (blocks: resuming the autopilot): its step 2 "read only" list omits `.claude/autopilot/FINDINGS.md`, which the skill now reads and writes, and step 6 does not mention STATE-only and review-pending commits. Updating the stored prompt was outside this task's files; say "update the autopilot prompt" to align it.
 - Ruleset on `main` (re-targeted by you): "Require status checks" has no checks selected, so it requires nothing. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
-- Branch clean-up (your clicks; this session cannot delete branches): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` (old history then exists only as hashes in `docs/history-rewrite-map.txt`) and `claude/epic-sagan-30vpv3` (5 early learning-guide commits from 2026-10-15, superseded, never merged). Keep `main` and the working branch. Not blocking.
-- Done by you 2026-11-02 (not verifiable from here): email privacy on; `GIT_AUTHOR_*`/`GIT_COMMITTER_*` added to the environment (they apply to new sessions).
+- Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Keep `main` and the working branch. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
 
-## Last task: history rewritten; commits are the author's
-- **Rewrite (2026-11-02):** all 110 commits on `main` and this branch now have author and
-  committer `Mud0709 <324319297+Mud0709@users.noreply.github.com>` (94 were Claude's, 16 were
-  GitHub merges with your personal email) and a `Co-Authored-By: Claude` trailer (18 added).
-  Verified per commit: same tree, dates and message (only the trailer added); tip trees
-  unchanged (`main` 28c16964, branch 55ed109b); counts 101 / 110; `Autopilot-run` trailer kept.
-  Force-pushed with leases: `main` 3908bac → 8e7596e, branch ef2fa93 → 1b6194e. Old→new map:
-  `docs/history-rewrite-map.txt`. Hashes before today in the journal, learning log and old PR
-  pages are the old ones.
-- **Future commits:** the start hook sets your identity (repository config overrides the
-  session's global "Claude"), turns signing off (the platform key is Claude's, so signed
-  commits would show "Unverified") and enables `.githooks/commit-msg`, which adds the Claude
-  trailer with the blank line git needs. Rules in `CLAUDE.md` (Git) and the autopilot skill.
-- **Files:** `.githooks/commit-msg`, `.claude/hooks/session-start.sh`, `CLAUDE.md`,
-  `.claude/skills/autopilot/SKILL.md`, `.claude/autopilot/STATE.md` (`work limit from:`
-  8e7596e), `docs/AUTOPILOT_JOURNAL.md`, `docs/LEARNING_LOG.md`, `docs/history-rewrite-map.txt`.
-- **Checks run:** the per-commit comparison (110 commits, 0 problems); remote trees after the
-  push; shellcheck on both hooks (exit 0); the hook run (exit 0, `git var` shows your identity);
-  commit-msg on five message shapes, all parsed as trailers; `d9209ef` authored as you,
-  unsigned, Claude co-author. Not run: `scripts/check.sh` (no code changed). CI: not run (no PR).
-- **State:** pushed to `main` (rewrite) and this branch; no PR open. Autopilot re-enabled
-  (daily, 02:59 UTC).
+## Last task: autopilot protocol upgrade (author-authorised guard-rail edits, 2026-11-07)
+- **Completed:** (1) executable Acceptance blocks per plan slice, run by the tick itself; a
+  test writer writes the named tests first and the builder may not touch them; (2) plans
+  checked by three fresh reviewers (science, numerics, scope/testability), must-fix only, one
+  round, applied by the resumed planner; (3) the planner's four "Before deciding" questions;
+  (4) a Sonnet-first effort ladder (unit effort, one effort higher, Opus high, then the
+  failures counter), Opus kept for planning and risky reviews, cost per merged step in STATE
+  ("Step costs", 2.2 seeded at about 0.30 of a week); (5) `.claude/autopilot/FINDINGS.md`
+  (seeded with 11 lessons, 2 confirmed), printed by the start hook; (6) six plugins disabled;
+  at most 4 subagents per tick. Old hard rules, budget gate and never-merge unchanged.
+- **Files:** `.claude/skills/autopilot/SKILL.md` (260 → 272 lines), `.claude/autopilot/STATE.md`,
+  `.claude/autopilot/FINDINGS.md` (new), `.claude/settings.json`,
+  `.claude/hooks/session-start.sh`, `CLAUDE.md`, this file.
+- **Checks run:** `bash -n` and shellcheck on the hook (exit 0); the hook on the working
+  branch (exit 0, 20 lines, prints the 2 confirmed findings) and in a scratch clone on another
+  branch, a detached HEAD, a missing `origin/<working branch>` and no handoff (all exit 0,
+  9-20 lines); `settings.json` parses. One fresh-context review (Opus): 11 findings, all
+  fixed (an exception for FINDINGS.md in the hard rule, review-pending as a half-finished
+  unit rather than a blocking decision, review fixes and the security review restored, the
+  planner resumed to apply must-fix, no cross-tick ladder, a mis-confirmed finding split).
+  Not run: `scripts/check.sh` (no code changed). CI: not run (no PR).
+- **State:** committed and pushed to the working branch; no PR open; not merged.
 
 ## Learning handoff
-- **What it does:** the history now says you wrote every commit, with Claude credited as
-  co-author, and every future commit is set up the same way automatically.
-- **Why it matters:** a commit's hash covers its author, so changing authors gives every
-  commit a new hash; that is why the map and the backup branches exist.
-- **Key concept:** a commit hash is a fingerprint of the content *and* its metadata (tree,
-  parents, author, committer, message), so editing one commit changes every later hash.
-- **Trade-off:** clean authorship costs the old hashes (old PR pages and notes still cite
-  them) and the "Verified" signature badge.
-- **You should be able to explain:** why the file trees stayed identical while every hash
-  changed, and why `--force-with-lease` was safer than `--force`.
+- **What it does:** "done" now means commands that a tick runs and that pass, not a model's
+  report; plans are checked from three angles by reviewers who did not write them.
+- **Why it matters:** a system that grades its own work drifts; independent checks and a
+  fixed bar keep quality while cheaper models do the routine building.
+- **Key concept:** separation of setter and solver: whoever writes the test is not allowed to
+  be the one who changes it to pass.
+- **Trade-off:** more subagents per slice (a test writer, possible retries), capped at four
+  per tick, in exchange for cheaper first attempts on Sonnet.
+- **You should be able to explain:** why the builder may not edit the acceptance tests, and
+  why "review pending" is a half-finished unit rather than an open decision.

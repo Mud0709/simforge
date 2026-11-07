@@ -6,6 +6,7 @@
 #    read from the "Working branch:" line of docs/HANDOFF.md on origin/main; a chat on any other
 #    branch is warned and shown that branch's handoff (origin/<working branch>), because a new
 #    chat starts on a fresh branch made from main, whose handoff lags until a PR is merged.
+#    It ends with the confirmed lessons in .claude/autopilot/FINDINGS.md (at most 20 lines).
 # 2. In Claude Code cloud sessions only, installs SimForge's dependencies so the checks in
 #    scripts/check.sh can run straight away (local machines use scripts/setup.sh instead).
 #    Install output goes to stderr; each step runs even if an earlier one failed. Failures
@@ -39,7 +40,7 @@ handoff_section() {
 }
 
 brief() {
-  local branch head base ahead behind dirty step merge sha since wb src ref from tmp=""
+  local branch head base ahead behind dirty step merge sha since wb src ref from tmp="" fsrc ftmp=""
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || { echo "SimForge brief: not a git checkout"; return; }
   [ "$branch" = "HEAD" ] && branch="(detached HEAD)"
   head=$(git log -1 --format='%h %s' HEAD)
@@ -55,6 +56,8 @@ brief() {
       tmp=$(mktemp)
       if git show "origin/$wb:docs/HANDOFF.md" > "$tmp" 2>/dev/null; then
         src=$tmp; ref="origin/$wb"; from="origin/$wb"
+        ftmp=$(mktemp)
+        git show "origin/$wb:.claude/autopilot/FINDINGS.md" > "$ftmp" 2>/dev/null || : > "$ftmp"
       else
         rm -f "$tmp"; tmp=""; src=/nonexistent
         from="origin/$wb (it has no docs/HANDOFF.md)"
@@ -80,8 +83,27 @@ brief() {
 
   if [ ! -f "$src" ]; then
     echo "Handoff ($from): no handoff yet (docs/HANDOFF.md is missing)"
-    return
+  else
+    handoff_brief "$src" "$ref" "$from"
   fi
+  # Confirmed lessons about this repo (.claude/autopilot/FINDINGS.md), from the same branch as
+  # the handoff, at most 20 lines.
+  fsrc=${ftmp:-.claude/autopilot/FINDINGS.md}
+  echo "Confirmed findings:"
+  if [ -s "$fsrc" ]; then
+    awk '/^- \[confirmed\]/ && n < 20 { print "  " $0; n++ } END { if (!n) print "  (none yet)" }' "$fsrc"
+  else
+    echo "  (no .claude/autopilot/FINDINGS.md)"
+  fi
+  [ -n "$tmp" ] && rm -f "$tmp"
+  [ -n "$ftmp" ] && rm -f "$ftmp"
+  return 0
+}
+
+# The handoff lines of the brief: staleness of file $1 against $2, its sections; $3 says where
+# the file came from.
+handoff_brief() {
+  local src=$1 ref=$2 from=$3 sha since
   sha=$(sed -n 's/^Last updated: \([0-9a-f]\{7,40\}\).*/\1/p' "$src" | head -1)
   if [ -z "$sha" ]; then
     echo "Handoff ($from): WARNING no 'Last updated: <sha> <date>' line in docs/HANDOFF.md"
@@ -99,8 +121,6 @@ brief() {
   handoff_section 3 "Next action" "$src"
   echo "Open decisions:"
   handoff_section 5 "Open decisions" "$src"
-  [ -n "$tmp" ] && rm -f "$tmp"
-  return 0
 }
 
 git config user.name "Mud0709" 2>/dev/null

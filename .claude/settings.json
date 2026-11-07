@@ -17,7 +17,13 @@
     "productivity@synced": false,
     "cowork-plugin-management@synced": false,
     "learn-with-coursera@synced": false,
-    "humanize-kit@synced": false
+    "humanize-kit@synced": false,
+    "learning-framework@synced": false,
+    "study-desk@synced": false,
+    "obsidian-notes@synced": false,
+    "obsidian-sync@synced": false,
+    "youtube-transcriber@synced": false,
+    "image-generation@synced": false
   },
   "skillOverrides": {
     "anthropic-skills:built-in-browser": "off",
