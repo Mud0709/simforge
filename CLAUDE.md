@@ -2,7 +2,9 @@
 
 SimForge is **one scientific studio with three labs: Physics, Economy and Quant Research**,
 each at an early stage. Start from the session brief (printed by the start hook) and
-`docs/HANDOFF.md`. The documents below are large: search them and open only the section needed.
+`docs/HANDOFF.md`. Open large documents (20 KB or more, listed in `docs/INDEX.md`) one
+section at a time, by the line range there; `grep` the index for the line you need. Folder
+rules live in `backend/`, `frontend/` and `docs/CLAUDE.md`.
 
 - `ROADMAP.md`: the capability map for all three labs and the phased plan (current step 🔜).
   Keep every lab's eventual contents in mind, not just the next task.
@@ -84,10 +86,11 @@ stored data) and one of the PR.
 ## Autopilot
 A scheduled task starts a **fresh session** per run (Sonnet 5.5) following
 `.claude/skills/autopilot/SKILL.md`: plans checked by three fresh reviewers, a slice done only
-when its Acceptance commands pass, builders on a Sonnet-first effort ladder, lessons in
-`.claude/autopilot/FINDINGS.md`, caps in `.claude/autopilot/STATE.md`. It reads only the brief,
-`docs/HANDOFF.md` and git, never merges or changes its guard rails, and pauses for genuine stops
-and after 6 commits. "Pause/resume autopilot" anytime.
+when its Acceptance commands pass, builders on an effort ladder (high-effort units on Opus, low
+and medium on Sonnet), lessons in `.claude/autopilot/FINDINGS.md`, caps in
+`.claude/autopilot/STATE.md`. It reads only the brief, `docs/HANDOFF.md`, the newest
+`docs/journal/` entry, the confirmed findings and git, never merges or changes its guard
+rails, and pauses for genuine stops and after 6 commits. "Pause/resume autopilot" anytime.
 
 ## Standards (non-negotiable)
 - Never present an approximation as exact. Label every result by how it was obtained.
@@ -101,11 +104,8 @@ and after 6 commits. "Pause/resume autopilot" anytime.
 
 ## Every task updates everything
 Code, tests, `SCIENTIFIC_VALIDATION.md`, `ROADMAP.md` status, `ARCHITECTURE.md` and `README.md`
-where affected, **and the relevant learning guide** (new chapter, checkpoints, exercises
-without solutions). New guide chapters stay at about 250 lines with few verbatim excerpts
-(the author's rule of 2026-11-02): the science stays complete, the prose does not try to be
-exhaustive. Excerpts are tagged `<!-- src: path:a-b -->` and must match the files exactly;
-update line references when code moves.
+where affected, **and the relevant learning guide** (chapter rules in `docs/CLAUDE.md`). Guide
+excerpts are tagged `<!-- src: path:a-b -->`: when code moves, update the line references.
 
 ## Git and GitHub
 - Never push to `main`. Do not merge PRs, change repository settings or delete branches
@@ -118,6 +118,5 @@ update line references when code moves.
   Never rewrite pushed history unless the author says so (once: `docs/history-rewrite-map.txt`).
 
 ## Checks
-`scripts/check.sh --e2e` runs everything CI runs (ruff, mypy, pytest, API contract, ESLint,
-Prettier, tsc, Vitest, build, Playwright). After changing backend schemas run
-`make api-types` and commit the regenerated files.
+`scripts/check.sh --e2e` runs everything CI runs (docs index, ruff, mypy, pytest, API contract,
+ESLint, Prettier, tsc, Vitest, build, Playwright); folder `CLAUDE.md` files give the focused ones.

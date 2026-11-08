@@ -1,4 +1,7 @@
-# Autopilot journal
+# Autopilot journal (archive)
+
+**Archive, closed on 2026-11-08: nobody reads this file.** New entries are one file per tick in
+`docs/journal/` (table: `docs/journal/Journal.base`); a tick reads only the newest one.
 
 One entry per autopilot tick that did something, newest first. Each lists what was done, the
 checks that actually ran, decisions taken without you (with how to reverse them), anything

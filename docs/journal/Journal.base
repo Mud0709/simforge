@@ -1,0 +1,26 @@
+filters:
+  and:
+    - file.inFolder("docs/journal")
+    - file.ext == "md"
+    - '!file.name.startsWith("_")'
+views:
+  - type: table
+    name: Autopilot ticks
+    order:
+      - file.name
+      - date
+      - unit
+      - step
+      - models
+      - rungs
+      - acceptance
+      - tests_passed
+      - tests_failed
+      - tests_skipped
+      - tests_flaky
+      - test_seconds
+      - checks
+      - cost
+    sort:
+      - property: date
+        direction: DESC
