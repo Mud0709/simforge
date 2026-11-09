@@ -1,4 +1,4 @@
-Last updated: 4413a2f 2026-11-09
+Last updated: 8d6a09d 2026-11-09 (slice 2 tests)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -10,7 +10,12 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Velocity scale answered by the author (2026-11-09): **V = ω₀X** (recorded in the 2.3 plan's
-slice 2 Acceptance block). Autopilot resumed; its next unit is the slice 2 test writer.
+slice 2 Acceptance block). Autopilot resumed. Slice 2 tests are written and red (commit on this branch, 2026-11-09 run).
+Next unit: the slice 2 builder (opus high). Contract: `numerical.py` (`damping_acceleration(eta, zeta)`
+module-level, `integrate(...)`, `OscillatorSolution`), `model.py` (`run(inputs, duration, solver)`,
+guard S > 1e4 for RK45/DOP853, checks, diagnostics) and `schemas.py`; details in the journal and
+the test files. Builder sets only the numeric constants in `oscillator_thresholds.py`.
+Watch: energy check at omega=100*omega0 (0.994 of threshold in scratch); Radau at 1000 cycles 78 s.
 
 ## Open decisions
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).

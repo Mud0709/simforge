@@ -47,7 +47,7 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 
 ## Current unit
 Roadmap 2.3: slice 1 done in 4882fc4. Slice 2's Acceptance block added 2026-11-09 (reviewed by
-(c)). Velocity scale answered by the author (V = ω₀X, 2026-11-09). Next: the slice 2 test writer.
+(c)). Velocity scale answered by the author (V = ω₀X, 2026-11-09). Slice 2 tests written (red) and committed: next is the builder (opus high), then review.
 
 ## Remainder of the current unit
 Slices 2-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
