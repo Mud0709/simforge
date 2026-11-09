@@ -7,11 +7,31 @@ merge: the `simforge-status` skill drafts them from the learning handoff in
 `docs/HANDOFF.md`, and an entry is added only once the author approves it, in the branch of
 their next change (never directly on `main`).
 
-**Commit hashes below were rewritten on 2026-11-02** (all commits now authored by Mud0709 with
-Claude as co-author). The hashes in these entries are the old ones; `docs/history-rewrite-map.txt`
+**Commit hashes in entries before the workflow entry were rewritten on 2026-11-02** (all
+commits now authored by Mud0709 with Claude as co-author). The hashes in those entries are the old ones; `docs/history-rewrite-map.txt`
 maps each to its new hash. GitHub PR pages keep the old hashes.
 
 ---
+
+## Workflow: handoffs, a fresh-session autopilot, author commits and token-saving docs
+- **Merged:** PR #15 (`074fe01`), PR #16 (`8e7596e`) and PR #17 (`067c3e7`), 2026-11-02 to
+  2026-11-09 (current hashes, after the rewrite). PR #17 also carried 2.3 slice 1 (the
+  oscillator's exact solution), which is logged with 2.3.
+- **What it does:** every chat starts from a git-computed brief and a short handoff file, and
+  is warned when it starts on the wrong branch; the autopilot runs in a fresh session twice a
+  day, never merges, counts its runs in git, and calls a slice done only when its acceptance
+  commands pass; commits are the author's, with Claude as co-author; large documents are
+  opened one section at a time through `docs/INDEX.md`.
+- **Key concepts:** a single source of truth (git and one handoff file instead of chat
+  memory); provenance (commit trailers tell the autopilot's writes from the author's); a
+  commit hash fingerprints its metadata, so the rewrite changed every hash but no file; an
+  index trades a little upkeep for much cheaper reading.
+- **Decisions and trade-offs:** runs capped by counting, because fresh sessions cannot read
+  usage; one review round for plans (cheaper, with acceptance tests as the backstop); unsigned
+  commits instead of "Unverified" badges.
+- **Revisit:** whether the effort ladder lowers the cost per step (the journal now records it),
+  and the start-up context size measured with `/context`.
+- **Next:** 2.3 slice 2, starting with its acceptance tests.
 
 ## Roadmap 2.2: angle sweeps for both drag laws
 - **Merged:** PR #14, `0ea819a` (2026-10-29).

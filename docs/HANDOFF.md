@@ -1,4 +1,4 @@
-Last updated: bfbf963 2026-11-09
+Last updated: 067c3e7 2026-11-09
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,12 +9,11 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review and merge PR #17 (workflow upgrades + 2.3 slice 1; CI runs on it; you merge). Run
-/context in a fresh session to confirm the numbers below. Then 2.3 slice 2 (its first unit:
+PR #17 merged (067c3e7). Learning-log entry for the workflow PRs #15-#17 added (approved).
+Optionally run /context in a fresh session to confirm the numbers below. Then 2.3 slice 2 (its first unit:
 add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
 
 ## Open decisions
-- Ruleset on `main`: "Require status checks" has no checks selected. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
 - Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
@@ -46,7 +45,8 @@ add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
   ranges checked against their headings; `doc_index.py --check`; `bash -n scripts/check.sh`;
   the hook (exit 0). One fresh-context review (Opus): 12 findings, all fixed. Not run: the
   full `scripts/check.sh --e2e` (frontend unchanged). CI: not run (no PR).
-- **State:** committed and pushed; **PR #17 open** (opened 2026-11-09), not merged.
+- **State:** merged in PR #17 (`067c3e7`, all 4 required checks green on `066532c`); the
+  `main` ruleset now requires those 4 checks.
 - **Budget gate check (2026-11-09, read-only):** a fresh run still cannot read usage: the
   newest run's tool list (2026-11-03 02:59) has no `get_session` or `list_events`; the platform
   records a five-hour `rate_limit_info` for the session but the run has no tool to read it.
