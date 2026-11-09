@@ -1,0 +1,16 @@
+#!/bin/sh
+# Adds "Co-Authored-By: Claude <noreply@anthropic.com>" to a commit message that has no
+# Co-Authored-By trailer naming Claude (the author's rule of 2026-11-02). Enabled by the
+# session start hook (core.hooksPath=.githooks). Runs for `git commit` and `git merge`.
+msg="$1"
+trailer="Co-Authored-By: Claude <noreply@anthropic.com>"
+grep -qi '^co-authored-by:[[:space:]]*claude' "$msg" && exit 0
+if [ -n "$(git interpret-trailers --parse "$msg")" ]; then
+  # A trailer block exists: add to it.
+  git interpret-trailers --in-place --trailer "$trailer" "$msg"
+else
+  # No trailer block: end the message with a newline, then a blank line, then the trailer,
+  # so git and GitHub read it as a trailer.
+  [ -n "$(tail -c1 "$msg")" ] && echo >> "$msg"
+  printf '\n%s\n' "$trailer" >> "$msg"
+fi

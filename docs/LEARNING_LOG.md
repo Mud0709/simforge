@@ -7,6 +7,10 @@ merge: the `simforge-status` skill drafts them from the learning handoff in
 `docs/HANDOFF.md`, and an entry is added only once the author approves it, in the branch of
 their next change (never directly on `main`).
 
+**Commit hashes below were rewritten on 2026-11-02** (all commits now authored by Mud0709 with
+Claude as co-author). The hashes in these entries are the old ones; `docs/history-rewrite-map.txt`
+maps each to its new hash. GitHub PR pages keep the old hashes.
+
 ---
 
 ## Roadmap 2.2: angle sweeps for both drag laws

@@ -1,4 +1,7 @@
-# Autopilot journal
+# Autopilot journal (archive)
+
+**Archive, closed on 2026-11-08: nobody reads this file.** New entries are one file per tick in
+`docs/journal/` (table: `docs/journal/Journal.base`); a tick reads only the newest one.
 
 One entry per autopilot tick that did something, newest first. Each lists what was done, the
 checks that actually ran, decisions taken without you (with how to reverse them), anything
@@ -6,6 +9,25 @@ waiting for you, and the next step. Protocol: `.claude/skills/autopilot/SKILL.md
 state: `.claude/autopilot/STATE.md`.
 
 ---
+
+## 2026-11-02 14:00 UTC: history rewritten (author's session, not an autopilot run)
+- **Did:** at the author's request, every commit on `main` and the working branch was rewritten
+  so that author and committer are `Mud0709 <324319297+Mud0709@users.noreply.github.com>`,
+  with a `Co-Authored-By: Claude` trailer on every commit. Trees, counts, dates, messages and
+  the `Autopilot-run` trailer unchanged. **Commit hashes before today in this journal are the
+  old ones:** look them up in `docs/history-rewrite-map.txt`. Old history kept on the branches
+  `backup/main-before-rewrite` and `backup/branch-before-rewrite`.
+- **Changed for future commits:** the start hook sets the identity, turns signing off and
+  enables `.githooks/commit-msg` (adds the Claude trailer). STATE `work limit from:` remapped
+  `3908bac` → `8e7596e`.
+
+## 2026-11-02 12:50 UTC: planned roadmap 2.3 (third watched test run)
+- **Did:** plan only (no code): `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, five TDD slices, no genuine stops). Working-run commits since the work-limit sha: 1 of 6. No PR open (GitHub `list_pull_requests` returned none); no PR needed for a plan.
+- **Usage:** usage not read; today's working runs 0 -> 1 of 1. Subagent: Opus, effort high; its work was verified here only by structure (headings, single changed file); the content is not yet reviewed by the author.
+- **Checks run:** none (docs only). CI: not run (no PR; check-runs API returned total_count 0). Planner ran two scratch numerical scripts outside the repo; their results are the planner's report, not repo tests.
+- **Decisions taken for you:** D1-D17 in the plan (e.g. one model with UI presets; exact solution via one stable formula; RK45/DOP853/Radau only; exact resonance curve included). Reverse: edit the plan before slice 1.
+- **Waiting for you:** read the plan; say if you want to write part of 2.3 yourself before slice 1.
+- **Next:** slice 1, the exact solution test-first (`tdd`).
 
 ## 2026-10-29 11:40 UTC: daily allowance and push notifications (author's request)
 - **Why:** from 07:23 on 28 Oct to 00:45 on 29 Oct the ticks used 0.44 → 0.74 of the week

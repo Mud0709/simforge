@@ -922,6 +922,64 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
 
 ---
 
+## `physics.oscillator` (roadmap 2.3, in progress): the exact solution (slice 1)
+
+Plan and decisions: `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, grilling record G1-G4 and the
+slice-1 amendments). The model is `m ẍ + b ẋ + k x = F₀ cos ωt`. Slice 1 is the **exact
+solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure), which slice 2's
+numerical solution will be checked against. No endpoint or page exists yet.
+
+### What is exact, and how it is evaluated
+- **Proved (closed forms):** the steady state A, δ; the transient in one unified form for
+  under-, critically and over-damped motion; the undamped driven "beat" form (exact at ω = ω₀,
+  where the motion grows linearly); the amplitude peak ω_r and A_max (only when ζ < 1/√2); the
+  half-power width 2γ of the power resonance curve (so Q = ω₀/Δω exactly); the free-decay ratio
+  e^{−γT_d} per period. The IB's Q ≈ 2π × energy stored / energy lost per cycle is approximate
+  and is labelled so wherever it appears.
+- **Evaluated in floating point, with three traps avoided:** (i) the textbook 0/0 at critical
+  damping (a sinc keeps one formula continuous through ζ = 1); (ii) overflow of e^{−γt}cosh βt
+  for heavy damping (a two-exponential form with the slow rate written ω₀²/(γ + β), not γ − β);
+  (iii) the near-cancellation of two huge terms when undamped driving is close to resonance (the
+  beat form). The regime label is exact: q = ω₀² − γ², the detuning and ζ come from exact
+  rational arithmetic on the float inputs, so "critically damped" means exactly b² = 4mk.
+- **The scale X** (author's decision, 2026-11-03): X = √(x₀² + (v₀/ω₀)²) + D is a **proved
+  upper bound** on |x(t)| over the run, from the inputs only: the free part never gains energy,
+  and D is the smallest of six proved caps on the motion driven from rest (f·T²/2; a damped
+  Duhamel cap; f/ω₀² and a creep cap when q ≤ 0; f/ω₀²·coth(πγ/2ω_d) when q > 0; the undamped
+  beat or linear-growth cap; A plus a transient bound). Scan of 6000 adversarial cases (review):
+  no violation; the motion reaches 0.58-1.0 of X in the tests.
+
+### Limits introduced by this slice (measured, not assumed)
+- **Q ≤ 1e4 when b > 0** (author's decision A, reversing G3). Near resonance the exact formula
+  subtracts two terms of size A, so its rounding error relative to the motion actually reached
+  grows like ε·Q. Measured against a 90-digit reference: 4.6e-12 at Q = 1e4 (1000 cycles), while
+  extreme light damping gave nonsense (b = 1e-300: 1.6e290 m instead of 2.4e6 m). b = 0 is
+  allowed: its beat form does not subtract.
+- **Minimum duration max(ω₀, ω, γ)·T ≥ 1** (to be enforced at the API in slice 3). Below it the
+  same subtraction meets a tiny motion (≈ f·t²/2): measured 1.4e-8 of X at 1e-3 of the edge,
+  ≤ 1.5e-14 of X at the edge except Q = 1e4 at resonance (5.8e-12, the Q term).
+- **Error model** (measured, 90-digit reference): error ≈ c·ε·(Q + ω₀T + A/X + 1)·X with
+  c ≤ 1.5; tests assert c = 4. Worst state error with Q ≤ 100: 8.95e-15 of X.
+
+### What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+- **Independent references:** a 90-digit `decimal` evaluation of the textbook branch formulas
+  (`tests/physics/oscillator_reference.py`, own series for sin, cos and π, no shared code), a
+  tight DOP853 integration with its own right-hand side, Gauss-Legendre quadrature of the energy
+  balance, and hand-derived closed values.
+- **Identities:** the ODE residual and initial conditions; successive maxima T_d apart with
+  ratio e^{−γT_d}; half-power width 2γ; the steady-state power identity ½F₀ωA sin δ = ½bω²A²;
+  energy conservation when b = F₀ = 0; continuity across ζ = 1, as b → 0 and through ω = ω₀
+  with b = 0; each of traps (i)-(iii); every cap of X and |x| ≤ X.
+- **Mutation testing** (scratch, not in the repository): 22 planted bugs, all caught, including
+  γ − β for the slow rate, float arithmetic for q, a halved cap and a missing finiteness check.
+
+### Limitations
+- Measurements are from one machine (Python 3.12, NumPy 2.5.4).
+- Inside the limits, the worst error is at Q = 1e4 near resonance (≈ 6e-12 of X); the numerical
+  solution's checks (slice 2) must allow for it.
+- The decay envelope is a correct bound but uninformative near critical damping; the page
+  (slice 4) will show it only when it is useful.
+
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 
 Engine: `backend/src/simforge/economy/solow/simulation.py` (pure). Orchestration and per-run
