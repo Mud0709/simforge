@@ -1,4 +1,4 @@
-Last updated: 040c642 2026-11-08
+Last updated: bfbf963 2026-11-09
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,7 +9,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the token-saving docs change and the protocol upgrade (this branch; not merged); run
+Review and merge PR #17 (workflow upgrades + 2.3 slice 1; CI runs on it; you merge). Run
 /context in a fresh session to confirm the numbers below. Then 2.3 slice 2 (its first unit:
 add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
 
@@ -46,7 +46,10 @@ add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
   ranges checked against their headings; `doc_index.py --check`; `bash -n scripts/check.sh`;
   the hook (exit 0). One fresh-context review (Opus): 12 findings, all fixed. Not run: the
   full `scripts/check.sh --e2e` (frontend unchanged). CI: not run (no PR).
-- **State:** committed and pushed to the working branch; no PR open; not merged.
+- **State:** committed and pushed; **PR #17 open** (opened 2026-11-09), not merged.
+- **Budget gate check (2026-11-09, read-only):** a fresh run still cannot read usage: the
+  newest run's tool list (2026-11-03 02:59) has no `get_session` or `list_events`; the platform
+  records a five-hour `rate_limit_info` for the session but the run has no tool to read it.
 
 ## Learning handoff
 - **What it does:** sessions load a short map and open one section of a large document by its
