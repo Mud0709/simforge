@@ -1,4 +1,4 @@
-Last updated: 067c3e7 2026-11-09
+Last updated: de7da49 2026-11-09 (autopilot)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,11 +9,12 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-PR #17 merged (067c3e7). Learning-log entry for the workflow PRs #15-#17 added (approved).
-Optionally run /context in a fresh session to confirm the numbers below. Then 2.3 slice 2 (its first unit:
-add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
+Autopilot added slice 2's Acceptance block to the 2.3 plan (checked by reviewer (c); pushed, no PR
+needed yet). Answer the velocity-scale decision below (add a line starting `Answer:`), then say
+"resume autopilot"; the next unit is the slice 2 test writer. CI: not run (no PR).
 
 ## Open decisions
+- **Velocity scale V for slice 2 (blocks: 2.3 slice 2 build).** Slice-1 notes say V = max(ω₀, ω)·X; D5/D8 say ω₀X. At ω = 100·ω₀ they differ 100×, changing velocity thresholds, energy normalisation and the mutant. Recommendation: ω₀X (matches D5's η = v/(ω₀X) and D8's kX²), with the grid recording worst max|v|/(ω₀X).
 - Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).

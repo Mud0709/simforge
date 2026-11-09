@@ -35,7 +35,7 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   in slice 3. Error model (measured): c·ε·(Q + ω₀T + A/X + 1)·X with c ≤ 1.5. For slice 2:
   checks are scaled by this X; velocity scale V = max(ω₀, ω)·X; the Q = 1e4 resonance error
   (≈ 6e-12 of X) is the exact solution's own floor.
-- Slice 2 (numerical solve and run): not started.
+- Slice 2 (numerical solve and run): not started; Acceptance block added 2026-11-09.
 - Slices 3-5: not started.
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
@@ -289,6 +289,52 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
    thresholds and N_max **set from measurement** and the numbers recorded for
    `SCIENTIFIC_VALIDATION.md`; the mutant fails; no existing test changes. Fresh-context
    review (scientific core, limits).
+   **Acceptance block** (added 2026-11-09). Both test files are written first and must fail on
+   the current code (`numerical.py` and `model.py` do not exist yet).
+   - **Test files:** `backend/tests/physics/test_oscillator_numerical.py` (seam 2: agreement
+     with `analytical.state` in every regime, scaled against SI states, maxima events against
+     OR4, the wrong-damping mutant monkeypatched over `numerical.py`'s damping-force function
+     as `test_quadratic_numerical.py` does); `backend/tests/physics/test_oscillator_model.py`
+     (seam 3 and `schemas.py`: a parametrised `test_corner_grid*`, the planted error, nulls
+     when undriven, undamped or overdamped, the guard refusing before any solve and naming its
+     number, and the measurements behind the thresholds and N_max).
+   - **Commands** (from `backend/`): `uv run pytest tests/physics/test_oscillator_numerical.py
+     tests/physics/test_oscillator_model.py -q` (red before the build, green after);
+     `uv run pytest tests/physics/test_oscillator_model.py -q --collect-only -k corner_grid`;
+     `uv run ruff check . && uv run ruff format --check . && uv run mypy`; `uv run pytest -q`.
+     From the root, before the slice's commit: `git diff --stat --diff-filter=MDR HEAD --
+     backend/tests` and `python3 scripts/doc_index.py --check`.
+   - **Checks (yes/no):** (1) The corner grid collects ≥ 96 cases, RK45, DOP853 and Radau ×
+     (rtol, atol) = (1e-13, 1e-14), (1e-10, 1e-10), (1e-6, 1e-8), (1e-3, 1e-1) (tightest
+     allowed, default, middle, loosest allowed) × the four `Regime` values × driven/free, plus
+     the Risks corners (ω far below ω₀ and at 100·ω₀, tiny x₀ with v₀, Q = 1e4 and b = 0 at
+     resonance, a run of N_max cycles), and every check passes on each? (2) The wrong-damping
+     mutant fails the energy balance while the true code passes it? (3) The scaled and SI
+     states agree to rounding (bound in ε, justified in the test), and at the tightest pair the
+     solution matches seam 1 in every regime within the measured thresholds? (4) Every
+     threshold and N_max is a named constant whose comment cites its measurement, and the same
+     numbers are in `SCIENTIFIC_VALIDATION.md`'s oscillator section (read in the diff)?
+     (5) ruff, format, mypy and the full `pytest -q` pass (golden digests included), and the
+     `git diff` command prints nothing (no existing test file changed)? (6) A fresh-context
+     review (opus, high; scientific core, limits) was run and its findings are fixed or
+     recorded?
+   - **Open author decision, blocks the build:** the velocity scale V (max(ω₀, ω)·X per the
+     slice-1 notes, or ω₀X per D5 and D8); this block holds for either, the thresholds are
+     measured with whichever is chosen, and the grid records the worst max|v|/(ω₀X).
+   - **Thresholds from measurement:** start from D8's `1e4 × (rtol + atol) + 1e-9` (scaled),
+     measure the worst value of each check on the grid, then set the threshold from it with
+     the margin stated and justified; a cycles factor only if the measurement shows growth
+     with cycles (Risks); never tuned until a test passes. N_max from the timed slowest
+     allowed run against D6's ≤ 2 s. Recorded for `SCIENTIFIC_VALIDATION.md`: per check, the
+     worst ratio and its corner; N_max and its time; the machine, NumPy and SciPy versions.
+   - **Not done (worth doing from review):** a unit-invariance test (scale m, k, b, F₀ by λ)
+     instead of the scaled-against-SI tautology; thresholds as D8 coefficients, with the
+     loosest tolerance pair labelled uninformative where its threshold exceeds 1; the energy
+     normalisation must match the chosen V; name the corner test IDs and keep the N_max and
+     Radau corners tractable; N_max timing as a recorded measurement, not a timed assertion;
+     each threshold must exceed `analytical.py`'s own reference floor; name the module-level
+     damping function for the mutant and the planted-error test; `schemas.py` validation is
+     tested in slice 3 (slice 2 needs mypy only); the plan's status updated per G4.
 3. **API** (seam 4). Route module, `ModelEntry` (inputs, summary, tolerances with reasons,
    headline "x₀ 0.1 m, ζ 0.05 (underdamped), Q 10", rebuild), registry, union, appended golden
    run, corners test, `make api-types`. Accept when: `pytest` green, golden diff shows only the

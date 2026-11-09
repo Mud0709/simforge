@@ -417,7 +417,7 @@ instead of reading or searching the whole file.
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (332 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (378 lines)
 - 7-26: Grilling record (2026-11-03)
 - 27-54: Slice status
 - 55-69: What 2.3 builds
@@ -425,7 +425,7 @@ instead of reading or searching the whole file.
 - 81-232: Decisions
 - 233-261: Reference formulas (derived for this plan)
 - 262-282: Seams (where tests attach; what each catches and misses)
-- 283-301: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 302-315: Risks
-- 316-322: Out of scope (for the author)
-- 323-332: Genuine stops found
+- 283-347: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 348-361: Risks
+- 362-368: Out of scope (for the author)
+- 369-378: Genuine stops found
