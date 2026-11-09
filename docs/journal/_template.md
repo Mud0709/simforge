@@ -7,8 +7,9 @@ rungs: 1
 acceptance: pass | fail | none
 cost: unknown
 ---
-<!-- One file per tick that did something: docs/journal/YYYY-MM-DD-HHMM-<slug>.md (UTC;
-`date` uses Obsidian's YYYY-MM-DDTHH:mm, in UTC).
+<!-- One file per tick that did something: docs/journal/YYYY-MM-DD-HHMM-<slug>.md. Read the
+time from the clock just before the commit, never estimate it: the name from
+`date -u +%Y-%m-%d-%H%M`, `date` from `date -u +%Y-%m-%dT%H:%M` (Obsidian's format, UTC).
 Copy this template; never edit an earlier entry. tests_passed, tests_failed, tests_skipped,
 test_seconds and checks are written by `python3 scripts/tick_metrics.py <this file> <logs>`,
 never by hand. A tick reads only the newest entry. Rule: .claude/skills/autopilot/SKILL.md. -->

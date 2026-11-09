@@ -229,8 +229,10 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   becomes `[confirmed]`. Never a lesson that cost nothing.
 
 ## 5. Journal and state (every tick that did anything)
-Write a new file `docs/journal/YYYY-MM-DD-HHMM-<slug>.md` (UTC) from
-`docs/journal/_template.md`; never edit an earlier entry. Its properties are `date`, `unit`,
+Write a new file `docs/journal/YYYY-MM-DD-HHMM-<slug>.md` from `docs/journal/_template.md`;
+never edit an earlier entry. Take the time from the clock, never estimate it: the name from
+`date -u +%Y-%m-%d-%H%M` and `date` from `date -u +%Y-%m-%dT%H:%M`, both read just before the
+commit. Its properties are `date`, `unit`,
 `step`, `models`, `rungs`, `acceptance` (pass, fail or none) and `cost` (or "unknown"); the
 body holds what was done, subagents, checks, "Verified:", decisions taken for the author,
 what waits for the author, and the next step. Save each check as `<cmd> > /tmp/tick/<check>.log
@@ -246,7 +248,9 @@ If the commit changes a document listed in `docs/INDEX.md`, regenerate it first
 (`python3 scripts/doc_index.py`); the checks fail on a stale index. Update STATE (status,
 current unit, remainder, ladder rung, failures), then rewrite `docs/HANDOFF.md` from its
 template (open decisions marked `(blocks: …)` or not, learning-log drafts, the learning
-handoff). Commit them with the work, trailer `Autopilot-run: work`.
+handoff). Commit them with the work. The message ends with **one** trailer block (no blank
+line inside it) holding `Autopilot-run: work` and the co-author lines, so git parses it as a
+trailer; `.githooks/commit-msg` moves a stray `Autopilot-run:` line into that block.
 
 ## 6. Pausing and resuming
 - To pause: `update_trigger` the task id in STATE with `enabled: false`, so a waiting autopilot

@@ -1,4 +1,4 @@
-Last updated: de7da49 2026-11-09 (autopilot)
+Last updated: 4413a2f 2026-11-09
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,48 +9,31 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Autopilot added slice 2's Acceptance block to the 2.3 plan (checked by reviewer (c); pushed, no PR
-needed yet). Answer the velocity-scale decision below (add a line starting `Answer:`), then say
-"resume autopilot"; the next unit is the slice 2 test writer. CI: not run (no PR).
+Velocity scale answered by the author (2026-11-09): **V = ω₀X** (recorded in the 2.3 plan's
+slice 2 Acceptance block). Autopilot resumed; its next unit is the slice 2 test writer.
 
 ## Open decisions
-- **Velocity scale V for slice 2 (blocks: 2.3 slice 2 build).** Slice-1 notes say V = max(ω₀, ω)·X; D5/D8 say ω₀X. At ω = 100·ω₀ they differ 100×, changing velocity thresholds, energy normalisation and the mutant. Recommendation: ω₀X (matches D5's η = v/(ω₀X) and D8's kX²), with the grid recording worst max|v|/(ω₀X).
-- Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
 
-## Last task: docs as a token-saving backend (author-authorised guard-rail edits, 2026-11-08)
-- **Completed:** (1) ladder: high-effort units start on Opus, low/medium on Sonnet, retries on
-  the same model up to high, then Opus; (2) stored autopilot prompt reads the brief, this file,
-  the newest journal entry and the confirmed findings only (task still paused); (3) one
-  journal file per tick in `docs/journal/` (template, `Journal.base` table for Obsidian),
-  `AUTOPILOT_JOURNAL.md` a closed archive; (4) `scripts/tick_metrics.py` writes test counts,
-  durations and pass/fail (from exit codes) into the entry; (5) `scripts/doc_index.py` →
-  `docs/INDEX.md` (10 docs, 404 sections), stale index fails `check.sh` and the backend tests;
-  (6) folder rules in `backend/`, `frontend/`, `docs/CLAUDE.md` (they load only there; seen
-  working); (7) `.obsidian/` ignored. The new scripts, template and folder files are guard rails.
-- **Context measured (bytes; tokens ≈ bytes/4, an estimate):** a fresh session's project text
-  (root `CLAUDE.md` + start brief) was 10,794 bytes before and 10,826 after: unchanged, since
-  the root keeps the rules that apply everywhere. **Not measured: `/context`** (only the author
-  can run it). The savings are per task: one guide chapter 26.5 KB instead of the 256 KB guide;
-  one journal entry ~1.3 KB instead of the 30 KB archive; folder rules (1.1-1.6 KB each) only
-  where the work is.
-- **Files:** `scripts/doc_index.py`, `scripts/tick_metrics.py`, `scripts/check.sh`,
-  `docs/INDEX.md`, `docs/journal/`, `backend/tests/scripts/`, the four `CLAUDE.md` files,
-  `.claude/skills/autopilot/SKILL.md`, `docs/AUTOPILOT_JOURNAL.md`, `.gitignore`, this file.
-- **Checks run:** backend ruff, format, mypy, `pytest -q` (2088 passed); the 20 script tests
-  (real pytest and Vitest logs, exit codes, failing files, flaky, idempotence); all 404 index
-  ranges checked against their headings; `doc_index.py --check`; `bash -n scripts/check.sh`;
-  the hook (exit 0). One fresh-context review (Opus): 12 findings, all fixed. Not run: the
-  full `scripts/check.sh --e2e` (frontend unchanged). CI: not run (no PR).
-- **State:** merged in PR #17 (`067c3e7`, all 4 required checks green on `066532c`); the
-  `main` ruleset now requires those 4 checks.
-- **Budget gate check (2026-11-09, read-only):** a fresh run still cannot read usage: the
-  newest run's tool list (2026-11-03 02:59) has no `get_session` or `list_events`; the platform
-  records a five-hour `rate_limit_info` for the session but the run has no tool to read it.
+## Last task: the first resumed run checked; trailer and journal-time fixes (2026-11-09)
+- **The run** (session `cse_01DMcXP259w3PPwfxsRAipcx`, 12:03-12:09 UTC, $1.91): added slice
+  2's Acceptance block (Opus planner, reviewer (c) on Opus: 2 must-fix applied, 9 worth-doing
+  listed), regenerated the index, wrote the first `docs/journal/` entry, stopped on the
+  velocity-scale decision (correctly), and could not pause itself (`update_trigger` not
+  callable), so the author's session paused it. Commit `10db2a9` is on this working branch
+  only; `autopilot-work` was the run's local label, and GitHub has only `main` and this branch.
+- **Fixed:** `.githooks/commit-msg` now moves a stray `Autopilot-run:` line into the final
+  trailer block (tested on six layouts: the `10db2a9` layout, correct ones, no co-author,
+  plain, a body mention kept, a merge); the skill and the journal template take the entry's
+  time from `date -u` just before the commit. Findings recorded in `.claude/autopilot/FINDINGS.md`.
+- **Checks run:** shellcheck on the hook (exit 0); the six-layout commit test; the run-count
+  grep still finds every work commit; `doc_index.py --check`. CI: not run (no PR).
+- **State:** committed and pushed to this branch; not in a PR yet (no PR open). Autopilot
+  resumed (STATE `running`, task enabled; schedule 02:59 and 12:59 UTC).
 
 ## Learning handoff
 - **What it does:** sessions load a short map and open one section of a large document by its

@@ -1,16 +1,35 @@
 #!/bin/sh
-# Adds "Co-Authored-By: Claude <noreply@anthropic.com>" to a commit message that has no
-# Co-Authored-By trailer naming Claude (the author's rule of 2026-11-02). Enabled by the
-# session start hook (core.hooksPath=.githooks). Runs for `git commit` and `git merge`.
+# Normalises the trailers of every commit message. Enabled by the session start hook
+# (core.hooksPath=.githooks); runs for `git commit` and `git merge`.
+# 1. An `Autopilot-run:` line outside the final trailer block (as in 10db2a9, 2026-11-09) is
+#    moved into it, so git parses it as a trailer.
+# 2. "Co-Authored-By: Claude <noreply@anthropic.com>" is added when no Co-Authored-By trailer
+#    names Claude (the author's rule of 2026-11-02).
 msg="$1"
-trailer="Co-Authored-By: Claude <noreply@anthropic.com>"
-grep -qi '^co-authored-by:[[:space:]]*claude' "$msg" && exit 0
-if [ -n "$(git interpret-trailers --parse "$msg")" ]; then
-  # A trailer block exists: add to it.
-  git interpret-trailers --in-place --trailer "$trailer" "$msg"
+coauthor="Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# Adds trailer $1 to the final trailer block, starting one (after a blank line) if there is none.
+add_trailer() {
+  if [ -n "$(git interpret-trailers --parse "$msg")" ]; then
+    git interpret-trailers --in-place --trailer "$1" "$msg"
+  else
+    [ -n "$(tail -c1 "$msg")" ] && echo >> "$msg"
+    printf '\n%s\n' "$1" >> "$msg"
+  fi
+}
+
+run=$(grep -m1 '^Autopilot-run:' "$msg")
+if [ -n "$run" ] && ! git interpret-trailers --parse "$msg" | grep -q '^Autopilot-run:'; then
+  # Remove that one line (other text is kept) and squeeze the blank lines it leaves; it is
+  # re-added below.
+  tmp=$(mktemp)
+  awk -v line="$run" '!done && $0 == line { done = 1; next } { print }' "$msg" | cat -s > "$tmp"
+  cat "$tmp" > "$msg"
+  rm -f "$tmp"
 else
-  # No trailer block: end the message with a newline, then a blank line, then the trailer,
-  # so git and GitHub read it as a trailer.
-  [ -n "$(tail -c1 "$msg")" ] && echo >> "$msg"
-  printf '\n%s\n' "$trailer" >> "$msg"
+  run=""
 fi
+
+grep -qi '^co-authored-by:[[:space:]]*claude' "$msg" || add_trailer "$coauthor"
+[ -n "$run" ] && add_trailer "$run"
+exit 0

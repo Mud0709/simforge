@@ -6,16 +6,16 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 section with Read's offset and limit (offset = first line, limit = last - first + 1)
 instead of reading or searching the whole file.
 
-## `.claude/skills/autopilot/SKILL.md` (275 lines)
+## `.claude/skills/autopilot/SKILL.md` (279 lines)
 - 14-50: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
 - 51-68: 0b. Budget gate (before any work; keep it cheap)
 - 69-108: 1. Reorient (every tick)
 - 109-131: 2. Choose the unit of work (first match wins)
 - 132-174: 3. The decision rule
 - 175-230: 4. Do the work, then verify it
-- 231-250: 5. Journal and state (every tick that did anything)
-- 251-260: 6. Pausing and resuming
-- 261-275: 7. Reply at the end of a tick
+- 231-254: 5. Journal and state (every tick that did anything)
+- 255-264: 6. Pausing and resuming
+- 265-279: 7. Reply at the end of a tick
 
 ## `ARCHITECTURE.md` (476 lines)
 - 7-19: System overview
@@ -417,15 +417,15 @@ instead of reading or searching the whole file.
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (378 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (380 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-54: Slice status
-- 55-69: What 2.3 builds
-- 70-80: Design tree and rounds (self-grilled)
-- 81-232: Decisions
-- 233-261: Reference formulas (derived for this plan)
-- 262-282: Seams (where tests attach; what each catches and misses)
-- 283-347: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 348-361: Risks
-- 362-368: Out of scope (for the author)
-- 369-378: Genuine stops found
+- 27-55: Slice status
+- 56-70: What 2.3 builds
+- 71-81: Design tree and rounds (self-grilled)
+- 82-233: Decisions
+- 234-262: Reference formulas (derived for this plan)
+- 263-283: Seams (where tests attach; what each catches and misses)
+- 284-349: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 350-363: Risks
+- 364-370: Out of scope (for the author)
+- 371-380: Genuine stops found

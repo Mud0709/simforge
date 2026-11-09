@@ -5,12 +5,12 @@ edit it too: change `status`, or add a line starting `Answer:` under an item in 
 decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
 the author says "resume autopilot" (which also resets `work limit from:`).
 
-status: blocked
+status: running
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
   session per run, model Sonnet 5.5, repository attached, auto-fix off; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 0c9175c
+work limit from: 4413a2f
 ladder rung: none (the builder's effort ladder, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -47,7 +47,7 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 
 ## Current unit
 Roadmap 2.3: slice 1 done in 4882fc4. Slice 2's Acceptance block added 2026-11-09 (reviewed by
-(c)). Blocked on the author's velocity-scale decision (HANDOFF, Open decisions); then the test writer.
+(c)). Velocity scale answered by the author (V = ω₀X, 2026-11-09). Next: the slice 2 test writer.
 
 ## Remainder of the current unit
 Slices 2-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.

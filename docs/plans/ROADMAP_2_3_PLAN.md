@@ -33,7 +33,8 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   upper bound on |x| over the run (D: the smallest of six proved caps on the driven part).
   **Under D6's measured limits:** a minimum duration max(ω₀, ω, γ)·T ≥ 1, enforced at the API
   in slice 3. Error model (measured): c·ε·(Q + ω₀T + A/X + 1)·X with c ≤ 1.5. For slice 2:
-  checks are scaled by this X; velocity scale V = max(ω₀, ω)·X; the Q = 1e4 resonance error
+  checks are scaled by this X; velocity scale V = ω₀X (author, 2026-11-09; this note first said
+  max(ω₀, ω)·X); the Q = 1e4 resonance error
   (≈ 6e-12 of X) is the exact solution's own floor.
 - Slice 2 (numerical solve and run): not started; Acceptance block added 2026-11-09.
 - Slices 3-5: not started.
@@ -318,9 +319,10 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
      `git diff` command prints nothing (no existing test file changed)? (6) A fresh-context
      review (opus, high; scientific core, limits) was run and its findings are fixed or
      recorded?
-   - **Open author decision, blocks the build:** the velocity scale V (max(ω₀, ω)·X per the
-     slice-1 notes, or ω₀X per D5 and D8); this block holds for either, the thresholds are
-     measured with whichever is chosen, and the grid records the worst max|v|/(ω₀X).
+   - **Velocity scale (the author's decision, 2026-11-09): V = ω₀X**, as in D5 (η = v/(ω₀X))
+     and D8 (energy normalised by kX² = m(ω₀X)²); it replaces the slice-1 note's
+     max(ω₀, ω)·X, which could be up to 100× larger than the motion and hide errors. The grid
+     records the worst max|v|/(ω₀X) as evidence, and the thresholds are measured with V = ω₀X.
    - **Thresholds from measurement:** start from D8's `1e4 × (rtol + atol) + 1e-9` (scaled),
      measure the worst value of each check on the grid, then set the threshold from it with
      the margin stated and justified; a cycles factor only if the measurement shows growth
