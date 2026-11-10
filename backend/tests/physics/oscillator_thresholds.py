@@ -52,34 +52,61 @@ CheckKind = Literal[
 ]
 
 # ======================= BUILDER MAY SET (numeric values only) ============================
+# Measured 2026-11-10 (slice 2 builder; one x86_64 VM, Intel Xeon 2.1 GHz, Python 3.12.3,
+# NumPy 2.5.4, SciPy 1.18.1) on 1608 runs inside the limits: this corner grid (113), 55 runs
+# of 100 cycles, 840 free decays (zeta 0.01 to 0.99, five starts) and 600 seeded random runs
+# (zeta 0 to 1e3, w/w0 0 to 100, all methods and pairs). Rule: each FACTOR is the smallest
+# 1-2-5 value at least 10x the worst (value - FLOOR) / ((rtol + atol)(1 + cycles)) measured.
+# The FLOORs stay at D8's 1e-9: >= 100x the exact solution's own error at every allowed corner
+# (slice 1's worst, 5.8e-12 X: Q = 1e4 at resonance at the minimum duration).
 # Displacement error: max |x - x_exact| / X over the step nodes.
-# To be set from measurement (provisional: D8's 1e4 (rtol + atol) + 1e-9).
-DISPLACEMENT_ERROR_FACTOR = 1e4
+# Worst needed 4.0 (seeded random run: w = 0.016 w0, b = 0, RK45 at the loosest pair); worst
+# value / threshold 0.10 (zeta = 3.1, DOP853, default pair); grid worst 0.066.
+DISPLACEMENT_ERROR_FACTOR = 50.0
 DISPLACEMENT_ERROR_FLOOR = 1e-9
 # Velocity error: max |v - v_exact| / (w0 X) over the step nodes (V = w0 X, author 2026-11-09).
-# To be set from measurement (provisional: D8's 1e4 (rtol + atol) + 1e-9).
-VELOCITY_ERROR_FACTOR = 1e4
+# Worst needed 30 (random run, overdamped zeta = 3.1, DOP853, default pair: the fast start);
+# worst value / threshold 0.064 there; grid worst 0.049 (overdamped-free, DOP853, default).
+VELOCITY_ERROR_FACTOR = 500.0
 VELOCITY_ERROR_FLOOR = 1e-9
 # Energy balance: max |KE + PE + W_damp - W_drive - E0| / (k X^2) over the step nodes.
-# To be set from measurement (provisional: D8's 1e4 (rtol + atol) + 1e-9).
-ENERGY_BALANCE_FACTOR = 1e4
+# Worst needed 621 inside the limits (w = 100 w0, RK45, middle pair, 100 cycles) and 1.3e3 at
+# 1000 cycles (beyond N_MAX, but this error grew faster than the cycles, so it bounds the
+# 500-cycle runs); the grid's drive_at_100_w0 (RK45, default) needed 590 and was 0.994 of
+# D8's provisional 1e4 (rtol + atol) + 1e-9, with no cycles factor. The cause is the
+# normalisation, not the solver: there max|v| / (w0 X) = 50, so KE reaches ~1250 k X^2 and an
+# error relative to the motion's own energy of ~1e-9 is ~1e-6 in units of k X^2. Short runs
+# with |v| <= w0 X needed at most ~25, so this factor is ~800x loose for them (open question
+# for the author: normalise by the energy in motion). Worst value / threshold 0.067.
+ENERGY_BALANCE_FACTOR = 2e4
 ENERGY_BALANCE_FLOOR = 1e-9
 # Free-decay period: w0 |(t2 - t1) - T_d| for the first two interior maxima (radians).
-# To be set from measurement (provisional: D8's 1e4 (rtol + atol) + 1e-9).
-FREE_DECAY_PERIOD_FACTOR = 1e4
+# Worst needed 76 (zeta = 0.5, x0 = 0.1 m, v0 = -1 m/s, DOP853, default pair), with the
+# model's rule that x2 >= 1e-3 X (model.FREE_DECAY_MIN_MAXIMUM: without it a correct solve
+# reached 1e9 (rtol + atol) at zeta = 0.9, where x2 ~ 1e-11 X). Worst value / threshold 0.077.
+FREE_DECAY_PERIOD_FACTOR = 1e3
 FREE_DECAY_PERIOD_FLOOR = 1e-9
 # Free-decay ratio: |x2 - e^{-gamma T_d} x1| / X for the first two interior maxima.
-# To be set from measurement (provisional: D8's 1e4 (rtol + atol) + 1e-9).
-FREE_DECAY_RATIO_FACTOR = 1e4
+# Worst needed 1.8 (zeta = 1.6e-4, RK45, loosest pair); worst value / threshold 0.089.
+FREE_DECAY_RATIO_FACTOR = 20.0
 FREE_DECAY_RATIO_FLOOR = 1e-9
 # Growth of every threshold with the number of cycles (plan Risks: phase error accumulates).
-# To be set from measurement (provisional: 0, no cycles factor). Leave it 0 unless the grid's
-# N_max corners show growth that the factors above cannot absorb with their stated margin.
-ERROR_GROWTH_PER_CYCLE = 0.0
+# Measured linear growth: displacement error / (rtol + atol), undamped, default pair, 100 and
+# 1000 cycles: 75 and 747 (DOP853), 182 and 1820 (RK45); the energy at w = 100 w0 (RK45, middle
+# pair) 6.3e4 at 100 and 1.3e6 at 1000 cycles. Without growth (0) the factors would have to be
+# 5e3 (displacement) and 2e6 (energy) for a 10x margin inside the limits, making short runs'
+# checks hundreds of times loose and the energy check uninformative (threshold > 1) at the
+# middle pair. 1 = proportional to the run's length in cycles, never below one cycle's worth.
+ERROR_GROWTH_PER_CYCLE = 1.0
 # N_max: the most cycles, duration * max(w0, w) / 2 pi, a run may have (plan D6).
-# To be set from measurement (provisional: D6's 1000): the timed slowest allowed run against
-# D6's <= 2 s, recorded as a measurement, never as a timed assertion.
-N_MAX = 1000
+# Timed (model.run, n_samples 400; this VM's times vary by up to ~1.5x): at the default
+# settings (DOP853, rtol = atol = 1e-10) 1000 cycles took 1.7 to 2.5 s (worst: w = 100 w0) and
+# 500 cycles 0.8 to 1.4 s (best of 3, n_samples 400 or 5000), so 500 is the largest round
+# value within D6's 2 s with headroom. No single cycle limit bounds the other settings: at 500
+# cycles (one run each) DOP853 at the tightest pair took 2.4 to 3.4 s, RK45 (default) 2.4 to
+# 4.5 s, Radau (middle) 4.9 to 8.2 s and Radau (default) 36 to 78 s, above the 30 s proxy
+# limit (an open decision for slice 3).
+N_MAX = 500
 # ==================== END OF BUILDER MAY SET =============================================
 
 FACTORS: dict[CheckKind, tuple[float, float]] = {

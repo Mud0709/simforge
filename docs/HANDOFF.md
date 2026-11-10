@@ -1,4 +1,4 @@
-Last updated: 8d6a09d 2026-11-09 (slice 2 tests)
+Last updated: 2026-11-10 (slice 2 built and reviewed)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,36 +9,25 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Velocity scale answered by the author (2026-11-09): **V = ω₀X** (recorded in the 2.3 plan's
-slice 2 Acceptance block). Autopilot resumed. Slice 2 tests are written and red (commit on this branch, 2026-11-09 run).
-Next unit: the slice 2 builder (opus high). Contract: `numerical.py` (`damping_acceleration(eta, zeta)`
-module-level, `integrate(...)`, `OscillatorSolution`), `model.py` (`run(inputs, duration, solver)`,
-guard S > 1e4 for RK45/DOP853, checks, diagnostics) and `schemas.py`; details in the journal and
-the test files. Builder sets only the numeric constants in `oscillator_thresholds.py`.
-Watch: energy check at omega=100*omega0 (0.994 of threshold in scratch); Radau at 1000 cycles 78 s.
+Slice 2 is built and reviewed (uncommitted before this run's commit; then pushed, no PR yet): 250 oscillator
+tests, ruff, mypy pass; fresh review found no must-fix. Decide the run-cost rule below, then the
+next unit is a slice 2 fix round (review items 2-6, see the 2026-11-10 journal), then slice 3.
+Constants measured: N_MAX = 500 (D6 said 1000), thresholds F = 50/500/2e4/1e3/20, growth 1.
 
 ## Open decisions
+- (blocks: slice 3) Run-cost rule: RK45 at the tightest tolerance with 500 cycles took about 22 s and 388 MB; Radau at the tightest pair would take about 5 min (30 s proxy limit). Options: a per-method cycle limit; a cap on right-hand-side evaluations like 2.2's work budget; refuse Radau at tight tolerances. Recommendation: a step/evaluation budget (it covers every method and tolerance).
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
 
-## Last task: the first resumed run checked; trailer and journal-time fixes (2026-11-09)
-- **The run** (session `cse_01DMcXP259w3PPwfxsRAipcx`, 12:03-12:09 UTC, $1.91): added slice
-  2's Acceptance block (Opus planner, reviewer (c) on Opus: 2 must-fix applied, 9 worth-doing
-  listed), regenerated the index, wrote the first `docs/journal/` entry, stopped on the
-  velocity-scale decision (correctly), and could not pause itself (`update_trigger` not
-  callable), so the author's session paused it. Commit `10db2a9` is on this working branch
-  only; `autopilot-work` was the run's local label, and GitHub has only `main` and this branch.
-- **Fixed:** `.githooks/commit-msg` now moves a stray `Autopilot-run:` line into the final
-  trailer block (tested on six layouts: the `10db2a9` layout, correct ones, no co-author,
-  plain, a body mention kept, a merge); the skill and the journal template take the entry's
-  time from `date -u` just before the commit. Findings recorded in `.claude/autopilot/FINDINGS.md`.
-- **Checks run:** shellcheck on the hook (exit 0); the six-layout commit test; the run-count
-  grep still finds every work commit; `doc_index.py --check`. CI: not run (no PR).
-- **State:** committed and pushed to this branch; not in a PR yet (no PR open). Autopilot
-  resumed (STATE `running`, task enabled; schedule 02:59 and 12:59 UTC).
+
+## Last task: 2.3 slice 2 built and reviewed (2026-11-10)
+- **Done locally and committed/pushed by this run:** `numerical.py`, `model.py`, `schemas.py`; thresholds measured on 1608 runs; docs (SCIENTIFIC_VALIDATION, ARCHITECTURE, plan status). Builder opus high, reviewer opus high.
+- **Checks run:** pytest on the two oscillator test files (250 passed), ruff, mypy, doc index. CI: not run (no PR open). Full backend pytest 2338 passed was run by the builder only.
+- **Not done:** review items 1-7 (journal 2026-11-10); a false "worst 0.10 / 10x margin" claim was corrected in SCIENTIFIC_VALIDATION.
+- **Not in a PR yet;** state: committed and pushed to the working branch.
 
 ## Learning handoff
 - **What it does:** sessions load a short map and open one section of a large document by its

@@ -46,6 +46,11 @@ simforge/
 │   │   │   │                            aggregated checks (roadmap 2.2)
 │   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules (both
 │   │   │                                quadratic models)
+│   │   ├── physics/oscillator/      Harmonic oscillator (roadmap 2.3; no endpoint yet):
+│   │   │   ├── analytical.py          exact solution in every regime, scale X, resonance curve
+│   │   │   ├── numerical.py           scaled ODE solve (xi, eta and both works), maxima events
+│   │   │   ├── model.py               stiffness guard, diagnostics, measured checks, series
+│   │   │   └── schemas.py             request/response contract and input limits
 │   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/

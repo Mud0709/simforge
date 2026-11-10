@@ -17,34 +17,34 @@ instead of reading or searching the whole file.
 - 255-264: 6. Pausing and resuming
 - 265-279: 7. Reply at the end of a tick
 
-## `ARCHITECTURE.md` (476 lines)
+## `ARCHITECTURE.md` (481 lines)
 - 7-19: System overview
-- 20-96: Repository layout
-- 97-434: Key decisions
-  - 99-104: 1. Modular monolith, not microservices
-  - 105-114: 2. The scientific core is pure and framework-free
-  - 115-134: 3. Validation at the boundary, with stated units
-  - 135-140: 4. One source of truth for the API contract
-  - 141-168: 5. The experiment log stores inputs, not outputs (plus a fingerprint of the outputs)
-  - 169-172: 6. The browser talks only to Next.js
-  - 173-177: 7. Charts: Plotly, loaded lazily
-  - 178-185: 8. Tooling
-  - 186-192: 9. Generic numerics live apart from any model
-  - 193-210: 10. One experiment-log path for every model, and a model registry
-  - 211-238: 11. One scientific workspace for every lab
-  - 239-247: 12. Per-run validation is data, not decoration
-  - 248-271: 13. Imported datasets live for one request; their identity is a hash
-  - 272-281: 14. Request bodies are capped before they are read
-  - 282-291: 15. Replay compares answers, not just questions
-  - 292-303: 16. The experiment log is generic (roadmap 1.5)
-  - 304-370: 17. Comparison and export (roadmap 1.6)
-  - 371-401: 18. Quadratic drag is a new model, not an option (roadmap 2.1)
-  - 402-434: 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
-- 435-456: API endpoints
-- 457-472: Adding a new model (the intended pattern)
-- 473-476: Deliberately not included (yet)
+- 20-101: Repository layout
+- 102-439: Key decisions
+  - 104-109: 1. Modular monolith, not microservices
+  - 110-119: 2. The scientific core is pure and framework-free
+  - 120-139: 3. Validation at the boundary, with stated units
+  - 140-145: 4. One source of truth for the API contract
+  - 146-173: 5. The experiment log stores inputs, not outputs (plus a fingerprint of the outputs)
+  - 174-177: 6. The browser talks only to Next.js
+  - 178-182: 7. Charts: Plotly, loaded lazily
+  - 183-190: 8. Tooling
+  - 191-197: 9. Generic numerics live apart from any model
+  - 198-215: 10. One experiment-log path for every model, and a model registry
+  - 216-243: 11. One scientific workspace for every lab
+  - 244-252: 12. Per-run validation is data, not decoration
+  - 253-276: 13. Imported datasets live for one request; their identity is a hash
+  - 277-286: 14. Request bodies are capped before they are read
+  - 287-296: 15. Replay compares answers, not just questions
+  - 297-308: 16. The experiment log is generic (roadmap 1.5)
+  - 309-375: 17. Comparison and export (roadmap 1.6)
+  - 376-406: 18. Quadratic drag is a new model, not an option (roadmap 2.1)
+  - 407-439: 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
+- 440-461: API endpoints
+- 462-477: Adding a new model (the intended pattern)
+- 478-481: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1422 lines)
+## `SCIENTIFIC_VALIDATION.md` (1476 lines)
 - 6-29: Principles
 - 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
   - 32-43: Model
@@ -90,38 +90,39 @@ instead of reading or searching the whole file.
   - 853-876: Input limits and the work budget
   - 877-891: Replay tolerances
   - 892-924: Known limitations
-- 925-982: `physics.oscillator` (roadmap 2.3, in progress): the exact solution (slice 1)
-  - 932-951: What is exact, and how it is evaluated
-  - 952-963: Limits introduced by this slice (measured, not assumed)
-  - 964-975: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
-  - 976-982: Limitations
-- 983-1121: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 989-1010: Model
-  - 1011-1046: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1047-1054: Numerical-analysis issue handled: cancellation in λ
-  - 1055-1076: Empirical evidence (held on the grid; not theorems)
-  - 1077-1092: What is tested
-  - 1093-1102: Per-run checks shown in the app
-  - 1103-1107: Observed (2026-10-15, default inputs)
-  - 1108-1121: Limitations
-- 1122-1203: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1124-1130: What it computes, and what it does not
-  - 1131-1146: Definitions
-  - 1147-1158: Numerical-analysis issues handled
-  - 1159-1173: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1174-1180: Per-run checks shown in the app
-  - 1181-1185: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1186-1203: Limitations
-- 1204-1297: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1233-1277: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1278-1289: Tests
-  - 1290-1297: Known limitations
-- 1298-1422: Comparison and export (roadmap 1.6)
-  - 1307-1341: Recomputed series: the digest says whether they are exact
-  - 1342-1370: CSV: what is written is the number that was computed
-  - 1371-1378: JSON export
-  - 1379-1412: The comparison: differences, not verdicts
-  - 1413-1422: Limitations
+- 925-1036: `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
+  - 933-952: What is exact, and how it is evaluated
+  - 953-964: Limits introduced by this slice (measured, not assumed)
+  - 965-976: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+  - 977-1024: Slice 2: the numerical solve and its per-run checks
+  - 1025-1036: Limitations
+- 1037-1175: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1043-1064: Model
+  - 1065-1100: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1101-1108: Numerical-analysis issue handled: cancellation in λ
+  - 1109-1130: Empirical evidence (held on the grid; not theorems)
+  - 1131-1146: What is tested
+  - 1147-1156: Per-run checks shown in the app
+  - 1157-1161: Observed (2026-10-15, default inputs)
+  - 1162-1175: Limitations
+- 1176-1257: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1178-1184: What it computes, and what it does not
+  - 1185-1200: Definitions
+  - 1201-1212: Numerical-analysis issues handled
+  - 1213-1227: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1228-1234: Per-run checks shown in the app
+  - 1235-1239: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1240-1257: Limitations
+- 1258-1351: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1287-1331: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1332-1343: Tests
+  - 1344-1351: Known limitations
+- 1352-1476: Comparison and export (roadmap 1.6)
+  - 1361-1395: Recomputed series: the digest says whether they are exact
+  - 1396-1424: CSV: what is written is the number that was computed
+  - 1425-1432: JSON export
+  - 1433-1466: The comparison: differences, not verdicts
+  - 1467-1476: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -417,15 +418,15 @@ instead of reading or searching the whole file.
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (380 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (387 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-55: Slice status
-- 56-70: What 2.3 builds
-- 71-81: Design tree and rounds (self-grilled)
-- 82-233: Decisions
-- 234-262: Reference formulas (derived for this plan)
-- 263-283: Seams (where tests attach; what each catches and misses)
-- 284-349: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 350-363: Risks
-- 364-370: Out of scope (for the author)
-- 371-380: Genuine stops found
+- 27-62: Slice status
+- 63-77: What 2.3 builds
+- 78-88: Design tree and rounds (self-grilled)
+- 89-240: Decisions
+- 241-269: Reference formulas (derived for this plan)
+- 270-290: Seams (where tests attach; what each catches and misses)
+- 291-356: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 357-370: Risks
+- 371-377: Out of scope (for the author)
+- 378-387: Genuine stops found

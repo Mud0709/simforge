@@ -36,7 +36,14 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   checks are scaled by this X; velocity scale V = ω₀X (author, 2026-11-09; this note first said
   max(ω₀, ω)·X); the Q = 1e4 resonance error
   (≈ 6e-12 of X) is the exact solution's own floor.
-- Slice 2 (numerical solve and run): not started; Acceptance block added 2026-11-09.
+- **Slice 2 (numerical solve and run): built 2026-11-10, fresh review done (no must-fix; 7 worth-doing items in the 2026-11-10 journal, to settle before slice 3).**
+  `numerical.py`, `model.py`, `schemas.py`; the 250 tests written first pass. Measured on 1608
+  runs (`SCIENTIFIC_VALIDATION.md`): thresholds `F (rtol + atol)(1 + cycles) + 1e-9`, F = 50,
+  500, 2e4, 1e3, 20 (displacement, velocity, energy, period, ratio), worst 0.10 of a threshold.
+  **N_max = 500 cycles** (D6's 2 s at the default settings; D6 said 1000). Builder's choices,
+  open for the author: the energy factor is set by drives at 100ω₀ (speed 50 V), so it is
+  loose for slow motions; free-decay checks need x₂ ≥ 1e-3 X; Radau (36-78 s at 500 cycles,
+  default pair) needs a cost rule beyond N_max before slice 3 exposes it.
 - Slices 3-5: not started.
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability

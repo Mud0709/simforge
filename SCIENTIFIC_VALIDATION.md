@@ -922,12 +922,13 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
 
 ---
 
-## `physics.oscillator` (roadmap 2.3, in progress): the exact solution (slice 1)
+## `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
 
 Plan and decisions: `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, grilling record G1-G4 and the
 slice-1 amendments). The model is `m ẍ + b ẋ + k x = F₀ cos ωt`. Slice 1 is the **exact
-solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure), which slice 2's
-numerical solution will be checked against. No endpoint or page exists yet.
+solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure); slice 2 the
+**numerical solve** checked against it (`numerical.py`, `model.py`, `schemas.py`; see the
+slice 2 section below). No endpoint or page exists yet.
 
 ### What is exact, and how it is evaluated
 - **Proved (closed forms):** the steady state A, δ; the transient in one unified form for
@@ -973,10 +974,63 @@ numerical solution will be checked against. No endpoint or page exists yet.
 - **Mutation testing** (scratch, not in the repository): 22 planted bugs, all caught, including
   γ − β for the slow rate, float arithmetic for q, a halved cap and a missing finiteness check.
 
+### Slice 2: the numerical solve and its per-run checks
+- **What is solved (numerical):** SciPy `solve_ivp` (RK45, DOP853 or Radau) on the
+  dimensionless equation, τ = ω₀t, ξ = x/X, η = v/(ω₀X) (velocity scale V = ω₀X, the author's
+  decision of 2026-11-09), with the damping work integrated from b·v² and the drive work from
+  F₀cos(ωt)·v, never from the force. So `atol` is a fraction of X (and of V, and of kX² for the
+  works) at every scale. Maxima of x come from an event on v = 0 (the start is never one).
+- **Per-run checks** (each a measured threshold, below): displacement error max|x − x_exact|/X
+  and velocity error max|v − v_exact|/(ω₀X) at the step nodes against the exact solution;
+  the energy balance KE + PE + W_damp − W_drive = E₀ (exact for the true motion) /kX²; for a
+  free underdamped run, the time between the first two maxima against T_d and their ratio
+  against e^{−γT_d} (both exact identities, OR4); informational: the transient left at the end
+  as a fraction of A (exact, evaluated as the free motion it is, not as x − x_p), and the cost.
+  A threshold above 1 is labelled uninformative (it cannot fail within the scale).
+- **Stiffness guard:** RK45 and DOP853 are refused before any solve when the fastest
+  eigenvalue times the duration, (γ + β)T overdamped and ω₀T otherwise, exceeds 1e4.
+- **Thresholds, measured** (one x86_64 VM, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; 1608 runs
+  inside the limits: the 113-case corner grid of 3 methods × 4 tolerance pairs × 4 regimes ×
+  free/driven plus the Risks corners, 55 runs of 100 cycles, 840 free decays with ζ from 0.01
+  to 0.99, 600 seeded random runs with ζ 0 to 1e3 and ω/ω₀ 0 to 100). Form:
+  `F (rtol + atol)(1 + cycles) + 1e-9`, F the smallest 1-2-5 value at least 10× the worst
+  need. F = 50 (displacement), 500 (velocity), 2e4 (energy), 1e3 (period), 20 (ratio); worst
+  value / threshold 0.10, 0.064, 0.067, 0.077 and 0.089 on the 1608 measured runs. The review then found one unmeasured corner (DOP853, tightest pair, undamped, from rest, 500 cycles, ω ≈ 100ω₀) where the displacement value / threshold reached 0.215 (margin about 4.6×, not 10×): there the 1e-9 floor is set by the solver's own rounding, not the exact solution's. To be measured and the floor re-justified before slice 3. The cycles term is measured, not
+  assumed: displacement error/(rtol + atol), undamped, default pair, was 75 at 100 cycles and
+  747 at 1000 (DOP853), 182 and 1820 (RK45). The floor 1e-9 is ≥ 100× the exact solution's
+  own worst error (5.8e-12 of X).
+- **The energy factor is set by fast drives.** At ω = 100ω₀ the speed reaches 50 V, so the
+  energy in motion is ~1250 kX² and a relative error of ~1e-9 is ~1e-6 kX² (the grid's RK45
+  corner was 0.994 of the provisional threshold). F = 2e4 covers it, but is ~800× loose for
+  runs whose speed stays below V. Normalising by the energy in motion instead is an open
+  question for the author.
+- **Free-decay checks need a resolvable second maximum** (x₂ ≥ 1e-3 X): near critical
+  damping the motion has decayed to nothing by then, and the located time is set by the
+  tolerance (a correct solve gave 1e9 × (rtol + atol) at ζ = 0.9 without this rule).
+- **N_max = 500 cycles** (D6 said 1000, provisional): at the default settings (DOP853,
+  rtol = atol = 1e-10) 500 cycles took 0.8-1.4 s and 1000 cycles 1.7-2.5 s (D6: ≤ 2 s).
+  Other settings are slower at 500 cycles: DOP853 at the tightest pair 2.4-3.4 s, RK45 2.4-4.5
+  s, Radau 4.9-8.2 s (middle pair) and 36-78 s (default pair, above the 30 s proxy limit). A
+  cycle limit alone cannot bound Radau's time; that rule is an open decision for slice 3.
+- **Tested** (`backend/tests/physics/test_oscillator_numerical.py`, 84 tests;
+  `test_oscillator_model.py`, 166 tests; constants in `oscillator_thresholds.py`): agreement
+  with the exact solution in every regime at the tightest pair; the error falls as the
+  tolerance tightens; scaled and SI states agree to 4ε; unit invariance (m, k, b, F₀ × 1024);
+  dense output at the nodes; works exactly 0 when F₀ = 0 or b = 0; a wrong damping law
+  (−b·v·|v|/V) fails the energy balance and the displacement check while the true one passes;
+  maxima against OR4; the corner grid; the diagnostics recomputed independently from the
+  nodes; nulls when undriven, undamped or overdamped; the guard refusing before any solve and
+  naming its number; the steady state and resonance curve against their formulas.
+
 ### Limitations
-- Measurements are from one machine (Python 3.12, NumPy 2.5.4).
-- Inside the limits, the worst error is at Q = 1e4 near resonance (≈ 6e-12 of X); the numerical
-  solution's checks (slice 2) must allow for it.
+- Measurements are from one machine (Python 3.12, NumPy 2.5.4, SciPy 1.18.1); run times vary
+  by up to ~1.5× on it.
+- Inside the limits, the exact solution's worst error is at Q = 1e4 near resonance (≈ 6e-12
+  of X); the checks' floor (1e-9) allows for it.
+- The checks' thresholds come from 1608 runs, not a proof: the global error of an adaptive
+  solver is not bounded by its tolerances.
+- The energy check is loose for slow motions (see above), and the free-decay checks are absent
+  when the second maximum is below 1e-3 X.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
   (slice 4) will show it only when it is useful.
 

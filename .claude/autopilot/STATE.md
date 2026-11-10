@@ -46,11 +46,10 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   slices, builder and reviewer per slice (high, then medium); measured from usage readings.
 
 ## Current unit
-Roadmap 2.3: slice 1 done in 4882fc4. Slice 2's Acceptance block added 2026-11-09 (reviewed by
-(c)). Velocity scale answered by the author (V = ω₀X, 2026-11-09). Slice 2 tests written (red) and committed: next is the builder (opus high), then review.
+Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10 (acceptance passed, no must-fix; 7 worth-doing items in the journal). Next: author decides the run-cost rule (blocks slice 3), then a fix unit, then slice 3.
 
 ## Remainder of the current unit
-Slices 2-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
+Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md` plus the slice 2 follow-ups.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
