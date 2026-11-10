@@ -464,15 +464,34 @@ def driven_bound(p: OscillatorInputs, duration: float) -> float:
     return min(caps)
 
 
+def effective_drive_frequency(p: OscillatorInputs) -> float:
+    """w (rad/s) if the run is driven, 0 if F0 = 0.
+
+    Without a drive, w multiplies a force of exactly 0 and has no effect on the motion, so
+    nothing that limits or grades a run may depend on it (cycle count, minimum duration,
+    drive-ratio rule): use this, never ``drive_angular_frequency``, for those.
+    """
+    return p.drive_angular_frequency if p.drive_amplitude != 0 else 0.0
+
+
+def cycles(p: OscillatorInputs, duration: float) -> float:
+    """The run's length in cycles of its fastest oscillation: T max(w0, w) / 2 pi (plan D6),
+    with w counted only when the run is driven (:func:`effective_drive_frequency`)."""
+    _check_duration(duration)
+    w0 = math.sqrt(p.spring_constant / p.mass)
+    return duration * max(w0, effective_drive_frequency(p)) / (2 * math.pi)
+
+
 def rate_duration_product(p: OscillatorInputs, duration: float) -> float:
-    """max(w0, w, gamma) T: the run's length in units of its fastest rate (dimensionless).
+    """max(w0, w, gamma) T: the run's length in units of its fastest rate (dimensionless),
+    with w counted only when the run is driven (:func:`effective_drive_frequency`).
 
     The model requires at least ``MIN_DURATION_RATE_PRODUCT`` (see the module docstring).
     """
     _check_duration(duration)
     w0 = math.sqrt(p.spring_constant / p.mass)
     gamma = p.damping_coefficient / (2 * p.mass)
-    return max(w0, p.drive_angular_frequency, gamma) * duration
+    return max(w0, effective_drive_frequency(p), gamma) * duration
 
 
 def scale(p: OscillatorInputs, duration: float) -> float:
