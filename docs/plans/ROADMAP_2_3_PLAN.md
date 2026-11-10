@@ -44,6 +44,16 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   open for the author: the energy factor is set by drives at 100ω₀ (speed 50 V), so it is
   loose for slow motions; free-decay checks need x₂ ≥ 1e-3 X; Radau (36-78 s at 500 cycles,
   default pair) needs a cost rule beyond N_max before slice 3 exposes it.
+- **Slice 2 review items, settled 2026-11-10 (author's request, in a chat session; tests in
+  `tests/physics/test_oscillator_free_runs.py`).** Item 2: displacement floor 5e-9, from the
+  measured corner (DOP853 7.33e-10 of X; 16 runs). Item 3: free-decay thresholds use
+  min(cycles, 2ω₀/ω_d), factors re-measured on 1680 decays: 5e3 (period), 50 (ratio). Item 4:
+  with F₀ = 0 the drive frequency limits nothing (cycles, minimum duration, ω ≤ 100ω₀). Item
+  5: the resonance curve adds ω_r and points at ω_r ± γ·{¼ … 32}. Item 6: an informational
+  row `free_decay_not_checked`. Item 7: recorded as a limitation (X is a bound). Also: a
+  threshold above 1 now gives no verdict (`passed = null`), not a pass. **Item 1 (worst-case
+  run times) stays with slice 3's evaluation budget**; measured for it: Radau at 500 cycles,
+  ω = 100ω₀, 792 s (tightest pair) and 133 s (default pair).
 - Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10; see slice 3).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability

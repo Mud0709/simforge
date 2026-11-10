@@ -10,7 +10,8 @@
   exercises without solutions. New chapters stay at about 250 lines with few verbatim excerpts
   (the author's rule of 2026-11-02): the science stays complete, the prose is not exhaustive.
   Excerpts are tagged `<!-- src: path:a-b -->` and must match the files exactly; update the
-  line references when code moves. IB coverage is claimed only as checked in `IB_FOUNDATIONS.md`.
+  line references when code moves (`python3 scripts/check_excerpts.py`; `scripts/check.sh` and the
+  backend tests fail on a mismatch). IB coverage is claimed only as checked in `IB_FOUNDATIONS.md`.
 - **Plans** (`plans/`): decisions and acceptance criteria, not essays; every slice ends with an
   Acceptance block (exact test files and commands, 3-5 yes/no checks), per the autopilot skill.
 - **The autopilot journal** is one file per tick in `journal/` (from `journal/_template.md`;

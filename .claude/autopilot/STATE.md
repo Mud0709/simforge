@@ -46,10 +46,15 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   slices, builder and reviewer per slice (high, then medium); measured from usage readings.
 
 ## Current unit
-Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10 (acceptance passed, no must-fix; 7 worth-doing items in the journal). Next: author decides the run-cost rule (blocks slice 3), then a fix unit, then slice 3.
+Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its review items
+2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
+author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
+branch): do not redo them; if that PR is not merged yet, wait for it (it touches
+`physics/oscillator/` and `physics/projectile/quadratic_*`). Next: slice 3 (its Acceptance
+block first), which includes the evaluation budget (review item 1).
 
 ## Remainder of the current unit
-Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md` plus the slice 2 follow-ups.
+Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
