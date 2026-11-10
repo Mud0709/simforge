@@ -330,8 +330,12 @@ def _runs(n: int) -> str:
 
 
 def _aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
-    """One 2.1 check over every run: passed only if every run passed; value and threshold
-    from the run with the largest value / threshold (thresholds differ between angles)."""
+    """One 2.1 check over every run; value and threshold from the run with the largest value /
+    threshold (thresholds differ between angles).
+
+    Verdict: failed if any run failed; otherwise no verdict (None) if any run's threshold was
+    uninformative (its check could not fail, so the run gave ``passed`` None); otherwise
+    passed. A run that could not be graded never counts as passed, nor as failed."""
     graded = [(a, c) for a, c in entries if c.threshold is not None]
     if not graded:  # informational in every run: report the largest value
         angle, worst = max(entries, key=lambda e: e[1].value)
@@ -341,15 +345,19 @@ def _aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
         )
         return worst.model_copy(update={"note": note})
     angle, worst = max(graded, key=lambda e: e[1].value / e[1].threshold)  # type: ignore[operator]
-    n_failed = sum(c.passed is not True for _, c in graded)
+    n_failed = sum(c.passed is False for _, c in graded)
+    n_ungraded = sum(c.passed is None for _, c in graded)
     note = (
         f"{worst.note} Across the sweep: {_runs(len(graded))}, {n_failed} failed; the "
         f"largest value / threshold is at {angle:.10g}°."
     )
+    if n_ungraded:
+        note += f" No verdict in {_runs(n_ungraded)} (uninformative threshold)."
     unavailable = [a for a, c in entries if c.threshold is None]
     if unavailable:
         note += f" Not available in {_runs(len(unavailable))} (at {_angles(unavailable)})."
-    return worst.model_copy(update={"passed": n_failed == 0, "note": note})
+    passed: bool | None = False if n_failed else (None if n_ungraded else True)
+    return worst.model_copy(update={"passed": passed, "note": note})
 
 
 def _checks(result: QuadraticSweep, budget: int) -> list[ValidationCheck]:
@@ -416,7 +424,7 @@ def run_angle_sweep(
 
 MODEL_INFO = ModelInfo(
     id="physics.projectile.quadratic_angle_sweep",
-    version="1.0.0",
+    version="1.0.1",
     name="Range versus launch angle (quadratic drag)",
     description="Range at evenly spaced launch angles from 0 to 90 degrees with quadratic drag "
     "F = -c|v|v, each point one full run of the quadratic-drag model (no formula exists), and "

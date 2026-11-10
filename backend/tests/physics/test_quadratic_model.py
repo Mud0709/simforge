@@ -17,6 +17,7 @@ import pytest
 from scipy.integrate import solve_ivp
 
 from simforge.core.errors import ModelDomainError
+from simforge.core.schemas import ValidationCheck
 from simforge.physics.projectile import analytical
 from simforge.physics.projectile import quadratic_model as qm
 from simforge.physics.projectile import quadratic_reference as qr
@@ -70,8 +71,8 @@ def reference_drag_time(s: QuadraticSetup) -> float:
     def landing(t: float, y: np.ndarray) -> float:
         return float(y[1]) if t > 0 else 1.0
 
-    landing.terminal = True  # type: ignore[attr-defined]
-    landing.direction = -1  # type: ignore[attr-defined]
+    landing.terminal = True
+    landing.direction = -1
     y0 = [0.0, s.launch_height, vx0, s.initial_speed * math.sin(s.launch_angle_rad), 0.0]
     t_end = 2 * qr.flight_time_bound(
         s.initial_speed, s.launch_angle_rad, s.launch_height, s.terminal_speed, G
@@ -329,7 +330,10 @@ def test_invariant_check_does_not_fail_an_accurate_run(
     s = make_setup(v0=v0, angle=angle, h=h, v_t=v_t)
     solver = SolverSettings(method=method, rtol=rtol, atol=atol)  # type: ignore[arg-type]
     check = next(c for c in qm.run(s, solver).checks if c.id == "hodograph_invariant")
-    assert check.passed is True
+    assert check.threshold is not None
+    # Never failed; and a verdict of "passed" only where the threshold could fail a run (the
+    # atol = 0.1 case allows 1e4 x 0.1/v_t = 1000, so it gets no verdict: review 2026-11-10).
+    assert check.passed is (True if check.threshold <= 1.0 else None)
 
 
 def test_vertical_run_adds_its_exact_comparison_check() -> None:
@@ -386,3 +390,54 @@ def test_checks_fail_for_the_wrong_coupling(monkeypatch: pytest.MonkeyPatch) -> 
     assert by_id["energy_balance"].passed is False
     assert by_id["hodograph_invariant"].passed is False
     assert by_id["flight_time_bound"].passed is True
+
+
+# --- Review 2026-11-10: a check that cannot fail is not shown as passed ---------------------
+
+
+def _graded(comp: qm.QuadraticComputation) -> list[ValidationCheck]:
+    return [c for c in comp.checks if c.threshold is not None]
+
+
+@pytest.mark.parametrize("rtol", [1e-10, 1e-6, 5e-5])
+def test_informative_thresholds_still_grade_the_run(rtol: float) -> None:
+    """Allowance 1e4 x (rtol + atol/v0) + 1e-9 <= 1 here (at most 1e4 x 5e-5 x (1 + 1/20) =
+    0.525), so every graded check gives a verdict and no note calls it uninformative."""
+    comp = qm.run(make_setup(), SolverSettings(method="RK45", rtol=rtol, atol=rtol))
+    for check in _graded(comp):
+        assert check.passed is True, check.id
+        assert "uninformative" not in check.note.lower()
+
+
+@pytest.mark.parametrize(("rtol", "atol"), [(1e-3, 1e-10), (1e-3, 0.1), (2e-4, 1e-10)])
+def test_a_threshold_that_cannot_fail_gives_no_verdict(rtol: float, atol: float) -> None:
+    """With rtol >= 2e-4 the allowance is 1e4 x rtol >= 2: a relative residual of 100% (or a
+    speed twice the *proved* bound) would still be under the threshold. Such a check must
+    not be reported as passed: passed is None and the note says why. The value and the
+    threshold are still reported, so nothing is hidden."""
+    comp = qm.run(make_setup(), SolverSettings(method="RK45", rtol=rtol, atol=atol))
+    graded = _graded(comp)
+    assert {c.id for c in graded} >= {
+        "energy_balance",
+        "hodograph_invariant",
+        "speed_bound",
+        "flight_time_bound",
+    }
+    for check in graded:
+        assert check.passed is None, check.id
+        assert "uninformative" in check.note.lower()
+        assert check.kind == "numerical_diagnostic"
+        assert math.isfinite(check.value)
+
+
+def test_the_invariant_alone_can_be_uninformative() -> None:
+    """The invariant's accuracy scale is rtol + atol/min(vx0, v_t), the others' rtol +
+    atol/v0. At 89 degrees vx0 = 20 cos(89 deg) = 0.349 m/s: with atol = 1e-4 the invariant's
+    allowance is 1e4 x 1e-4/0.349 = 2.9 (no verdict) while the energy's is 1e4 x (1e-10 +
+    1e-4/20) = 0.05 (a verdict)."""
+    comp = qm.run(make_setup(angle=89.0), SolverSettings(method="DOP853", rtol=1e-10, atol=1e-4))
+    by_id = {c.id: c for c in comp.checks}
+    assert by_id["hodograph_invariant"].passed is None
+    assert "uninformative" in by_id["hodograph_invariant"].note.lower()
+    assert by_id["energy_balance"].passed is True
+    assert "uninformative" not in by_id["energy_balance"].note.lower()
