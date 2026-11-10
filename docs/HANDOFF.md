@@ -15,7 +15,6 @@ the evaluation budget. Autopilot is running: its 12:59 UTC tick must not redo th
 (STATE "Current unit" says so); if the PR is still open then, say "pause autopilot".
 
 ## Open decisions
-- **Confirm (taken on your "fix all", reversible):** quadratic drag and its sweep are now v1.0.1 (a threshold that cannot fail gives no verdict); stored v1.0.0 runs of those two models can no longer be replayed (409, version changed). To reverse: set both versions back and re-pin `tests/api/golden_runs.json`.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
@@ -30,6 +29,8 @@ the evaluation budget. Autopilot is running: its 12:59 UTC tick must not redo th
 - **Worth-doing, done:** slice 2 items 3, 5, 6, 7 (free-decay thresholds count cycles to the second maximum, re-measured on 1680 decays; the resonance curve contains its peak; a `free_decay_not_checked` row; X-is-a-bound limitation); SCIENTIFIC_VALIDATION's stale replay and model counts (seven models, eight cases: the earlier handoff's "registry has 8" meant cases); `scripts/check_excerpts.py` in `scripts/check.sh` and the backend tests (it caught a moved excerpt during this work); STATE "Current unit".
 - **Not done:** slice 2 item 1 (worst-case run times) stays with slice 3's evaluation budget; measured for it: Radau, 500 cycles at w = 100 w0, 792 s (tightest pair), 133 s (default). Finding 7 (checks for the three Phase 0 models) is planned, not built: `docs/plans/ROADMAP_2_4_NOTES.md`. Finding 8 (literature check) left, as asked.
 - **Checks run locally:** backend ruff, ruff format, mypy, full pytest (2373 passed), docs index, excerpts (71 match), OpenAPI export (no change). **Not run locally:** frontend checks and Playwright (no frontend file changed); CI runs them on the PR.
+- **Author, 2026-11-10:** v1.0.1 confirmed. New v1.0.1 runs replay normally (`tests/api/test_replay.py` replays every registry case, both quadratic models included: identical); only runs stored as v1.0.0 of those two models are refused (409).
+- **Also added (author's request):** `.github/pull_request_template.md` (the "every task updates everything" checklist); the autopilot's first tick after a merge drafts the learning-log entry as its unit (skill step 2.4b; drafts are tagged DRAFT until the author removes the tag). Fresh-context review of this PR: see the PR for its findings.
 - **State:** committed and pushed to the review branch; PR into the working branch open (draft); not merged.
 
 ## Learning handoff

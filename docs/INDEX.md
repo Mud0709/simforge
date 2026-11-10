@@ -6,16 +6,16 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 section with Read's offset and limit (offset = first line, limit = last - first + 1)
 instead of reading or searching the whole file.
 
-## `.claude/skills/autopilot/SKILL.md` (286 lines)
-- 14-50: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
-- 51-68: 0b. Budget gate (before any work; keep it cheap)
-- 69-108: 1. Reorient (every tick)
-- 109-131: 2. Choose the unit of work (first match wins)
-- 132-174: 3. The decision rule
-- 175-237: 4. Do the work, then verify it
-- 238-261: 5. Journal and state (every tick that did anything)
-- 262-271: 6. Pausing and resuming
-- 272-286: 7. Reply at the end of a tick
+## `.claude/skills/autopilot/SKILL.md` (299 lines)
+- 14-51: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
+- 52-69: 0b. Budget gate (before any work; keep it cheap)
+- 70-109: 1. Reorient (every tick)
+- 110-144: 2. Choose the unit of work (first match wins)
+- 145-187: 3. The decision rule
+- 188-250: 4. Do the work, then verify it
+- 251-274: 5. Journal and state (every tick that did anything)
+- 275-284: 6. Pausing and resuming
+- 285-299: 7. Reply at the end of a tick
 
 ## `ARCHITECTURE.md` (489 lines)
 - 7-19: System overview

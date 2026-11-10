@@ -3,9 +3,10 @@
 One short entry per merged milestone, newest first: what was built, what it taught, and what
 to revisit. Detail lives in the learning guides, `ARCHITECTURE.md` and
 `SCIENTIFIC_VALIDATION.md`; this log only points to it. New entries are added after each
-merge: the `simforge-status` skill drafts them from the learning handoff in
-`docs/HANDOFF.md`, and an entry is added only once the author approves it, in the branch of
-their next change (never directly on `main`).
+merge, from the learning handoff in `docs/HANDOFF.md`, in the branch of the next change
+(never directly on `main`): first as a draft whose heading ends "(DRAFT, awaiting the
+author)", written by the autopilot's first tick after the merge or by the `simforge-status`
+skill; it is approved when the author removes that tag.
 
 **Commit hashes in entries before the workflow entry were rewritten on 2026-11-02** (all
 commits now authored by Mud0709 with Claude as co-author). The hashes in those entries are the old ones; `docs/history-rewrite-map.txt`
