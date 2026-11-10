@@ -1,4 +1,4 @@
-Last updated: 2026-11-10 (slice 2 built and reviewed)
+Last updated: e50a3d4 2026-11-10
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,13 +9,11 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Slice 2 is built and reviewed (uncommitted before this run's commit; then pushed, no PR yet): 250 oscillator
-tests, ruff, mypy pass; fresh review found no must-fix. Decide the run-cost rule below, then the
-next unit is a slice 2 fix round (review items 2-6, see the 2026-11-10 journal), then slice 3.
-Constants measured: N_MAX = 500 (D6 said 1000), thresholds F = 50/500/2e4/1e3/20, growth 1.
+Run-cost rule answered by the author (2026-11-10): an evaluation budget like 2.2's, measured
+against the 30 s limit (recorded in the 2.3 plan, slice 3). Next unit: slice 2's worth-doing
+review items or slice 3 (its Acceptance block first). Autopilot running.
 
 ## Open decisions
-- (blocks: slice 3) Run-cost rule: RK45 at the tightest tolerance with 500 cycles took about 22 s and 388 MB; Radau at the tightest pair would take about 5 min (30 s proxy limit). Options: a per-method cycle limit; a cap on right-hand-side evaluations like 2.2's work budget; refuse Radau at tight tolerances. Recommendation: a step/evaluation budget (it covers every method and tolerance).
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
 - Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.

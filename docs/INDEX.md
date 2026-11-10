@@ -6,16 +6,16 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 section with Read's offset and limit (offset = first line, limit = last - first + 1)
 instead of reading or searching the whole file.
 
-## `.claude/skills/autopilot/SKILL.md` (282 lines)
+## `.claude/skills/autopilot/SKILL.md` (286 lines)
 - 14-50: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
 - 51-68: 0b. Budget gate (before any work; keep it cheap)
 - 69-108: 1. Reorient (every tick)
 - 109-131: 2. Choose the unit of work (first match wins)
 - 132-174: 3. The decision rule
-- 175-233: 4. Do the work, then verify it
-- 234-257: 5. Journal and state (every tick that did anything)
-- 258-267: 6. Pausing and resuming
-- 268-282: 7. Reply at the end of a tick
+- 175-237: 4. Do the work, then verify it
+- 238-261: 5. Journal and state (every tick that did anything)
+- 262-271: 6. Pausing and resuming
+- 272-286: 7. Reply at the end of a tick
 
 ## `ARCHITECTURE.md` (481 lines)
 - 7-19: System overview
@@ -418,7 +418,7 @@ instead of reading or searching the whole file.
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (387 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (395 lines)
 - 7-26: Grilling record (2026-11-03)
 - 27-62: Slice status
 - 63-77: What 2.3 builds
@@ -426,7 +426,7 @@ instead of reading or searching the whole file.
 - 89-240: Decisions
 - 241-269: Reference formulas (derived for this plan)
 - 270-290: Seams (where tests attach; what each catches and misses)
-- 291-356: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 357-370: Risks
-- 371-377: Out of scope (for the author)
-- 378-387: Genuine stops found
+- 291-364: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 365-378: Risks
+- 379-385: Out of scope (for the author)
+- 386-395: Genuine stops found

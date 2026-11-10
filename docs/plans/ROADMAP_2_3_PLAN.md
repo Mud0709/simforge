@@ -44,7 +44,7 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   open for the author: the energy factor is set by drives at 100ω₀ (speed 50 V), so it is
   loose for slow motions; free-decay checks need x₂ ≥ 1e-3 X; Radau (36-78 s at 500 cycles,
   default pair) needs a cost rule beyond N_max before slice 3 exposes it.
-- Slices 3-5: not started.
+- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10; see slice 3).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance
@@ -348,6 +348,14 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
    headline "x₀ 0.1 m, ζ 0.05 (underdamped), Q 10", rebuild), registry, union, appended golden
    run, corners test, `make api-types`. Accept when: `pytest` green, golden diff shows only the
    new entry, `/security-review` run (new inputs and limits) with findings addressed.
+   **Run-cost rule (the author's decision, 2026-11-10; like 2.2's `MAX_SWEEP_RHS_EVALUATIONS`):**
+   one budget of right-hand-side evaluations per run, counted during the solve; a run that
+   exceeds it is refused (422) with a message naming the budget and what to change (a looser
+   tolerance, fewer cycles, another method). The budget is **measured**, so the slowest allowed
+   run stays well inside the 30 s proxy limit, and the measurement is recorded in
+   `SCIENTIFIC_VALIDATION.md`. It covers every method and tolerance (Radau at the tightest pair
+   was measured at ~5 min for 500 cycles in slice 2's review), so no per-method limit is needed.
+   Slice 3's Acceptance block includes it.
 4. **Frontend** (seam 5). Page, presets, three charts, results, validation, nav, D15 wiring.
    Accept when: Vitest and the new Playwright cases pass; no existing frontend test changes.
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.

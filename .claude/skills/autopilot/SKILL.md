@@ -187,8 +187,12 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   rule of 2026-11-10): red tests are never committed on their own; if the builder cannot pass
   Acceptance in that tick, nothing of the slice is committed (STATE records it, and the next
   tick starts again from the test writer). The builder may add other tests but **may not
-  touch the Acceptance block or those files**: before running Acceptance the run checks both unchanged; a change is a
-  genuine stop.
+  touch the Acceptance block or those files**, with one exception (the author's rule of
+  2026-11-10): a named helper may hold a block between the markers `BUILDER MAY SET` and
+  `END OF BUILDER MAY SET` (constants the builder sets from measurement), and the builder may
+  edit only inside it. Before running Acceptance the run checks the block unchanged, every
+  other named file unchanged, and every changed line of a helper inside its marked block;
+  any other change is a genuine stop.
 - **Effort ladder for the builder** (the author's rule of 2026-11-07). Unit effort: `low`
   for docs, journal and formatting; `medium` for a routine slice or a CI or review fix with a
   clear cause; `high` for a **risky** slice (scientific core, numerics, inputs and limits,
