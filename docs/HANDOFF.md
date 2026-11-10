@@ -24,6 +24,9 @@ Constants measured: N_MAX = 500 (D6 said 1000), thresholds F = 50/500/2e4/1e3/20
 
 
 ## Last task: 2.3 slice 2 built and reviewed (2026-11-10)
+- **Author's rule (2026-11-10), after this run:** the test writer and the builder now run in
+  the same tick, so red tests are never committed alone (the 2026-11-09 run committed them,
+  leaving the branch red for 14 hours). Skill step 4 updated.
 - **Done locally and committed/pushed by this run:** `numerical.py`, `model.py`, `schemas.py`; thresholds measured on 1608 runs; docs (SCIENTIFIC_VALIDATION, ARCHITECTURE, plan status). Builder opus high, reviewer opus high.
 - **Checks run:** pytest on the two oscillator test files (250 passed), ruff, mypy, doc index. CI: not run (no PR open). Full backend pytest 2338 passed was run by the builder only.
 - **Not done:** review items 1-7 (journal 2026-11-10); a false "worst 0.10 / 10x margin" claim was corrected in SCIENTIFIC_VALIDATION.

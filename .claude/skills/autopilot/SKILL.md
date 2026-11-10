@@ -183,8 +183,11 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   built (step 3 says who adds one). The block and the tests it names are the bar: if those
   tests do not exist, a **test writer** writes them first (`opus`, high for a risky slice;
   `sonnet`, medium otherwise), they must fail on the current code, and the run records their
-  `git hash-object`. The builder may add other tests but **may not touch the Acceptance block
-  or those files**: before running Acceptance the run checks both unchanged; a change is a
+  `git hash-object`. **The test writer and the builder run in the same tick** (the author's
+  rule of 2026-11-10): red tests are never committed on their own; if the builder cannot pass
+  Acceptance in that tick, nothing of the slice is committed (STATE records it, and the next
+  tick starts again from the test writer). The builder may add other tests but **may not
+  touch the Acceptance block or those files**: before running Acceptance the run checks both unchanged; a change is a
   genuine stop.
 - **Effort ladder for the builder** (the author's rule of 2026-11-07). Unit effort: `low`
   for docs, journal and formatting; `medium` for a routine slice or a CI or review fix with a
