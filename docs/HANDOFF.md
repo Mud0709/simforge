@@ -14,6 +14,7 @@ Review and merge PR #17 (workflow upgrades + 2.3 slice 1; CI runs on it; you mer
 add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
 
 ## Open decisions
+- Graphify trial (2026-11-13, branch `claude/graphify-trial-yoh9lu`, `docs/trials/GRAPHIFY_TRIAL.md`): no clear saving (tokens +1.7%, bytes −22% from one outlier, one answer less accurate). Recommend: do not adopt; instead tell builders to `sed -n` a located range, never `cat` a whole file. Not blocking.
 - Ruleset on `main`: "Require status checks" has no checks selected. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
 - Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
