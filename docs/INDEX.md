@@ -6,21 +6,21 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 section with Read's offset and limit (offset = first line, limit = last - first + 1)
 instead of reading or searching the whole file.
 
-## `.claude/skills/autopilot/SKILL.md` (286 lines)
-- 14-50: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
-- 51-68: 0b. Budget gate (before any work; keep it cheap)
-- 69-108: 1. Reorient (every tick)
-- 109-131: 2. Choose the unit of work (first match wins)
-- 132-174: 3. The decision rule
-- 175-237: 4. Do the work, then verify it
-- 238-261: 5. Journal and state (every tick that did anything)
-- 262-271: 6. Pausing and resuming
-- 272-286: 7. Reply at the end of a tick
+## `.claude/skills/autopilot/SKILL.md` (299 lines)
+- 14-51: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
+- 52-69: 0b. Budget gate (before any work; keep it cheap)
+- 70-109: 1. Reorient (every tick)
+- 110-144: 2. Choose the unit of work (first match wins)
+- 145-187: 3. The decision rule
+- 188-250: 4. Do the work, then verify it
+- 251-274: 5. Journal and state (every tick that did anything)
+- 275-284: 6. Pausing and resuming
+- 285-299: 7. Reply at the end of a tick
 
-## `ARCHITECTURE.md` (481 lines)
+## `ARCHITECTURE.md` (489 lines)
 - 7-19: System overview
 - 20-101: Repository layout
-- 102-439: Key decisions
+- 102-447: Key decisions
   - 104-109: 1. Modular monolith, not microservices
   - 110-119: 2. The scientific core is pure and framework-free
   - 120-139: 3. Validation at the boundary, with stated units
@@ -32,19 +32,19 @@ instead of reading or searching the whole file.
   - 191-197: 9. Generic numerics live apart from any model
   - 198-215: 10. One experiment-log path for every model, and a model registry
   - 216-243: 11. One scientific workspace for every lab
-  - 244-252: 12. Per-run validation is data, not decoration
-  - 253-276: 13. Imported datasets live for one request; their identity is a hash
-  - 277-286: 14. Request bodies are capped before they are read
-  - 287-296: 15. Replay compares answers, not just questions
-  - 297-308: 16. The experiment log is generic (roadmap 1.5)
-  - 309-375: 17. Comparison and export (roadmap 1.6)
-  - 376-406: 18. Quadratic drag is a new model, not an option (roadmap 2.1)
-  - 407-439: 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
-- 440-461: API endpoints
-- 462-477: Adding a new model (the intended pattern)
-- 478-481: Deliberately not included (yet)
+  - 244-260: 12. Per-run validation is data, not decoration
+  - 261-284: 13. Imported datasets live for one request; their identity is a hash
+  - 285-294: 14. Request bodies are capped before they are read
+  - 295-304: 15. Replay compares answers, not just questions
+  - 305-316: 16. The experiment log is generic (roadmap 1.5)
+  - 317-383: 17. Comparison and export (roadmap 1.6)
+  - 384-414: 18. Quadratic drag is a new model, not an option (roadmap 2.1)
+  - 415-447: 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
+- 448-469: API endpoints
+- 470-485: Adding a new model (the intended pattern)
+- 486-489: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1476 lines)
+## `SCIENTIFIC_VALIDATION.md` (1531 lines)
 - 6-29: Principles
 - 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
   - 32-43: Model
@@ -69,60 +69,60 @@ instead of reading or searching the whole file.
   - 361-375: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
   - 376-379: Observed (2026-10-15)
   - 380-387: Limitations
-- 388-709: `physics.projectile.quadratic_drag` v1.0.0: projectile motion with quadratic drag
+- 388-726: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
   - 393-411: Model
   - 412-431: No exact 2-D solution: what replaces it
   - 432-459: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
   - 460-474: Numerical-analysis issues handled
   - 475-552: What is tested
-  - 553-582: Per-run checks shown in the app
-  - 583-604: Input limits, the integration cap and the stiffness guard
-  - 605-655: Observed accuracy
-  - 656-674: Replay tolerances
-  - 675-709: Known limitations
-- 710-924: `physics.projectile.quadratic_angle_sweep` v1.0.0: range against launch angle with quadratic drag
-  - 718-737: What it computes
-  - 738-762: Mathematical results (proved on paper)
-  - 763-771: The accuracy estimate u (an estimate, not a bound)
-  - 772-811: What is tested
-  - 812-820: Per-run checks shown in the app
-  - 821-852: Observed accuracy and cost (one machine)
-  - 853-876: Input limits and the work budget
-  - 877-891: Replay tolerances
-  - 892-924: Known limitations
-- 925-1036: `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
-  - 933-952: What is exact, and how it is evaluated
-  - 953-964: Limits introduced by this slice (measured, not assumed)
-  - 965-976: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
-  - 977-1024: Slice 2: the numerical solve and its per-run checks
-  - 1025-1036: Limitations
-- 1037-1175: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1043-1064: Model
-  - 1065-1100: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1101-1108: Numerical-analysis issue handled: cancellation in λ
-  - 1109-1130: Empirical evidence (held on the grid; not theorems)
-  - 1131-1146: What is tested
-  - 1147-1156: Per-run checks shown in the app
-  - 1157-1161: Observed (2026-10-15, default inputs)
-  - 1162-1175: Limitations
-- 1176-1257: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1178-1184: What it computes, and what it does not
-  - 1185-1200: Definitions
-  - 1201-1212: Numerical-analysis issues handled
-  - 1213-1227: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1228-1234: Per-run checks shown in the app
-  - 1235-1239: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1240-1257: Limitations
-- 1258-1351: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1287-1331: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1332-1343: Tests
-  - 1344-1351: Known limitations
-- 1352-1476: Comparison and export (roadmap 1.6)
-  - 1361-1395: Recomputed series: the digest says whether they are exact
-  - 1396-1424: CSV: what is written is the number that was computed
-  - 1425-1432: JSON export
-  - 1433-1466: The comparison: differences, not verdicts
-  - 1467-1476: Limitations
+  - 553-597: Per-run checks shown in the app
+  - 598-619: Input limits, the integration cap and the stiffness guard
+  - 620-670: Observed accuracy
+  - 671-689: Replay tolerances
+  - 690-726: Known limitations
+- 727-942: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
+  - 735-754: What it computes
+  - 755-779: Mathematical results (proved on paper)
+  - 780-788: The accuracy estimate u (an estimate, not a bound)
+  - 789-828: What is tested
+  - 829-838: Per-run checks shown in the app
+  - 839-870: Observed accuracy and cost (one machine)
+  - 871-894: Input limits and the work budget
+  - 895-909: Replay tolerances
+  - 910-942: Known limitations
+- 943-1091: `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
+  - 951-970: What is exact, and how it is evaluated
+  - 971-982: Limits introduced by this slice (measured, not assumed)
+  - 983-994: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+  - 995-1076: Slice 2: the numerical solve and its per-run checks
+  - 1077-1091: Limitations
+- 1092-1230: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1098-1119: Model
+  - 1120-1155: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1156-1163: Numerical-analysis issue handled: cancellation in λ
+  - 1164-1185: Empirical evidence (held on the grid; not theorems)
+  - 1186-1201: What is tested
+  - 1202-1211: Per-run checks shown in the app
+  - 1212-1216: Observed (2026-10-15, default inputs)
+  - 1217-1230: Limitations
+- 1231-1312: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1233-1239: What it computes, and what it does not
+  - 1240-1255: Definitions
+  - 1256-1267: Numerical-analysis issues handled
+  - 1268-1282: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1283-1289: Per-run checks shown in the app
+  - 1290-1294: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1295-1312: Limitations
+- 1313-1406: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1342-1386: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1387-1398: Tests
+  - 1399-1406: Known limitations
+- 1407-1531: Comparison and export (roadmap 1.6)
+  - 1416-1450: Recomputed series: the digest says whether they are exact
+  - 1451-1479: CSV: what is written is the number that was computed
+  - 1480-1487: JSON export
+  - 1488-1521: The comparison: differences, not verdicts
+  - 1522-1531: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -198,7 +198,7 @@ instead of reading or searching the whole file.
 - 510-522: Product structure (proposed)
 - 523-536: Sources
 
-## `docs/LEARNING_GUIDE.md` (4603 lines)
+## `docs/LEARNING_GUIDE.md` (4621 lines)
 - 20-98: How to use this guide
   - 22-31: Difficulty labels
   - 32-59: Suggested reading order
@@ -329,7 +329,7 @@ instead of reading or searching the whole file.
   - 3208-3214: 17.7 The JSON export
   - 3215-3223: 17.8 Checkpoint
   - 3224-3240: 17.9 Exercises
-- 3241-4004: Part 18 — Quadratic drag: checking a model with no exact answer
+- 3241-4019: Part 18 — Quadratic drag: checking a model with no exact answer
   - 3250-3294: 18.1 Why air resistance grows like v² for a fast ball **[IB core idea]**
   - 3295-3316: 18.2 The equations, and why x and y no longer separate **[IB core → IB HL]**
   - 3317-3335: 18.3 Terminal speed as a force balance **[IB core]**
@@ -343,24 +343,24 @@ instead of reading or searching the whole file.
   - 3755-3826: 18.11 A wrong force law that passes three tests **[Beyond IB idea]**
   - 3827-3846: 18.12 Why 2.1 is a new model, not an option on the old one
   - 3847-3933: 18.13 The code
-  - 3934-3954: 18.14 What the evidence does and does not show
-  - 3955-3971: 18.15 Checkpoint
-  - 3972-4004: 18.16 Exercises
-- 4005-4427: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
-  - 4022-4038: 19.1 Why drag lowers the best angle **[IB core idea]**
-  - 4039-4051: 19.2 One number for "how strong is the drag": ε **[IB core]**
-  - 4052-4126: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
-  - 4127-4143: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
-  - 4144-4178: 19.5 Refining the best angle with Brent **[Beyond IB]**
-  - 4179-4240: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
-  - 4241-4314: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
-  - 4315-4351: 19.8 Why a new model again
-  - 4352-4367: 19.9 Replay: what may move on another computer
-  - 4368-4382: 19.10 What the evidence does and does not show
-  - 4383-4398: 19.11 Checkpoint
-  - 4399-4427: 19.12 Exercises
-- 4428-4484: Appendix — Symbol table
-- 4485-4603: Changes from the previous version of this guide
+  - 3934-3967: 18.14 What the evidence does and does not show
+  - 3968-3986: 18.15 Checkpoint
+  - 3987-4019: 18.16 Exercises
+- 4020-4442: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
+  - 4037-4053: 19.1 Why drag lowers the best angle **[IB core idea]**
+  - 4054-4066: 19.2 One number for "how strong is the drag": ε **[IB core]**
+  - 4067-4141: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
+  - 4142-4158: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
+  - 4159-4193: 19.5 Refining the best angle with Brent **[Beyond IB]**
+  - 4194-4255: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
+  - 4256-4329: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
+  - 4330-4366: 19.8 Why a new model again
+  - 4367-4382: 19.9 Replay: what may move on another computer
+  - 4383-4397: 19.10 What the evidence does and does not show
+  - 4398-4413: 19.11 Checkpoint
+  - 4414-4442: 19.12 Exercises
+- 4443-4499: Appendix — Symbol table
+- 4500-4621: Changes from the previous version of this guide
 
 ## `docs/QUANT_LEARNING_GUIDE.md` (668 lines)
 - 18-42: How to use this guide
@@ -418,15 +418,15 @@ instead of reading or searching the whole file.
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (395 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (405 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-62: Slice status
-- 63-77: What 2.3 builds
-- 78-88: Design tree and rounds (self-grilled)
-- 89-240: Decisions
-- 241-269: Reference formulas (derived for this plan)
-- 270-290: Seams (where tests attach; what each catches and misses)
-- 291-364: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 365-378: Risks
-- 379-385: Out of scope (for the author)
-- 386-395: Genuine stops found
+- 27-72: Slice status
+- 73-87: What 2.3 builds
+- 88-98: Design tree and rounds (self-grilled)
+- 99-250: Decisions
+- 251-279: Reference formulas (derived for this plan)
+- 280-300: Seams (where tests attach; what each catches and misses)
+- 301-374: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 375-388: Risks
+- 389-395: Out of scope (for the author)
+- 396-405: Genuine stops found

@@ -88,7 +88,7 @@ UNITS: dict[str, str] = {
     "free_decay_period_residual": "dimensionless (w0 times an error in s, i.e. radians)",
     "free_decay_ratio_residual": "dimensionless (fraction of X)",
     "remaining_transient": "dimensionless (fraction of the steady amplitude A)",
-    "cycles": "dimensionless (duration max(w0, w) / 2 pi)",
+    "cycles": "dimensionless (duration max(w0, w) / 2 pi; w0 alone when F0 = 0)",
     "stiffness_number": "dimensionless (fastest decay or oscillation rate times duration)",
 }
 
@@ -138,15 +138,19 @@ METHOD_NOTE = (
 # above w0, where max|v| reaches 50 w0 X, so it is loose for slower motions. The values equal
 # tests/physics/oscillator_thresholds.py's (the tests check that they agree), whose comments
 # and SCIENTIFIC_VALIDATION.md ("physics.oscillator") record each measurement.
+# Review 2026-11-10: the displacement floor is 5e-9 (DOP853 reaches only 7.3e-10 of X at the
+# tightest pair on 500 cycles at w = 100 w0: its own rounding), and the free-decay checks
+# count the cycles up to the second maximum only (_free_decay_cycles), with factors re-measured
+# for that form on 1680 decays.
 DISPLACEMENT_ERROR_FACTOR = 50.0
-DISPLACEMENT_ERROR_FLOOR = 1e-9
+DISPLACEMENT_ERROR_FLOOR = 5e-9
 VELOCITY_ERROR_FACTOR = 500.0
 VELOCITY_ERROR_FLOOR = 1e-9
 ENERGY_BALANCE_FACTOR = 2e4
 ENERGY_BALANCE_FLOOR = 1e-9
-FREE_DECAY_PERIOD_FACTOR = 1e3
+FREE_DECAY_PERIOD_FACTOR = 5e3
 FREE_DECAY_PERIOD_FLOOR = 1e-9
-FREE_DECAY_RATIO_FACTOR = 20.0
+FREE_DECAY_RATIO_FACTOR = 50.0
 FREE_DECAY_RATIO_FLOOR = 1e-9
 ERROR_GROWTH_PER_CYCLE = 1.0
 # The most cycles, duration max(w0, w) / 2 pi, a run may have (plan D6; enforced by the API
@@ -163,7 +167,8 @@ MAX_CYCLES = 500
 # decays (zeta 0.01 to 0.99); without it, 1e9 (rtol + atol) at zeta = 0.9 for a correct solve.
 FREE_DECAY_MIN_MAXIMUM = 1e-3
 
-# Number of drive frequencies on the resonance curve (plan D9), from 0 to max(3 w0, 1.2 w).
+# Number of evenly spaced drive frequencies on the resonance curve (plan D9), from 0 to
+# max(3 w0, 1.2 w); the peak and up to 16 points around it are added (_with_peak).
 RESONANCE_POINTS = 241
 
 _FACTORS: dict[str, tuple[float, float]] = {
@@ -194,7 +199,7 @@ class Diagnostics:
     free_decay_period_residual: float | None  # w0 |(t2 - t1) - T_d|; free underdamped only
     free_decay_ratio_residual: float | None  # |x2 - e^{-gamma T_d} x1| / X
     remaining_transient: float | None  # transient left at t = T / A; driven and damped only
-    cycles: float  # T max(w0, w) / 2 pi
+    cycles: float  # T max(w0, w) / 2 pi (w0 alone when F0 = 0)
     stiffness_number: float  # (gamma + beta) T when overdamped, w0 T otherwise
 
 
@@ -352,25 +357,47 @@ def _diagnostic(
 ) -> ValidationCheck:
     limit = threshold(check_id, solver, cycles)
     note = f"{note} Threshold: {_formula(check_id)}."
-    if limit > 1.0:
+    informative = limit <= 1.0
+    if not informative:
         note += (
             " Uninformative at these tolerances: the threshold exceeds the scale itself, so "
-            "an error as large as the motion would pass; tighten rtol and atol for a "
-            "meaningful check."
+            "an error as large as the motion would be under it and no verdict is given; "
+            "tighten rtol and atol for a meaningful check."
         )
     return ValidationCheck(
         id=check_id,
         label=label,
         value=value,
         threshold=limit,
-        passed=value <= limit,
+        # A check that cannot fail is not reported as passed (review 2026-11-10; the
+        # quadratic-drag model follows the same rule).
+        passed=(value <= limit) if informative else None,
         kind="numerical_diagnostic",
         note=note,
     )
 
 
+def _free_decay_cycles(d: Derived, cycles: float) -> float | None:
+    """Natural cycles up to the second maximum, at most: min(cycles, 2 w0 / wd), or None
+    unless underdamped.
+
+    The first maximum comes before one damped period T_d and the second exactly T_d later,
+    so both lie within 2 T_d = (w0 T_d / pi) natural periods. The free-decay residuals have
+    accumulated error over that stretch only, however long the run is, so their thresholds
+    grow with it and not with the whole run's cycles.
+    """
+    if d.damped_period is None:
+        return None
+    return min(cycles, d.natural_angular_frequency * d.damped_period / math.pi)
+
+
 def _checks(
-    solver: SolverSettings, diag: Diagnostics, sol: OscillatorSolution
+    solver: SolverSettings,
+    diag: Diagnostics,
+    sol: OscillatorSolution,
+    decay_cycles: float | None,
+    *,
+    free_underdamped: bool,
 ) -> list[ValidationCheck]:
     cycles = diag.cycles
     checks = [
@@ -408,7 +435,7 @@ def _checks(
                 "Time between maxima = T_d (exact)",
                 diag.free_decay_period_residual,
                 solver,
-                cycles,
+                decay_cycles if decay_cycles is not None else cycles,
                 "w0 |(t2 - t1) - T_d| for the first two maxima of the free decay (located by "
                 "an event on v = 0); exactly 0 for the true motion (OR4).",
             )
@@ -420,9 +447,34 @@ def _checks(
                 "Ratio of successive maxima = e^(-gamma T_d) (exact)",
                 diag.free_decay_ratio_residual,
                 solver,
-                cycles,
+                decay_cycles if decay_cycles is not None else cycles,
                 "|x2 - e^(-gamma T_d) x1| / X for the first two maxima of the free decay; "
                 "exactly 0 for the true motion (OR4).",
+            )
+        )
+    if free_underdamped and diag.free_decay_period_residual is None:
+        # A free underdamped run whose first two maxima could not be used: say so, instead of
+        # silently showing fewer checks (review 2026-11-10, item 6). The decision uses the
+        # computed maxima, since the exact ones are not located by this model.
+        second = float(sol.maxima_x[1]) / sol.scale if len(sol.maxima_x) >= 2 else 0.0
+        reason = (
+            f"the solver located {len(sol.maxima_x)} maxima"
+            if len(sol.maxima_x) < 2
+            else f"the second maximum is below {FREE_DECAY_MIN_MAXIMUM:g} X, where its "
+            "located time is set by the solver's tolerance, not by the motion"
+        )
+        checks.append(
+            ValidationCheck(
+                id="free_decay_not_checked",
+                label="Free-decay checks (not available)",
+                value=second,
+                threshold=None,
+                passed=None,
+                kind="informational",
+                note="Value: the second computed maximum as a fraction of X (0 if there is "
+                "none). The period and ratio of successive maxima (exact identities of a "
+                f"free decay) are not checked in this run: {reason}. Decided from the "
+                "computed maxima; lengthen the run or lower the damping to get the checks.",
             )
         )
     if diag.remaining_transient is not None:
@@ -479,10 +531,36 @@ def _series(
     )
 
 
+# Offsets from the amplitude peak, in units of gamma (half the peak's width 2 gamma), at which
+# the curve gets extra points: enough to draw the peak's shape whatever Q is.
+_PEAK_OFFSETS = (0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0)
+
+
+def _with_peak(grid: FloatArray, p: OscillatorInputs, steady: SteadyState) -> FloatArray:
+    """The evenly spaced grid plus the peak w_r and points around it at +-gamma x offsets.
+
+    The grid's spacing is max(3 w0, 1.2 w) / 240, at least w0 / 80, while the peak is only
+    2 gamma = w0 / Q wide: for a light damping (Q up to 1e4) or a fast drive (w up to 100 w0)
+    the even grid steps over the peak and the curve shows it too low or not at all (review
+    2026-11-10). Each added point is still the exact formula at that frequency. With no
+    peak (zeta >= 1/sqrt 2: A falls from w = 0) the grid is returned unchanged.
+    """
+    w_r = steady.peak_angular_frequency
+    if w_r is None:
+        return grid
+    gamma = p.damping_coefficient / (2 * p.mass)
+    extra = [w_r]
+    for k in _PEAK_OFFSETS:
+        extra += [w_r - k * gamma, w_r + k * gamma]
+    inside = [x for x in extra if 0.0 < x < float(grid[-1])]
+    merged: FloatArray = np.unique(np.concatenate([grid, np.array(inside, dtype=np.float64)]))
+    return merged
+
+
 def _resonance(p: OscillatorInputs, steady: SteadyState | None) -> ResonanceCurve | None:
     if steady is None:  # undriven, or b = 0 (A has a pole at w0)
         return None
-    w = analytical.resonance_frequencies(p, RESONANCE_POINTS)
+    w = _with_peak(analytical.resonance_frequencies(p, RESONANCE_POINTS), p, steady)
     amplitude, phase = analytical.resonance_curve(p, w)
     return ResonanceCurve(w.tolist(), amplitude.tolist(), phase.tolist())
 
@@ -529,7 +607,7 @@ def run(
         free_decay_period_residual=period_residual,
         free_decay_ratio_residual=ratio_residual,
         remaining_transient=_remaining_transient(p, steady, duration),
-        cycles=duration * max(w0, p.drive_angular_frequency) / (2 * math.pi),
+        cycles=analytical.cycles(p, duration),
         stiffness_number=stiffness,
     )
     numerical_summary = NumericalSummary(
@@ -548,7 +626,13 @@ def run(
         steady_state=steady,
         numerical=numerical_summary,
         diagnostics=diagnostics,
-        checks=_checks(solver, diagnostics, sol),
+        checks=_checks(
+            solver,
+            diagnostics,
+            sol,
+            _free_decay_cycles(d, diagnostics.cycles),
+            free_underdamped=p.drive_amplitude == 0 and d.regime == "underdamped",
+        ),
         series=_series(p, sol, duration, n_samples),
         resonance=_resonance(p, steady),
         elapsed_ms=(time.perf_counter() - start) * 1e3,

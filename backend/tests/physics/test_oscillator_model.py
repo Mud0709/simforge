@@ -56,7 +56,8 @@ Interface the builder implements (module ``simforge.physics.oscillator.model``):
         n_rhs_evaluations, its note giving the cycles and the stiffness number). Every
         non-informational check has threshold = FACTOR (rtol + atol)(1 + ERROR_GROWTH_PER_CYCLE
         cycles) + FLOOR with the model's own constants equal to oscillator_thresholds', and its
-        note contains "uninformative" exactly when that threshold exceeds 1.
+        note contains "uninformative" exactly when that threshold exceeds 1; passed is then
+        None (no verdict), otherwise value <= threshold.
 """
 
 from __future__ import annotations
@@ -97,7 +98,7 @@ EXPLICIT_STIFFNESS_LIMIT = 1e4  # plan D6; the shared constant of projectile.mod
 
 DIAGNOSTIC_IDS = {"displacement_error", "velocity_error", "energy_balance"}
 FREE_DECAY_IDS = {"free_decay_period", "free_decay_ratio"}
-INFORMATIONAL_IDS = {"steady_state_reached", "cost"}
+INFORMATIONAL_IDS = {"steady_state_reached", "cost", "free_decay_not_checked"}
 PAIR_IDS = {TIGHTEST: "tightest", DEFAULT: "default", MIDDLE: "middle", LOOSEST: "loosest"}
 
 
@@ -169,6 +170,11 @@ def assert_checks_pass(
     driven_damped = p.drive_amplitude > 0 and p.damping_coefficient > 0
     assert ("steady_state_reached" in checks) == driven_damped
     free_underdamped = p.drive_amplitude == 0 and osc.derived(p).regime == "underdamped"
+    # A free underdamped run either has both free-decay checks or says why not (review
+    # 2026-11-10, item 6); no other run mentions them.
+    has_decay = set(checks) >= FREE_DECAY_IDS
+    assert has_decay or not FREE_DECAY_IDS & set(checks)
+    assert ("free_decay_not_checked" in checks) == (free_underdamped and not has_decay)
     if not free_underdamped:
         assert not FREE_DECAY_IDS & set(checks)
     elif pair != LOOSEST:
@@ -187,8 +193,9 @@ def assert_checks_pass(
         # Same formula and constants; the model may group the products differently: 8 eps.
         assert check.threshold == rel_approx(expected, 8 * EPS)
         record_property(f"{check.id}_over_threshold", check.value / check.threshold)
-        assert check.passed is True, f"{check.id}: {check.value:.3g} > {check.threshold:.3g}"
-        assert check.value <= check.threshold
+        assert check.value <= check.threshold, f"{check.id}: {check.value:.3g}"
+        # A threshold above 1 cannot fail, so it gives no verdict (review 2026-11-10).
+        assert check.passed is (None if check.threshold > 1.0 else True)
         # Plan (slice 2 review notes): a threshold above 1 in scaled units says nothing.
         assert ("uninformative" in check.note.lower()) == (check.threshold > 1.0)
     record_property("max_v_over_w0X", max_speed_ratio(run))

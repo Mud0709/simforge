@@ -62,8 +62,16 @@ CheckKind = Literal[
 # Displacement error: max |x - x_exact| / X over the step nodes.
 # Worst needed 4.0 (seeded random run: w = 0.016 w0, b = 0, RK45 at the loosest pair); worst
 # value / threshold 0.10 (zeta = 3.1, DOP853, default pair); grid worst 0.066.
+# Floor raised from 1e-9 to 5e-9 (review 2026-11-10). The slice 2 review found a corner the
+# 1608 runs missed: undamped, from rest, w = 100 w0, 500 cycles, tightest pair. Measured there
+# (same machine): DOP853 7.33e-10 of X (5.4e5 evaluations), RK45 3.0e-11, Radau 1.1e-10 (which
+# took 792 s). RK45 and Radau show the exact solution is good to <= 3e-11 there, so the
+# 7.3e-10 is DOP853's own accumulated rounding at rtol = 1e-13, which the (rtol + atol) term
+# cannot cover. With 1e-9 the value / threshold was 0.195 (margin 5.1x); 5e-9 is the smallest
+# 1-2-5 floor giving the rule's 10x (7.33e-10 / 7.76e-9 = 0.094). It matters only below about
+# rtol + atol = 1e-11 x cycles, where the first term is smaller than the floor.
 DISPLACEMENT_ERROR_FACTOR = 50.0
-DISPLACEMENT_ERROR_FLOOR = 1e-9
+DISPLACEMENT_ERROR_FLOOR = 5e-9
 # Velocity error: max |v - v_exact| / (w0 X) over the step nodes (V = w0 X, author 2026-11-09).
 # Worst needed 30 (random run, overdamped zeta = 3.1, DOP853, default pair: the fast start);
 # worst value / threshold 0.064 there; grid worst 0.049 (overdamped-free, DOP853, default).
@@ -84,11 +92,18 @@ ENERGY_BALANCE_FLOOR = 1e-9
 # Worst needed 76 (zeta = 0.5, x0 = 0.1 m, v0 = -1 m/s, DOP853, default pair), with the
 # model's rule that x2 >= 1e-3 X (model.FREE_DECAY_MIN_MAXIMUM: without it a correct solve
 # reached 1e9 (rtol + atol) at zeta = 0.9, where x2 ~ 1e-11 X). Worst value / threshold 0.077.
-FREE_DECAY_PERIOD_FACTOR = 1e3
+# Re-measured 2026-11-10 (review item 3) with the cycles counted only up to the second maximum
+# (free_decay_cycles below), not over the whole run: 1680 free decays (zeta 0.01 to 0.99, five
+# starts, three methods, four pairs, runs of 3 and of 40 damped periods; 630 had no resolvable
+# second maximum). Worst needed 274 (zeta = 0.3, x0 = 0.1 m, v0 = -1 m/s, DOP853, loosest
+# pair, the 40-period run), so 5e3 (was 1e3 with the whole run's cycles).
+FREE_DECAY_PERIOD_FACTOR = 5e3
 FREE_DECAY_PERIOD_FLOOR = 1e-9
 # Free-decay ratio: |x2 - e^{-gamma T_d} x1| / X for the first two interior maxima.
 # Worst needed 1.8 (zeta = 1.6e-4, RK45, loosest pair); worst value / threshold 0.089.
-FREE_DECAY_RATIO_FACTOR = 20.0
+# Re-measured 2026-11-10 as the period above: worst needed 2.04 (zeta = 0.01, RK45, loosest
+# pair), so 50 (was 20 with the whole run's cycles).
+FREE_DECAY_RATIO_FACTOR = 50.0
 FREE_DECAY_RATIO_FLOOR = 1e-9
 # Growth of every threshold with the number of cycles (plan Risks: phase error accumulates).
 # Measured linear growth: displacement error / (rtol + atol), undamped, default pair, 100 and
@@ -128,9 +143,13 @@ TOLERANCE_PAIRS: tuple[tuple[float, float], ...] = (TIGHTEST, DEFAULT, MIDDLE, L
 
 
 def cycles(p: osc.OscillatorInputs, duration: float) -> float:
-    """duration * max(w0, w) / (2 pi): the run's length in cycles (plan D6), dimensionless."""
+    """duration * max(w0, w) / (2 pi): the run's length in cycles (plan D6), dimensionless.
+
+    w counts only when the run is driven: with F0 = 0 it multiplies a force of 0 and has no
+    effect on the motion (review 2026-11-10, item 4). Written out here, not imported."""
     w0 = math.sqrt(p.spring_constant / p.mass)
-    return duration * max(w0, p.drive_angular_frequency) / (2 * math.pi)
+    w = p.drive_angular_frequency if p.drive_amplitude != 0 else 0.0
+    return duration * max(w0, w) / (2 * math.pi)
 
 
 def threshold(
@@ -138,7 +157,23 @@ def threshold(
 ) -> float:
     """The test's threshold for one check (module docstring), in that check's scaled units."""
     factor, floor = FACTORS[kind]
-    return factor * (rtol + atol) * (1.0 + ERROR_GROWTH_PER_CYCLE * cycles(p, duration)) + floor
+    n_cycles = cycles(p, duration)
+    if kind in ("free_decay_period", "free_decay_ratio"):
+        n_cycles = min(n_cycles, free_decay_cycles(p))
+    return factor * (rtol + atol) * (1.0 + ERROR_GROWTH_PER_CYCLE * n_cycles) + floor
+
+
+def free_decay_cycles(p: osc.OscillatorInputs) -> float:
+    """2 w0 / wd: natural cycles in two damped periods (underdamped only), dimensionless.
+
+    The free-decay checks use the first two maxima. The first is before one damped period
+    T_d = 2 pi / wd (maxima are T_d apart), so the second is before 2 T_d = (2 w0 / wd)
+    natural periods: the error they see has accumulated over at most that many cycles,
+    however long the run goes on afterwards (review 2026-11-10, item 3). Written out here
+    from gamma = b / 2m and wd = sqrt(w0^2 - gamma^2), not imported from the model."""
+    w0_sq = p.spring_constant / p.mass
+    gamma = p.damping_coefficient / (2 * p.mass)
+    return 2.0 * math.sqrt(w0_sq) / math.sqrt(w0_sq - gamma * gamma)
 
 
 # --- The run catalogue ----------------------------------------------------------------------

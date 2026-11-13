@@ -45,8 +45,9 @@ reversible record).
 - No authentication, paid APIs, secrets, new services or new dependencies.
 - Never fabricate: report only checks that ran. Never skip, weaken, mark as expected-to-fail or
   delete a test to get green, and never loosen a tolerance without its justification.
-- Never add to `docs/LEARNING_LOG.md` (needs the author's approval); queue drafts under
-  "Open decisions" in `docs/HANDOFF.md`.
+- Never add an approved entry to `docs/LEARNING_LOG.md`: write it only as a **draft**, by the
+  rule of step 2.4b (heading tagged `DRAFT`, listed under "Open decisions"). Only the author
+  removes the tag, and never edit or remove an entry the author approved.
 
 ## 0b. Budget gate (before any work; keep it cheap)
 Each tick first decides whether it may run. A fresh session cannot read live usage, so the
@@ -117,6 +118,18 @@ and 12:59 UTC), and the git count also catches runs the author fires by hand.
    if the session has GitHub tools; otherwise write "PR not opened (no GitHub access in this
    session): the author opens it" under "Next action". **Never merge**, whatever CI says: the
    author merges.
+4b. **The learning-log draft after a merge** (the author's rule of 2026-11-10). If a pull
+   request merged into `origin/main` is not in the log yet, drafting its entry is this tick's
+   whole unit, before any roadmap work. Test: for each `Merge pull request #N` subject in
+   `git log --first-parent --merges origin/main --format=%s`, `#N` must appear in
+   `docs/LEARNING_LOG.md`; take the unlogged ones together as one entry. Write it at the top of
+   the log, newest first, in the log's format (merged commit and date from git, what it does,
+   key concepts, decisions and trade-offs, revisit, next), from the "Learning handoff" of
+   `docs/HANDOFF.md`, the merge's diff stat and the journal entries of that step; state only
+   what those show. Its heading ends with ` (DRAFT, awaiting the author)`. Add one line under
+   "Open decisions": "Learning-log draft for PR #N: read it, edit or approve (remove the
+   DRAFT tag)". No subagents, no code; checks: `python3 scripts/doc_index.py --check`. It
+   counts as a working run. If a draft for that PR is already there, this rule does not match.
 5. **The 🔜 roadmap step**, Track B order. Do not start a new step while the branch's PR still
    holds an earlier, unmerged step: one capability per PR (`CLAUDE.md`). Then, until it is
    merged, only finish or fix that PR, or plan the next step in the journal (no code).

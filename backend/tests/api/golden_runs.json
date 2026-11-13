@@ -275,8 +275,8 @@
    }
   },
   "model_id": "physics.projectile.quadratic_drag",
-  "model_version": "1.0.0",
-  "output_digest": "4bf3fc1faf16fffd4e732d4ff7440d6277ea2ccd3acdd46e3a54df4fbe6cb63c",
+  "model_version": "1.0.1",
+  "output_digest": "38af592a953de6c2f5ac6e50126137d37cb35e49f7f213e1ed49c038590a1690",
   "summary": {
    "diagnostics": {
     "drag_time_bound": 0.7367202302308717,
@@ -329,8 +329,8 @@
    }
   },
   "model_id": "physics.projectile.quadratic_angle_sweep",
-  "model_version": "1.0.0",
-  "output_digest": "67e97f85646f58ea8ae240c7f48f8d0d76491312174c32e571f400b5473cee01",
+  "model_version": "1.0.1",
+  "output_digest": "e4cbb404f24f01ad99e3fb0760e3353c6cd99b9c271a5a0e69047c54bcc2f8de",
   "summary": {
    "best_angle_deg": 39.40473489594955,
    "best_angle_uncertainty_deg": 0.0021910266746024087,

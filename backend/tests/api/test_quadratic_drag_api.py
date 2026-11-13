@@ -44,7 +44,7 @@ def test_default_request_returns_a_complete_labelled_result(client: TestClient) 
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["model"]["id"] == MODEL_ID
-    assert body["model"]["version"] == "1.0.0"
+    assert body["model"]["version"] == "1.0.1"
     assert body["units"]["drag_constant"] == "kg/m"
     assert {a["id"] for a in body["assumptions"]} >= {"point_mass", "quadratic_drag"}
     assert "linear_drag" not in {a["id"] for a in body["assumptions"]}

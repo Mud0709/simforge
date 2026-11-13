@@ -55,7 +55,7 @@ from simforge.physics.projectile.schemas import ErrorMetric, NumericalResult, So
 
 MODEL_INFO = ModelInfo(
     id="physics.projectile.quadratic_drag",
-    version="1.0.0",
+    version="1.0.1",
     name="Projectile motion with quadratic drag",
     description="2-D point-mass projectile under uniform gravity and quadratic drag "
     "F = -c|v|v. No exact 2-D solution exists: an adaptive Runge-Kutta integration is checked "
@@ -358,17 +358,29 @@ def _threshold(accuracy: float) -> float:
     return GLOBAL_ERROR_FACTOR * accuracy + ACCURACY_FLOOR
 
 
+UNINFORMATIVE_NOTE = (
+    " Uninformative at these tolerances: the threshold allows an error larger than the "
+    "quantity itself (above 100%), so the check could not fail and no verdict is given; "
+    "tighten rtol and atol for a meaningful check."
+)
+
+
 def _diagnostic(
-    check_id: str, label: str, value: float, threshold: float, note: str
+    check_id: str, label: str, value: float, threshold: float, note: str, *, allowance: float
 ) -> ValidationCheck:
+    """A graded check. ``allowance`` is the error the threshold tolerates, as a fraction of
+    the quantity checked (the threshold itself for a residual, threshold - 1 for a bound).
+    Above 1 the check cannot fail in any meaningful sense (rtol up to 1e-3 gives 1e4 x rtol =
+    10), so it is reported without a verdict (``passed`` None) instead of as passed."""
+    informative = allowance <= 1.0
     return ValidationCheck(
         id=check_id,
         label=label,
         value=value,
         threshold=threshold,
-        passed=value <= threshold,
+        passed=(value <= threshold) if informative else None,
         kind="numerical_diagnostic",
-        note=note,
+        note=note if informative else note + UNINFORMATIVE_NOTE,
     )
 
 
@@ -389,6 +401,7 @@ def _checks(
             tol,
             "max |KE + PE + W - E0| / E0 over the step nodes, with W integrated from c|v|^3 "
             f"independently of the force. Exactly 0 for the true motion. Threshold: {factor}.",
+            allowance=tol,
         )
     ]
     residual = diagnostics.max_invariant_residual
@@ -405,16 +418,18 @@ def _checks(
             )
         )
     else:
+        invariant_tol = _threshold(_invariant_accuracy(setup, solver))
         checks.append(
             _diagnostic(
                 "hodograph_invariant",
                 "Hodograph invariant I is constant",
                 residual,
-                _threshold(_invariant_accuracy(setup, solver)),
+                invariant_tol,
                 "max |I - I0| / max(1/vx^2) over the step nodes, I = 1/vx^2 + (kappa/g)"
                 "[v vy/vx^2 + asinh(vy/vx)]: the one check here that tests the coupling of x "
                 "and y through |v|. Constant for the true motion. Threshold: "
                 f"{GLOBAL_ERROR_FACTOR:g} x (rtol + atol/min(vx0, v_t)) + {ACCURACY_FLOOR:g}.",
+                allowance=invariant_tol,
             )
         )
     if setup.drag_constant > 0:
@@ -427,6 +442,7 @@ def _checks(
                 1.0 + tol,
                 "Largest speed on the step nodes divided by max(v0, v_t); proved <= 1 for the "
                 "true motion (R7 i). Threshold: 1 + " + factor + ".",
+                allowance=tol,
             )
         )
     checks.append(
@@ -437,6 +453,7 @@ def _checks(
             1.0 + tol,
             "Numerical flight time divided by the proved bound T_bound (R7 ii), which is "
             "exact in vacuum and loose with drag. Threshold: 1 + " + factor + ".",
+            allowance=tol,
         )
     )
     if vertical is not None and vertical.flight_time.relative is not None:
@@ -448,6 +465,7 @@ def _checks(
                 tol,
                 "Relative error of the numerical flight time against the exact R3 value "
                 f"(tan up, tanh down). Threshold: {factor}.",
+                allowance=tol,
             )
         )
     checks.append(

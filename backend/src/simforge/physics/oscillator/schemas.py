@@ -13,6 +13,7 @@ slice 3). Combined rules, each refused with a message saying what to change:
 * Q = sqrt(mk)/b at most 1e4 when b > 0 (``analytical.MAX_QUALITY_FACTOR``, slice 1's
   decision A), and the other representability rules of ``analytical.OscillatorInputs``;
 * at most ``model.MAX_CYCLES`` cycles, duration max(w0, w) / 2 pi (measured in slice 2);
+  w counts only when the run is driven (F0 > 0), here and in the next rule;
 * max(w0, w, gamma) duration at least ``analytical.MIN_DURATION_RATE_PRODUCT`` (1);
 * not all of x0, v0 and F0 zero (nothing would move).
 
@@ -83,7 +84,8 @@ class OscillatorParameters(StrictModel):
                 f"the damping rate gamma = b/2m = {gamma:.3g} 1/s is above the "
                 f"{MAX_DRAG_RATE:g} 1/s limit; lower damping_coefficient or raise mass"
             )
-        w = self.drive_angular_frequency
+        # A drive that is off (F0 = 0) has no effect, so its frequency limits nothing.
+        w = self.drive_angular_frequency if self.drive_amplitude != 0 else 0.0
         if w > MAX_DRIVE_RATIO * w0:
             raise ValueError(
                 f"the drive frequency w = {w:.3g} rad/s is above {MAX_DRIVE_RATIO:g} w0 = "
@@ -95,7 +97,7 @@ class OscillatorParameters(StrictModel):
                 "all 0; set at least one of them"
             )
         inputs = self.to_inputs()  # raises ValueError for Q > 1e4 and unrepresentable inputs
-        cycles = self.duration * max(w0, w) / (2 * math.pi)
+        cycles = analytical.cycles(inputs, self.duration)
         if cycles > MAX_CYCLES:
             raise ValueError(
                 f"the run lasts {cycles:.4g} cycles (duration max(w0, w) / 2 pi), above the "
@@ -200,7 +202,7 @@ class OscillatorDiagnostics(StrictModel):
         description="The transient left at the end as a fraction of A (exact); null unless "
         "driven and damped"
     )
-    cycles: float = Field(description="duration max(w0, w) / 2 pi")
+    cycles: float = Field(description="duration max(w0, w) / 2 pi (w0 alone when F0 = 0)")
     stiffness_number: float = Field(
         description="(gamma + beta) duration when overdamped, w0 duration otherwise"
     )

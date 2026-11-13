@@ -47,7 +47,8 @@ After a meaningful task, reply briefly: **What changed** (2-3 sentences) · **Wh
 **"Recommended skill for the next step"** (or "none needed") · **one** skippable checkpoint question.
 Then rewrite `docs/HANDOFF.md` from its template (overwrite; about 60 lines at most), keeping
 done locally / committed / pushed / PR open / merged distinct; open decisions live only there.
-After a merge its learning handoff is the `docs/LEARNING_LOG.md` draft, added on approval.
+After a merge the learning handoff becomes a `DRAFT` entry in `docs/LEARNING_LOG.md` (the
+autopilot's first tick after a merge writes it); only the author removes the tag.
 
 ## Keeping cost down without cutting corners
 - **Token waste:** re-reading conversations or whole documents, restating what a document holds,

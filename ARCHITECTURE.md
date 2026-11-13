@@ -250,6 +250,14 @@ became the second model to report checks, the `ValidationCheck` schema moved to
 `core/schemas.py` (its OpenAPI name is unchanged) and the table moved from `SolowResults` to a
 shared `ChecksTable` component; the Solow page renders exactly as before.
 
+**A check that cannot fail gives no verdict** (review 2026-11-10). A threshold that allows an
+error larger than the quantity itself (above 100%) is reported with `passed = null` and a
+note, not as passed: the quadratic-drag model and its sweep (v1.0.1, a version bump because
+stored responses can differ) and the oscillator. A sweep's aggregate is failed if any run
+failed, else no verdict if any run had none, else passed. The three Phase 0 physics models
+(projectile, integrators, linear sweep) still return no `checks`; that is planned with
+roadmap 2.4 (`docs/plans/ROADMAP_2_4_NOTES.md`).
+
 ### 13. Imported datasets live for one request; their identity is a hash
 An uploaded CSV is sent as base64 inside the JSON body, so it goes through the same strict
 schema, OpenAPI contract and error handling as every other request. (A multipart form upload
@@ -374,7 +382,7 @@ Visualisation; the CSV buttons sit in each model's Results (the angle sweep's in
 and the experiment log has an "Export JSON" link per run.
 
 ### 18. Quadratic drag is a new model, not an option (roadmap 2.1)
-`physics.projectile.quadratic_drag` v1.0.0 has its own parameters, endpoint, registry entry,
+`physics.projectile.quadratic_drag` (v1.0.0; now v1.0.1, see below) has its own parameters, endpoint, registry entry,
 page and four modules (`quadratic_reference.py`, `quadratic_numerical.py`,
 `quadratic_model.py`, `quadratic_schemas.py`); the plan and its amendments are in
 `docs/plans/ROADMAP_2_1_PLAN.md`. The choices that shape the code:
@@ -405,7 +413,7 @@ page and four modules (`quadratic_reference.py`, `quadratic_numerical.py`,
   floored at 1e-10.
 
 ### 19. The quadratic-drag angle sweep is a new model built from 2.1 runs (roadmap 2.2)
-`physics.projectile.quadratic_angle_sweep` v1.0.0 lives in `quadratic_angle_sweep.py`, with
+`physics.projectile.quadratic_angle_sweep` (v1.0.0; now v1.0.1) lives in `quadratic_angle_sweep.py`, with
 its request and response appended to `quadratic_schemas.py` and its route and `ModelEntry`
 appended to `api/routes/physics.py`; the plan and its amendments are in
 `docs/plans/ROADMAP_2_2_PLAN.md`. The choices that shape the code:
