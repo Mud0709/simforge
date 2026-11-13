@@ -134,28 +134,29 @@ continues in the next run.
 layout, test cases, UI wording, small refactors): record each under "Decisions taken for you"
 in the journal, with the alternative and how to reverse it.
 
-**Design decisions: a plan checked by three fresh reviewers** (the author's rule of
-2026-11-07, replacing self-accepted defaults). For a new step's API contracts, schemas,
+**Design decisions: a plan checked by fresh reviewers** (the author's rule of
+2026-11-07, replacing self-accepted defaults; reviewer count cut on 2026-11-13). For a new step's API contracts, schemas,
 architecture and scientific method:
-1. A planner (`opus`, high) writes `docs/plans/ROADMAP_<step>_PLAN.md`. It first answers, under
+1. The `planner` agent (`opus`, high) writes `docs/plans/ROADMAP_<step>_PLAN.md`. It first answers, under
    "Before deciding": what a professional in the field (a computational physicist, economist or
    quant researcher) would do that a naive plan would not; what raw material to start from
    (code, references, data); which methods and tools; and what, other than Claude saying so,
    would prove the result right. Then the decisions (options, choice, reason), seams, slices
    and risks; not an essay. **Every slice ends with an Acceptance block**: the exact test files
    and commands, and 3-5 yes/no checks that running those commands decides.
-2. Three fresh reviewers (`opus`, high), in parallel, each given only the plan, the relevant
-   code and one angle: (a) scientific validity and independent references; (b) numerical
+2. **One** `reviewer` agent (`opus`, high), given only the plan, the relevant code and all three
+   angles; **three** in parallel, one angle each, only when the step touches the scientific core
+   (models, numerics, references, tolerances). Angles: (a) scientific validity and independent references; (b) numerical
    method and tolerances; (c) scope against `ROADMAP.md` and the Track A/B rule, and whether
    the Acceptance blocks are executable and sufficient. Each labels every finding
    **must-fix**, **worth doing** or **overthinking**.
 3. Only must-fix findings change the plan, applied by the same planner (resumed with
-   `SendMessage`, so no fifth subagent); worth-doing ones go to its "Not done" list. One round,
+   `SendMessage`, so no extra subagent); worth-doing ones go to its "Not done" list. One round,
    no re-review. Journal each decision under "Decisions taken for you" with how to reverse it.
    Any plan decision or finding that is a genuine stop (below) stops instead. The plan's seams
    and Acceptance blocks are the confirmed seams for `tdd`. A plan written before 2026-11-07
    (2.3) keeps its decisions; its missing Acceptance block is added one slice at a time by the
-   planner, checked by reviewer (c) alone.
+   planner, checked by one `reviewer` on angle (c) alone.
 
 **Genuine stops: these need the author now.**
 - changing the roadmap's scope or order, or Track A/B (the preservation rule);
@@ -175,14 +176,15 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
 ## 4. Do the work, then verify it
 - **Delegate the unit of work; the run itself (Sonnet 5.5, set on the scheduled task) never
   writes production code or a plan.** It keeps to the budget gate, choosing the unit,
-  delegating, verifying and journaling. Give each subagent the unit, the relevant files,
+  delegating, verifying and journaling (and the ladder retries below). Call subagents by name:
+  `planner`, `reviewer`, `test-writer`, `builder` (`.claude/agents/`). Give each subagent the unit, the relevant files,
   `CLAUDE.md`'s standards, the hard rules above, and "do not commit or push".
 - **Acceptance is executable** (the author's rule of 2026-11-07). A slice is done only when
   the run itself runs every command in its Acceptance block, they pass, and every yes/no
   check is yes; journal the commands and results. A slice without an Acceptance block is not
   built (step 3 says who adds one). The block and the tests it names are the bar: if those
-  tests do not exist, a **test writer** writes them first (`opus`, high for a risky slice;
-  `sonnet`, medium otherwise), they must fail on the current code, and the run records their
+  tests do not exist, the `test-writer` agent writes them first (model `opus`, effort high for a risky
+  slice; its default `sonnet`, effort medium otherwise), they must fail on the current code, and the run records their
   `git hash-object`. The builder may add other tests but **may not touch the Acceptance block
   or those files**: before running Acceptance the run checks both unchanged; a change is a
   genuine stop.
@@ -191,18 +193,22 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   clear cause; `high` for a **risky** slice (scientific core, numerics, inputs and limits,
   uploads, stored data) or an unclear failure; if unsure, treat it as risky. A `high` unit
   starts on `opus`, high (the author's rule of 2026-11-02, kept on 2026-11-08); a `low` or
-  `medium` unit starts on `sonnet`. (1) The starting model at the unit's effort; (2) if
-  acceptance fails, once more on the same model one effort higher, at most high,
-  continuing from the failed attempt and its output; (3) then, if not yet on it, once with
-  `opus`, high; (4) then it is a failure: the `failures`
+  `medium` unit starts on `sonnet`. (1) The `builder` agent on the starting model at the
+  unit's effort; (2)-(3) if acceptance fails, **retries run in the main session, not as new
+  subagents** (the author's rule of 2026-11-13): the run fixes the failure itself from the
+  builder's report and the failing output, at most twice, re-running Acceptance each time, and
+  journals the rung as "main session"; (4) then it is a failure: the `failures`
   counter in STATE and the two-tick rule; the next tick restarts from the test writer. Never
   parallel builders. Otherwise Opus is used only for planning, plan reviews, risky acceptance
   tests and reviews.
-- **Reviews.** A risky slice gets a fresh review (`opus`, high; a security review for inputs,
-  limits, uploads and stored data), and the whole step gets one before it is marked complete.
-  A reviewer is a fresh-context `general-purpose` agent asked to find bugs and false claims.
+- **Reviews: one `reviewer` per tick** (the author's rule of 2026-11-13), unless the slice
+  touches the scientific core, which may take a second. A risky slice gets a fresh review
+  (`opus`, high; a security review for inputs, limits, uploads and stored data), and the whole
+  step gets one before it is marked complete.
   Must-fix findings are fixed before committing by the builder at its current rung (a
   scientific error moves it to `opus`, high), then Acceptance runs again.
+- **Reading files (every agent and the run):** `grep -n` the symbol or heading, then
+  `sed -n 'a,bp'` that range; never `cat` a whole file. Large docs open by `docs/INDEX.md` ranges.
 - **At most 4 subagents per tick** (`CLAUDE.md`). If the fresh review of a risky slice would
   exceed the cap, commit the slice once acceptance passes and mark it "review pending" in
   STATE (not in the handoff's open decisions); the next tick's unit is that review and its

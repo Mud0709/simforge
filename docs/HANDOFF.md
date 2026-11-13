@@ -1,5 +1,5 @@
-Last updated: bfbf963 2026-11-09
-Working branch: claude/laughing-brahmagupta-50jkiy
+Last updated: (this commit) 2026-11-13
+Working branch: claude/context-gtqp03
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
 "Working branch" from this file on main. Mark an open decision "(blocks: <unit>)" only if
@@ -9,11 +9,13 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review and merge PR #17 (workflow upgrades + 2.3 slice 1; CI runs on it; you merge). Run
-/context in a fresh session to confirm the numbers below. Then 2.3 slice 2 (its first unit:
-add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
+Open a fresh session and run `/context`; compare with 71.6k (headless measurement says ~35k).
+Then review the draft PR for this branch (you merge). Then 2.3 slice 2 (first unit: add the
+Acceptance block). Autopilot paused: say "resume autopilot" when ready.
 
 ## Open decisions
+- Ladder retries now run in the main session (your rule). The scheduled run is Sonnet 5.5, so a failed `high` unit no longer gets an Opus retry, and the run now writes fixes itself (an exception to "the run never writes production code"). Keep, or let rung 3 resume the builder on Opus via `SendMessage`? Recommend: keep, review after two ticks.
+- Denied tools are gone from every session in this repo, including `read_documentation`, `get_environment`, `create_trigger` and Claude Docs / Drive / Hugging Face / Coursera. Un-deny one in `.claude/settings.json` when needed.
 - Ruleset on `main`: "Require status checks" has no checks selected. Add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`. Not blocking.
 - Branch clean-up (your clicks): delete `backup/main-before-rewrite`, `backup/branch-before-rewrite` and `claude/epic-sagan-30vpv3`. Not blocking.
 - Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
@@ -22,42 +24,25 @@ add the Acceptance block). Autopilot paused: say "resume autopilot" when ready.
 - Replay: should differing step counts be informational rather than "differs"?
 - Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
 
-## Last task: docs as a token-saving backend (author-authorised guard-rail edits, 2026-11-08)
-- **Completed:** (1) ladder: high-effort units start on Opus, low/medium on Sonnet, retries on
-  the same model up to high, then Opus; (2) stored autopilot prompt reads the brief, this file,
-  the newest journal entry and the confirmed findings only (task still paused); (3) one
-  journal file per tick in `docs/journal/` (template, `Journal.base` table for Obsidian),
-  `AUTOPILOT_JOURNAL.md` a closed archive; (4) `scripts/tick_metrics.py` writes test counts,
-  durations and pass/fail (from exit codes) into the entry; (5) `scripts/doc_index.py` →
-  `docs/INDEX.md` (10 docs, 404 sections), stale index fails `check.sh` and the backend tests;
-  (6) folder rules in `backend/`, `frontend/`, `docs/CLAUDE.md` (they load only there; seen
-  working); (7) `.obsidian/` ignored. The new scripts, template and folder files are guard rails.
-- **Context measured (bytes; tokens ≈ bytes/4, an estimate):** a fresh session's project text
-  (root `CLAUDE.md` + start brief) was 10,794 bytes before and 10,826 after: unchanged, since
-  the root keeps the rules that apply everywhere. **Not measured: `/context`** (only the author
-  can run it). The savings are per task: one guide chapter 26.5 KB instead of the 256 KB guide;
-  one journal entry ~1.3 KB instead of the 30 KB archive; folder rules (1.1-1.6 KB each) only
-  where the work is.
-- **Files:** `scripts/doc_index.py`, `scripts/tick_metrics.py`, `scripts/check.sh`,
-  `docs/INDEX.md`, `docs/journal/`, `backend/tests/scripts/`, the four `CLAUDE.md` files,
-  `.claude/skills/autopilot/SKILL.md`, `docs/AUTOPILOT_JOURNAL.md`, `.gitignore`, this file.
-- **Checks run:** backend ruff, format, mypy, `pytest -q` (2088 passed); the 20 script tests
-  (real pytest and Vitest logs, exit codes, failing files, flaky, idempotence); all 404 index
-  ranges checked against their headings; `doc_index.py --check`; `bash -n scripts/check.sh`;
-  the hook (exit 0). One fresh-context review (Opus): 12 findings, all fixed. Not run: the
-  full `scripts/check.sh --e2e` (frontend unchanged). CI: not run (no PR).
-- **State:** committed and pushed; **PR #17 open** (opened 2026-11-09), not merged.
-- **Budget gate check (2026-11-09, read-only):** a fresh run still cannot read usage: the
-  newest run's tool list (2026-11-03 02:59) has no `get_session` or `list_events`; the platform
-  records a five-hour `rate_limit_info` for the session but the run has no tool to read it.
+## Last task: lean start-up context (author's request, 2026-11-13)
+- **Completed:** `.claude/settings.json` denies 27 unused `claude-code-remote` tools, the
+  Claude Docs, Coursera, Google Drive and Hugging Face servers, `Artifact`, `SearchPlugins`,
+  `SuggestPluginInstall`; adds `disableClaudeAiConnectors`. Kept: `get_session`, `list_events`,
+  `get_trigger`, `list_triggers`, `update_trigger`, `send_later`, `send_message`,
+  `subscribe/unsubscribe_pr_activity`, GitHub MCP. New `.claude/agents/` planner, reviewer
+  (read-only), test-writer, builder; the autopilot skill calls them by name, one reviewer per
+  tick (three for a scientific-core plan), retries in the main session, grep-then-`sed -n` rule.
+- **Measured (headless `claude -p`, same session MCP config, question "Reply with exactly OK"):**
+  main session first request 72,244 → 35,290 tokens; default subagent 60,866 → 24,268 (×3, identical);
+  `reviewer` agent 7,568 (×3). Graphify harness not found in the repo; this replaces it.
+- **Note:** in cloud sessions connectors arrive via `--mcp-config`, so `disableClaudeAiConnectors`
+  alone does not remove them; the server-level deny rules do.
+- **Checks run:** JSON valid; deny rules hot-reloaded in this session (tools disappeared);
+  `doc_index.py --check`. Not run: `check.sh --e2e` (no code changed).
+- **State:** committed, pushed, draft PR open; not merged.
 
 ## Learning handoff
-- **What it does:** sessions load a short map and open one section of a large document by its
-  line range; the autopilot's journal is one small file per run whose numbers come from a script.
-- **Why it matters:** reading a 256 KB guide to use one chapter costs ten times the tokens;
-  numbers a model types can be wrong, numbers a parser reads from tool output cannot drift.
-- **Key concept:** an index (a map from topic to location) trades a little upkeep (regenerating
-  it, enforced by a check) for much cheaper lookups.
-- **Trade-off:** every edit to a large document now also regenerates the index, or CI fails.
-- **You should be able to explain:** why the startup context barely changed while per-task
-  reading fell by about ten times.
+- **What it does:** every tool's description is sent with every request; denying unused tools
+  and giving subagents a short tool list shrinks that fixed cost.
+- **Key concept:** fixed vs per-task cost: start-up tokens are paid by every session and subagent.
+- **Trade-off:** a denied tool is unavailable until someone un-denies it.
