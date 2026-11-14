@@ -1,6 +1,61 @@
-# Graphify trial (2026-11-13): does a code graph cut a session's reading cost?
+# Graphify trial: does a code graph cut a session's reading cost?
 
-**Verdict: no clear saving. Not adopted.** Measured on `main` @ 067c3e7 with graphifyy 0.9.108
+**Verdict after two rounds: no. Do not adopt.** Round 2 (2026-11-14, below) was designed to be
+conclusive: 40 runs, native tools, cost read from the transcripts' token usage, blind grading.
+The graph made sessions slightly *more* expensive at the same accuracy.
+
+## Round 2 (2026-11-14): 10 questions × 2 arms × 2 repeats, blind-graded
+
+**Design.** Code: the working branch @ 7a7af47 (229 code files; read-only worktree, so the
+running autopilot was untouched). Ten questions covering every kind a session asks: impact
+(`input_hash`), constants (oscillator thresholds), a frontend-to-backend trace, test coverage,
+an unfamiliar helper (`_on_side`), a same-name trap (two different `vacuum_optimum`s), registry
+structure, error flow, a cross-layer type, and "most depended-on modules" (Graphify's home
+ground). Rubrics with key points were written before any run (`graphify-round2/rubric.md`).
+Each question ran 4 times on Sonnet (the autopilot builder model): with/without the graph, in
+two waves. Agents used their normal tools (Read, Grep, Glob, Bash); the graph arm also had the
+Graphify CLI and its own usage rule. No hooks, no Graphify text in any CLAUDE.md (the global
+one Graphify had written was parked) for either arm. **Cost** = each transcript's summed token
+usage weighted at Sonnet's price ratios (input 1, cache write 1.25, cache read 0.1, output 5).
+**Accuracy**: one fresh Opus grader marked all 40 answers against the rubric, blind to the arm,
+checking doubted claims in the code. Pairs are matched within a wave, so cache effects cancel.
+
+| | Graph | No graph |
+|---|---|---|
+| Rubric score (blind) | 86.0 / 94 (91.5%) | 85.5 / 94 (91.0%) |
+| False claims | **6** | 2 |
+| Cost (all 20 runs, input-token equivalents) | 1,551,910 | 1,496,090 (graph **+3.7%**) |
+| Cost above each wave's fixed start-up | +13% to +17% | baseline |
+| Bytes of tool output read | 252,963 | 174,439 (graph **+45%**) |
+| Tool calls | 63 | 59 |
+
+Paired over the 20 matched runs: cost +6.9% per pair (95% bootstrap CI −0.8% to +15.1%; graph
+dearer in 13/20); bytes read higher in 15/20 (sign test p = 0.04). Accuracy is a tie.
+
+| Q | Graph: score, errors, cost, bytes | No graph: score, errors, cost, bytes |
+|---|---|---|
+| 1 impact of `input_hash` | 9/10, 0, 154k, 19 KB | 9/10, 1, 148k, 26 KB |
+| 2 oscillator thresholds | 9/10, 1, 171k, 41 KB | 9/10, 0, 197k, 50 KB |
+| 3 replay/outputs trace | 10/10, 3, 189k, 35 KB | 10/10, 0, 187k, 30 KB |
+| 4 body-limit tests | 7/10, 2, 137k, 10 KB | 8/10, 0, 132k, 10 KB |
+| 5 `_on_side` | 8/8, 0, 142k, 55 KB | 8/8, 0, 128k, 8 KB |
+| 6 two `vacuum_optimum`s | 10/10, 0, 126k, 17 KB | 9/10, 0, 113k, 7 KB |
+| 7 registry map | 10/10, 0, 222k, 32 KB | 10/10, 0, 198k, 23 KB |
+| 8 `ModelDomainError` | 7/8, 0, 137k, 21 KB | 8/8, 1, 124k, 9 KB |
+| 9 validation checks UI | 8/10, 0, 130k, 17 KB | 6.5/10, 0, 134k, 5 KB |
+| 10 most-imported modules | 8/8, 0, 145k, 6 KB | 8/8, 0, 136k, 6 KB |
+
+**Why.** A graph query returns 3-27 KB of nodes around a name (Q5: 27 KB per query, to find a
+helper grep finds in 0.3 KB), and the agent still greps and reads the lines afterwards: the
+graph adds a step rather than replacing one. Grep is already a precise index on a repo this
+size. On "most-imported modules" both graph runs said the query "returned nothing useful" and
+counted imports with grep. The graph helped on one question (Q2, −13%) and modestly on Q9's
+completeness; neither outweighs the rest. Not tested: repos ten times larger, where it may pay.
+
+Evidence: `docs/trials/graphify-round2/` (rubric, per-run metrics, blind grades, the unblinding
+key, the transcript parser).
+
+## Round 1 (2026-11-13): 5 questions, one run each Measured on `main` @ 067c3e7 with graphifyy 0.9.108
 (PyPI; repository now `Graphify-Labs/graphify`, author safishamsi), code-only build
 (`graphify extract . --code-only`, no model calls), `GRAPHIFY_QUERY_LOG_DISABLE=1`, never `--strict`.
 

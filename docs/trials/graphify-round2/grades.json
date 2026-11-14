@@ -1,0 +1,580 @@
+{
+ "A12": {
+  "q": "Q1",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4 half: names test_registry.py:103 but not the golden digests (golden_runs.json/test_golden_digests.py). Correctly adds replay verdict degradation and frontend fixture."
+ },
+ "A22": {
+  "q": "Q1",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4 half: names test_registry.py:103 but not the golden digests (golden_runs.json/test_golden_digests.py). Correctly adds replay verdict degradation and frontend fixture. Mentions record_version as migration hook (correct)."
+ },
+ "A25": {
+  "q": "Q1",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)",
+   "K5"
+  ],
+  "errors": 1,
+  "error_detail": "Claims a 64-character expectation in the OpenAPI schema (openapi.json:1223,3033); the schema is a plain string with no length constraint.",
+  "notes": "K4 half: names test_registry.py:103 but not the golden digests (golden_runs.json/test_golden_digests.py). Correctly adds replay verdict degradation and frontend fixture."
+ },
+ "A33": {
+  "q": "Q1",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4 half: names test_registry.py:103 but not the golden digests (golden_runs.json/test_golden_digests.py). Correctly adds replay verdict degradation and frontend fixture."
+ },
+ "A10": {
+  "q": "Q2",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: names tests/physics/oscillator_thresholds.py as a mirrored copy, not as the tests' own independent threshold function. Adds FREE_DECAY_MIN_MAXIMUM, _free_decay_cycles, uninformative passed=None (correct)."
+ },
+ "A14": {
+  "q": "Q2",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: names tests/physics/oscillator_thresholds.py as a mirrored copy, not as the tests' own independent threshold function. Correctly locates EXPLICIT_STIFFNESS_LIMIT=1e4 at projectile/model.py:96."
+ },
+ "A19": {
+  "q": "Q2",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: names tests/physics/oscillator_thresholds.py as a mirrored copy, not as the tests' own independent threshold function. Adds zero-scale ModelDomainError check (model.py:582-587, correct)."
+ },
+ "A27": {
+  "q": "Q2",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 1,
+  "error_detail": "Says constants at L151-160 and ERROR_GROWTH_PER_CYCLE at L160; they are at L145-155 (ERROR_GROWTH_PER_CYCLE at L155).",
+  "notes": "K5 half: names tests/physics/oscillator_thresholds.py as a mirrored copy, not as the tests' own independent threshold function."
+ },
+ "A04": {
+  "q": "Q3",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Pinpoints run_in_threadpool(compute_or_explain) at runs.py:124."
+ },
+ "A09": {
+  "q": "Q3",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 2,
+  "error_detail": "Approximate lines off by more than 3: prepare_rerun 'rerun.py:~62' (def at 58); compare_summaries 'replay.py:~192' (call at 187).",
+  "notes": "Correctly traces compute_or_explain -> entry.compute (runs.py:75)."
+ },
+ "A31": {
+  "q": "Q3",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 1,
+  "error_detail": "Gives physics/oscillator/model.py:571 run() as an example of the model re-run by replay/recompute; the oscillator is not registered, so it can never be re-run there.",
+  "notes": ""
+ },
+ "A40": {
+  "q": "Q3",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": ""
+ },
+ "A05": {
+  "q": "Q4",
+  "score": 4,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Omits test_other_labs_are_unaffected_by_the_body_limit (:332) but lists the other six; notes registration at main.py:42."
+ },
+ "A06": {
+  "q": "Q4",
+  "score": 4,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Omits :332 test; correctly states the at-limit body gives 422."
+ },
+ "A29": {
+  "q": "Q4",
+  "score": 4,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 1,
+  "error_detail": "Lists test_base64_longer_than_the_schema_allows_is_rejected (:264) as an over-limit 413 test; it asserts 422 (schema rejection), not the middleware.",
+  "notes": ""
+ },
+ "A30": {
+  "q": "Q4",
+  "score": 3,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K5"
+  ],
+  "errors": 1,
+  "error_detail": "States all tests that exercise the middleware are in test_quant_api.py; test_replay.py:216 and test_run_outputs.py:216 also hit it (413).",
+  "notes": ""
+ },
+ "A11": {
+  "q": "Q5",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Also names derived()'s callers run() (model.py:581) and integrate() (numerical.py:125), correct."
+ },
+ "A24": {
+  "q": "Q5",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": ""
+ },
+ "A32": {
+  "q": "Q5",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": ""
+ },
+ "A35": {
+  "q": "Q5",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": ""
+ },
+ "A02": {
+  "q": "Q6",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Notes docstring mention at quadratic_angle_sweep.py:16."
+ },
+ "A13": {
+  "q": "Q6",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: only implied (each used in the same file). Notes LEARNING_GUIDE.md:2475 excerpt (correct)."
+ },
+ "A34": {
+  "q": "Q6",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 via 'no usages in the frontend or in the API routes'."
+ },
+ "A37": {
+  "q": "Q6",
+  "score": 4.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: only implied. Notes LEARNING_GUIDE.md:2475 excerpt."
+ },
+ "A17": {
+  "q": "Q7",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "All lines verified."
+ },
+ "A20": {
+  "q": "Q7",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "All lines verified."
+ },
+ "A28": {
+  "q": "Q7",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "All lines verified."
+ },
+ "A36": {
+  "q": "Q7",
+  "score": 5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4",
+   "K5"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "All lines verified."
+ },
+ "A07": {
+  "q": "Q8",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4: oscillator raisers and no quant raisers (DatasetError also caught); does not say oscillator is not served yet. Correctly notes only RequestValidationError has an app-level handler."
+ },
+ "A18": {
+  "q": "Q8",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 1,
+  "error_detail": "Gives compute_or_explain at runs.py:55-67; it is at runs.py:70-80.",
+  "notes": "K4: oscillator raisers and 'No Quant Research model raises it'; not-served point missing."
+ },
+ "A38": {
+  "q": "Q8",
+  "score": 3.5,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4 half: oscillator lines only; no quant/DatasetError-instead or not-served point."
+ },
+ "A39": {
+  "q": "Q8",
+  "score": 3.5,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K4 half: oscillator lines only. Notes runs.py:45 comment (correct)."
+ },
+ "A01": {
+  "q": "Q9",
+  "score": 4,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Lists per-model check builders (lines verified)."
+ },
+ "A03": {
+  "q": "Q9",
+  "score": 3.5,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K3",
+   "K4",
+   "K5(0.5)"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "K5 half: notes AngleSweepPanel etc. have no ChecksTable import, hedged."
+ },
+ "A16": {
+  "q": "Q9",
+  "score": 3,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": ""
+ },
+ "A21": {
+  "q": "Q9",
+  "score": 4,
+  "max": 5,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Notes QuadraticDragLab.tsx:206 renders QuadraticSweepValidation (correct)."
+ },
+ "A08": {
+  "q": "Q10",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Counts verified (src import statements)."
+ },
+ "A15": {
+  "q": "Q10",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Main counts match src-only distinct files; the closing remark that counts include test files is inaccurate for the main list (only the 31/15 figures include tests). Not counted as an error."
+ },
+ "A23": {
+  "q": "Q10",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Counts verified."
+ },
+ "A26": {
+  "q": "Q10",
+  "score": 4,
+  "max": 4,
+  "hits": [
+   "K1",
+   "K2",
+   "K3",
+   "K4"
+  ],
+  "errors": 0,
+  "error_detail": "",
+  "notes": "Counts are src+tests statements, all verified; ranking puts projectile package (31) third despite highest count."
+ }
+}

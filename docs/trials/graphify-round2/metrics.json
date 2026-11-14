@@ -1,0 +1,282 @@
+{
+"Q1|A|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 13747,
+"cost": 105944.1,
+"out": 1140
+},
+"Q1|A|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 9870,
+"cost": 112655.65,
+"out": 1420
+},
+"Q2|A|nograph": {
+"tools": 4,
+"g": 0,
+"bytes": 30048,
+"cost": 133701.7,
+"out": 1614
+},
+"Q2|A|graph": {
+"tools": 4,
+"g": 1,
+"bytes": 20414,
+"cost": 128684.4,
+"out": 1755
+},
+"Q3|A|nograph": {
+"tools": 5,
+"g": 0,
+"bytes": 16793,
+"cost": 130030.8,
+"out": 1489
+},
+"Q3|A|graph": {
+"tools": 5,
+"g": 1,
+"bytes": 18730,
+"cost": 134261.7,
+"out": 1903
+},
+"Q4|A|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 4598,
+"cost": 101250.85,
+"out": 1055
+},
+"Q4|A|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 2899,
+"cost": 107242.8,
+"out": 1103
+},
+"Q5|A|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 4223,
+"cost": 99848.6,
+"out": 916
+},
+"Q5|A|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 26956,
+"cost": 113839.4,
+"out": 841
+},
+"Q6|A|nograph": {
+"tools": 1,
+"g": 0,
+"bytes": 3513,
+"cost": 91923.45,
+"out": 670
+},
+"Q6|A|graph": {
+"tools": 1,
+"g": 1,
+"bytes": 8589,
+"cost": 95235.35,
+"out": 736
+},
+"Q7|A|nograph": {
+"tools": 6,
+"g": 0,
+"bytes": 13668,
+"cost": 139956.15,
+"out": 2090
+},
+"Q7|A|graph": {
+"tools": 6,
+"g": 1,
+"bytes": 13966,
+"cost": 140981.05,
+"out": 2073
+},
+"Q8|A|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 4696,
+"cost": 99512.65,
+"out": 859
+},
+"Q8|A|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 10855,
+"cost": 104762.95,
+"out": 1022
+},
+"Q9|A|nograph": {
+"tools": 3,
+"g": 0,
+"bytes": 2911,
+"cost": 106574.7,
+"out": 1069
+},
+"Q9|A|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 8529,
+"cost": 103653.1,
+"out": 1018
+},
+"Q10|A|nograph": {
+"tools": 3,
+"g": 0,
+"bytes": 2447,
+"cost": 107488.55,
+"out": 1299
+},
+"Q10|A|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 3110,
+"cost": 108424.85,
+"out": 1287
+},
+"Q1|B|nograph": {
+"tools": 3,
+"g": 0,
+"bytes": 11961,
+"cost": 42300.55,
+"out": 1459
+},
+"Q1|B|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 9575,
+"cost": 41006.25,
+"out": 1481
+},
+"Q2|B|nograph": {
+"tools": 5,
+"g": 0,
+"bytes": 20127,
+"cost": 63365.3,
+"out": 1709
+},
+"Q2|B|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 20428,
+"cost": 41962.5,
+"out": 1448
+},
+"Q3|B|nograph": {
+"tools": 5,
+"g": 0,
+"bytes": 12894,
+"cost": 57183.15,
+"out": 1622
+},
+"Q3|B|graph": {
+"tools": 5,
+"g": 1,
+"bytes": 16622,
+"cost": 54395.85,
+"out": 1814
+},
+"Q4|B|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 5795,
+"cost": 30752.9,
+"out": 1077
+},
+"Q4|B|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 7082,
+"cost": 29922.0,
+"out": 852
+},
+"Q5|B|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 3755,
+"cost": 27796.0,
+"out": 853
+},
+"Q5|B|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 27689,
+"cost": 28117.550000000003,
+"out": 986
+},
+"Q6|B|nograph": {
+"tools": 1,
+"g": 0,
+"bytes": 3513,
+"cost": 20589.15,
+"out": 705
+},
+"Q6|B|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 8591,
+"cost": 30896.7,
+"out": 846
+},
+"Q7|B|nograph": {
+"tools": 5,
+"g": 0,
+"bytes": 9781,
+"cost": 57978.05,
+"out": 1859
+},
+"Q7|B|graph": {
+"tools": 7,
+"g": 1,
+"bytes": 17520,
+"cost": 80548.0,
+"out": 2347
+},
+"Q8|B|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 4354,
+"cost": 24250.7,
+"out": 760
+},
+"Q8|B|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 10257,
+"cost": 32582.3,
+"out": 1024
+},
+"Q9|B|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 2466,
+"cost": 26984.850000000002,
+"out": 861
+},
+"Q9|B|graph": {
+"tools": 2,
+"g": 1,
+"bytes": 8475,
+"cost": 26163.95,
+"out": 1049
+},
+"Q10|B|nograph": {
+"tools": 2,
+"g": 0,
+"bytes": 3149,
+"cost": 28657.4,
+"out": 1085
+},
+"Q10|B|graph": {
+"tools": 3,
+"g": 1,
+"bytes": 2806,
+"cost": 36573.95,
+"out": 1333
+}
+}
