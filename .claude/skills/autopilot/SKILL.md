@@ -61,8 +61,10 @@ A fresh session cannot read live usage, so the gate counts runs in git.
    marked `(blocks: <step or unit>)` that the next unit depends on is a stop:** name it,
    change no files, never guess the answer, pause the task (step 6) and send the stop push
    (step 7). Items not marked `blocks:` never stop a run.
-2. If `status` is `blocked`, `paused` or `waiting-review`: look for an answer from the author
-   since the status was set (a change to `status` in STATE or to "Open decisions" in
+2. If `status` is `paused`: end with one line ("Autopilot: paused"). Nothing restarts a paused
+   autopilot except the author's words "resume autopilot" (step 6): not an `Answer:` line, not a
+   change to `status` in STATE, not a comment. If `status` is `blocked` or `waiting-review`: look
+   for an answer from the author since the status was set (a change to "Open decisions" in
    `docs/HANDOFF.md`, or a GitHub comment by `Mud0709`). None: end with one line ("Autopilot:
    waiting for you on …"). An answer: record it in STATE, set `status: running` and `work limit
    from:` to HEAD, and continue.
@@ -222,8 +224,8 @@ marked `(blocks: …)` or not, learning-log drafts, the learning handoff), commi
 - To pause: `update_trigger` the task id in STATE with `enabled: false`, and say so in the
   journal (or, for a stop that changes no files, in the reply). If `update_trigger` is not
   available, say so and send the stop push.
-- A paused task never runs, so an answer takes effect when the author (or a session working
-  with them) says "resume autopilot": set `status: running` and `work limit from:` to HEAD, and
+- A paused task never runs, and only the author's words "resume autopilot" (said to a session
+  working with them) restart it: set `status: running` and `work limit from:` to HEAD, and
   re-enable the task. "Pause autopilot": disable the task and set `status: paused`.
 
 ## 7. Reply at the end of a tick
