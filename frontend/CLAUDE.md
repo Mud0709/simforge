@@ -13,3 +13,6 @@
   never edit `src/lib/api/openapi.json` or `schema.d.ts` by hand.
 - **Checks while building** (from `frontend/`): `npx vitest run <files>`, `npm run lint`,
   `npm run format:check`, `npm run typecheck`; Playwright with `CI=1 npx playwright test`.
+- **Playwright config is kept as is on purpose:** `trace: "retain-on-failure"` leaves a trace
+  for every red end-to-end test (the evidence); a cloud session may pass `--trace off` for a
+  run it expects to pass, to save CPU, but `scripts/check.sh` does not.

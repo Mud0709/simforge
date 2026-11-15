@@ -5,6 +5,8 @@ model: claude-sonnet-5-5
 effort: medium
 tools: Read, Grep, Glob, Bash, Edit, Write
 maxTurns: 60
+skills:
+  - ponytail
 hooks:
   PreToolUse:
     - matcher: "Bash"
