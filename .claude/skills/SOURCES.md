@@ -8,6 +8,7 @@ Project skills load automatically in every Claude Code session opened in this re
 | `verification-before-completion` | obra/superpowers `skills/verification-before-completion` at `b739a8a` | MIT, (c) 2025 Jesse Vincent | None |
 | `tdd` | [mattpocock/skills](https://github.com/mattpocock/skills) `skills/engineering/tdd` at `5beb35b` | MIT, (c) 2026 Matt Pocock | Points to SimForge's test standards; two references to skills not installed here replaced (marked "SimForge adaptation") |
 | `grilling` | mattpocock/skills `skills/productivity/grilling` at `5beb35b` | MIT, (c) 2026 Matt Pocock | None |
+| `ponytail` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) `skills/ponytail/SKILL.md` at `96608e0` | MIT, (c) 2026 DietrichGebert (LICENSE kept in its folder) | Description narrowed and a "SimForge scope" section added: build and refactor work only, never tests or validation code, and how to turn it off. Loaded into `builder` and `builder-risky` through `skills:`. Savings: upstream claims far more than the one independent test I know of (JetBrains, about 10% lower cost over 80 paired tasks, from search summaries; I could not open that post here) |
 | `simforge-status` | Written for SimForge | Project licence | — |
 | `autopilot` | Written for SimForge | Project licence | — (protocol for scheduled, unattended ticks; state in `.claude/autopilot/STATE.md`) |
 
@@ -18,9 +19,14 @@ only in sessions signed in to that account.
 Deliberately not installed: the full Superpowers plugin (its session-start hook makes skill
 use compulsory on every message and costs tokens every session), terse-output "token
 saving" skills (they conflict with explanations meant for learning), and broad skill packs
-whose overlap with `CLAUDE.md` would only add noise.
+whose overlap with `CLAUDE.md` would only add noise; code-graph or search MCP servers (Serena,
+claude-context, codebase-memory, CodeGraph), rtk and repomix as a context feeder (independent
+tests found they raise cost on small repos); agent teams; and Microsoft's TokenEconomizer
+(Apache-2.0), a plugin that cannot run in cloud sessions: only its loop-guard idea is ported, as
+`.claude/hooks/loop_guard.py`. Its tool pruning and micro-skills are already covered by the deny
+list in `.claude/settings.json` and `.claude/autopilot/FINDINGS.md`.
 
-Both upstream repositories are under the MIT licence, which permits copying and modification
+The upstream repositories are under the MIT licence, which permits copying and modification
 provided the copyright notice and permission notice are kept:
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this

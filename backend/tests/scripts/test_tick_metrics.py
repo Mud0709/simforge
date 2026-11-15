@@ -125,3 +125,52 @@ def test_an_entry_without_front_matter_is_refused(tmp_path: Path) -> None:
     entry.write_text("no properties\n")
     with pytest.raises(ValueError, match="front matter"):
         tick_metrics.main([str(entry)])
+
+
+# --- --summary digest and scripts/run_logged.sh ------------------------------------------
+
+PYTEST_FAIL_LOG = (
+    "FAILED tests/a.py::test_one - assert 1 == 2\n"
+    "ERROR tests/b.py::test_two - KeyError\n"
+    "E   assert 1 == 2\n"
+    "==== 1 failed, 1 error, 5 passed in 3.20s ====\nexit: 1\n"
+)
+
+
+def test_digest_lists_counts_failing_names_and_first_error_lines() -> None:
+    out = tick_metrics.digest(PYTEST_FAIL_LOG, "x.log")
+    assert "status: fail; passed 5, failed 2, skipped 0, 3.2 s" in out
+    assert "failing: tests/a.py::test_one" in out
+    assert "failing: tests/b.py::test_two" in out
+    assert "error: E   assert 1 == 2" in out
+    assert out.endswith("log: x.log")
+
+
+def test_digest_is_short_for_a_huge_log() -> None:
+    noisy = "".join(f"FAILED tests/t.py::test_{i} - boom\n" for i in range(500)) + PYTEST_FAIL_LOG
+    assert len(tick_metrics.digest(noisy, "x.log").splitlines()) <= tick_metrics.DIGEST_LINES
+
+
+def test_digest_says_when_no_summary_is_recognised() -> None:
+    assert "counts unknown" in tick_metrics.digest("nothing useful\nexit: 0\n", "x.log")
+
+
+def test_run_logged_saves_the_log_prints_the_digest_and_returns_the_exit_code(
+    tmp_path: Path,
+) -> None:
+    import os
+    import subprocess
+
+    env = {**os.environ, "TICK_LOG_DIR": str(tmp_path)}
+    result = subprocess.run(
+        [str(ROOT / "scripts" / "run_logged.sh"), "demo", "echo '2 passed in 0.10s'; exit 1"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert "status: fail" in result.stdout
+    log = (tmp_path / "demo.log").read_text()
+    assert log.splitlines()[-1] == "exit: 1"
+    assert "passed 2" in result.stdout

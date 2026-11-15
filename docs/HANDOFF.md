@@ -1,4 +1,4 @@
-Last updated: 49375c5 2026-11-10 (plus the review-fix PR's commits)
+Last updated: da6eeb3 2026-11-15
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,33 +9,26 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review and merge the review-fix PR (branch `claude/scientific-review-process-sync-3t3aku` into
-this working branch; CI runs on it). Then 2.3 slice 3, starting with its Acceptance block and
-the evaluation budget. Autopilot is running: its 12:59 UTC tick must not redo these fixes
-(STATE "Current unit" says so); if the PR is still open then, say "pause autopilot".
+Review the draft PR (CI green on the earlier head; re-confirm after this push) `claude/determined-meitner-xpu871` into the working branch (you merge). Then
+open a FRESH session (agent files are read at session start) and run `/context` to compare with
+the numbers below. Then 2.3 slice 3 (Acceptance block and the evaluation budget first).
 
 ## Open decisions
-- Autopilot: weekly cap 0.76 (test) or back to 0.70? Used only when a run can read usage (rarely).
-- Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them; nothing built).
-- Deployment risk: no rate limit or concurrency cap on sweeps (~11 s each); matters only if SimForge is ever public.
-- Replay: should differing step counts be informational rather than "differs"?
-- Oscillator energy check: normalise by the energy in motion instead of kX² (it is ~800x loose for slow motions)? Not blocking.
-- 2.4: keep the exact-vs-numerical table beside the new checks on the three Phase 0 pages (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
-- Not blocking: five optional clean-ups from the 2.1 review (PR #13 description).
+- Stored scheduled-task prompt is now one line (author's text, 2026-11-15). It no longer carries the repo-attach step or "find the working branch from `origin/main`"; SKILL.md holds the branch rule. Note the task's stored branch is `claude/serene-feynman` (outcomes); check it before "resume autopilot".
+- Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
+- Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
+- Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: review fixes (2026-11-10, chat session at the author's request)
-- **Must-fix 1, done:** quadratic drag, its sweep and the oscillator report `passed = null` with an "uninformative" note when a threshold allows an error above 100%; a sweep aggregate is failed > no verdict > passed. Versions 1.0.1, two golden digests re-pinned.
-- **Must-fix 2 and 3, done:** with F0 = 0 the drive frequency limits nothing (cycles, minimum duration, 100 w0 rule); displacement floor 5e-9 from the measured corner (DOP853 7.33e-10 of X).
-- **Worth-doing, done:** slice 2 items 3, 5, 6, 7 (free-decay thresholds count cycles to the second maximum, re-measured on 1680 decays; the resonance curve contains its peak; a `free_decay_not_checked` row; X-is-a-bound limitation); SCIENTIFIC_VALIDATION's stale replay and model counts (seven models, eight cases: the earlier handoff's "registry has 8" meant cases); `scripts/check_excerpts.py` in `scripts/check.sh` and the backend tests (it caught a moved excerpt during this work); STATE "Current unit".
-- **Not done:** slice 2 item 1 (worst-case run times) stays with slice 3's evaluation budget; measured for it: Radau, 500 cycles at w = 100 w0, 792 s (tightest pair), 133 s (default). Finding 7 (checks for the three Phase 0 models) is planned, not built: `docs/plans/ROADMAP_2_4_NOTES.md`. Finding 8 (literature check) left, as asked.
-- **Checks run locally:** backend ruff, ruff format, mypy, full pytest (2373 passed), docs index, excerpts (71 match), OpenAPI export (no change). **Not run locally:** frontend checks and Playwright (no frontend file changed); CI runs them on the PR.
-- **Author, 2026-11-10:** v1.0.1 confirmed. New v1.0.1 runs replay normally (`tests/api/test_replay.py` replays every registry case, both quadratic models included: identical); only runs stored as v1.0.0 of those two models are refused (409).
-- **Also added (author's request):** `.github/pull_request_template.md` (the "every task updates everything" checklist); the autopilot's first tick after a merge drafts the learning-log entry as its unit (skill step 2.4b; drafts are tagged DRAFT until the author removes the tag). Fresh-context review of this PR: see the PR for its findings.
-- **State:** committed and pushed to the review branch; PR into the working branch open (draft); not merged.
+## Last task: model routing, one-place rules, enforcement (author's request, 2026-11-15)
+- **Done:** `CLAUDE.md` holds the model table, the one risky definition, the review rule, the read rule, the test-output rule and "Compact instructions" (168 lines). Eight agents pin model and effort in front-matter (Haiku high: `explorer`, `test-runner`; Sonnet medium: `builder`, `test-writer`; Opus medium: `*-risky`, `planner`, `reviewer`); a test keeps them equal to the table. `SKILL.md` 305 to 237 lines: retry ladder by model, live-usage caps removed (daily cap stays 2), stale example fixed. Settings: `effortLevel` medium, `maxEffortLevel` high, `autoCompactWindow` 200000.
+- **Enforced (tested in `backend/tests/scripts/test_hooks.py`, `test_agents.py`):** subagents cannot `git commit`, `git push` or `gh pr`; `reviewer`/`explorer` cannot write; a tick's marker file blocks edits to `.claude/hooks/guard-rails.txt` paths and adds the `Autopilot-run:` trailer; the same failing command stops after 3 failures (ported from TokenEconomizer's loop guard; seen working live). `scripts/run_logged.sh` + `tick_metrics.py --summary` keep test output in a log.
+- **Verified:** headless sessions that spawned all 8 agents: each ran on its pinned model and effort; only the two builders saw `ponytail`; project-level hooks blocked push and writes inside subagents. Agent-scoped front-matter hooks did NOT fire in headless runs (kept, plus the project-level layer). Backend: ruff, mypy, doc index, excerpts, 2442 tests passed. Not run: frontend and Playwright (no frontend code changed).
+- **Not enforceable by script:** the 4-subagent cap, the daily cap, the work limit, the `failures` counter, "bash can't write" for a determined agent (`python -c`), shell writes to guard rails.
+- **Start-up context (headless `/context`, same machine):** 19.2k to 20.6k tokens (CLAUDE.md 3.3k to 4.5k, agents 0.26k to 0.42k, ponytail 0.1k); window 1M to 200k. It costs more at start; the savings are per task (Haiku lookups, logs not output, no duplicate rules).
+- **Author decisions applied (2026-11-15):** `autoCompactWindow` 400000; stored prompt shortened; STATE `paused` until "resume autopilot"; PR template points to CLAUDE.md; `explorer`/`test-runner` outside the 4-cap but max 5 Haiku spawns per tick (SKILL.md, not hook-enforced); `maxEffortLevel: high` kept; CLAUDE.md now has a "Quality comes first" rule (cheaper agents never lower the standard; escalate weak output).
+- **State:** committed and pushed to `claude/determined-meitner-xpu871`; draft PR open; not merged. Branch = working branch + `main` (PR #20) merged, since the two had diverged.
 
 ## Learning handoff
-- **What it does:** a per-run check now has three outcomes, pass, fail or no verdict; "no verdict" is used when the threshold is so loose that the check could not fail.
-- **Why it matters:** a green tick is a claim. If the test could not have come out red, the tick claims something that was never tested.
-- **Key concept:** a threshold is only informative if a wrong answer could exceed it; here residuals are fractions, so a threshold above 1 allows a 100% error.
-- **Trade-off:** changing what a response says (even only `passed`) is an output change, so the models became v1.0.1 and old stored runs of them no longer replay.
-- **You should be able to explain:** why the oscillator's cycle count ignores the drive frequency when F0 = 0, and why the free-decay thresholds no longer grow with the length of the run.
+- **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.
+- **Key concept:** a rule in prose is a request; a rule in a hook is a fact. The tests found a real bug (`sed -i` slipped through).
+- **Trade-off:** more CLAUDE.md text costs tokens in every session, so each rule lives in one place and the rest point to it.
