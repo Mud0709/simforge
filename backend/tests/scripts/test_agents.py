@@ -66,4 +66,4 @@ def test_effort_is_capped_and_the_main_session_default_is_medium() -> None:
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     assert settings["effortLevel"] == "medium"
     assert settings["maxEffortLevel"] == "high"
-    assert settings["autoCompactWindow"] == 200000
+    assert settings["autoCompactWindow"] == 400000

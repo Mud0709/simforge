@@ -40,7 +40,7 @@
   "disableClaudeAiConnectors": true,
   "effortLevel": "medium",
   "maxEffortLevel": "high",
-  "autoCompactWindow": 200000,
+  "autoCompactWindow": 400000,
   "hooks": {
     "SessionStart": [
       {
