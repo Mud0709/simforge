@@ -160,6 +160,10 @@ excerpts are tagged `<!-- src: path:a-b -->`: when code moves, update the line r
   unless the user explicitly asks. Open a PR only when asked, except that the autopilot opens a
   PR from its working branch when it holds a finished step (it never merges).
 - One coherent, reviewable capability per PR.
+- **PRs are for builds and code reviews** (the author's rule of 2026-11-15). Turning the
+  autopilot on or off, and other minor state, handoff or wording edits, need no PR: the
+  scheduled task's flag changes through `update_trigger`, and a small docs or state edit is
+  committed to the working branch directly (never `main`), only when the author asks for it.
 - One chat per branch: work only on the working branch named in `docs/HANDOFF.md` (the start
   brief warns otherwise), and only when no other chat or autopilot run is working on it.
 - Commits are the author's: `Mud0709 <324319297+Mud0709@users.noreply.github.com>`, unsigned,
