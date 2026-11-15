@@ -1,4 +1,4 @@
-Last updated: 58396d3 2026-11-15
+Last updated: 870b07e 2026-11-15 (learning-log draft written)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,13 +9,12 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Merge the small PR (`claude/determined-meitner-xpu871`) into the working branch BEFORE 02:59 UTC:
-until then STATE and SKILL.md on the working branch still use the old `paused` switch, so the tick
-would stop with one line. The task is already enabled ("resume autopilot" done through
-`update_trigger`, 2026-11-15). Then 2.3 slice 3 (Acceptance block and the evaluation budget first);
-the first tick after a merge also writes the learning-log `DRAFT`.
+Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
+Then 2.3 slice 3 (Acceptance block and the evaluation budget first). The scheduled task's branch on
+claude.ai is still yours to fix (first open decision). PR #24 is merged into the working branch.
 
 ## Open decisions
+- **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
 - Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).

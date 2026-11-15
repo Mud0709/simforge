@@ -14,6 +14,23 @@ maps each to its new hash. GitHub PR pages keep the old hashes.
 
 ---
 
+## Roadmap 2.3 slice 2 and lean agents (DRAFT, awaiting the author)
+- **Merged:** PR #20 (`97ffe6b`, 2026-11-13) and PR #23 (`58396d3`, 2026-11-15). PR #23 carried
+  2.3 slice 2 (the numerical oscillator solve, its run model and schemas), the 2.4 notes, the
+  excerpt check, the PR template, and the hooks, pinned agents and `run_logged.sh` work.
+- **What it does:** the oscillator can now be solved numerically and compared with the exact
+  solution of slice 1 (code: `numerical.py`, `model.py`, `schemas.py` under the physics lab; thresholds
+  were measured, not guessed). Each helper agent has its model and effort in its own file, and
+  hooks stop an agent doing what its role forbids. Test output stays in a log and only a digest is read.
+- **Key concepts:** a numerical answer is checked against an exact one with a tolerance you can
+  justify; a limit that was measured (N_MAX = 500 cycles) is a decision with a record; a rule in a hook
+  is a fact, a rule in prose is a request.
+- **Decisions and trade-offs:** thresholds set from measurement with a 10x margin goal (one corner has
+  4.6x, noted); limits live in `schemas.py` only; more `CLAUDE.md` text costs tokens in every session.
+- **Revisit:** the slice 2 review's worth-doing items (per-method run cost for RK45 and Radau,
+  the high-Q resonance curve, free-decay thresholds, `F0 = 0`), which slice 3 or a fix unit takes.
+- **Next:** 2.3 slice 3 (the endpoint and the corners test), starting with its Acceptance block.
+
 ## Workflow: handoffs, a fresh-session autopilot, author commits and token-saving docs
 - **Merged:** PR #15 (`074fe01`), PR #16 (`8e7596e`) and PR #17 (`067c3e7`), 2026-11-02 to
   2026-11-09 (current hashes, after the rewrite). PR #17 also carried 2.3 slice 1 (the
