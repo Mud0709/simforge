@@ -10,7 +10,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-Then 2.3 slice 3 (Acceptance block and the evaluation budget first). The scheduled task's branch on
+Then 2.3 slice 3: its Acceptance block is written and reviewed (2026-11-15 autopilot); the build is next. The scheduled task's branch on
 claude.ai is still yours to fix (first open decision). PR #24 is merged into the working branch.
 
 ## Open decisions

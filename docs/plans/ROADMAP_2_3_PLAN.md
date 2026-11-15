@@ -54,7 +54,8 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   threshold above 1 now gives no verdict (`passed = null`), not a pass. **Item 1 (worst-case
   run times) stays with slice 3's evaluation budget**; measured for it: Radau at 500 cycles,
   ω = 100ω₀, 792 s (tightest pair) and 133 s (default pair).
-- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10; see slice 3).
+- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10); its
+  Acceptance block was added 2026-11-15 (see slice 3).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance
@@ -365,7 +366,63 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
    run stays well inside the 30 s proxy limit, and the measurement is recorded in
    `SCIENTIFIC_VALIDATION.md`. It covers every method and tolerance (Radau at the tightest pair
    was measured at ~5 min for 500 cycles in slice 2's review), so no per-method limit is needed.
-   Slice 3's Acceptance block includes it.
+   **Acceptance block** (added 2026-11-15). The new test files and the appended registry case
+   are written first and must fail on the current code (no `/api/v1/physics/oscillator` route,
+   no `ModelEntry`, no budget). Names follow 2.2's `test_quadratic_drag_api.py`,
+   `test_quadratic_drag_limits.py` and `test_quadratic_angle_sweep_limits.py`.
+   - **Test files:** `backend/tests/api/test_oscillator_api.py` (response shape per D12, the
+     three presets, nulls when undriven, undamped or overdamped, `record_run` summary fields);
+     `backend/tests/api/test_oscillator_limits.py` (`schemas.py` validation deferred from slice
+     2: NaN and ±Infinity per field, every bound and combined rule (Q ≤ 1e4 when b > 0,
+     `MAX_CYCLES`, the minimum duration max(ω₀, ω, γ)·T ≥ 1, ω ≤ 100ω₀, the stiffness and
+     drag-rate rules) each with its 422 message naming the number and nothing stored; the
+     run-cost rule; a `test_corners_of_the_allowed_space_never_crash_and_finish_in_time` as in
+     the sweep's limits file, with the per-request ceiling of 25 s and its reason);
+     `backend/tests/physics/test_oscillator_run_cost.py` (new; the budget unit tests: the counter
+     stops the solve at the budget; the refusal text contains the budget formatted `{:,}` and
+     names a looser tolerance, fewer cycles and another method). One case appended at the end
+     of `CASES` in `backend/tests/api/test_registry.py` (picked up by `test_replay.py` and
+     `test_golden_digests.py`); its entry appended to `backend/tests/api/golden_runs.json` only
+     by `uv run python -m tests.api.pin_golden_runs`, after the route is green.
+   - **Run-cost rule, how:** a named constant (e.g. `MAX_RUN_RHS_EVALUATIONS` in `model.py`)
+     whose comment cites its measurement, as `MAX_SWEEP_RHS_EVALUATIONS` does; the count is
+     taken inside the right-hand side, so an over-budget solve stops at the budget instead of
+     running to the end (item 1's 792 s run must become a refusal in seconds); the refusal is
+     a `ModelDomainError` mapped to 422. **Measured and recorded** in `SCIENTIFIC_VALIDATION.md`'s
+     oscillator section: the evaluations of the costliest accepted corners (each method at the
+     default and tightest pairs, 500 cycles, ω = 100ω₀ and ω far below ω₀), the wall time of a
+     run that reaches the budget (Radau, tightest pair), which corners the budget admits and
+     refuses, and the machine, NumPy and SciPy versions. Not a timed assertion beyond the
+     corners test's ceiling.
+   - **Commands** (from `backend/`): `uv run pytest tests/api/test_oscillator_api.py
+     tests/api/test_oscillator_limits.py tests/physics/test_oscillator_run_cost.py
+     tests/api/test_registry.py -q` (red before the build, green after);
+     `uv run ruff check . && uv run ruff format --check . && uv run mypy`. From the root:
+     `scripts/run_logged.sh backend 'cd backend && uv run pytest -q'` (golden digests and replay
+     included); `make api-types`, then `git status --short frontend/src/lib/api`;
+     `python3 -c "import json,subprocess; old=json.loads(subprocess.check_output(['git','show','HEAD:backend/tests/api/golden_runs.json'])); new=json.load(open('backend/tests/api/golden_runs.json')); assert new[:len(old)]==old and len(new)==len(old)+1 and new[-1]['model_id']=='physics.oscillator', 'golden diff'"`;
+     `git diff --stat --diff-filter=MDR HEAD -- backend/tests` (expected: only
+     `test_registry.py` and `golden_runs.json`);
+     `python3 scripts/doc_index.py --check`; `/security-review` on the slice's diff.
+   - **Checks (yes/no):** (1) The four test targets fail before the build and pass after, and
+     the full backend `pytest -q` passes (replay bit-identical, golden digests matched)?
+     (2) The golden script exits 0: the existing entries are unchanged and exactly one
+     `physics.oscillator` entry was appended, and `test_registry.py` changed only by the
+     appended case? (3) A run over the budget is refused with 422 whose message names the
+     budget and the three remedies, it stops at the budget (the corners test's slowest request
+     ≤ 25 s, Radau at the tightest pair and ω = 100ω₀ included), and the constant's measurement
+     is in `SCIENTIFIC_VALIDATION.md` (read in the diff)? (4) Every new input bound and combined
+     rule has a 422 test naming its number with nothing stored, and no corner returns a 500?
+     (5) After `make api-types` the `git status` lists the regenerated `openapi.json` and
+     `schema.d.ts` as part of the slice and a second run changes nothing (API contract in
+     sync), and `/security-review` was run with its findings fixed or recorded?
+   - **Not done (worth doing from the Acceptance review, 2026-11-15):** say what to do when
+     `pin_golden_runs` rewrites all 8 old digests on another machine (append the new entry by
+     hand from `current_runs()[-1]`); check "test_registry.py changed only by the appended case"
+     with `git diff HEAD -- backend/tests/api/test_registry.py | grep '^-[^-]'` and a second
+     `make api-types` + `git diff --quiet`; "golden digests matched" needs `-W error` on the
+     tolerance-only warning or rewording; pin the baseline with `git merge-base` if anything is
+     committed mid-slice. (Overthinking: the stiffness rule lives in `model.run`.)
 4. **Frontend** (seam 5). Page, presets, three charts, results, validation, nav, D15 wiring.
    Accept when: Vitest and the new Playwright cases pass; no existing frontend test changes.
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.

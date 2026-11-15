@@ -406,15 +406,15 @@ is in `CLAUDE.md`).
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (405 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (462 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-72: Slice status
-- 73-87: What 2.3 builds
-- 88-98: Design tree and rounds (self-grilled)
-- 99-250: Decisions
-- 251-279: Reference formulas (derived for this plan)
-- 280-300: Seams (where tests attach; what each catches and misses)
-- 301-374: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 375-388: Risks
-- 389-395: Out of scope (for the author)
-- 396-405: Genuine stops found
+- 27-73: Slice status
+- 74-88: What 2.3 builds
+- 89-99: Design tree and rounds (self-grilled)
+- 100-251: Decisions
+- 252-280: Reference formulas (derived for this plan)
+- 281-301: Seams (where tests attach; what each catches and misses)
+- 302-431: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 432-445: Risks
+- 446-452: Out of scope (for the author)
+- 453-462: Genuine stops found
