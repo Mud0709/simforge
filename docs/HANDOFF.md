@@ -1,4 +1,4 @@
-Last updated: b7504bd 2026-11-15
+Last updated: 58396d3 2026-11-15
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,10 +9,10 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the small draft PR `claude/autopilot-resume-rule` into the working branch (you merge): it
-makes only your words "resume autopilot" restart a paused autopilot. Then fix the scheduled task's
-branch by hand (first open decision), then say "resume autopilot". Then 2.3 slice 3 (Acceptance
-block and the evaluation budget first).
+Autopilot resumed on your words (2026-11-15): STATE `running`, `work limit from: 58396d3`, task re-enabled
+(next tick 02:59 UTC). Merge the small PR that carries this STATE change into the working branch
+(and `main`) BEFORE then, or the tick will still read `paused`. Then 2.3 slice 3 (Acceptance block
+and the evaluation budget first); the first tick after a merge also writes the learning-log `DRAFT`.
 
 ## Open decisions
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
