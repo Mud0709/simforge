@@ -98,7 +98,9 @@ def main() -> int:
         return 0
     if not tick_is_running():
         return 0
-    reason = reason_to_block(str(data.get("tool_name", "")), data.get("tool_input") or {}, patterns())
+    reason = reason_to_block(
+        str(data.get("tool_name", "")), data.get("tool_input") or {}, patterns()
+    )
     if reason:
         print(
             f"Blocked by .claude/hooks/guard_rails.py: {reason}. An autopilot tick may not change "

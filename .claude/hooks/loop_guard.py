@@ -34,7 +34,9 @@ def state_file(data: dict[str, object]) -> Path:
 
 def key(data: dict[str, object]) -> str:
     tool_input = data.get("tool_input")
-    command = " ".join(str(tool_input.get("command", "") if isinstance(tool_input, dict) else "").split())
+    command = " ".join(
+        str(tool_input.get("command", "") if isinstance(tool_input, dict) else "").split()
+    )
     return hashlib.sha1(command.encode()).hexdigest()[:16]
 
 

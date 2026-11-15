@@ -95,6 +95,27 @@ def test_edit_tools_are_blocked_only_for_read_only_agents(tool: str) -> None:
     assert run_hook("subagent_guard.py", ["all"], call).returncode == 0
 
 
+def test_auto_mode_limits_subagents_by_type_and_leaves_the_main_thread_alone() -> None:
+    def code(command: str, **who: str) -> int:
+        return run_hook("subagent_guard.py", ["auto"], bash(command, **who)).returncode
+
+    assert code("git commit -m x") == 0  # no agent_id: the main thread commits
+    assert code("echo x > f.txt") == 0
+    assert code("git commit -m x", agent_id="a1", agent_type="builder") == 2
+    assert code("echo x > f.txt", agent_id="a1", agent_type="builder") == 0
+    assert code("echo x > f.txt", agent_id="a2", agent_type="reviewer") == 2
+    assert code("echo x > f.txt", agent_id="a3", agent_type="explorer") == 2
+    assert code("git push", agent_id="a4", agent_type="general-purpose") == 2
+
+
+def test_the_hook_log_records_each_call_when_asked(tmp_path: Path) -> None:
+    log = tmp_path / "hook.jsonl"
+    payload = bash("git push", agent_id="a1", agent_type="reviewer")
+    run_hook("subagent_guard.py", ["auto"], payload, {"SIMFORGE_HOOK_LOG": str(log)})
+    entry = json.loads(log.read_text().splitlines()[0])
+    assert entry == {"mode": "readonly", "agent": "reviewer", "tool": "Bash", "blocked": True}
+
+
 def test_a_malformed_event_is_not_blocked() -> None:
     result = subprocess.run(
         ["python3", str(HOOKS / "subagent_guard.py"), "all"],

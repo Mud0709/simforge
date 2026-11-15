@@ -3,6 +3,8 @@
 
     subagent_guard.py all       every subagent: no `git commit`, `git push`, `gh pr`
     subagent_guard.py readonly  reviewer and explorer: the same, plus no file edits
+    subagent_guard.py auto      project-level hook: the main thread is not touched; a subagent
+                                gets `readonly` if it is a reviewer or explorer, else `all`
 
 Reads the hook JSON on stdin; exit 2 blocks the tool call and sends stderr to the agent.
 `readonly` also blocks the Edit/Write tools and the common ways a shell writes a file
@@ -14,6 +16,7 @@ the agent's front-matter stays the first line of defence. Standard library only.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 
@@ -27,6 +30,7 @@ WRITER = re.compile(r"(?:^|[\s;&|(])(?:rm|mv|cp|touch|mkdir|rmdir|chmod|truncate
 SED_INPLACE = re.compile(r"(?:^|[\s;&|(])sed\s+(?:[^;&|]*?\s)?(?:-[a-zA-Z]*i\b|--in-place)")
 REDIRECT = re.compile(r"(?<![<>&0-9])>{1,2}\s*(?!&)(\S+)")
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+READ_ONLY_AGENTS = {"reviewer", "explorer"}
 
 
 def bare(command: str) -> str:
@@ -78,7 +82,25 @@ def main(argv: list[str]) -> int:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         return 0  # a malformed event is not ours to block
+    if mode == "auto":
+        if not data.get("agent_id"):
+            return 0  # the main thread commits and pushes; only subagents are limited
+        mode = "readonly" if data.get("agent_type") in READ_ONLY_AGENTS else "all"
     reason = check(mode, str(data.get("tool_name", "")), data.get("tool_input") or {})
+    log = os.environ.get("SIMFORGE_HOOK_LOG")  # set only to check that the hook is invoked
+    if log:
+        with open(log, "a", encoding="utf-8") as handle:
+            handle.write(
+                json.dumps(
+                    {
+                        "mode": mode,
+                        "agent": data.get("agent_type"),
+                        "tool": data.get("tool_name"),
+                        "blocked": bool(reason),
+                    }
+                )
+                + "\n"
+            )
     if reason:
         block(reason)
     return 0
