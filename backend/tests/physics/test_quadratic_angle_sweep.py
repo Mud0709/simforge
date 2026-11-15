@@ -25,6 +25,7 @@ from scipy.integrate import solve_ivp
 from scipy.optimize import minimize_scalar
 
 from simforge.core.errors import ModelDomainError
+from simforge.core.schemas import ValidationCheck
 from simforge.physics.projectile import angle_sweep
 from simforge.physics.projectile import quadratic_angle_sweep as qas
 from simforge.physics.projectile import quadratic_model as qm
@@ -787,3 +788,40 @@ def test_cost_is_reported_against_the_budget() -> None:
     assert cost.value == result.sweep.n_rhs_evaluations
     assert f"{len(result.sweep.runs)} runs" in cost.note
     assert f"{qas.MAX_SWEEP_RHS_EVALUATIONS:,}" in cost.note
+
+
+# --- Review 2026-11-10: aggregates of checks that cannot fail ---------------------------------
+
+
+def test_aggregate_gives_no_verdict_when_a_run_could_not_be_graded() -> None:
+    """At rtol = 1e-3 every 2.1 threshold allows an error above 100% (1e4 x rtol = 10), so
+    each run reports passed = None. The aggregate must not turn that into "passed" (nor into
+    "failed": nothing failed); it is None and says how many runs gave no verdict."""
+    solver = SolverSettings(method="RK45", rtol=1e-3, atol=1e-10)
+    result = qas.run_angle_sweep(make_setup(c=0.02), solver, 10)
+    by_id = {c.id: c for c in result.checks}
+    for check_id in ("energy_balance", "hodograph_invariant", "speed_bound", "flight_time_bound"):
+        check = by_id[check_id]
+        assert check.passed is None, check_id
+        assert "no verdict" in check.note.lower()
+        assert "0 failed" in check.note
+
+
+def test_a_failed_run_still_fails_an_aggregate_with_ungraded_runs() -> None:
+    """Unit test of the rule on hand-made checks: failed beats no-verdict beats passed."""
+
+    def check(passed: bool | None, value: float) -> ValidationCheck:
+        return ValidationCheck(
+            id="energy_balance",
+            label="x",
+            value=value,
+            threshold=2.0,
+            passed=passed,
+            kind="numerical_diagnostic",
+            note="n.",
+        )
+
+    agg = qas._aggregate
+    assert agg([(10.0, check(True, 0.1)), (20.0, check(True, 0.2))]).passed is True
+    assert agg([(10.0, check(True, 0.1)), (20.0, check(None, 0.2))]).passed is None
+    assert agg([(10.0, check(False, 3.0)), (20.0, check(None, 0.2))]).passed is False

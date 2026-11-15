@@ -3642,7 +3642,7 @@ The flight-time bound gives the **integration cap**. It is exact in a vacuum, so
 *twice* the bound: a cap equal to the landing time could put the landing at the very end of the
 interval, where rounding can hide the moment `y` changes sign.
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_model.py:513-519 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_model.py:531-537 -->
 ```python
     t_bound = _flight_time_bound(setup)
     # Twice the proved bound: the bound is exact in vacuum, and a cap equal to the landing
@@ -3952,6 +3952,19 @@ shows, its threshold, and what the tests actually run are listed there too, with
 limitations (for example, the invariant can be a number on one computer and `null` on
 another in a very long fall, because there `vx` has decayed below what the solver controls).
 
+**A check that cannot fail is not a pass** (v1.0.1, added after a review on 2026-11-10).
+Each check compares a residual with a threshold of about `10⁴ × rtol`. At the default
+`rtol = 10⁻¹⁰` that is `10⁻⁶`: a run whose energy is off by one part in a million fails. But
+the form lets you choose `rtol` up to `10⁻³`, and then the threshold is `10`. The energy
+residual is a fraction of `E₀`, so a threshold of 10 means "fail only if the energy is wrong
+by more than 1000%": even a run that lost *all* its energy to a bug (a residual of 1) would
+be under it. The first version showed a green "Pass" there. That was an overclaim: a test
+that cannot come out "fail" tells you nothing by coming out "pass" (the same idea as a
+measurement whose uncertainty is bigger than the quantity). Now, whenever the threshold
+allows an error above 100%, the row shows the value and the threshold but says "Info" and
+"uninformative at these tolerances" instead of a verdict. Nothing about the trajectory
+changed; only the claim made about it did. (The oscillator of Part 20 follows the same rule.)
+
 ### 18.15 Checkpoint
 1. Explain in two sentences, without equations, why doubling a fast ball's speed roughly
    quadruples the air resistance.
@@ -3968,6 +3981,8 @@ another in a very long fall, because there `vx` has decayed below what the solve
    Both are safe upper bounds. Why did the product still refuse runs that finish quickly,
    and why does putting `T_bound` inside a logarithm fix most of that?
 8. Why is the invariant's drift divided by the largest `1/vx²` and not by `I₀`?
+9. A run at `rtol = 10⁻³` shows the energy check as "Info", not "Pass", although its
+   residual is only `3 × 10⁻⁵`. Explain why the app refuses to call that a pass.
 
 ### 18.16 Exercises
 - **E18.1** Using the momentum argument in 18.1, show that `ρAv²` has the units of a force.
@@ -4483,6 +4498,9 @@ the versions used, is in the quadratic angle-sweep section of `SCIENTIFIC_VALIDA
 ---
 
 ## Changes from the previous version of this guide
+
+**Review of 2026-11-10 (no new part):** 18.14 gains "A check that cannot fail is not a
+pass" (quadratic drag v1.0.1) and 18.15 a ninth checkpoint question.
 
 **This version (roadmap 2.2, angle sweeps for both drag laws):**
 - **Added Part 19:** why drag lowers the best angle; the drag strength `ε = (v₀/v_t)²`; the

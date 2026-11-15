@@ -64,7 +64,7 @@ def test_default_request_returns_a_complete_labelled_result(client: TestClient) 
     assert r.status_code == 200, r.text
     body = strict(r.text)
     assert body["model"]["id"] == MODEL_ID
-    assert body["model"]["version"] == "1.0.0"
+    assert body["model"]["version"] == "1.0.1"
     assert body["units"]["drag_constant"] == "kg/m"
     assert body["units"]["angle"] == "deg"
     assert {a["id"] for a in body["assumptions"]} >= {"point_mass", "quadratic_drag"}

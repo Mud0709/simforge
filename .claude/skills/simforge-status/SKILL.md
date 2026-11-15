@@ -53,9 +53,11 @@ milestone, linking to `docs/HANDOFF.md`, the PR and the docs instead of restatin
 
 **Learning-log entry (after a merge):** draft it from the handoff's learning section in the
 format of `docs/LEARNING_LOG.md` (newest first): milestone and merged commit, what it does,
-key concepts, decisions and trade-offs, what to revisit, next. Show it to the author; add it
-only with their approval, in the branch of the next change, and list the pending drafts under
-"Open decisions" until then.
+key concepts, decisions and trade-offs, what to revisit, next. Write it at the top of the log
+with its heading ending ` (DRAFT, awaiting the author)`, in the branch of the next change,
+and list it under "Open decisions". The author approves by removing the tag (or says so in
+chat); never remove it yourself without that. The autopilot's first tick after a merge does
+this as its unit (autopilot skill, step 2.4b), so check for an existing draft first.
 
 ## 3. Rules
 

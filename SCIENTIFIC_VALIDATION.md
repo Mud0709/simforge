@@ -385,7 +385,7 @@ With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48�
 
 ---
 
-## `physics.projectile.quadratic_drag` v1.0.0: projectile motion with quadratic drag
+## `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
 
 Roadmap 2.1. The plan, with the decisions that changed while building, is
 `docs/plans/ROADMAP_2_1_PLAN.md` ("Amendments after building"). Learning guide: Part 18.
@@ -575,6 +575,21 @@ to (1e-6, 0.1)): no check failed; the largest value / threshold was 0.081 (invar
 (energy), 0.006 (speed bound) and 0.18 (vertical flight time). One machine, recorded in the
 comment above `GLOBAL_ERROR_FACTOR` in `quadratic_model.py`.
 
+**A check that cannot fail gives no verdict (v1.0.1, review 2026-11-10).** `rtol` may be as
+large as 1e-3, and then `1e4 × accuracy` is 10 or more: a residual of 100% of `E₀`, or a
+speed 11 times the *proved* bound, would still be under the threshold. v1.0.0 reported such
+checks as passed. From v1.0.1, when the allowance (the threshold for a residual, the
+threshold − 1 for a bound) exceeds 1, the check keeps its value and threshold but has
+`passed = null` (shown as "Info") and its note says it is uninformative at these tolerances.
+With `atol` negligible this starts just above `rtol = 1e-4`; the measured grids above reach
+`rtol = 1e-6` only (plus 1e-4 in the first 2728 runs), so nothing is claimed about how large
+the residuals are at looser settings. Tested: three informative settings still give verdicts,
+three uninformative ones give none, and the invariant alone can be uninformative (89°,
+`atol = 1e-4`: its allowance is 2.9, the energy's 0.05). The numbers of a run do not change;
+only `passed` and the note do, and only at those tolerances. The version was bumped because
+a stored v1.0.0 response can differ from a v1.0.1 one; a v1.0.0 record's replay is refused
+(409, version changed), as for any version change.
+
 `terminal_speed` (exact; `null` in vacuum) and `vacuum` (the same launch with no drag, exact)
 are labelled "exact"; `vertical_reference` (only at exactly 90°) gives the exact R3 values and
 the numerical errors against them; every numerical value is labelled with its solver and
@@ -682,7 +697,9 @@ default and the golden run) the floor changes nothing.
 - **Exact step counts may differ on another CPU.** The counts are replayed exactly by design
   (a different step sequence is a different computation), so a replay on another machine can
   report `differs` on `n_steps` or `n_rhs_evaluations` alone; the emulation above deliberately
-  leaves them out. The quadratic case's behaviour on CI's CPU is not recorded here.
+  leaves them out. On CI's runner the golden test (pinned digest, or every summary value within
+  its declared rule, counts included) has passed for both quadratic cases on every run since
+  PRs #13 and #14 (latest: PR #18, 2026-11-10); which of the two ways it passed is not recorded.
 - **The invariant can switch between a number and `null` at extreme settings.** In a very long
   fall the true `vx` decays far below atol (to ~1e-85 m/s in a ~200 s fall), where the solver
   does not control its sign: on the pinning machine DOP853 dips to −9e-14 m/s (so `null`),
@@ -707,7 +724,7 @@ default and the golden run) the floor changes nothing.
 
 ---
 
-## `physics.projectile.quadratic_angle_sweep` v1.0.0: range against launch angle with quadratic drag
+## `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
 
 Roadmap 2.2. The plan, with the decisions that changed while building, is
 `docs/plans/ROADMAP_2_2_PLAN.md` ("Amendments after building", B1-B10). Learning guide:
@@ -810,8 +827,9 @@ panel, export, compare and overlay, and Playwright (`e2e/quadratic.spec.ts`, two
 `e2e/stored-fields.spec.ts`).
 
 ### Per-run checks shown in the app
-One row per 2.1 check id, **aggregated over every run of the sweep**: passed only if every
-run passed; value and threshold from the run with the largest value/threshold (thresholds
+One row per 2.1 check id, **aggregated over every run of the sweep**: failed if any run
+failed; otherwise **no verdict** (`null`) if any run's threshold was uninformative (v1.0.1,
+see the 2.1 section; the note counts those runs); otherwise passed. Value and threshold from the run with the largest value/threshold (thresholds
 differ per angle), and the note names that angle, the number of runs and those where the check
 was unavailable (for example the invariant at 90°). Two of the sweep's own: **interior peaks
 on the grid** (expected 1, observed in every case measured; more than 1 is shown as not passed,
@@ -922,12 +940,13 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
 
 ---
 
-## `physics.oscillator` (roadmap 2.3, in progress): the exact solution (slice 1)
+## `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
 
 Plan and decisions: `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, grilling record G1-G4 and the
 slice-1 amendments). The model is `m ẍ + b ẋ + k x = F₀ cos ωt`. Slice 1 is the **exact
-solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure), which slice 2's
-numerical solution will be checked against. No endpoint or page exists yet.
+solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure); slice 2 the
+**numerical solve** checked against it (`numerical.py`, `model.py`, `schemas.py`; see the
+slice 2 section below). No endpoint or page exists yet.
 
 ### What is exact, and how it is evaluated
 - **Proved (closed forms):** the steady state A, δ; the transient in one unified form for
@@ -973,10 +992,100 @@ numerical solution will be checked against. No endpoint or page exists yet.
 - **Mutation testing** (scratch, not in the repository): 22 planted bugs, all caught, including
   γ − β for the slow rate, float arithmetic for q, a halved cap and a missing finiteness check.
 
+### Slice 2: the numerical solve and its per-run checks
+- **What is solved (numerical):** SciPy `solve_ivp` (RK45, DOP853 or Radau) on the
+  dimensionless equation, τ = ω₀t, ξ = x/X, η = v/(ω₀X) (velocity scale V = ω₀X, the author's
+  decision of 2026-11-09), with the damping work integrated from b·v² and the drive work from
+  F₀cos(ωt)·v, never from the force. So `atol` is a fraction of X (and of V, and of kX² for the
+  works) at every scale. Maxima of x come from an event on v = 0 (the start is never one).
+- **Per-run checks** (each a measured threshold, below): displacement error max|x − x_exact|/X
+  and velocity error max|v − v_exact|/(ω₀X) at the step nodes against the exact solution;
+  the energy balance KE + PE + W_damp − W_drive = E₀ (exact for the true motion) /kX²; for a
+  free underdamped run, the time between the first two maxima against T_d and their ratio
+  against e^{−γT_d} (both exact identities, OR4); informational: the transient left at the end
+  as a fraction of A (exact, evaluated as the free motion it is, not as x − x_p), and the cost.
+  A threshold above 1 cannot fail within the scale: the check then has no verdict
+  (`passed = null`) and is labelled uninformative, as in the quadratic-drag model. A free
+  underdamped run whose first two maxima cannot be used says so in an informational row
+  (`free_decay_not_checked`), decided from the computed maxima.
+- **A drive that is off limits nothing** (review 2026-11-10). With F₀ = 0 the drive frequency
+  multiplies a force of exactly 0, so the cycle count T·max(ω₀, ω)/2π, the minimum duration
+  and the ω ≤ 100 ω₀ rule use ω₀ alone. Before, an inert ω could refuse a free run (above 500
+  cycles), loosen every threshold (they grow with the cycles) or admit a too-short run.
+  Tested: a free run is identical, number for number, for ω = 0 and ω = 100 ω₀.
+- **Stiffness guard:** RK45 and DOP853 are refused before any solve when the fastest
+  eigenvalue times the duration, (γ + β)T overdamped and ω₀T otherwise, exceeds 1e4.
+- **Thresholds, measured** (one x86_64 VM, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; 1608 runs
+  inside the limits: the 113-case corner grid of 3 methods × 4 tolerance pairs × 4 regimes ×
+  free/driven plus the Risks corners, 55 runs of 100 cycles, 840 free decays with ζ from 0.01
+  to 0.99, 600 seeded random runs with ζ 0 to 1e3 and ω/ω₀ 0 to 100). Form:
+  `F (rtol + atol)(1 + cycles) + floor`, F the smallest 1-2-5 value at least 10× the worst
+  need. F = 50 (displacement), 500 (velocity), 2e4 (energy); worst value / threshold 0.10,
+  0.064 and 0.067 on the 1608 measured runs. The floor is 1e-9 (≥ 100× the exact solution's
+  own worst error, 5.8e-12 of X), except **5e-9 for the displacement** (below). The cycles
+  term is measured, not assumed: displacement error/(rtol + atol), undamped, default pair,
+  was 75 at 100 cycles and 747 at 1000 (DOP853), 182 and 1820 (RK45).
+- **The displacement floor, measured at the corner the 1608 runs missed** (review
+  2026-11-10; same machine): undamped, from rest, ω = 100 ω₀, 500 cycles, tightest pair.
+  DOP853 7.33e-10 of X (5.4e5 evaluations), RK45 3.0e-11, Radau 1.1e-10; at ω/ω₀ = 99, 50
+  and 10, DOP853 gave 3.3e-10, 5.8e-10 and 3.7e-11. RK45 and Radau show the exact solution is
+  good to ≤ 3e-11 there, so the 7.3e-10 is DOP853's own accumulated rounding at rtol = 1e-13,
+  which no (rtol + atol) term covers. With a floor of 1e-9 the value / threshold was 0.195
+  (margin 5.1×); 5e-9 is the smallest 1-2-5 floor that restores 10× (0.094). 16 runs, one
+  machine; not a bound.
+- **The free-decay checks count cycles to the second maximum only** (review 2026-11-10): the
+  two maxima lie within 2T_d, i.e. 2ω₀/ω_d natural cycles, so their thresholds use
+  min(cycles, 2ω₀/ω_d) and no longer loosen with the length of the run. Re-measured for that
+  form on 1680 free decays (ζ 0.01 to 0.99, five starts, three methods, four pairs, runs of 3
+  and 40 damped periods; 630 had no resolvable second maximum): worst need 274 (period) and
+  2.04 (ratio), so F = 5e3 (period) and 50 (ratio).
+- **Radau's cost at that corner** (input for slice 3's evaluation budget): 792 s and 2.4e7
+  evaluations at the tightest pair, 133 s and 4.4e6 at the default pair; DOP853 2 to 4 s,
+  RK45 3.6 to 15.5 s.
+- **The energy factor is set by fast drives.** At ω = 100ω₀ the speed reaches 50 V, so the
+  energy in motion is ~1250 kX² and a relative error of ~1e-9 is ~1e-6 kX² (the grid's RK45
+  corner was 0.994 of the provisional threshold). F = 2e4 covers it, but is ~800× loose for
+  runs whose speed stays below V. Normalising by the energy in motion instead is an open
+  question for the author.
+- **Free-decay checks need a resolvable second maximum** (x₂ ≥ 1e-3 X): near critical
+  damping the motion has decayed to nothing by then, and the located time is set by the
+  tolerance (a correct solve gave 1e9 × (rtol + atol) at ζ = 0.9 without this rule).
+- **N_max = 500 cycles** (D6 said 1000, provisional): at the default settings (DOP853,
+  rtol = atol = 1e-10) 500 cycles took 0.8-1.4 s and 1000 cycles 1.7-2.5 s (D6: ≤ 2 s).
+  Other settings are slower at 500 cycles: DOP853 at the tightest pair 2.4-3.4 s, RK45 2.4-4.5
+  s, Radau 4.9-8.2 s (middle pair) and 36-78 s (default pair, above the 30 s proxy limit). A
+  cycle limit alone cannot bound Radau's time; that rule is an open decision for slice 3.
+- **Tested** (`backend/tests/physics/test_oscillator_numerical.py`, 84 tests;
+  `test_oscillator_model.py`, 166 tests; constants in `oscillator_thresholds.py`): agreement
+  with the exact solution in every regime at the tightest pair; the error falls as the
+  tolerance tightens; scaled and SI states agree to 4ε; unit invariance (m, k, b, F₀ × 1024);
+  dense output at the nodes; works exactly 0 when F₀ = 0 or b = 0; a wrong damping law
+  (−b·v·|v|/V) fails the energy balance and the displacement check while the true one passes;
+  maxima against OR4; the corner grid; the diagnostics recomputed independently from the
+  nodes; nulls when undriven, undamped or overdamped; the guard refusing before any solve and
+  naming its number; the steady state and resonance curve against their formulas.
+  `test_oscillator_free_runs.py` (22 tests, review 2026-11-10): the free-run rules above at
+  hand-worked boundaries; the resonance curve contains its peak (A_max = f/(2γω_d) at
+  ω_r, to rel 1e-12) with points within γ on both sides for Q = 5, 100, 1e4 and ω up to
+  100 ω₀; the free-decay thresholds do not change when the run is 40 times longer; the
+  `free_decay_not_checked` row.
+- **The resonance curve contains its peak.** The 241 evenly spaced frequencies have a spacing
+  of at least ω₀/80, while the peak is 2γ = ω₀/Q wide, so for light damping or a fast drive
+  the even grid stepped over it. The curve now adds ω_r and points at ω_r ± γ·{¼, ½, 1, 2, 4,
+  8, 16, 32}; every point is still the exact formula.
+
 ### Limitations
-- Measurements are from one machine (Python 3.12, NumPy 2.5.4).
-- Inside the limits, the worst error is at Q = 1e4 near resonance (≈ 6e-12 of X); the numerical
-  solution's checks (slice 2) must allow for it.
+- Measurements are from one machine (Python 3.12, NumPy 2.5.4, SciPy 1.18.1); run times vary
+  by up to ~1.5× on it.
+- Inside the limits, the exact solution's worst error is at Q = 1e4 near resonance (≈ 6e-12
+  of X); the checks' floor (1e-9) allows for it.
+- The checks' thresholds come from 1608 runs, not a proof: the global error of an adaptive
+  solver is not bounded by its tolerances.
+- The energy check is loose for slow motions (see above), and the free-decay checks are absent
+  when the second maximum is below 1e-3 X (the run then says so).
+- X is a bound, not the size of the motion: for a heavily damped run started with a velocity
+  the motion stays below X by a factor of about ζ (X uses √(x₀² + (v₀/ω₀)²), which ignores
+  the damping), so errors relative to X look smaller than errors relative to the motion.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
   (slice 4) will show it only when it is useful.
 
@@ -1251,8 +1360,8 @@ between environments. A test checks that every stored field matches exactly one 
 | dataset profile | every field | exact | counts and labels |
 
 **What is and is not established.** Measured: on one machine, every model's runs replay
-**bit-identically** (a test runs every registry case: the six cases before roadmap 2.1
-locally and in CI; the seventh, quadratic drag, locally in the 2.1 slice checks; the eighth, the quadratic angle sweep, locally in the 2.2 slice checks). **Across machines they do
+**bit-identically** (a test runs every registry case: all eight cases of the seven
+models, locally and in CI since PRs #13 and #14 merged). **Across machines they do
 not**: with the same code and the same locked libraries, GitHub's CI runners gave different
 output digests for the four floating-point models (the dataset profile, all counts, matched).
 Locally, forcing OpenBLAS (NumPy's linear-algebra library) onto other CPU-specific routines
@@ -1317,7 +1426,7 @@ names the usual cause but does not claim it: nothing compares the environments a
 point (a replay does).
 
 **Tested** (`backend/tests/api/test_run_outputs.py`):
-- All six models (seven cases: the dataset profile both as a bundled sample and as an upload
+- All seven models (eight cases: the dataset profile both as a bundled sample and as an upload
   sent again) recompute with `digest_match` true. The expected digest is the one stored with
   the original run, recorded before the recomputation. As an independent check, the test also
   hashes the response it received with a canonical-JSON function written in the test from the

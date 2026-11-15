@@ -8,6 +8,9 @@ step() { printf '\n==> %s\n' "$*"; }
 step "Docs: docs/INDEX.md is up to date (also checked by backend/tests/scripts in CI)"
 python3 scripts/doc_index.py --check
 
+step "Docs: learning-guide excerpts match their source lines"
+python3 scripts/check_excerpts.py
+
 step "Backend: lint, format, types, tests"
 (cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest --cov)
 

@@ -6,28 +6,26 @@ decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effec
 the author says "resume autopilot" (which also resets `work limit from:`).
 
 status: paused
+paused note: the author's instruction of 2026-11-15; stays paused until the author says "resume autopilot".
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
-  session per run, model Sonnet 5.5, repository attached, auto-fix off; twice a day at 02:59
+  session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 8e7596e
-ladder rung: none (the builder's effort ladder, skill step 4)
+work limit from: 4413a2f
+ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
 Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
-2026-10-24. Plans: checked by one fresh reviewer (three for the scientific core, since 2026-11-13),
-must-fix findings only (since 2026-11-07; before, the autopilot accepted its own defaults).
+2026-10-24. Plans: checked by fresh reviewers as `CLAUDE.md` says, must-fix findings only
+(since 2026-11-07; before, the autopilot accepted its own defaults).
 
 ## Budget (the author may edit these numbers)
 - working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
   Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
-  usage. This replaces the 0.08 daily allowance, which needed live readings.
-- Used only when a run can read live usage (see the skill, 0b.2): weekly cap 0.76 (raised from
-  0.70 by the author on 2026-10-24 for a test tick); weekly cap near reset 0.90 (within 12 h
-  of the 7-day reset); five-hour cap 0.50.
-- notifications: one push per run (skill step 7).
+  usage. This replaces the 0.08 daily allowance, which needed live readings. The weekly and
+  five-hour usage caps were removed on 2026-11-15: no scheduled run can read usage.
 
-## Measured tick costs (7-day utilisation before → after; only when readable)
+## Measured tick costs, historical (7-day utilisation before → after; readings existed only in sessions that could read usage)
 - 2026-10-24 12:44 UTC (test tick 2, planning 1.6): 0.73 → 0.73, under 0.01 at the 1%
   resolution of the readings (5-hour window 0.24 → 0.27). Readings are rounded to 0.01, so
   costs below that show as 0.
@@ -46,12 +44,15 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   slices, builder and reviewer per slice (high, then medium); measured from usage readings.
 
 ## Current unit
-Roadmap 2.3: slice 1 (exact solution) done in 4882fc4. Next: slice 2 (numerical solve and run),
-on hold by the author. Under the 2026-11-07 rules its first unit is to add slice 2's Acceptance
-block (planner, checked by reviewer (c)); the plan has none yet.
+Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its review items
+2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
+author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
+branch): do not redo them; if that PR is not merged yet, wait for it (it touches
+`physics/oscillator/` and `physics/projectile/quadratic_*`). Next: slice 3 (its Acceptance
+block first), which includes the evaluation budget (review item 1).
 
 ## Remainder of the current unit
-Slices 2-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
+Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open

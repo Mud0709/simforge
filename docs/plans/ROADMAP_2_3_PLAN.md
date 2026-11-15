@@ -33,10 +33,28 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   upper bound on |x| over the run (D: the smallest of six proved caps on the driven part).
   **Under D6's measured limits:** a minimum duration max(ω₀, ω, γ)·T ≥ 1, enforced at the API
   in slice 3. Error model (measured): c·ε·(Q + ω₀T + A/X + 1)·X with c ≤ 1.5. For slice 2:
-  checks are scaled by this X; velocity scale V = max(ω₀, ω)·X; the Q = 1e4 resonance error
+  checks are scaled by this X; velocity scale V = ω₀X (author, 2026-11-09; this note first said
+  max(ω₀, ω)·X); the Q = 1e4 resonance error
   (≈ 6e-12 of X) is the exact solution's own floor.
-- Slice 2 (numerical solve and run): not started.
-- Slices 3-5: not started.
+- **Slice 2 (numerical solve and run): built 2026-11-10, fresh review done (no must-fix; 7 worth-doing items in the 2026-11-10 journal, to settle before slice 3).**
+  `numerical.py`, `model.py`, `schemas.py`; the 250 tests written first pass. Measured on 1608
+  runs (`SCIENTIFIC_VALIDATION.md`): thresholds `F (rtol + atol)(1 + cycles) + 1e-9`, F = 50,
+  500, 2e4, 1e3, 20 (displacement, velocity, energy, period, ratio), worst 0.10 of a threshold.
+  **N_max = 500 cycles** (D6's 2 s at the default settings; D6 said 1000). Builder's choices,
+  open for the author: the energy factor is set by drives at 100ω₀ (speed 50 V), so it is
+  loose for slow motions; free-decay checks need x₂ ≥ 1e-3 X; Radau (36-78 s at 500 cycles,
+  default pair) needs a cost rule beyond N_max before slice 3 exposes it.
+- **Slice 2 review items, settled 2026-11-10 (author's request, in a chat session; tests in
+  `tests/physics/test_oscillator_free_runs.py`).** Item 2: displacement floor 5e-9, from the
+  measured corner (DOP853 7.33e-10 of X; 16 runs). Item 3: free-decay thresholds use
+  min(cycles, 2ω₀/ω_d), factors re-measured on 1680 decays: 5e3 (period), 50 (ratio). Item 4:
+  with F₀ = 0 the drive frequency limits nothing (cycles, minimum duration, ω ≤ 100ω₀). Item
+  5: the resonance curve adds ω_r and points at ω_r ± γ·{¼ … 32}. Item 6: an informational
+  row `free_decay_not_checked`. Item 7: recorded as a limitation (X is a bound). Also: a
+  threshold above 1 now gives no verdict (`passed = null`), not a pass. **Item 1 (worst-case
+  run times) stays with slice 3's evaluation budget**; measured for it: Radau at 500 cycles,
+  ω = 100ω₀, 792 s (tightest pair) and 133 s (default pair).
+- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10; see slice 3).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance
@@ -289,10 +307,65 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
    thresholds and N_max **set from measurement** and the numbers recorded for
    `SCIENTIFIC_VALIDATION.md`; the mutant fails; no existing test changes. Fresh-context
    review (scientific core, limits).
+   **Acceptance block** (added 2026-11-09). Both test files are written first and must fail on
+   the current code (`numerical.py` and `model.py` do not exist yet).
+   - **Test files:** `backend/tests/physics/test_oscillator_numerical.py` (seam 2: agreement
+     with `analytical.state` in every regime, scaled against SI states, maxima events against
+     OR4, the wrong-damping mutant monkeypatched over `numerical.py`'s damping-force function
+     as `test_quadratic_numerical.py` does); `backend/tests/physics/test_oscillator_model.py`
+     (seam 3 and `schemas.py`: a parametrised `test_corner_grid*`, the planted error, nulls
+     when undriven, undamped or overdamped, the guard refusing before any solve and naming its
+     number, and the measurements behind the thresholds and N_max).
+   - **Commands** (from `backend/`): `uv run pytest tests/physics/test_oscillator_numerical.py
+     tests/physics/test_oscillator_model.py -q` (red before the build, green after);
+     `uv run pytest tests/physics/test_oscillator_model.py -q --collect-only -k corner_grid`;
+     `uv run ruff check . && uv run ruff format --check . && uv run mypy`; `uv run pytest -q`.
+     From the root, before the slice's commit: `git diff --stat --diff-filter=MDR HEAD --
+     backend/tests` and `python3 scripts/doc_index.py --check`.
+   - **Checks (yes/no):** (1) The corner grid collects ≥ 96 cases, RK45, DOP853 and Radau ×
+     (rtol, atol) = (1e-13, 1e-14), (1e-10, 1e-10), (1e-6, 1e-8), (1e-3, 1e-1) (tightest
+     allowed, default, middle, loosest allowed) × the four `Regime` values × driven/free, plus
+     the Risks corners (ω far below ω₀ and at 100·ω₀, tiny x₀ with v₀, Q = 1e4 and b = 0 at
+     resonance, a run of N_max cycles), and every check passes on each? (2) The wrong-damping
+     mutant fails the energy balance while the true code passes it? (3) The scaled and SI
+     states agree to rounding (bound in ε, justified in the test), and at the tightest pair the
+     solution matches seam 1 in every regime within the measured thresholds? (4) Every
+     threshold and N_max is a named constant whose comment cites its measurement, and the same
+     numbers are in `SCIENTIFIC_VALIDATION.md`'s oscillator section (read in the diff)?
+     (5) ruff, format, mypy and the full `pytest -q` pass (golden digests included), and the
+     `git diff` command prints nothing (no existing test file changed)? (6) A fresh-context
+     review (opus, high; scientific core, limits) was run and its findings are fixed or
+     recorded?
+   - **Velocity scale (the author's decision, 2026-11-09): V = ω₀X**, as in D5 (η = v/(ω₀X))
+     and D8 (energy normalised by kX² = m(ω₀X)²); it replaces the slice-1 note's
+     max(ω₀, ω)·X, which could be up to 100× larger than the motion and hide errors. The grid
+     records the worst max|v|/(ω₀X) as evidence, and the thresholds are measured with V = ω₀X.
+   - **Thresholds from measurement:** start from D8's `1e4 × (rtol + atol) + 1e-9` (scaled),
+     measure the worst value of each check on the grid, then set the threshold from it with
+     the margin stated and justified; a cycles factor only if the measurement shows growth
+     with cycles (Risks); never tuned until a test passes. N_max from the timed slowest
+     allowed run against D6's ≤ 2 s. Recorded for `SCIENTIFIC_VALIDATION.md`: per check, the
+     worst ratio and its corner; N_max and its time; the machine, NumPy and SciPy versions.
+   - **Not done (worth doing from review):** a unit-invariance test (scale m, k, b, F₀ by λ)
+     instead of the scaled-against-SI tautology; thresholds as D8 coefficients, with the
+     loosest tolerance pair labelled uninformative where its threshold exceeds 1; the energy
+     normalisation must match the chosen V; name the corner test IDs and keep the N_max and
+     Radau corners tractable; N_max timing as a recorded measurement, not a timed assertion;
+     each threshold must exceed `analytical.py`'s own reference floor; name the module-level
+     damping function for the mutant and the planted-error test; `schemas.py` validation is
+     tested in slice 3 (slice 2 needs mypy only); the plan's status updated per G4.
 3. **API** (seam 4). Route module, `ModelEntry` (inputs, summary, tolerances with reasons,
    headline "x₀ 0.1 m, ζ 0.05 (underdamped), Q 10", rebuild), registry, union, appended golden
    run, corners test, `make api-types`. Accept when: `pytest` green, golden diff shows only the
    new entry, `/security-review` run (new inputs and limits) with findings addressed.
+   **Run-cost rule (the author's decision, 2026-11-10; like 2.2's `MAX_SWEEP_RHS_EVALUATIONS`):**
+   one budget of right-hand-side evaluations per run, counted during the solve; a run that
+   exceeds it is refused (422) with a message naming the budget and what to change (a looser
+   tolerance, fewer cycles, another method). The budget is **measured**, so the slowest allowed
+   run stays well inside the 30 s proxy limit, and the measurement is recorded in
+   `SCIENTIFIC_VALIDATION.md`. It covers every method and tolerance (Radau at the tightest pair
+   was measured at ~5 min for 500 cycles in slice 2's review), so no per-method limit is needed.
+   Slice 3's Acceptance block includes it.
 4. **Frontend** (seam 5). Page, presets, three charts, results, validation, nav, D15 wiring.
    Accept when: Vitest and the new Playwright cases pass; no existing frontend test changes.
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.

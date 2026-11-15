@@ -13,6 +13,10 @@ tests, a failed Vitest test file, interrupted Playwright tests), "pass" when its
 0, and "unknown" only when the log has neither an exit line nor a recognised summary. Lint,
 type and build checks have no test counts; their exit line decides.
 
+`--summary <log>` prints a short digest of one log instead (status, counts, failing test names,
+first error lines; at most 40 lines) so a person or a `test-runner` agent never reads the log;
+`scripts/run_logged.sh` runs a command into a log and then prints that digest.
+
 Recognised summaries: pytest, with or without -q ("3 passed, 1 failed, 2 skipped in 4.20s"),
 Vitest ("Tests  12 passed | 1 failed (13)" and "Duration  1.23s"),
 Playwright ("4 passed (12.3s)", "1 failed"). Standard library only.
@@ -39,6 +43,13 @@ PLAYWRIGHT_PASSED = re.compile(r"^\s*(\d+) passed \((?P<secs>[\d.]+)(?P<unit>m|s
 PLAYWRIGHT_OTHER = re.compile(r"^\s*(\d+) (failed|flaky|skipped|interrupted|did not run)\s*$", re.M)
 VITEST_FILES_FAILED = re.compile(r"^\s*Test Files\s+(\d+) failed", re.M)
 EXIT = re.compile(r"^exit: (-?\d+)\s*$", re.M)
+
+
+PYTEST_FAILED = re.compile(r"^(?:FAILED|ERROR) (\S+)", re.M)
+VITEST_FAIL = re.compile(r"^\s*FAIL\s+(\S.*?)\s*$", re.M)
+PLAYWRIGHT_FAIL = re.compile(r"^\s*(?:\d+\) |✘\s+\d+ )(\[.+)$", re.M)
+FIRST_ERROR = re.compile(r"^(?:E\s+\S.*|\s*(?:\w*Error|error TS\d+|Error)\b.*)$", re.M)
+DIGEST_LINES = 40
 
 
 @dataclass
@@ -128,6 +139,31 @@ def parse_log(text: str) -> LogResult:
     return r
 
 
+def digest(text: str, path: str) -> str:
+    """At most DIGEST_LINES lines: status, counts, failing test names, first error lines."""
+    text = ANSI.sub("", text)
+    r = parse_log(text)
+    seen: list[str] = []
+    for pattern in (PYTEST_FAILED, VITEST_FAIL, PLAYWRIGHT_FAIL):
+        for name in pattern.findall(text):
+            if name not in seen:
+                seen.append(name)
+    errors: list[str] = []
+    for line in FIRST_ERROR.findall(text):
+        if line.strip() not in errors:
+            errors.append(line.strip())
+    head = (
+        f"status: {r.status}; passed {r.passed}, failed {r.failed}, skipped {r.skipped}, "
+        f"{round(r.seconds, 2)} s"
+        + ("" if r.summary else " (no test summary recognised: counts unknown)")
+    )
+    lines = [head]
+    lines += [f"failing: {n[:200]}" for n in seen[:20]]
+    lines += [f"error: {e[:200]}" for e in errors[:8]]
+    lines.append(f"log: {path}")
+    return "\n".join(lines[:DIGEST_LINES])
+
+
 def collect(logs: list[Path]) -> Counts:
     counts = Counts()
     for log in logs:
@@ -193,6 +229,13 @@ def main(argv: list[str]) -> int:
     if len(argv) < 1:
         print(__doc__, file=sys.stderr)
         return 2
+    if argv[0] == "--summary":
+        if len(argv) != 2:
+            print(__doc__, file=sys.stderr)
+            return 2
+        log = Path(argv[1])
+        print(digest(log.read_text(encoding="utf-8", errors="replace"), str(log)))
+        return 0
     entry_path = Path(argv[0])
     counts = collect([Path(p) for p in argv[1:]])
     entry_path.write_text(
