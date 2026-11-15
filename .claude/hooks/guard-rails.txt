@@ -1,0 +1,22 @@
+# Guard-rail paths: an autopilot tick may not edit these (autopilot skill, step 0; they are
+# genuine stops). Enforced by .claude/hooks/guard_rails.py while a tick's marker file exists.
+# One glob per line, relative to the repository root; `!` re-allows a path (the last match wins).
+# `*` matches across `/`.
+.claude/*
+!.claude/autopilot/STATE.md
+!.claude/autopilot/FINDINGS.md
+.github/*
+.githooks/*
+scripts/*
+Makefile
+docs/journal/_template.md
+docs/journal/Journal.base
+backend/pyproject.toml
+frontend/package.json
+frontend/eslint.config.mjs
+frontend/tsconfig.json
+frontend/vitest.config.mts
+frontend/vitest.setup.ts
+frontend/playwright.config.ts
+CLAUDE.md
+*/CLAUDE.md
