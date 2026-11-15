@@ -1,4 +1,4 @@
-Last updated: 8900f0b 2026-11-15
+Last updated: da6eeb3 2026-11-15
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,17 +9,12 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the draft PR `claude/determined-meitner-xpu871` into the working branch (you merge). Then
+Review the draft PR (CI green on the earlier head; re-confirm after this push) `claude/determined-meitner-xpu871` into the working branch (you merge). Then
 open a FRESH session (agent files are read at session start) and run `/context` to compare with
 the numbers below. Then 2.3 slice 3 (Acceptance block and the evaluation budget first).
 
 ## Open decisions
-- Stored scheduled-task prompt (task `trig_01LW…`, disabled) still repeats the 4-subagent cap, the effort ladder and the read rule; I may not change it. Recommend: shorten it to "follow `.claude/skills/autopilot/SKILL.md`; never merge" and keep steps 0, 1 and 4.
-- STATE says `status: running` but the scheduled task is disabled (last fired 2026-11-10). Set `paused`, or say "resume autopilot" (re-enables it, resets `work limit from:`).
-- `.github/pull_request_template.md` "Reviews" line is a fourth copy of the old risky/review wording; not edited (outside the paths you authorised). Recommend: point it at `CLAUDE.md`.
-- `explorer` and `test-runner` (Haiku lookups) do not count toward the 4-subagent cap (my call, skill step 4). Keep?
-- `maxEffortLevel: high` blocks `xhigh`/`max` for every session here (the lowest cap wins); to use them, raise that line. Keep as is?
-- Ponytail: its saving (about 10% in the one independent test) is unverified here. Recommend: keep for two ticks, then compare journal costs; off-switch is in `.claude/skills/ponytail/SKILL.md`.
+- Stored scheduled-task prompt is now one line (author's text, 2026-11-15). It no longer carries the repo-attach step or "find the working branch from `origin/main`"; SKILL.md holds the branch rule. Note the task's stored branch is `claude/serene-feynman` (outcomes); check it before "resume autopilot".
 - Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
@@ -30,6 +25,7 @@ the numbers below. Then 2.3 slice 3 (Acceptance block and the evaluation budget 
 - **Verified:** headless sessions that spawned all 8 agents: each ran on its pinned model and effort; only the two builders saw `ponytail`; project-level hooks blocked push and writes inside subagents. Agent-scoped front-matter hooks did NOT fire in headless runs (kept, plus the project-level layer). Backend: ruff, mypy, doc index, excerpts, 2442 tests passed. Not run: frontend and Playwright (no frontend code changed).
 - **Not enforceable by script:** the 4-subagent cap, the daily cap, the work limit, the `failures` counter, "bash can't write" for a determined agent (`python -c`), shell writes to guard rails.
 - **Start-up context (headless `/context`, same machine):** 19.2k to 20.6k tokens (CLAUDE.md 3.3k to 4.5k, agents 0.26k to 0.42k, ponytail 0.1k); window 1M to 200k. It costs more at start; the savings are per task (Haiku lookups, logs not output, no duplicate rules).
+- **Author decisions applied (2026-11-15):** `autoCompactWindow` 400000; stored prompt shortened; STATE `paused` until "resume autopilot"; PR template points to CLAUDE.md; `explorer`/`test-runner` outside the 4-cap but max 5 Haiku spawns per tick (SKILL.md, not hook-enforced); `maxEffortLevel: high` kept; CLAUDE.md now has a "Quality comes first" rule (cheaper agents never lower the standard; escalate weak output).
 - **State:** committed and pushed to `claude/determined-meitner-xpu871`; draft PR open; not merged. Branch = working branch + `main` (PR #20) merged, since the two had diverged.
 
 ## Learning handoff
