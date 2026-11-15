@@ -19,8 +19,8 @@
       (approve it by removing the tag, or edit it, before merging to `main`)
 
 ## Reviews
-- [ ] Fresh-context review of each risky slice (scientific core, inputs and limits, stored
-      data) and one of the PR; findings fixed or listed below
+- [ ] Reviews done as `CLAUDE.md` ("Models, subagents and reviews") requires for this change;
+      findings fixed or listed below
 
 ## Checks run
 <!-- Only what actually ran, with results. Say what did not run and why. -->
