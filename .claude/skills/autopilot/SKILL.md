@@ -157,7 +157,8 @@ and your recommendation, set `status: blocked`, journal it, and pause (step 6).
   subagents by name (`.claude/agents/`; model and effort are pinned there, see `CLAUDE.md`):
   `planner`, `reviewer`, `test-writer` / `builder`, or `test-writer-risky` / `builder-risky`
   for a risky unit. Give each the unit, the relevant files and the hard rules above. **At most
-  4 working subagents per tick** (the lookups `explorer` and `test-runner` do not count).
+  4 working subagents per tick**. The Haiku helpers `explorer` and `test-runner` do not count
+  toward it but have their own limit: **at most 5 Haiku helper spawns per tick**.
   A fresh review that would exceed it: commit the slice once Acceptance passes, mark it
   "review pending" in STATE (not in the handoff), and make the review the next tick's unit.
 - **Acceptance is executable** (the author's rule of 2026-11-07). A slice is done only when the
