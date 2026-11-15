@@ -1,4 +1,4 @@
-Last updated: da6eeb3 2026-11-15
+Last updated: b7504bd 2026-11-15
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,24 +9,21 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the draft PR (CI green on the earlier head; re-confirm after this push) `claude/determined-meitner-xpu871` into the working branch (you merge). Then
-open a FRESH session (agent files are read at session start) and run `/context` to compare with
-the numbers below. Then 2.3 slice 3 (Acceptance block and the evaluation budget first).
+Review the small draft PR `claude/autopilot-resume-rule` into the working branch (you merge): it
+makes only your words "resume autopilot" restart a paused autopilot. Then fix the scheduled task's
+branch by hand (first open decision), then say "resume autopilot". Then 2.3 slice 3 (Acceptance
+block and the evaluation budget first).
 
 ## Open decisions
-- Stored scheduled-task prompt is now one line (author's text, 2026-11-15). It no longer carries the repo-attach step or "find the working branch from `origin/main`"; SKILL.md holds the branch rule. Note the task's stored branch is `claude/serene-feynman` (outcomes); check it before "resume autopilot".
+- **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
 - Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: model routing, one-place rules, enforcement (author's request, 2026-11-15)
-- **Done:** `CLAUDE.md` holds the model table, the one risky definition, the review rule, the read rule, the test-output rule and "Compact instructions" (168 lines). Eight agents pin model and effort in front-matter (Haiku high: `explorer`, `test-runner`; Sonnet medium: `builder`, `test-writer`; Opus medium: `*-risky`, `planner`, `reviewer`); a test keeps them equal to the table. `SKILL.md` 305 to 237 lines: retry ladder by model, live-usage caps removed (daily cap stays 2), stale example fixed. Settings: `effortLevel` medium, `maxEffortLevel` high, `autoCompactWindow` 200000.
-- **Enforced (tested in `backend/tests/scripts/test_hooks.py`, `test_agents.py`):** subagents cannot `git commit`, `git push` or `gh pr`; `reviewer`/`explorer` cannot write; a tick's marker file blocks edits to `.claude/hooks/guard-rails.txt` paths and adds the `Autopilot-run:` trailer; the same failing command stops after 3 failures (ported from TokenEconomizer's loop guard; seen working live). `scripts/run_logged.sh` + `tick_metrics.py --summary` keep test output in a log.
-- **Verified:** headless sessions that spawned all 8 agents: each ran on its pinned model and effort; only the two builders saw `ponytail`; project-level hooks blocked push and writes inside subagents. Agent-scoped front-matter hooks did NOT fire in headless runs (kept, plus the project-level layer). Backend: ruff, mypy, doc index, excerpts, 2442 tests passed. Not run: frontend and Playwright (no frontend code changed).
-- **Not enforceable by script:** the 4-subagent cap, the daily cap, the work limit, the `failures` counter, "bash can't write" for a determined agent (`python -c`), shell writes to guard rails.
-- **Start-up context (headless `/context`, same machine):** 19.2k to 20.6k tokens (CLAUDE.md 3.3k to 4.5k, agents 0.26k to 0.42k, ponytail 0.1k); window 1M to 200k. It costs more at start; the savings are per task (Haiku lookups, logs not output, no duplicate rules).
-- **Author decisions applied (2026-11-15):** `autoCompactWindow` 400000; stored prompt shortened; STATE `paused` until "resume autopilot"; PR template points to CLAUDE.md; `explorer`/`test-runner` outside the 4-cap but max 5 Haiku spawns per tick (SKILL.md, not hook-enforced); `maxEffortLevel: high` kept; CLAUDE.md now has a "Quality comes first" rule (cheaper agents never lower the standard; escalate weak output).
-- **State:** committed and pushed to `claude/determined-meitner-xpu871`; draft PR open; not merged. Branch = working branch + `main` (PR #20) merged, since the two had diverged.
+## Last task: pre-resume fixes (author's request, 2026-11-15)
+- **Done locally and pushed (PR open, not merged):** SKILL.md step 1.2 and step 6: a `paused` autopilot ends with one line; only the author's words "resume autopilot" set `status: running`, never an `Answer:` line, a STATE edit or a comment. `blocked`/`waiting-review` keep the answer rule.
+- **Verified:** SKILL.md on the working branch (`b7504bd`) is the new version: 8 agent files, the CLAUDE.md model-table pointer, the 4-subagent cap with the 5-Haiku-spawn limit (line 160). Stored task read back: Sonnet 5.5, disabled, prompt as shortened.
+- **Not done:** the task's branch (no tool for it; see Open decisions). Autopilot stays paused.
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.
