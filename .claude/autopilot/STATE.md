@@ -1,17 +1,16 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status`, or add a line starting `Answer:` under an item in "Open
-decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
-the author says "resume autopilot" (which also resets `work limit from:`).
+edit it too: set `stop:` to `none` to clear a stop, or add a line starting `Answer:` under an
+item in "Open decisions" of `docs/HANDOFF.md`. On/off is not here: it is the scheduled task's
+enabled flag only (skill step 6).
 
-status: paused
-paused note: the author's instruction of 2026-11-15; stays paused until the author says "resume autopilot".
+stop: none (the other values, set by a tick: `blocked`, `waiting-review`)
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 4413a2f
+work limit from: 58396d3
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.

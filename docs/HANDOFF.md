@@ -1,4 +1,4 @@
-Last updated: b7504bd 2026-11-15
+Last updated: 58396d3 2026-11-15
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,10 +9,11 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the small draft PR `claude/autopilot-resume-rule` into the working branch (you merge): it
-makes only your words "resume autopilot" restart a paused autopilot. Then fix the scheduled task's
-branch by hand (first open decision), then say "resume autopilot". Then 2.3 slice 3 (Acceptance
-block and the evaluation budget first).
+Merge the small PR (`claude/determined-meitner-xpu871`) into the working branch BEFORE 02:59 UTC:
+until then STATE and SKILL.md on the working branch still use the old `paused` switch, so the tick
+would stop with one line. The task is already enabled ("resume autopilot" done through
+`update_trigger`, 2026-11-15). Then 2.3 slice 3 (Acceptance block and the evaluation budget first);
+the first tick after a merge also writes the learning-log `DRAFT`.
 
 ## Open decisions
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
@@ -20,10 +21,11 @@ block and the evaluation budget first).
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: pre-resume fixes (author's request, 2026-11-15)
-- **Done locally and pushed (PR open, not merged):** SKILL.md step 1.2 and step 6: a `paused` autopilot ends with one line; only the author's words "resume autopilot" set `status: running`, never an `Answer:` line, a STATE edit or a comment. `blocked`/`waiting-review` keep the answer rule.
-- **Verified:** SKILL.md on the working branch (`b7504bd`) is the new version: 8 agent files, the CLAUDE.md model-table pointer, the 4-subagent cap with the 5-Haiku-spawn limit (line 160). Stored task read back: Sonnet 5.5, disabled, prompt as shortened.
-- **Not done:** the task's branch (no tool for it; see Open decisions). Autopilot stays paused.
+## Last task: one on/off switch for the autopilot (author's request, 2026-11-15)
+- **Done locally, committed and pushed (PR #24, not merged):** the scheduled task's `enabled` flag is the only on/off control ("pause autopilot" = `update_trigger enabled:false`, "resume" = `enabled:true`, no commit or PR). STATE no longer has `status`; it has `stop: none|blocked|waiting-review` (set only by a tick) plus its counters. SKILL.md steps 0b.0, 1.2, 4, 5, 6 and the instructions rule, and `CLAUDE.md`'s Autopilot paragraph, match.
+- **Done outside git:** task `trig_01LW…` enabled via `update_trigger`; next tick 2026-11-16 02:59 UTC.
+- **Verified:** `backend/tests/scripts` 111 passed (no test names `status`); CI on the PR: see its checks. **Not enforceable:** that only your words flip the flag (nothing stops another session from calling `update_trigger`; the skill says it is yours).
+- **Still yours:** the task's push-outcome branch on claude.ai shows `claude/serene-feynman`; I cannot change it. After a stop (`blocked`/`waiting-review`), "resume autopilot" enables the task and the next tick clears the stop only if you have also answered (`stop: none`, an `Answer:` line or a comment).
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.
