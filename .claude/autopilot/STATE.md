@@ -15,8 +15,8 @@ ladder rung: none (the builder's effort ladder, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
 Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the author on
-2026-10-24. Plans: checked by three fresh reviewers, must-fix findings only (since
-2026-11-07; before, the autopilot accepted its own defaults).
+2026-10-24. Plans: checked by one fresh reviewer (three for the scientific core, since 2026-11-13),
+must-fix findings only (since 2026-11-07; before, the autopilot accepted its own defaults).
 
 ## Budget (the author may edit these numbers)
 - working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
