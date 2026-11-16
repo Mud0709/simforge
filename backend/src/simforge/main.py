@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from simforge import __version__
 from simforge.api.body_limit import BodySizeLimitMiddleware
 from simforge.api.errors import register_error_handlers
-from simforge.api.routes import economy, experiments, health, physics, quant
+from simforge.api.routes import economy, experiments, health, oscillator, physics, quant
 from simforge.config import Settings
 from simforge.persistence.experiments import ExperimentRepository, init_db
 from simforge.quant.profiling.limits import MAX_REQUEST_BYTES
@@ -50,6 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for router in (
         health.router,
         physics.router,
+        oscillator.router,
         economy.router,
         quant.router,
         experiments.router,

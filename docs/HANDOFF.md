@@ -10,8 +10,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-Then 2.3 slice 3: its Acceptance block is written and reviewed (2026-11-15 autopilot); the build is next. The scheduled task's branch on
-claude.ai is still yours to fix (first open decision). PR #24 is merged into the working branch.
+2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. Next for the autopilot: the reviewer's worth-doing items and a `/security-review`, then slice 4 (frontend). The scheduled task's branch on claude.ai is still yours to fix.
 
 ## Open decisions
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
@@ -20,11 +19,10 @@ claude.ai is still yours to fix (first open decision). PR #24 is merged into the
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: one on/off switch for the autopilot (author's request, 2026-11-15)
-- **Done locally, committed and pushed (PR #24, not merged):** the scheduled task's `enabled` flag is the only on/off control ("pause autopilot" = `update_trigger enabled:false`, "resume" = `enabled:true`, no commit or PR). STATE no longer has `status`; it has `stop: none|blocked|waiting-review` (set only by a tick) plus its counters. SKILL.md steps 0b.0, 1.2, 4, 5, 6 and the instructions rule, and `CLAUDE.md`'s Autopilot paragraph, match.
-- **Done outside git:** task `trig_01LW…` enabled via `update_trigger`; next tick 2026-11-16 02:59 UTC.
-- **Verified:** `backend/tests/scripts` 111 passed (no test names `status`); CI on the PR: see its checks. **Not enforceable:** that only your words flip the flag (nothing stops another session from calling `update_trigger`; the skill says it is yours).
-- **Still yours:** the task's push-outcome branch on claude.ai shows `claude/serene-feynman`; I cannot change it. After a stop (`blocked`/`waiting-review`), "resume autopilot" enables the task and the next tick clears the stop only if you have also answered (`stop: none`, an `Answer:` line or a comment).
+## Last task: 2.3 slice 3 (autopilot, 2026-11-16)
+- **Done locally, committed, pushed (no PR yet):** `/api/v1/physics/oscillator/simulate`, `ModelEntry`, one appended golden entry, `MAX_RUN_RHS_EVALUATIONS = 400,000` counted inside the RHS (Radau Jacobian included; slowest budgeted run 11.7 s on the builder's machine), and SciPy's Radau Jacobian overflow turned into a 422. **Verified by the tick:** full backend `pytest -q -W error` 2565 passed; ruff, format, mypy clean; golden diff OK; protected test hashes unchanged. **Not run:** `scripts/check.sh --e2e`, a separate `/security-review`, a second `make api-types`.
+- **Fresh review (Opus):** no must-fix. Worth doing: the `api/errors.py` comment says "Python form" but writes e.g. `1000000.0` (changes bound wording for every model); the limits test's `str(bound) in msg` is self-referential (a protected test file); the overflow message blames Radau for every method; the DOP853 energy-balance observation is unverified.
+- **Decisions taken for you:** stored summary adds `initial_displacement`; the overflow is a 422, not an analytic Jacobian (that would change Radau numerics).
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.

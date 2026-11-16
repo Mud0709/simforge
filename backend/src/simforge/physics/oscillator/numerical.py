@@ -58,6 +58,10 @@ def damping_acceleration(eta: float, zeta: float) -> float:
     return -2.0 * zeta * eta
 
 
+class RhsBudgetError(Exception):
+    """The solve needed more right-hand-side calls than its budget (``args[0]``)."""
+
+
 @dataclass(frozen=True, slots=True)
 class OscillatorSolution:
     """One numerical solve. Arrays are at the solver's accepted step nodes, from t = 0 to the
@@ -112,11 +116,15 @@ def integrate(
     method: SolverMethod,
     rtol: float,
     atol: float,
+    max_rhs_evaluations: int | None = None,
 ) -> OscillatorSolution:
     """Solve the scaled equation on tau in [0, w0 duration] and return scaled and SI values.
 
     ``scale`` is X (m), normally ``analytical.scale(p, duration)``; it must be positive and
-    finite (X = 0 means nothing moves). Raises SolverError if the solver fails.
+    finite (X = 0 means nothing moves). Raises SolverError if the solver fails, and
+    RhsBudgetError as soon as the right-hand side would be called more than
+    ``max_rhs_evaluations`` times (every call counts, Radau's Jacobian columns included), so
+    an over-budget solve stops there instead of running to its end.
     """
     if not (math.isfinite(duration) and duration > 0):
         raise ValueError(f"duration must be positive and finite (got {duration})")
@@ -128,8 +136,13 @@ def integrate(
     big_omega = p.drive_angular_frequency / w0  # w / w0
     phi = p.drive_amplitude / (p.spring_constant * scale)  # F0 / (k X)
     two_zeta = 2.0 * zeta
+    calls = 0
 
     def rhs(tau: float, s: FloatArray) -> FloatArray:
+        nonlocal calls
+        calls += 1
+        if max_rhs_evaluations is not None and calls > max_rhs_evaluations:
+            raise RhsBudgetError(max_rhs_evaluations)
         xi, eta = float(s[0]), float(s[1])
         drive = phi * math.cos(big_omega * tau)
         # Looked up at call time (module global), so a test can substitute a wrong law.

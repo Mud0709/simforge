@@ -54,8 +54,15 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   threshold above 1 now gives no verdict (`passed = null`), not a pass. **Item 1 (worst-case
   run times) stays with slice 3's evaluation budget**; measured for it: Radau at 500 cycles,
   ω = 100ω₀, 792 s (tightest pair) and 133 s (default pair).
-- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10); its
-  Acceptance block was added 2026-11-15 (see slice 3).
+- **Slice 3 (API, limits, run-cost rule): built 2026-11-16, not yet reviewed.** Route
+  `api/routes/oscillator.py`, `ModelEntry`, registry, response union, golden run appended.
+  `MAX_RUN_RHS_EVALUATIONS = 400 000`, counted in the right-hand side (measured: a Radau run
+  at the budget is refused after 11.4-11.7 s; table in `SCIENTIFIC_VALIDATION.md`). Builder's
+  choices, open for the author: a Radau run whose finite-difference Jacobian overflows is
+  refused (422) rather than given an analytic Jacobian; the 422 messages for field bounds now
+  print the bound in Python's form (`1e-06`, not `0.000001`) for every model; the stored
+  summary adds `initial_displacement` (for the headline). `/security-review` still to run.
+- Slices 4-5: not started.
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance

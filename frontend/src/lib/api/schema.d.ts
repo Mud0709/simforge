@@ -150,6 +150,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/oscillator/simulate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Simulate Oscillator */
+    post: operations["simulate_oscillator_api_v1_physics_oscillator_simulate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/projectile/angle-sweep": {
     parameters: {
       query?: never;
@@ -1020,6 +1037,305 @@ export interface components {
       /** Theoretical Order */
       theoretical_order: number;
     };
+    /**
+     * OscillatorDerived
+     * @description Exact formulas of the inputs (``analytical.derived``) and the scale X.
+     */
+    OscillatorDerived: {
+      /**
+       * Damped Angular Frequency
+       * @description wd = sqrt(w0^2 - gamma^2), rad/s; null unless under- or undamped
+       */
+      damped_angular_frequency: number | null;
+      /**
+       * Damped Period
+       * @description T_d = 2 pi / wd, s; null when wd is null
+       */
+      damped_period: number | null;
+      /**
+       * Damping Rate
+       * @description gamma = b/2m, 1/s
+       */
+      damping_rate: number;
+      /**
+       * Damping Ratio
+       * @description zeta = b / (2 sqrt(mk)), dimensionless
+       */
+      damping_ratio: number;
+      /**
+       * Natural Angular Frequency
+       * @description w0 = sqrt(k/m), rad/s
+       */
+      natural_angular_frequency: number;
+      /**
+       * Overdamped Rate
+       * @description beta = sqrt(gamma^2 - w0^2), 1/s; null unless overdamped
+       */
+      overdamped_rate: number | null;
+      /**
+       * Quality Factor
+       * @description Q = sqrt(mk)/b (exact, by definition); null when b = 0
+       */
+      quality_factor: number | null;
+      /**
+       * Regime
+       * @enum {string}
+       */
+      regime: "undamped" | "underdamped" | "critically_damped" | "overdamped";
+      /**
+       * Scale
+       * @description X, m: a proved bound on |x| over the run, from the inputs
+       */
+      scale: number;
+    };
+    /** OscillatorDiagnostics */
+    OscillatorDiagnostics: {
+      /**
+       * Cycles
+       * @description duration max(w0, w) / 2 pi (w0 alone when F0 = 0)
+       */
+      cycles: number;
+      /**
+       * Free Decay Period Residual
+       * @description w0 |(t2 - t1) - T_d| for the first two maxima; null unless free, underdamped and with at least two maxima
+       */
+      free_decay_period_residual: number | null;
+      /**
+       * Free Decay Ratio Residual
+       * @description |x2 - e^(-gamma T_d) x1| / X for the first two maxima; null as above
+       */
+      free_decay_ratio_residual: number | null;
+      /**
+       * Max Displacement Error
+       * @description max |x - x_exact| / X over the solver's step nodes
+       */
+      max_displacement_error: number;
+      /**
+       * Max Energy Balance Residual
+       * @description max |KE + PE + W_damp - W_drive - E0| / (k X^2) over the nodes; exactly 0 for the true motion
+       */
+      max_energy_balance_residual: number;
+      /**
+       * Max Velocity Error
+       * @description max |v - v_exact| / (w0 X) over the nodes
+       */
+      max_velocity_error: number;
+      /**
+       * Remaining Transient
+       * @description The transient left at the end as a fraction of A (exact); null unless driven and damped
+       */
+      remaining_transient: number | null;
+      /**
+       * Stiffness Number
+       * @description (gamma + beta) duration when overdamped, w0 duration otherwise
+       */
+      stiffness_number: number;
+    };
+    /** OscillatorNumerical */
+    OscillatorNumerical: {
+      /**
+       * Atol
+       * @description dimensionless, a fraction of the scale X
+       */
+      atol: number;
+      /**
+       * Final Displacement
+       * @description x at t = duration, m (numerical)
+       */
+      final_displacement: number;
+      /**
+       * Final Velocity
+       * @description v at t = duration, m/s (numerical)
+       */
+      final_velocity: number;
+      /** Method */
+      method: string;
+      /** N Rhs Evaluations */
+      n_rhs_evaluations: number;
+      /** N Steps */
+      n_steps: number;
+      /** Rtol */
+      rtol: number;
+    };
+    /**
+     * OscillatorParameters
+     * @description Physical inputs and duration, SI units. Defaults: the Damped preset (plan D2).
+     */
+    OscillatorParameters: {
+      /**
+       * Damping Coefficient
+       * @description Damping coefficient b in kg/s (damping force F = -b v). 0 means undamped.
+       * @default 0.5
+       */
+      damping_coefficient?: number;
+      /**
+       * Drive Amplitude
+       * @description Amplitude F0 of the driving force F0 cos(w t), in N. 0 means undriven.
+       * @default 0
+       */
+      drive_amplitude?: number;
+      /**
+       * Drive Angular Frequency
+       * @description Angular frequency w of the drive, in rad/s.
+       * @default 5
+       */
+      drive_angular_frequency?: number;
+      /**
+       * Duration
+       * @description Length of the run, in s.
+       * @default 20
+       */
+      duration?: number;
+      /**
+       * Initial Displacement
+       * @description Displacement x0 at t = 0, in m.
+       * @default 0.1
+       */
+      initial_displacement?: number;
+      /**
+       * Initial Velocity
+       * @description Velocity v0 at t = 0, in m/s.
+       * @default 0
+       */
+      initial_velocity?: number;
+      /**
+       * Mass
+       * @description Mass m in kg.
+       * @default 1
+       */
+      mass?: number;
+      /**
+       * Spring Constant
+       * @description Spring constant k in N/m.
+       * @default 25
+       */
+      spring_constant?: number;
+    };
+    /** OscillatorRequest */
+    OscillatorRequest: {
+      /**
+       * N Samples
+       * @description Number of points in the resampled series.
+       * @default 400
+       */
+      n_samples?: number;
+      parameters?: components["schemas"]["OscillatorParameters"];
+      /**
+       * Save Experiment
+       * @description Record inputs and summary metrics in the experiment log.
+       * @default true
+       */
+      save_experiment?: boolean;
+      solver?: components["schemas"]["SolverSettings"];
+    };
+    /**
+     * OscillatorResonance
+     * @description The steady state against drive frequency (formula, OR1; plan D9).
+     */
+    OscillatorResonance: {
+      /**
+       * Amplitude
+       * @description m
+       */
+      amplitude: number[];
+      /**
+       * Angular Frequency
+       * @description rad/s, from 0 to max(3 w0, 1.2 w)
+       */
+      angular_frequency: number[];
+      /**
+       * Phase Lag
+       * @description rad
+       */
+      phase_lag: number[];
+    };
+    /** OscillatorResponse */
+    OscillatorResponse: {
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      derived: components["schemas"]["OscillatorDerived"];
+      diagnostics: components["schemas"]["OscillatorDiagnostics"];
+      metadata: components["schemas"]["RunMetadata"];
+      /** Method Note */
+      method_note: string;
+      model: components["schemas"]["ModelInfo"];
+      numerical: components["schemas"]["OscillatorNumerical"];
+      parameters: components["schemas"]["OscillatorParameters"];
+      /** @description Null when undriven or undamped (A has a pole at w0 without damping) */
+      resonance: components["schemas"]["OscillatorResonance"] | null;
+      series: components["schemas"]["OscillatorSeries"];
+      solver: components["schemas"]["SolverSettings"];
+      /** @description Null when undriven (F0 = 0) or undamped (b = 0: no steady state) */
+      steady_state: components["schemas"]["OscillatorSteadyState"] | null;
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+    };
+    /**
+     * OscillatorSeries
+     * @description Evenly resampled series (SI): numerical from the solver's dense output, exact from the
+     *     closed form at the same times.
+     */
+    OscillatorSeries: {
+      /**
+       * Damping Work
+       * @description J, energy removed by damping since t = 0
+       */
+      damping_work: number[];
+      /**
+       * Drive Work
+       * @description J, work done by the drive since t = 0
+       */
+      drive_work: number[];
+      /**
+       * Envelope
+       * @description R e^(-gamma t), m, the transient's decay envelope; null unless underdamped
+       */
+      envelope: number[] | null;
+      /** Kinetic Energy */
+      kinetic_energy: number[];
+      /** Potential Energy */
+      potential_energy: number[];
+      /** T */
+      t: number[];
+      /** V */
+      v: number[];
+      /** V Exact */
+      v_exact: number[];
+      /** X */
+      x: number[];
+      /** X Exact */
+      x_exact: number[];
+    };
+    /**
+     * OscillatorSteadyState
+     * @description x_p = A cos(w t - delta) (formula, OR1); the amplitude peak (OR5).
+     */
+    OscillatorSteadyState: {
+      /**
+       * Amplitude
+       * @description A, m
+       */
+      amplitude: number;
+      /**
+       * Peak Amplitude
+       * @description A_max = (F0/m) / (2 gamma wd), m; null when zeta >= 1/sqrt(2)
+       */
+      peak_amplitude: number | null;
+      /**
+       * Peak Angular Frequency
+       * @description w_r = sqrt(w0^2 - 2 gamma^2), rad/s; null when zeta >= 1/sqrt(2)
+       */
+      peak_angular_frequency: number | null;
+      /**
+       * Phase Lag
+       * @description delta in [0, pi], rad
+       */
+      phase_lag: number;
+    };
     /** ParseOptions */
     ParseOptions: {
       /**
@@ -1527,7 +1843,8 @@ export interface components {
         | components["schemas"]["SolowResponse"]
         | components["schemas"]["ProfileResponse"]
         | components["schemas"]["QuadraticDragResponse"]
-        | components["schemas"]["QuadraticAngleSweepResponse"];
+        | components["schemas"]["QuadraticAngleSweepResponse"]
+        | components["schemas"]["OscillatorResponse"];
     };
     /**
      * ReferenceLine
@@ -2231,6 +2548,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Health"];
+        };
+      };
+    };
+  };
+  simulate_oscillator_api_v1_physics_oscillator_simulate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OscillatorRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OscillatorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

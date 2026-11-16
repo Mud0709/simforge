@@ -1074,6 +1074,52 @@ slice 2 section below). No endpoint or page exists yet.
   the even grid stepped over it. The curve now adds ω_r and points at ω_r ± γ·{¼, ½, 1, 2, 4,
   8, 16, 32}; every point is still the exact formula.
 
+### Slice 3: the API, its limits and the run-cost rule
+- **Run-cost rule (measured, one machine: x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1).**
+  `model.MAX_RUN_RHS_EVALUATIONS = 400 000` right-hand-side calls per run, counted inside the
+  right-hand side (Radau's finite-difference Jacobian columns included), so a solve over it
+  stops at the budget and is refused (422) naming the budget, a looser tolerance, fewer
+  cycles and another method. Evaluations at 500 cycles, m = k = 1 (the corners test's cost
+  corners), default pair (1e-10, 1e-10) / tightest pair (1e-13, 1e-14):
+
+  | Corner | DOP853 | RK45 (default) | Radau (default) | Radau (loosest) |
+  |---|---|---|---|---|
+  | free, undamped | 126 617 / 328 667 | 409 820 | 1 531 002 | 650 |
+  | free, Q = 1e4 | 125 927 / 328 202 | 405 116 | 1 531 002 | 643 |
+  | ω = 100ω₀, ζ = 0.05 | 186 548 / 401 231 | 257 564 | 2 499 081 | 68 727 |
+  | ω = 100ω₀, undamped | 252 728 / 537 827 | 317 786 | > 2.5e6 | 95 039 |
+  | ω = ω₀, Q = 1e4 | 116 777 / 318 257 | 353 570 | 1 252 577 | 83 |
+  | ω = ω₀/100, Q = 1e4 | 119 717 / 329 882 | 361 730 | 1 643 922 | 669 |
+  | γ = 1e4 (stiff) | refused by the guard | refused | 472 | 104 |
+
+  Cost per call: DOP853 7-10 µs, RK45 10-14 µs, Radau 28-31 µs, so Radau sets the wall time
+  at the budget: a run reaching it (Radau, tightest pair, ω = 100ω₀; 792 s unbounded) is
+  refused after 11.4-11.7 s, inside the 30 s proxy limit with room for a machine ~2× slower
+  (2.2's sweep budget was chosen the same way). **Admitted:** DOP853 at the default pair
+  everywhere and at the tightest pair where ω₀ is the fastest motion; RK45 at the default pair
+  with a drive; every method at the loosest pair; Radau on stiff runs. **Refused:** RK45 free
+  runs at the default pair, DOP853 at the tightest pair with ω = 100ω₀, Radau at the default
+  or tightest pair on 500 cycles. The corners test (`test_oscillator_limits.py`) ran 116
+  requests and refused 7 (3 over budget); slowest request 11.74 s (the Radau refusal above),
+  under its 25 s ceiling. Not a timed assertion beyond that ceiling.
+- **Radau's Jacobian overflow (found by the corners test).** SciPy's finite-difference
+  Jacobian multiplies the step factor of a column the right-hand side does not depend on (the
+  two works) by 10 at every recomputation; a run that recomputes it a few hundred times
+  overflows (m = 1e-6 kg, k = 100 N/m, ζ ≈ 1, ω ≈ 1e4 rad/s, 500 cycles, Radau at rtol = 1e-3,
+  atol = 0.1). The solve runs under `np.errstate(over="raise")` and such a run is refused
+  (422) naming a smaller atol or another method; both were checked on that motion (atol =
+  1e-3: 23 567 evaluations; DOP853 at the loosest pair: 13 193)
+  (`tests/physics/test_oscillator_overflow.py`). An analytic Jacobian would remove the cause;
+  not done, as it changes Radau's numerics that slice 2's thresholds were measured with.
+- **Tested** (`tests/api/test_oscillator_api.py`, `test_oscillator_limits.py`,
+  `tests/physics/test_oscillator_run_cost.py`, the appended registry case and golden run):
+  the response against textbook formulas for the three presets, overdamped and critical
+  runs; nulls as strict JSON; the D12 summary and replay tolerances; NaN/±Infinity and every
+  single-field bound and combined rule refused with its number and nothing stored; the
+  budget's counter stopping the solve at the budget. **Observed (reported, not asserted):** at
+  the unit corner m = k = 1e-6, γ just under 1e4, F₀ = 1e6 N, ω = 0, shortest duration,
+  Radau at the default pair the displacement check fails, and (the test writer's observation, not re-run by the tick) with DOP853 the energy-balance check fails.
+
 ### Limitations
 - Measurements are from one machine (Python 3.12, NumPy 2.5.4, SciPy 1.18.1); run times vary
   by up to ~1.5× on it.

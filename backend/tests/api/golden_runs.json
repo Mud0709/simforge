@@ -340,5 +340,65 @@
    "vacuum_best_angle_deg": 43.660470360402165,
    "vacuum_best_range": 42.74188159279543
   }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_samples": 201,
+   "parameters": {
+    "damping_coefficient": 0.5,
+    "drive_amplitude": 1.0,
+    "drive_angular_frequency": 4.0,
+    "duration": 20.0,
+    "initial_displacement": 0.1,
+    "initial_velocity": 0.0,
+    "mass": 1.0,
+    "spring_constant": 25.0
+   },
+   "solver": {
+    "atol": 1e-10,
+    "method": "DOP853",
+    "rtol": 1e-10
+   }
+  },
+  "model_id": "physics.oscillator",
+  "model_version": "1.0.0",
+  "output_digest": "409cbfd2818123e98c0af6f0f7163526035b38ecd8829bb12843c31ae34a3204",
+  "summary": {
+   "derived": {
+    "damped_angular_frequency": 4.993746088859544,
+    "damped_period": 1.2582108091552007,
+    "damping_rate": 0.25,
+    "damping_ratio": 0.05,
+    "natural_angular_frequency": 5.0,
+    "overdamped_rate": null,
+    "quality_factor": 10.0,
+    "regime": "underdamped",
+    "scale": 0.31600776897545924
+   },
+   "diagnostics": {
+    "free_decay_period_residual": null,
+    "free_decay_ratio_residual": null,
+    "max_displacement_error": 2.9777214902149405e-10,
+    "max_energy_balance_residual": 5.865767535383998e-11,
+    "max_velocity_error": 2.8512464819374115e-10
+   },
+   "initial_displacement": 0.1,
+   "numerical": {
+    "n_rhs_evaluations": 2879,
+    "n_steps": 191
+   },
+   "steady_state": {
+    "amplitude": 0.10846522890932808,
+    "peak_amplitude": 0.4005009394574071,
+    "peak_angular_frequency": 4.987484335815001,
+    "phase_lag": 0.21866894587394195
+   }
+  }
  }
 ]

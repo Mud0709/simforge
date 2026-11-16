@@ -32,7 +32,7 @@ is in `CLAUDE.md`).
 - 470-485: Adding a new model (the intended pattern)
 - 486-489: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1531 lines)
+## `SCIENTIFIC_VALIDATION.md` (1577 lines)
 - 6-29: Principles
 - 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
   - 32-43: Model
@@ -78,39 +78,40 @@ is in `CLAUDE.md`).
   - 871-894: Input limits and the work budget
   - 895-909: Replay tolerances
   - 910-942: Known limitations
-- 943-1091: `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
+- 943-1137: `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
   - 951-970: What is exact, and how it is evaluated
   - 971-982: Limits introduced by this slice (measured, not assumed)
   - 983-994: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
   - 995-1076: Slice 2: the numerical solve and its per-run checks
-  - 1077-1091: Limitations
-- 1092-1230: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1098-1119: Model
-  - 1120-1155: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1156-1163: Numerical-analysis issue handled: cancellation in λ
-  - 1164-1185: Empirical evidence (held on the grid; not theorems)
-  - 1186-1201: What is tested
-  - 1202-1211: Per-run checks shown in the app
-  - 1212-1216: Observed (2026-10-15, default inputs)
-  - 1217-1230: Limitations
-- 1231-1312: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1233-1239: What it computes, and what it does not
-  - 1240-1255: Definitions
-  - 1256-1267: Numerical-analysis issues handled
-  - 1268-1282: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1283-1289: Per-run checks shown in the app
-  - 1290-1294: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1295-1312: Limitations
-- 1313-1406: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1342-1386: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1387-1398: Tests
-  - 1399-1406: Known limitations
-- 1407-1531: Comparison and export (roadmap 1.6)
-  - 1416-1450: Recomputed series: the digest says whether they are exact
-  - 1451-1479: CSV: what is written is the number that was computed
-  - 1480-1487: JSON export
-  - 1488-1521: The comparison: differences, not verdicts
-  - 1522-1531: Limitations
+  - 1077-1122: Slice 3: the API, its limits and the run-cost rule
+  - 1123-1137: Limitations
+- 1138-1276: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1144-1165: Model
+  - 1166-1201: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1202-1209: Numerical-analysis issue handled: cancellation in λ
+  - 1210-1231: Empirical evidence (held on the grid; not theorems)
+  - 1232-1247: What is tested
+  - 1248-1257: Per-run checks shown in the app
+  - 1258-1262: Observed (2026-10-15, default inputs)
+  - 1263-1276: Limitations
+- 1277-1358: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1279-1285: What it computes, and what it does not
+  - 1286-1301: Definitions
+  - 1302-1313: Numerical-analysis issues handled
+  - 1314-1328: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1329-1335: Per-run checks shown in the app
+  - 1336-1340: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1341-1358: Limitations
+- 1359-1452: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1388-1432: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1433-1444: Tests
+  - 1445-1452: Known limitations
+- 1453-1577: Comparison and export (roadmap 1.6)
+  - 1462-1496: Recomputed series: the digest says whether they are exact
+  - 1497-1525: CSV: what is written is the number that was computed
+  - 1526-1533: JSON export
+  - 1534-1567: The comparison: differences, not verdicts
+  - 1568-1577: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -406,15 +407,15 @@ is in `CLAUDE.md`).
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (462 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (469 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-73: Slice status
-- 74-88: What 2.3 builds
-- 89-99: Design tree and rounds (self-grilled)
-- 100-251: Decisions
-- 252-280: Reference formulas (derived for this plan)
-- 281-301: Seams (where tests attach; what each catches and misses)
-- 302-431: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 432-445: Risks
-- 446-452: Out of scope (for the author)
-- 453-462: Genuine stops found
+- 27-80: Slice status
+- 81-95: What 2.3 builds
+- 96-106: Design tree and rounds (self-grilled)
+- 107-258: Decisions
+- 259-287: Reference formulas (derived for this plan)
+- 288-308: Seams (where tests attach; what each catches and misses)
+- 309-438: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 439-452: Risks
+- 453-459: Out of scope (for the author)
+- 460-469: Genuine stops found

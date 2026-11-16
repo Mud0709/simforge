@@ -47,11 +47,11 @@ Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its
 2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
 author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
 branch): do not redo them; if that PR is not merged yet, wait for it (it touches
-`physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Next: slice 3 build
-(test-writer-risky then builder-risky in one tick), which includes the evaluation budget.
+`physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
+Next: the reviewer's worth-doing items, `/security-review`, then slice 4 (frontend).
 
 ## Remainder of the current unit
-Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
+Slices 4-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open

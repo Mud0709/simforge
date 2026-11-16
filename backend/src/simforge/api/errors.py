@@ -44,10 +44,23 @@ def _finite_only(value: Any) -> Any:
     return value
 
 
+# Pydantic renders a bound without an exponent (1e-06 as "0.000001", 1e6 as "1000000"); the
+# message is rewritten with Python's own form of the bound, as the models' messages write it.
+_BOUNDS = {
+    "greater_than": ("gt", "greater than"),
+    "greater_than_equal": ("ge", "greater than or equal to"),
+    "less_than": ("lt", "less than"),
+    "less_than_equal": ("le", "less than or equal to"),
+}
+
+
 async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)
     errors = _finite_only(jsonable_encoder(exc.errors()))
     for error in errors:  # only the echoed request parts; our own messages stay whole
+        bound = _BOUNDS.get(error.get("type", ""))
+        if bound is not None and bound[0] in error.get("ctx", {}):
+            error["msg"] = f"Input should be {bound[1]} {error['ctx'][bound[0]]}"
         if "input" in error:
             error["input"] = _shorten(error["input"])
         if "loc" in error:
