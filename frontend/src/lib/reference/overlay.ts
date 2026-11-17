@@ -90,6 +90,28 @@ export function referenceSeries(r: ModelResponse): ChartSeries {
       ],
     };
   }
+  if (isModelResponse(r, "physics.oscillator")) {
+    // The solver's curves; the exact curve and envelope depend on the physical inputs alone.
+    const { series: s, units: u } = r;
+    const t = axis("t", s.t, u, "t");
+    const energy = (
+      label: string,
+      key: "kinetic_energy" | "potential_energy" | "damping_work" | "drive_work",
+    ) => ({
+      label,
+      x: t,
+      y: axis(key, s[key], u, "energy"),
+    });
+    return {
+      displacement: [{ label: "numerical displacement", x: t, y: axis("x", s.x, u, "x") }],
+      energy: [
+        energy("kinetic energy", "kinetic_energy"),
+        energy("potential energy", "potential_energy"),
+        energy("work done against damping", "damping_work"),
+        energy("work done by the drive", "drive_work"),
+      ],
+    };
+  }
   if (isModelResponse(r, "physics.projectile.angle_sweep")) {
     const u = r.units;
     return {

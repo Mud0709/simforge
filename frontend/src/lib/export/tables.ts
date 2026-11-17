@@ -7,6 +7,7 @@
 import type {
   AngleSweepResponse,
   IntegratorStudyResponse,
+  OscillatorResponse,
   ProfileResponse,
   ProjectileResponse,
   QuadraticAngleSweepResponse,
@@ -81,6 +82,42 @@ export function quadraticDragTables(r: QuadraticDragResponse): Table[] {
       ],
     },
   ];
+}
+
+/** The time series (the envelope column only when the backend sends one), and the resonance
+ *  curve when the run is driven. */
+export function oscillatorTables(r: OscillatorResponse): Table[] {
+  const { series: s, units: u, resonance } = r;
+  const tables: Table[] = [
+    {
+      name: "time_series",
+      label: "time series",
+      columns: [
+        col("t", s.t, u, "t"),
+        col("x", s.x, u, "x"),
+        col("v", s.v, u, "v"),
+        col("x_exact", s.x_exact, u, "x"),
+        col("v_exact", s.v_exact, u, "v"),
+        ...(s.envelope ? [col("envelope", s.envelope, u, "x")] : []),
+        col("kinetic_energy", s.kinetic_energy, u, "energy"),
+        col("potential_energy", s.potential_energy, u, "energy"),
+        col("damping_work", s.damping_work, u, "energy"),
+        col("drive_work", s.drive_work, u, "energy"),
+      ],
+    },
+  ];
+  if (resonance) {
+    tables.push({
+      name: "resonance",
+      label: "resonance curve",
+      columns: [
+        col("angular_frequency", resonance.angular_frequency, u, "drive_angular_frequency"),
+        col("amplitude", resonance.amplitude, u, "amplitude"),
+        col("phase_lag", resonance.phase_lag, u, "phase_lag"),
+      ],
+    });
+  }
+  return tables;
 }
 
 export function angleSweepTables(r: AngleSweepResponse): Table[] {
@@ -219,6 +256,7 @@ export function profileTables(r: ProfileResponse): Table[] {
 export type ExportableResponse =
   | ProjectileResponse
   | QuadraticDragResponse
+  | OscillatorResponse
   | AngleSweepResponse
   | QuadraticAngleSweepResponse
   | IntegratorStudyResponse
@@ -232,6 +270,8 @@ export function exportTables(response: ExportableResponse): Table[] {
       return projectileTables(response as ProjectileResponse);
     case "physics.projectile.quadratic_drag":
       return quadraticDragTables(response as QuadraticDragResponse);
+    case "physics.oscillator":
+      return oscillatorTables(response as OscillatorResponse);
     case "physics.projectile.angle_sweep":
       return angleSweepTables(response as AngleSweepResponse);
     case "physics.projectile.quadratic_angle_sweep":

@@ -12,6 +12,14 @@ const MODULES: readonly LabCard[] = [
       "compare numerical results with theoretical predictions, and graph the outcomes.",
   },
   {
+    name: "Oscillators",
+    href: "/physics/oscillator",
+    status: "Simple, damped and driven oscillators available",
+    description:
+      "A mass on a spring: simple harmonic motion, damping and resonance, checked against " +
+      "the exact solution.",
+  },
+  {
     name: "Economy Lab",
     href: "/economy/solow",
     status: "Solow growth model available",

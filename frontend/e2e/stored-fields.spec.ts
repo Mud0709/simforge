@@ -89,6 +89,42 @@ const CASES: [string, string, Record<string, unknown>][] = [
       options: { column_types: [{ column: 0, type: "categorical" }] },
     },
   ],
+  [
+    // Roadmap 2.3: b = 0 and F0 = 0, so Q, the steady state and the free-decay residuals are null.
+    "physics.oscillator (undriven, undamped: nulls)",
+    "/physics/oscillator/simulate",
+    {
+      parameters: {
+        mass: 1.3,
+        spring_constant: 31.7,
+        damping_coefficient: 0,
+        drive_amplitude: 0,
+        initial_displacement: 0.07,
+        initial_velocity: 0,
+        duration: 11,
+      },
+      n_samples: 53,
+    },
+  ],
+  [
+    // Overdamped (gamma = 6.45 > w0 = 4.19 rad/s): wd and T_d are null, beta is not.
+    "physics.oscillator (driven, overdamped, Radau)",
+    "/physics/oscillator/simulate",
+    {
+      parameters: {
+        mass: 1.1,
+        spring_constant: 19.3,
+        damping_coefficient: 14.2,
+        drive_amplitude: 1.7,
+        drive_angular_frequency: 3.1,
+        initial_displacement: 0.04,
+        initial_velocity: 0.2,
+        duration: 9,
+      },
+      solver: { method: "Radau", rtol: 1e-9, atol: 1e-9 },
+      n_samples: 61,
+    },
+  ],
 ];
 
 for (const [name, path, body] of CASES) {

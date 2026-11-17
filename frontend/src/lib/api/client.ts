@@ -10,6 +10,9 @@ export type QuadraticDragRequest = Schemas["QuadraticDragRequest"];
 export type QuadraticDragResponse = Schemas["QuadraticDragResponse"];
 export type QuadraticAngleSweepRequest = Schemas["QuadraticAngleSweepRequest"];
 export type QuadraticAngleSweepResponse = Schemas["QuadraticAngleSweepResponse"];
+export type OscillatorParameters = Schemas["OscillatorParameters"];
+export type OscillatorRequest = Schemas["OscillatorRequest"];
+export type OscillatorResponse = Schemas["OscillatorResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
 export type ReplayRequest = Schemas["ReplayRequest"];
 export type RunLabels = Schemas["RunLabels"];
@@ -98,6 +101,10 @@ export function simulateQuadraticDrag(body: QuadraticDragRequest): Promise<Quadr
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function simulateOscillator(body: OscillatorRequest): Promise<OscillatorResponse> {
+  return request("/physics/oscillator/simulate", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function runAngleSweep(body: AngleSweepRequest): Promise<AngleSweepResponse> {

@@ -10,11 +10,12 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4's Acceptance block is written and reviewed (2026-11-17, no must-fix). Next for the autopilot: build slice 4 (frontend); the overflow-message wording stays a worth-doing item. The scheduled task's branch on claude.ai is still yours to fix.
+2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4 (frontend) is built and committed (2026-11-17 autopilot; Vitest 270 passed, 7 Playwright passed; CI not run). Next for the autopilot: slice 5 (docs, full check, whole-PR review). The scheduled task's branch on claude.ai is still yours to fix.
 
 ## Open decisions
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
+- **Next.js 16.4.1 security notice:** the first `npm run build` stops with SecurityFatalError, a retry passes; decide on upgrading. Not blocking.
 - Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers for every model (add `strict=True`?). Sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
