@@ -432,6 +432,50 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
      committed mid-slice. (Overthinking: the stiffness rule lives in `model.run`.)
 4. **Frontend** (seam 5). Page, presets, three charts, results, validation, nav, D15 wiring.
    Accept when: Vitest and the new Playwright cases pass; no existing frontend test changes.
+   **Acceptance block** (added 2026-11-17). New tests are written first and must fail on the
+   current code (no page, no `lib/oscillator/`, no `physics.oscillator` in the union or the
+   1.6 maps). Names follow 2.2's `QuadraticDragLab.test.tsx` and `e2e/quadratic.spec.ts`.
+   "No existing test changes" means no existing case is edited or removed; D15's cases are
+   **appended** to the shared files, as 2.2 did.
+   - **New test files:** `frontend/src/components/OscillatorLab.test.tsx` (the three presets
+     fill the form; results label every number "numerical", "exact" or "formula"; D12's nulls
+     render as absent, not 0 (undriven, b = 0, overdamped); the resonance chart only when
+     F₀ > 0; a 422 message is shown); `frontend/src/lib/oscillator/fields.test.ts` (each
+     `spec()` bound equals the backend's, copied by hand with its source line, as
+     `lib/projectile/fields.test.ts`); `frontend/e2e/oscillator.spec.ts` (run each preset at
+     `/physics/oscillator`, find the run in the log and reopen it; pin a reference run and see
+     its curve on the displacement and energy charts).
+   - **Appended cases** (one `it` each, new lines only): `src/lib/export/tables.test.ts` (time
+     series; the resonance table only when driven; units copied from `UNITS`),
+     `src/lib/reference/compare.test.ts` (D12's inputs and stored summary),
+     `src/lib/reference/overlay.test.ts`, `src/lib/runs/pages.test.ts`; two `CASES` in
+     `e2e/stored-fields.spec.ts` named `"physics.oscillator (undriven, undamped: nulls)"` and
+     `"physics.oscillator (driven, overdamped, Radau)"` (odd `n_samples`).
+   - **Commands** (from `frontend/`): `npx vitest run src/components/OscillatorLab.test.tsx
+     src/lib/oscillator/fields.test.ts src/lib/export/tables.test.ts
+     src/lib/reference/compare.test.ts src/lib/reference/overlay.test.ts
+     src/lib/runs/pages.test.ts` (red before, green after); `npm run lint && npm run
+     format:check && npm run typecheck`. From the root:
+     `scripts/run_logged.sh vitest 'cd frontend && npx vitest run'`;
+     `scripts/run_logged.sh build 'cd frontend && npm run build'`;
+     `scripts/run_logged.sh e2e-osc 'cd frontend && CI=1 npx playwright test e2e/oscillator.spec.ts && CI=1 npx playwright test e2e/stored-fields.spec.ts --grep "physics\.oscillator"'`;
+     `git diff --stat --diff-filter=MD HEAD -- frontend` and
+     `git diff HEAD -- frontend/src/lib/export/tables.test.ts frontend/src/lib/reference/compare.test.ts frontend/src/lib/reference/overlay.test.ts frontend/src/lib/runs/pages.test.ts frontend/e2e/stored-fields.spec.ts | grep '^-[^-]'`
+     (expected: nothing).
+   - **Checks (yes/no):** (1) The six Vitest targets and both Playwright commands fail before
+     the build and pass after, and the full Vitest run passes? (2) lint, Prettier, tsc and
+     `npm run build` pass? (3) The `--stat` lists, among test files, only the five appended
+     files (no `D` anywhere), and the `grep '^-[^-]'` prints nothing (no existing line of any
+     test changed)? (4) The Playwright run executes exactly the new oscillator tests plus the
+     two stored-fields cases (count in the digest), and each stored-fields case shows the
+     comparison's fields equal the stored record's? (5) No `openapi.json` or `schema.d.ts`
+     edit by hand (`git diff --quiet HEAD -- frontend/src/lib/api/openapi.json
+     frontend/src/lib/api/schema.d.ts` exits 0)?
+   - **Not done (worth doing from the Acceptance review, 2026-11-17):** run the two Playwright
+     commands separately (or join with `;`) for the red run, so "both fail before" is decided;
+     use `grep -E '^-([^-]|$)'` (or `git diff --numstat` deletions = 0) for "appends only";
+     state the expected Playwright count (`test(` calls in `oscillator.spec.ts` + 2); add one
+     e2e step reaching the page through the nav link and home-page card (D14).
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.
    Accept when: Part 20 ≈ 250 lines with tags matching the files; ROADMAP 2.3 ✅; all checks
    green; the handoff rewritten.

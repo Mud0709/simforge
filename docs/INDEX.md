@@ -407,7 +407,7 @@ is in `CLAUDE.md`).
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (469 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (513 lines)
 - 7-26: Grilling record (2026-11-03)
 - 27-80: Slice status
 - 81-95: What 2.3 builds
@@ -415,7 +415,7 @@ is in `CLAUDE.md`).
 - 107-258: Decisions
 - 259-287: Reference formulas (derived for this plan)
 - 288-308: Seams (where tests attach; what each catches and misses)
-- 309-438: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 439-452: Risks
-- 453-459: Out of scope (for the author)
-- 460-469: Genuine stops found
+- 309-482: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 483-496: Risks
+- 497-503: Out of scope (for the author)
+- 504-513: Genuine stops found

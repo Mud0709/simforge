@@ -10,7 +10,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Next for the autopilot: the worth-doing items (overflow message names Radau for every method), then slice 4 (frontend). The scheduled task's branch on claude.ai is still yours to fix.
+2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4's Acceptance block is written and reviewed (2026-11-17, no must-fix). Next for the autopilot: build slice 4 (frontend); the overflow-message wording stays a worth-doing item. The scheduled task's branch on claude.ai is still yours to fix.
 
 ## Open decisions
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
