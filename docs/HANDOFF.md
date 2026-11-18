@@ -10,9 +10,10 @@ other branch is warned by the start brief and shown this file from origin/<worki
 
 ## Next action
 Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4 (frontend) is built and committed (2026-11-17 autopilot; Vitest 270 passed, 7 Playwright passed; CI not run). Next for the autopilot: slice 5 (docs, full check, whole-PR review). The scheduled task's branch on claude.ai is still yours to fix.
+2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4 (frontend) is built and committed (2026-11-17 autopilot; Vitest 270 passed, 7 Playwright passed; CI not run). Slice 5's Acceptance block was written and reviewed 2026-11-18 (plan only). Next for the autopilot: build slice 5 (docs, full check, whole-PR review). The scheduled task's branch on claude.ai is still yours to fix.
 
 ## Open decisions
+- **Stale docs index (your action, blocks: slice 5 checks):** the plan file changed and the guard-rail hook stops an autopilot run regenerating the docs index. Run the doc index script by hand (see `docs/INDEX.md` header) and commit. Also 2 stale guide excerpts (LEARNING_GUIDE.md lines 2009, 3153) are fixed in slice 5.
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
 - **Next.js 16.4.1 security notice:** the first `npm run build` stops with SecurityFatalError, a retry passes; decide on upgrading. Not blocking.

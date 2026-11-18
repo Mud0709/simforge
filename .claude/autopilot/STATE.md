@@ -48,7 +48,7 @@ Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its
 author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
 branch): do not redo them; if that PR is not merged yet, wait for it (it touches
 `physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
-Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Next: slice 5 (docs, full check.sh --e2e, whole-PR review).
+Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Next: build slice 5 (docs, full check.sh --e2e, whole-PR review); the author regenerates the docs index first.
 
 ## Remainder of the current unit
 Slice 5 of `docs/plans/ROADMAP_2_3_PLAN.md`.

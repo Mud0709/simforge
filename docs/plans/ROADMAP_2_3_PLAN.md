@@ -62,7 +62,8 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   refused (422) rather than given an analytic Jacobian; the 422 messages for field bounds now
   print the bound in Python's form (`1e-06`, not `0.000001`) for every model; the stored
   summary adds `initial_displacement` (for the headline). `/security-review` still to run.
-- Slices 4-5: not started.
+- Slice 4 (frontend): committed `aafefa1` (2026-11-17). Slice 5 (docs): not started;
+  Acceptance block added 2026-11-18 (it records 2 stale guide excerpts left by slice 4).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance
@@ -479,6 +480,81 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.
    Accept when: Part 20 ≈ 250 lines with tags matching the files; ROADMAP 2.3 ✅; all checks
    green; the handoff rewritten.
+   **Acceptance block** (added 2026-11-18). Docs only: no production code, test, threshold or
+   tolerance changes. Checked on 2026-11-18 at `aafefa1` (grep), still missing:
+   - **Corrections to D16.** Tags *are* checked by a script: `scripts/check_excerpts.py` (run by
+     `scripts/check.sh`, line 12; tested in `backend/tests/scripts/test_check_excerpts.py`)
+     compares each unquoted tag's fenced block with the source lines; it does not check that the
+     code is the one the prose describes (the listing below does). **It fails now:** 2 of 71
+     excerpts differ, `LEARNING_GUIDE.md:2009` (`frontend/src/lib/api/client.ts:75-90`) and
+     `:3153` (`frontend/src/lib/reference/compare.ts:230-248`), moved by slice 4; re-point both.
+     IB labels: only C.1 SHM is listed in `docs/IB_FOUNDATIONS.md` (P5); C.4 there is "Standing
+     waves and resonance", so damping, driving and Q keep D16's "verify" or "Beyond IB" labels.
+   - **Files touched.** `docs/LEARNING_GUIDE.md`: new Part 20 after Part 19 (line 4020, before
+     the Appendix at 4443), Contents and reading order (lines 32-80), Part 0, Part 10's "After
+     that" (now 2439-2442; it still calls the oscillator a future feature), symbol table,
+     "Changes", the two stale tags. `docs/INDEX.md` (regenerated, not hand-edited).
+     `SCIENTIFIC_VALIDATION.md`: the section exists (line 943, "in progress", slices 1-2 in the
+     title); retitle as done and add slice 4's tested items. `ARCHITECTURE.md`: decision 20 (none
+     yet; 19 is the last, line 415), layout line 49 ("API in slice 3"), the endpoint table
+     (no `/api/v1/physics/oscillator/simulate` row). `README.md`: no oscillator mention; the
+     Physics Lab row (line 12) and a page paragraph like quadratic drag's (line 39). `ROADMAP.md`:
+     2.3 row (line 103) ✅ with a one-line outcome and plan link; capability map Oscillators row
+     (line 34) Core ✅, "Ext: nonlinear pendulum" unchanged. Plus `docs/HANDOFF.md`, the tick's
+     journal file, `.claude/autopilot/STATE.md` and this plan's slice status.
+   - **The 🔜 marker.** 2.3 becomes ✅ and 2.4 stays ⏳; the marker is moved only after merge
+     (autopilot skill step 4), so until then the start hook prints "Roadmap 🔜: not found"
+     (`session-start.sh` line 81). Expected; say so in the handoff.
+   - **Commands** (repository root). `python3 scripts/doc_index.py` then
+     `python3 scripts/doc_index.py --check`; `python3 scripts/check_excerpts.py`; the Part 20
+     listing (prints each tag, the prose line before it and the source's first line, then
+     `lines N, tags N, quoted N`):
+     ```
+     python3 - 20 <<'EOF'
+     import re, sys, pathlib
+     L = pathlib.Path('docs/LEARNING_GUIDE.md').read_text(encoding='utf-8').split('\n')
+     s = next(i for i, l in enumerate(L) if l.startswith(f'## Part {sys.argv[1]} '))
+     e = next(i for i in range(s + 1, len(L)) if L[i].startswith('## '))
+     T = re.compile(r'<!-- src: (\S+?):(\d+)(?:-(\d+))? -->'); n = q = 0
+     for i in range(s, e):
+         m = T.search(L[i])
+         if not m: continue
+         n += 1; q += '`<!--' in L[i]; p, a = m.group(1), int(m.group(2))
+         b = next(L[j] for j in range(i - 1, s, -1) if L[j].strip())
+         first = pathlib.Path(p).read_text(encoding='utf-8').split('\n')[a - 1].strip()
+         print(f'{i+1}: {p}:{a}-{m.group(3) or a} | before: {b.strip()[-60:]} | first: {first[:50]}')
+     print(f'lines {e - s}, tags {n}, quoted {q}')
+     EOF
+     ```
+     (dry-run on Part 19: `lines 423, tags 6, quoted 0`). Part 20's headings and its
+     exercises: `awk '/^## Part 20 /{p=1;print;next} p&&/^## /{exit} p&&/^###/' docs/LEARNING_GUIDE.md`;
+     `sed -n '/^## Part 20 /,/^## Appendix/p' docs/LEARNING_GUIDE.md | grep -niE 'solution:|answer:'`
+     (expected: nothing); `sed -n '/^## Part 10 /,/^## Part 11 /p' docs/LEARNING_GUIDE.md | grep -nE 'Part 20|2\.4'`.
+     Other docs: `grep -n '^## `physics.oscillator`' SCIENTIFIC_VALIDATION.md`;
+     `grep -nE '^### 20\. |oscillator/simulate|API in slice 3' ARCHITECTURE.md`;
+     `grep -ni 'oscillator' README.md`; `grep -nE '^\| (2\.[34]|Oscillators) ' ROADMAP.md`.
+     **Scope, against the fixed base `aafefa1`** (committed and uncommitted work alike):
+     `git diff --name-only aafefa1 -- . ':!*.md'` and
+     `git ls-files --others --exclude-standard -- . ':!*.md'` (both: nothing);
+     `git diff --quiet aafefa1 -- docs/IB_FOUNDATIONS.md` (exit 0);
+     `diff <(git show aafefa1:ROADMAP.md | sed -n '/^## Track A/,$p') <(sed -n '/^## Track A/,$p' ROADMAP.md)`
+     (silent). Then `scripts/run_logged.sh check 'scripts/check.sh --e2e'`, and one fresh Opus
+     `reviewer` on the whole PR diff (`git diff main...HEAD`), whose must-fix items are fixed
+     before "done".
+   - **Checks (yes/no):** (1) `check_excerpts.py` reports 0 mismatches with a total of 71 plus
+     Part 20's tag count, and the listing shows `quoted 0` and, for every tag, a source line
+     that names or belongs to what the prose before it describes? (2) Part 20 is 220-280 lines;
+     its `###` headings cover D16's list (SHM, damping, driving and resonance, Q, the exact
+     solution, scaling, the checks, code walkthrough, checkpoints and exercises); the
+     solutions grep prints nothing; Part 10's grep shows both `Part 20` and `2.4`; Contents,
+     Part 0, the symbol table and "Changes" mention Part 20? (3) The other-docs greps show: the
+     oscillator section heading without "in progress"; a `### 20.` decision, an
+     `oscillator/simulate` endpoint row and no "API in slice 3"; at least one README oscillator
+     line; 2.3 ✅, 2.4 ⏳, no row moved to 🔜, the Oscillators row Core ✅ with Ext unchanged?
+     (4) All four scope commands are silent or exit 0 (no code, test, tolerance or contract
+     edit; Track A and `IB_FOUNDATIONS.md` untouched)? (5) The `check` digest is green (doc
+     index, ruff, mypy, pytest, contract, ESLint, Prettier, tsc, Vitest, build, Playwright) and
+     the whole-PR review has no open must-fix?
 
 ## Risks
 - **Thresholds and N_max are unmeasured** (D6, D8); the phase error of long runs may force a
