@@ -18,6 +18,13 @@ below) and **every recommendation is adopted**; nothing was put to the author.
 - **The notes' open decision** "keep the exact-vs-numerical table beside the new checks":
   recommended yes, taken yes (D5).
 
+## Amendments during the build (2026-11-19)
+- **Order-fit error (D8, D9; slice 2, under "take the recommended").** The oscillator fits
+  e(h) = max over step nodes of √(Δq² + (Δv/ω)²)/X. Measured: symplectic Euler's error at
+  t = T is order 2 for every start (it is conjugate to Verlet by an O(h) half-kick, which
+  cancels when the exact flow returns to its start); the max over nodes gives 1.00 (symplectic
+  Euler) and 2.00 (Verlet).
+
 ## Slice status
 - Slices 1-5: not started.
 
@@ -116,7 +123,7 @@ slice that owns it, edit the decision; after, edit that slice.
   `physics/projectile/landing.py`: the shared adaptive solve to landing (D12).
 - **D8. Oscillator study inputs (SI) and limits.** `mass` kg, `spring_constant` N/m,
   `initial_displacement` m, `initial_velocity` m/s (the oscillator's field types and bounds);
-  `dt_values` s (2-12, distinct; order study over **one period**); `methods` (1-4, distinct);
+  `dt_values` s (2-12, distinct; order study over **one period**, max error over its nodes, D9); `methods` (1-4, distinct);
   `energy_dt` s and `periods` (1-1000) for the long run. **Defaults:** m = 1, k = 25
   (ω = 5 rad/s, period ≈ 1.257 s), x₀ = 0.1, v₀ = 0, `dt_values` = 0.04/2ⁱ, i = 0..7
   (ωh = 0.2 → 0.0016), `energy_dt` = 0.05 (ωh = 0.25), `periods` = 200. Refused (422, naming
@@ -126,8 +133,9 @@ slice that owns it, edit the decision; after, edit that slice.
 - **D9. Fit rule (stated before results).** Oscillator, per run: excluded if diverged; if
   ωh > 0.2 (not asymptotic); if the closed-form amplitude growth over the period exceeds 10%,
   |ρᴺ − 1| > 0.1 with ρ from R1/R2 (a priori; it only bites Euler, θ ≳ 0.03); if the error is
-  below the floor 100·N·ε·X (X = √(x₀² + (v₀/ω)²)). Errors: max over the period's nodes of
-  |x − x_exact| (m) and |v − v_exact| (m/s). Stability (R7) is reported, not used: Euler is
+  below the floor 100·N·ε·X (X = √(x₀² + (v₀/ω)²)). **Fitted error** (amended 2026-11-19):
+  e(h) = max over the period's step nodes of √(Δq² + (Δv/ω)²)/X, never the error at t = T
+  alone (symplectic Euler's end-of-period error is order 2: see Amendments). Stability (R7) is reported, not used: Euler is
   unstable at every h on the oscillator yet converges at a fixed horizon. Projectile: rule
   unchanged (`integrator_study.py:74-81`).
 - **D10. Energy drift.** One run per method at `energy_dt` over `periods`. Reported: the
@@ -379,7 +387,6 @@ D15 and D16; `docs/HANDOFF.md`; this plan's status.
 - Split slice 5 into a frontend slice and a docs slice.
 - Record damped/driven and quadratic-drag fixed-step studies as an open decision in HANDOFF; word the ✅ "a generic driver used by two models".
 - A round-off floor (e.g. 100·N·ε·scale) for landing-time and oscillator errors, so near-exact RK4/Verlet + Hermite fits do not falsely fail.
-- State which error (position) the order check fits.
 - RK4 + Hermite O(h⁴) cancellation risk: test the coefficient, or give no verdict.
 - Compare old and new `integrate()` outputs over a grid of inputs before deleting old code (one golden case per model is thin).
 - Label O(h^min(p, q)) in R6 "standard result, tested in slice 4".
