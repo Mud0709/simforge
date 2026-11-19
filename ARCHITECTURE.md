@@ -25,7 +25,10 @@ simforge/
 │   ├── src/simforge/
 │   │   ├── core/                    Shared: StrictModel base, run metadata, hashing, errors
 │   │   ├── numerics/                Model-independent methods written from scratch:
-│   │   │   ├── fixed_step.py          Euler, RK4, fixed-step driver, stability functions
+│   │   │   ├── fixed_step.py          Euler, RK4, symplectic Euler, velocity Verlet, fixed-step
+│   │   │   │                            driver, stability functions, harmonic closed forms
+│   │   │   ├── events.py              locating an event between nodes (linear, cubic Hermite)
+│   │   │   ├── workbench.py           model-free convergence driver and energy envelope
 │   │   │   └── convergence.py         order fitting and local orders
 │   │   ├── economy/solow/           Solow growth model: simulation.py (pure engine),
 │   │   │                              schemas.py, model.py (assumptions, units, per-run checks)
@@ -35,6 +38,7 @@ simforge/
 │   │   │   ├── model.py               orchestration + assumptions, units, model version
 │   │   │   ├── schemas.py             validated request/response contract (Pydantic)
 │   │   │   ├── integrator_study.py    convergence study engine (Verlet, stability, fit rule)
+│   │   │   ├── landing.py             landing and apex events shared by both drag solvers (2.4)
 │   │   │   ├── integrator_model.py    study orchestration + assumptions
 │   │   │   ├── integrator_schemas.py  study API contract
 │   │   │   ├── quadratic_reference.py quadratic drag: exact vertical flight, terminal speed,
@@ -50,7 +54,8 @@ simforge/
 │   │   │   ├── analytical.py          exact solution in every regime, scale X, resonance curve
 │   │   │   ├── numerical.py           scaled ODE solve (xi, eta and both works), maxima events
 │   │   │   ├── model.py               stiffness guard, run-cost budget, measured checks, series
-│   │   │   └── schemas.py             request/response contract and input limits
+│   │   │   ├── schemas.py             request/response contract and input limits
+│   │   │   └── integrator_{study,schemas,model}.py  methods study (roadmap 2.4; route /oscillator/integrators)
 │   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
@@ -69,14 +74,15 @@ simforge/
 │   └── scripts/export_openapi.py    Writes the API contract for the frontend
 ├── frontend/                        Next.js 16 App Router, React 19, TypeScript (strict)
 │   ├── src/app/                     Routes: /, /physics/projectile, /physics/projectile/integrators,
-│   │                                /physics/projectile/quadratic-drag, /economy/solow,
+│   │                                /physics/projectile/quadratic-drag, /physics/oscillator, /physics/oscillator/integrators,
+│   │                                /economy/solow,
 │   │                                /quant/datasets, /experiments
 │   ├── src/components/              Workspace (shared layout, used by every model page),
 │   │                                SolowLab/Results, ProjectileLab/Results, AngleSweepPanel
 │   │                                (the shared SweepPanel and a per-model SweepAdapter; the
 │   │                                linear adapter), QuadraticAngleSweepPanel (the quadratic
 │   │                                adapter and its Validation block),
-│   │                                IntegratorLab/Results, QuadraticDragLab/Results,
+│   │                                IntegratorLab/Results, OscillatorIntegratorLab, QuadraticDragLab/Results,
 │   │                                QuantLab/Results, ChecksTable,
 │   │                                NumberField, PlotlyChart, ExperimentLog; the reference run
 │   │                                and export pieces: useReferenceRun, ReferenceRunPanel,
@@ -193,7 +199,7 @@ instead of a dependency on `react-plotly.js`.
 problem supplies a right-hand side `f(t, y)`. Problem-specific schemes stay with their
 problem; velocity Verlet with implicitly solved linear drag, for example, lives in
 `physics/projectile/integrator_study.py`, because its exact implicit solve depends on the
-force law. Future models, such as a harmonic oscillator or orbits, reuse `numerics/` directly.
+force law. The oscillator methods study (roadmap 2.4) reuses `numerics/` directly (decision 21); orbits will too.
 
 ### 10. One experiment-log path for every model, and a model registry
 Every endpoint, in every lab, records runs through one helper (`record_run` in
@@ -465,6 +471,28 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
 - **The page derives its form from the OpenAPI schema** (`lib/oscillator/fields.ts`); it
   computes no physics, so the backend's numbers are the only ones shown.
 
+### 21. The methods workbench is a model-free driver, with studies per model (roadmap 2.4)
+Plan and decisions D1-D17: `docs/plans/ROADMAP_2_4_PLAN.md`.
+
+- **The driver knows no physics.** `numerics/workbench.py` takes a `Problem` (right-hand side,
+  exact answer at the node times, error groups, an exclusion rule supplied by the model) and
+  runs, fits and excludes; `numerics/fixed_step.py` holds the steppers and `numerics/events.py`
+  the event location. It is a generic driver used by two models, the oscillator and the
+  projectile, not by every time-stepping model. Each model keeps its own study (its fit rules, its
+  checks, its schema): the oscillator's in `physics/oscillator/integrator_*.py`, the projectile's in
+  `physics/projectile/integrator_study.py`. Problem-specific schemes stay with the problem
+  (decision 9).
+- **The shared landing helper.** The linear and quadratic drag solvers call one
+  `physics/projectile/landing.solve_to_landing` (two events, the SciPy call, status handling),
+  verified bit-identical before the models' version bump.
+- **The error norm is `hypot`.** For a two-component error group the driver uses `np.hypot`
+  (no overflow or underflow in the squares). The oscillator's `scaled` group uses it too. The
+  projectile study's golden digest stayed unchanged; last-bit differences on other inputs are
+  possible without a version bump (a changed last bit is not a change of meaning).
+- **Orders are fitted on the maximum error over all nodes**, not at the endpoint (symplectic
+  Euler's endpoint error is superconvergent), and long-run behaviour is judged by the modified
+  energy, with thresholds scaled by its conditioning near `theta = 2`.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -473,6 +501,7 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
 | GET | `/api/v1/physics/projectile/info` | Model metadata |
 | POST | `/api/v1/physics/projectile/simulate` | Exact vs adaptive SciPy solution |
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
+| POST | `/api/v1/physics/oscillator/integrators` | Methods study on the undamped oscillator: orders, long-run energy drift, modified energy for the symplectic methods, per-run checks |
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
 | POST | `/api/v1/physics/projectile/quadratic-drag/simulate` | Quadratic drag: adaptive SciPy solution with the exact vertical flight, vacuum comparison, diagnostics and per-run checks |
 | POST | `/api/v1/physics/oscillator/simulate` | Simple, damped or driven harmonic oscillator: adaptive SciPy solution beside the exact one, derived quantities, steady state and resonance curve (`null` where undefined), and per-run checks |

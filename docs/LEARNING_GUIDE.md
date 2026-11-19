@@ -11,7 +11,8 @@ Parts 13-17 cover the working tools, the review lessons, replay, the experiment 
 comparison and export. Part 18 covers quadratic drag, the first Physics Lab model with no
 exact 2-D answer, and how it is checked anyway. Part 19 covers the angle sweep for quadratic
 drag: finding a best angle when every point is a full simulation. Part 20 covers the
-oscillators (simple, damped and driven), whose exact solution checks the numerical one. Every line number points at the code as it is
+oscillators (simple, damped and driven), whose exact solution checks the numerical one. Part 21 covers the
+methods workbench: symplectic steppers, the shadow energy and event location. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -58,6 +59,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
 13. **Oscillators:** Part 20. It needs Part 3 (an exact answer to compare with), 1.7 (floating
    point, for the three traps in 20.5) and 6.7 (an invariant as a check). 20.1 is IB level;
    20.5-20.8 are Beyond IB and can be skimmed on a first pass.
+14. **The methods workbench:** Part 21. It needs Parts 4-5 (orders, the `Stepper`) and 20 (the
+    oscillator). 21.1 is IB-friendly; 21.2-21.8 are Beyond IB. The exercises include writing
+    position Verlet yourself.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -83,6 +87,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
 - [Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down](#part-19--angle-sweeps-for-both-drag-laws-finding-a-maximum-you-cannot-write-down)
 - [Part 20 — Oscillators: springs, damping and resonance](#part-20--oscillators-springs-damping-and-resonance)
+- [Part 21 — The methods workbench: symplectic steppers, shadow energy and event location](#part-21--the-methods-workbench-symplectic-steppers-shadow-energy-and-event-location)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Four name clashes to know before reading code
@@ -4688,6 +4693,281 @@ in `frontend/src/lib/oscillator/fields.ts`.
   of the checks in 20.8 would see it first, and why?
 - **E20.7** (stretch) Pick `b` so that `ζ` is just above `1/√2` and read the resonance chart.
   Where is the peak, and what does 20.3 say about it?
+
+---
+
+## Part 21 — The methods workbench: symplectic steppers, shadow energy and event location
+
+**Code:** `backend/src/simforge/numerics/` (roadmap 2.4): `fixed_step.py` (the steppers and the
+harmonic closed forms), `events.py` (locating a crossing), `workbench.py` (the model-free driver);
+the oscillator study `physics/oscillator/integrator_study.py`; the shared landing helper
+`physics/projectile/landing.py`; the page `/physics/oscillator/integrators`. **Read after:** Part 4
+(Euler, RK4 and orders), 5 (the `Stepper` shape) and 20 (the oscillator). Plan and formulas
+R1-R8: `docs/plans/ROADMAP_2_4_PLAN.md`.
+
+Part 4 asked "how fast does the error shrink as `h` shrinks?" This part asks a second question:
+**what does a method do to the energy over thousands of swings?** And a third: when a run must
+stop at an event (the landing), how well can we place it between two steps?
+
+**Labels** used throughout: **proved** (a derivation, checked exactly in rational arithmetic),
+**tested** (a test against an independent reference) and **observed** (measured here, no proof).
+**IB level:** 21.1 and 21.2 are IB-friendly ideas (energy, phase space); the matrix algebra and
+21.5-21.8 are **Beyond IB**.
+
+### 21.1 Intuition: why Euler gains energy and a good method does not **[IB-friendly]**
+Use the test oscillator `q̈ = −ω²q` and measure time in steps: `θ = ωh` is "the angle the
+oscillation turns through in one step" (radians). Scale the velocity, `u = v/ω`, and the energy is
+`E ∝ q² + u²`: the exact motion walks round a **circle** in the `(q, u)` plane and never leaves it.
+
+- **Forward Euler** moves along the tangent each step, which always lands a little *outside* the
+  circle: `E` is multiplied by exactly `1 + θ²` every step (R1, **proved**). After `N` steps
+  `(1 + θ²)ᴺ`: the swing grows without bound, for every `θ > 0`.
+- **Symplectic Euler** updates `v` first and then moves `q` with the *new* `v`. It still does not
+  stay on the circle, but it stays on a **slightly tilted ellipse** forever (21.3). The energy
+  wobbles up and down by a bounded amount and never trends.
+- **Velocity Verlet** does the same with a different ellipse and a smaller wobble (`θ²` instead
+  of `θ`).
+- **RK4** loses a tiny amount each step (`1 − θ⁶/72 + …`, R2, **proved**): no growth, but a slow
+  decay, which is a different failure from drift upward.
+
+**Energy drift** is exactly that trend. A method with a bounded wobble and no trend is what you
+want for planets over millions of orbits, which is why 2.4 puts these methods beside Euler and RK4.
+
+### 21.2 The two symplectic steppers, line by line **[Beyond IB, SimForge]**
+Both are written for a second-order system `q̈ = a(t, q)` with state `y = (q, v)`: for a state of
+length `2d`, `q = y[:d]` and `v = y[d:]`. They return a `Stepper`, so Part 5's `integrate_fixed`
+loop runs them unchanged. They ignore `f` (the generic right-hand side) and use only the
+acceleration. **The acceleration must not depend on velocity**: with a drag force the method is
+no longer symplectic (the code states this in both docstrings).
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:115-126 -->
+```python
+def symplectic_euler(accel: Accel) -> Stepper:
+    """Symplectic Euler, kick then drift: v1 = v + h a(t, q); q1 = q + h v1 (order 1).
+
+    ``accel`` must not depend on velocity: the method is symplectic only for a(t, q).
+    """
+
+    def step(_f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
+        d = y.size // 2
+        v1 = y[d:] + h * accel(t, y[:d])
+        return np.concatenate([y[:d] + h * v1, v1])
+
+    return step
+```
+Line by line. `symplectic_euler(accel)` is a **factory**: it takes the physics and returns the
+`step` function (a closure that remembers `accel`). `d = y.size // 2` is the number of position
+components. `v1 = y[d:] + h * accel(t, y[:d])` is the **kick**: change the velocity using the force
+at the *old* position `q`. The next line is the **drift**: move the position with the *new* velocity
+`v1` (`y[:d] + h * v1`), then glue `[q1, v1]` back into one state. The only difference from forward
+Euler is that the drift uses `v1`, not `v`. That one change is what makes it symplectic.
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:129-143 -->
+```python
+def velocity_verlet(accel: Accel) -> Stepper:
+    """Velocity Verlet (order 2): a0 = a(t, q); q1 = q + h v + h^2/2 a0;
+    v1 = v + h/2 (a0 + a(t + h, q1)).
+
+    ``accel`` must not depend on velocity: the method is symplectic only for a(t, q).
+    """
+
+    def step(_f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
+        d = y.size // 2
+        q, v = y[:d], y[d:]
+        a0 = accel(t, q)
+        q1 = q + h * v + (h * h / 2) * a0
+        return np.concatenate([q1, v + (h / 2) * (a0 + accel(t + h, q1))])
+
+    return step
+```
+Same shape, three ideas. `a0 = accel(t, q)` is the force at the start. `q1 = q + h v + (h²/2) a0` is
+the second-order Taylor step for position (distance = `vt + ½at²`, the IB kinematics formula with
+`t = h`). The new velocity uses the **average** of the old and new acceleration, `(a0 + a1)/2`:
+evaluating `accel(t + h, q1)` at the *new* position is why a second force evaluation is needed.
+Averaging the old and new force is the trapezium rule, and that symmetry is why the order is 2.
+
+**Checkpoint 21.2.** Why can `velocity_verlet` not take a drag force `−bv`? (Hint: what would
+`accel(t + h, q1)` need to know that `q1` does not contain?)
+
+### 21.3 The shadow energy and why there is no drift **[Beyond IB]**
+On the test oscillator one step is a 2×2 matrix acting on `(q, u)`. Symplectic Euler gives
+
+`q₁ = q + θu₁`, `u₁ = u − θq`, so `M = [[1 − θ², θ], [−θ, 1]]`, determinant `(1 − θ²) + θ² = 1`.
+
+Velocity Verlet gives `M = [[c, θ], [−θβ, c]]` with `c = 1 − θ²/2` and `β = 1 − θ²/4`, again
+determinant 1 (`c² + θ²β = 1`). A matrix with determinant 1 preserves *some* quadratic form
+`Q`, i.e. `Mᵀ Q M = Q`. Solving for `Q` gives the **modified (shadow) energy**:
+
+| Method | Conserved exactly by the step map (R3, R4) |
+|---|---|
+| Symplectic Euler (kick, drift) | `H̃ = q² + u² − θ q u` (a tilted ellipse) |
+| Velocity Verlet | `H̃ = (1 − θ²/4) q² + u²` (an ellipse with squeezed axes) |
+
+**Proved** (by hand in the plan, and **tested** in exact `fractions` arithmetic over 40 steps at
+`θ = 1/5` and `3/2`: `H̃` stays exactly constant). In code:
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:175-179 -->
+```python
+    if method == "symplectic_euler":
+        return q * q + v * v / omega**2 - h * q * v
+    if method == "velocity_verlet":
+        theta = omega * h
+        return (1.0 - theta * theta / 4.0) * q * q + v * v / omega**2
+```
+(`h q v` equals `θ q u`, since `u = v/ω` and `θ = ωh`.) The picture: the numerical method does
+not follow the true oscillator badly; it follows a *slightly different oscillator exactly*, and the
+true energy `E = q² + u²` is that shadow's energy plus a small piece that depends on where you are
+on the ellipse. So `E` wobbles, and cannot drift.
+
+**Proved bound (R5, `θ < 2`).** Write `E = H̃ + θ q u` (symplectic Euler) and use `|qu| ≤ E/2`;
+this gives `|Eₙ − E₀|/E₀ ≤ θ/(1 − θ/2)` for **every** `n`. For Verlet `Eₙ = H̃ + (θ²/4)qₙ²`, giving
+`(θ²/4)/(1 − θ²/4)`. The bound does not contain `n`: there is no secular drift. **Tested in
+floats** on 40 random cases (2000 steps) with an added rounding allowance `C·N·ε` (floats are not
+exact arithmetic). At `θ ≥ 2` both methods are unstable (the step matrix has trace `2 − θ²`,
+R7) and the page gives no verdict. **Observed:** the worst float run came within 0.14% (Verlet)
+and 1.25% (symplectic Euler) of R5, so the bound is nearly reached, not loose.
+
+### 21.4 The superconvergence trap: how not to measure an order **[Beyond IB, observed and tested]**
+To check "symplectic Euler is first order" you fit the error against `h` (Part 4). The tempting
+measurement is the error at the end, `t = T`, after one period. **That gives order 2 for a
+first-order method.** Symplectic Euler is Verlet in disguise: they differ by an `O(h)` half-kick of
+the velocity, and when the exact flow returns to its start after a full period that `O(h)` part
+cancels. The method looks better than it is, at exactly one time.
+
+The fix, in SimForge, is to fit the **maximum error over all step nodes**, the scaled phase-space
+error `√(Δq² + (Δv/ω)²)/X` (the study's definition, plan D9). **Tested**
+(`test_symplectic_euler_endpoint_error_is_superconvergent`) from the exact discrete map: endpoint
+slope `2 ± 0.05`, slope of the max over nodes `1 ± 0.05`. **Observed** fits: symplectic Euler
+1.014, Verlet 2.000, Euler 1.013, RK4 4.000 on the default request. A per-component maximum is also
+misleading (with `x₀ = 0` the position error alone is `O(h²)`); combining both components is what
+exposes the first-order part. Lesson: **a convergence order is a claim about a measurement
+definition**, and a measurement that hides the error at some times is not evidence.
+
+### 21.5 Conditioning near `θ = 2`: a threshold must scale with what it measures **[Beyond IB]**
+The per-run check `modified_energy_<m>` asks whether `H̃` is constant to within rounding. Rounding
+is measured against `|H̃₀|`, but `H̃ ≥ E/κ`, where `κ = 1/(1 − θ/2)` (symplectic Euler) or
+`1/(1 − θ²/4)` (Verlet). Near `θ = 2` the ellipse is almost a line, `H̃` is tiny compared with `E`,
+and a rounding error of fixed size is *magnified by up to κ* when divided by `H̃₀`. The first
+threshold `C·N·ε` ignored this and **failed valid runs** (symplectic Euler at `θ = 1.99999983`:
+1.2e-10 to 1.3e-9 against a threshold of 3.9e-12). The fix: threshold `C·N·ε·κ(θ)` with `C = 20`
+(**observed** worst 1.014 over 24 182 runs), and *no verdict* once `C·N·ε·κ > 1` (a check that
+could not fail says nothing). Lesson: when a check divides by a quantity that can approach
+zero, the tolerance must scale with that quantity (Part 15's "declare tolerances" in action).
+
+### 21.6 Event location: placing the landing between two steps **[Beyond IB]**
+A fixed-step run knows `g(t)` (for the projectile, the height `y`) only at the nodes. When `g`
+changes sign between `tᵢ` and `tᵢ₊₁` the landing is somewhere inside; two ways to place it:
+
+<!-- src: backend/src/simforge/numerics/events.py:53-64 -->
+```python
+    if kind == "linear":
+        return t0 + h * g0 / (g0 - g1)
+
+    def hermite(t: float) -> float:
+        s = (t - t0) / h
+        r = 1.0 - s
+        return (
+            (1 + 2 * s) * r * r * g0
+            + s * r * r * h * dg0
+            + s * s * (3 - 2 * s) * g1
+            - s * s * r * h * dg1
+        )
+```
+**Linear** draws the chord (a straight line through the two heights) and solves for zero: one line
+of algebra. **Cubic Hermite** also uses the *slopes* `dg0`, `dg1` (for the projectile, the vertical
+velocity, which the run already has) and fits a cubic through both; the root is then found by
+`brentq` (a bracketing root finder). The four weights are the standard Hermite basis polynomials.
+With the crossing at fraction `s` of a step, the errors are (R6, a standard result **tested** here,
+not proved in this repository):
+
+`linear: s(1 − s) h² g″/(2|g′|)`, `Hermite: s²(1 − s)² h⁴ g⁗/(24|g′|)`
+
+so the interpolation error is `O(h²)` or `O(h⁴)`. Three consequences, each a lesson learned while
+building 2.4:
+
+1. **Place the event mid-step.** If `h = T/N` the landing sits exactly on a node and the
+   interpolation error is zero by construction. The study uses `h = T/(N + ½)`, so `s = ½`.
+2. **The total error is `O(h^min(p, q))`**, `p` the method's order and `q = 2` or `4`. Euler with
+   Hermite is order 1 (the integrator, not the interpolant, limits it); RK4 with linear is
+   order 2; RK4 with Hermite should be order 4.
+3. **RK4 and Hermite can cancel.** RK4's own landing error and Hermite's are both `O(h⁴)` and can
+   have opposite signs (ratios −1.03 and −0.92 at two requests). Then their sum is much smaller than
+   either, so what is left is dominated by the `O(h⁵)` remainder. Fits there gave 3.67-4.12
+   where the theory says 4 (tolerance ± 0.1): false failures. The study excludes a run when `|e| < 0.5(|e_interp| + |e − e_interp|)`:
+   if the total is under half the sum of its parts, the `O(h⁵)` remainder could be dominating it.
+   With the rule, the remainder is amplified at most 2× relative to the no-cancellation case.
+
+**Pre-asymptotic runs.** A fit estimates the order as `h → 0`, so every point must already be in
+that regime. For strong drag and a long flight (`kT ≈ 15`), Euler's decaying mode is off by about
+`e^{−kT·kh/2}` and its landing-error local orders go 0.48 → 0.93: still approaching 1. Fitting
+them gave false fails (0.838, 0.779, 0.772). A run is excluded when `|R(−kh)ᴺ e^{kNh} − 1| > 0.1`
+(`R` the stability function, Part 4): a closed-form test, a priori, not tuned to the data.
+**Observed** on the default request: landing orders linear/Hermite for RK4 2.000 / 4.039,
+Verlet 2.000 / 2.000, Euler 0.997 / 0.998 (6 points).
+
+### 21.7 One landing helper for two adaptive solvers **[SimForge, bit-identical refactor]**
+The linear and quadratic drag solvers both integrate until `y = 0` while descending and both find
+the apex. That logic was written twice; it now lives once:
+
+<!-- src: backend/src/simforge/physics/projectile/landing.py:80-93 -->
+```python
+    sol = solve_ivp(
+        rhs,
+        (0.0, t_max),
+        y0,
+        method=method,
+        rtol=rtol,
+        atol=atol,
+        events=[hits_ground, reaches_apex],
+        dense_output=True,
+    )
+    if sol.status == -1:
+        raise SolverError(f"{method} failed: {sol.message}")
+    if sol.status != 1 or len(sol.t_events[0]) == 0:
+        raise SolverError(f"{method} did not reach the ground before t_max = {t_max:.6g} s")
+```
+Each solver passes its own `rhs`; the events, the SciPy call and the status handling are shared. The
+rule for a refactor like this: **the outputs must not change**. It was **tested** by golden
+digests unchanged before the version bump, and by old and new `integrate()` agreeing on 1530
+cases. (The fixed-step event location of 21.6 is a different thing: the adaptive solver's event is
+found by SciPy; the fixed-step study has no solver doing it for you.)
+
+### 21.8 The workbench driver **[SimForge]**
+`workbench.py` knows no physics: a `Problem` supplies the right-hand side, the exact answer at the
+node times and the **error groups** (which components, in which norm, with which round-off scale).
+`run_convergence` runs every method at every `dt`, takes the maximum error over all nodes, drops
+runs by the pre-declared exclusion order (diverged, the model's rule, round-off floor), and fits.
+It is used by two models, the oscillator and the projectile, not by every time-stepping model.
+A two-component error group uses `np.hypot` (no overflow or underflow in the squares); on the
+projectile study that left the golden digest bit-identical, though last-bit differences on other
+inputs are possible. **Tested** on a synthetic problem with error `c·T·h^p` by construction: the
+fit recovers `p` within 1e-4.
+
+### 21.9 Checkpoint **[answer in your own words]**
+1. In one sentence, why does symplectic Euler's energy wobble but not drift?
+2. Why would an endpoint-only fit report order 2 for symplectic Euler?
+3. Why does Euler's `1 + θ²` mean the swing grows for *every* step size, not only large ones?
+4. Why must the event be placed mid-step in a convergence study?
+5. Which of these is **proved**, **tested** or **observed**: `H̃` is constant; the R5 bound holds on
+   random floats; symplectic Euler's fitted order is 1.014?
+
+### 21.10 Exercises (no solutions given)
+- **E21.1** On the page, run `θ = 0.25` (the default energy step) and read the symplectic Euler
+  envelope. Predict its height from R5 and compare. Then double `energy_dt` and say what should
+  happen to the height before you look.
+- **E21.2** By hand, apply symplectic Euler's matrix `M` to `(q, u) = (1, 0)` for one step at
+  `θ = 1`. Check that `q² + u² − θqu` is unchanged and `q² + u²` is not.
+- **E21.3** Verify that Verlet's `M` has determinant 1 and that `H̃ = (1 − θ²/4)q² + u²` is
+  preserved by one step. What happens to `H̃`'s sign at `θ = 2`, and why does that break the check?
+- **E21.4** Explain why `h = T/N` would make the Hermite landing error vanish, and what you would
+  see in a fit if you used it.
+- **E21.5** Write **position Verlet** (drift `h/2`, kick `h`, drift `h/2`) as a stepper with the
+  same signature as `velocity_verlet`. Find its conserved quantity on `q̈ = −ω²q` the way 21.3 did
+  (write `M`, solve `Mᵀ Q M = Q`), then test it in `fractions` arithmetic. Is it the same `H̃`?
+- **E21.6** Pick `b` and `k` so that Euler's landing fit is pre-asymptotic, and find the rule's
+  quantity `|R(−kh)ᴺ e^{kNh} − 1|` for the finest run.
+- **E21.7** (stretch) Why does the number of steps `N` in the check threshold `C·N·ε` matter for
+  a run of 1000 periods but not for one period? What is the physical origin of that growth?
 
 ---
 

@@ -395,7 +395,8 @@ and 4e-14 s against floors of 1.7e-11 to 6.6e-11 s). Finally, the run must not
 both O(h⁴) and can have opposite signs. At (15°, b = 0.3) and (5°, b = 1) their ratio was
 −1.03 and −0.92. Without the rule, 12-point fits there gave 3.67-4.12, which are false fails.
 With ratio 0.5 the surviving |e| is at least half the sum of its parts, so the O(h⁵)
-remainder is amplified at most 2×. With too few points left the check gives no verdict
+remainder is amplified at most 2× **relative to the no-cancellation case** (where the total error
+is the integrator's alone), not in absolute terms. With too few points left the check gives no verdict
 (passed = null, with a note counting the round-off, cancellation and no-crossing exclusions).
 
 **Checks in every response** (`checks`): `order_<m>` (|position order − p| ≤ 0.1) and
@@ -409,6 +410,13 @@ the worst case was 0.83 over 6 angles × 5 drags × 2 heights × 20 steps (test 
 45, 75, 90}°, b ∈ {1e-3, 0.1, 1, 10, 100}, h₀ ∈ {0, 100} m; 12 sets refused by the step
 cap). 10 is the 1-2-5 value at least 10× the worst case. A planted non-RK stepper
 (semi-implicit Euler) fails it.
+
+**What a fit with no verdict cannot detect.** When the landing-order fit gives no verdict
+(`passed = null`, because too few runs survive the exclusions), the study cannot see a stepper
+fault whose landing error is of the same order as Hermite's and of opposite sign: the two
+cancel, which is exactly the situation the cancellation rule excludes. The fixed-node
+`order_<m>` check (position error over all nodes, no interpolation) would still see such a
+fault.
 
 **Measured on the default request** (v₀ = 20 m/s, 45°, h₀ = 0, b = 1, m = 1, the 8 default
 steps; 2026-11-19, same machine as below). Landing-time orders, linear / Hermite (points):
@@ -471,7 +479,10 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
   model's rule, the round-off floor). An error group may weight its components before the
   norm (slice 2: the oscillator's scaled phase-space error). A two-component group's norm is
   `np.hypot` (slice 4), which cannot overflow or underflow in the squares and kept the
-  projectile study's v1.0.0 golden digest bit-identical when it moved onto the driver. `energy_envelope` keeps each bin's minimum and maximum,
+  projectile study's v1.0.0 golden digest bit-identical when it moved onto the driver. The
+  oscillator's scaled group uses the same norm, and its golden digest also stayed unchanged;
+  last-bit differences on other inputs are possible and were not bumped as a version change
+  (not tested beyond the golden cases). `energy_envelope` keeps each bin's minimum and maximum,
   checked by brute force.
 
 ---

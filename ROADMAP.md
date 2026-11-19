@@ -32,7 +32,7 @@ clear purpose).
 |---|---|
 | Projectile motion | ✅ linear drag (exact, adaptive and fixed-step solutions) · ✅ range against launch angle · ✅ quadratic drag (numerical, checked against the exact vertical flight, the c → 0 limit, terminal speed, the energy balance and a conserved quantity) · ✅ angle sweep for both drag laws (each law on its own page; quadratic: a grid of numerical runs with a refined best angle and an accuracy estimate) · Core: best angle against drag strength, drag-law comparison · Ext: wind |
 | Oscillators | Core ✅: simple, damped and driven harmonic oscillator, resonance curve · Ext: nonlinear pendulum (elliptic-integral period) |
-| Numerical methods workbench | ✅ Euler, RK4, implicit-drag Verlet convergence study (projectile) · Core: the same workbench for any time-stepping model, symplectic Euler and Verlet, long-run energy drift, event-location error · Ext: Boris pusher |
+| Numerical methods workbench | ✅ Euler, RK4, implicit-drag Verlet convergence study (projectile) · ✅ symplectic Euler and velocity Verlet, long-run energy drift and event-location error, on a generic driver used by two models (the oscillator and the projectile) · Core: other time-stepping models on the same driver (orbits, later) · Ext: Boris pusher |
 | Collisions | Core: 1-D elastic and inelastic (restitution), 2-D discs, momentum and energy bookkeeping, animation |
 | Kinetic theory | Ext (after collisions are validated): a gas built from the collision engine; pressure, temperature, Maxwell-Boltzmann distribution checked statistically |
 | Orbits | Core: two-body orbits with Kepler's equation as the exact reference, conservation laws, Kepler's laws, long-run integrator comparison · Ext: Hohmann transfer, figure-eight three-body orbit |
@@ -101,7 +101,7 @@ drift, event-location error); generic sweeps; animation.
 | 2.1 | **Quadratic drag.** Validated against the exact vertical `tanh` solution, the c → 0 limit, terminal speed and energy balance, plus the hodograph invariant and two proved bounds; `/physics/projectile/quadratic-drag` (plan and amendments: `docs/plans/ROADMAP_2_1_PLAN.md`) | ✅ |
 | 2.2 | **Angle sweeps for both drag laws.** The quadratic-drag sweep `physics.projectile.quadratic_angle_sweep` on `/physics/projectile/quadratic-drag` (every point a 2.1 run; best angle by Brent with an accuracy estimate; checked against the vacuum closed form, a weak-drag first-order result and an independent integration; work budget); the linear sweep unchanged (plan and amendments: `docs/plans/ROADMAP_2_2_PLAN.md`) | ✅ |
 | 2.3 | **Simple, damped and driven oscillators.** Exact solution in every regime checked against a SciPy solve with measured per-run checks, `/api/v1/physics/oscillator/simulate` and the page `/physics/oscillator` (plan: `docs/plans/ROADMAP_2_3_PLAN.md`) | ✅ |
-| 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error | 🔜 |
+| 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error. Built as a generic driver used by two models (the oscillator and the projectile): `POST /api/v1/physics/oscillator/integrators` and the page `/physics/oscillator/integrators`; per-run checks for the three Phase 0 models; landing-time error and a shared landing helper (plan: `docs/plans/ROADMAP_2_4_PLAN.md`) | ✅ |
 | 2.5 | **Generic sweeps.** | ⏳ |
 | 2.6 | **Animation.** | ⏳ |
 

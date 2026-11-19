@@ -9,7 +9,7 @@ each run was produced, and is tested against analytical results wherever they ex
 
 | Module | Status | Scope |
 |---|---|---|
-| **Physics Lab** | Projectile models (linear and quadratic drag), integrator convergence study, and simple, damped and driven oscillators | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
+| **Physics Lab** | Projectile models (linear and quadratic drag), integrator convergence studies (projectile and oscillator), and simple, damped and driven oscillators | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
 | **Economy Lab** | Solow growth model with a savings-policy experiment | Growth, then interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
 | **Quant Research Lab** | CSV import and dataset profile | Data import and exploration, then regression, hypothesis tests, time series, backtesting and overfitting checks. |
 
@@ -68,6 +68,15 @@ RK4 and velocity Verlet, written from scratch, solve the same problem over a ran
 time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted only over step
 sizes that pass a pre-declared rule (stable, asymptotic, above round-off). Observed orders on
 the default case: 1.009, 4.027 and 2.000, against theoretical 1, 4 and 2.
+
+**Oscillator methods study** (`/physics/oscillator/integrators`, `POST
+/api/v1/physics/oscillator/integrators`). Euler, RK4, symplectic Euler and velocity Verlet on an
+undamped spring, with orders fitted over one period and the energy followed over up to 1000
+periods. Euler gains energy exactly as 1 + θ² per step; the symplectic methods keep a conserved
+"shadow" energy, so their true energy stays in a proved bounded band. Observed orders on the
+default case: 1.013, 4.000, 1.014 and 2.000. The projectile study above now also measures how
+well each method places the landing between two steps, and the three projectile pages show
+per-run checks.
 
 **Solow growth model** (`/economy/solow`, the first Economy Lab model). Capital
 accumulation in discrete annual time with Cobb-Douglas production and growing labour and

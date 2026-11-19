@@ -26,7 +26,24 @@ below) and **every recommendation is adopted**; nothing was put to the author.
   Euler) and 2.00 (Verlet).
 
 ## Slice status
-- Slices 1-5: not started.
+- Slice 1 (numerics core): done, `67a468a`; review `27100a1` (no must-fix).
+- Slice 2 (oscillator study v1.0.0): done, `8156ea2`; amendment `95e214d`; review fix `1d8e0fd`.
+- Slice 3 (shared landing helper, per-run checks, both v1.1.0): done, `56088c8`; review `c7e83f1`.
+- Slice 4 (projectile study on the workbench, event location, v1.1.0): done, `f17e49a`.
+- Slice 5 (frontend `a325c85`; guide Part 21, brief, ARCHITECTURE decision 21, SV, README,
+  ROADMAP): committed (frontend a325c85; docs in the close-out commit) when written.
+
+**Build-time amendments (2026-11-19).**
+- *Fitted-error definition (D8, D9, slice 2):* the oscillator fits the maximum scaled
+  phase-space error over all step nodes, not the endpoint (symplectic Euler's endpoint error is
+  superconvergent).
+- *Conditioning (slice 2 review fix):* the modified-energy threshold is `C N eps kappa(theta)`
+  with `kappa = 1/(1 - theta/2)` (symplectic Euler) or `1/(1 - theta^2/4)` (Verlet), no verdict
+  once it exceeds 1; `MODIFIED_ENERGY_C` = 20.
+- *Norm (slice 4):* a two-component error group uses `hypot`; the oscillator's golden digest and
+  the projectile's stayed unchanged, but last-bit differences on other inputs are possible.
+- *Pre-asymptotic rule (slice 4):* a landing-order run is excluded when
+  `|R(-kh)^N e^{kNh} - 1| > 0.1`, besides the round-off and cancellation exclusions.
 
 ## Scope
 **In:** generic fixed-step tools in `numerics/` (two symplectic steppers, event location,
