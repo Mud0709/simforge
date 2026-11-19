@@ -400,5 +400,52 @@
     "phase_lag": 0.21866894587394195
    }
   }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "dt_values": [
+    0.04,
+    0.02,
+    0.01,
+    0.005
+   ],
+   "energy_dt": 0.05,
+   "methods": [
+    "velocity_verlet",
+    "euler"
+   ],
+   "parameters": {
+    "initial_displacement": 0.05,
+    "initial_velocity": 0.2,
+    "mass": 1.0,
+    "spring_constant": 25.0
+   },
+   "periods": 10
+  },
+  "model_id": "physics.oscillator.integrators",
+  "model_version": "1.0.0",
+  "output_digest": "82e0cf6f7cf32bcbfd9ef6824f14bc02e27db29bd01c9817df803a9fa100632b",
+  "summary": {
+   "methods": {
+    "euler": {
+     "final_energy_ratio": 3986283.635745485,
+     "fit_points": 0,
+     "max_relative_energy_error": 3986282.635745485,
+     "order": null
+    },
+    "velocity_verlet": {
+     "final_energy_ratio": 1.0023718179319154,
+     "fit_points": 4,
+     "max_relative_energy_error": 0.009476645730622516,
+     "order": 2.001495950675084
+    }
+   }
+  }
  }
 ]

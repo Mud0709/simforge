@@ -617,6 +617,50 @@
         "title": "DuplicateSummary",
         "type": "object"
       },
+      "EnergyEnvelopeSeries": {
+        "additionalProperties": false,
+        "description": "Min and max of (E_n - E_0)/E_0 in at most 200 contiguous bins of nodes.",
+        "properties": {
+          "hi": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Hi",
+            "type": "array"
+          },
+          "lo": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Lo",
+            "type": "array"
+          },
+          "t_end": {
+            "description": "s",
+            "items": {
+              "type": "number"
+            },
+            "title": "T End",
+            "type": "array"
+          },
+          "t_start": {
+            "description": "s",
+            "items": {
+              "type": "number"
+            },
+            "title": "T Start",
+            "type": "array"
+          }
+        },
+        "required": [
+          "t_start",
+          "t_end",
+          "lo",
+          "hi"
+        ],
+        "title": "EnergyEnvelopeSeries",
+        "type": "object"
+      },
       "EnvironmentDifference": {
         "additionalProperties": false,
         "properties": {
@@ -1851,6 +1895,507 @@
           "stiffness_number"
         ],
         "title": "OscillatorDiagnostics",
+        "type": "object"
+      },
+      "OscillatorEnergyRun": {
+        "additionalProperties": false,
+        "properties": {
+          "diverged": {
+            "title": "Diverged",
+            "type": "boolean"
+          },
+          "diverged_at_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diverged At Step"
+          },
+          "energy_bound": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Proved bound R5 on |E_n - E_0|/E_0 (symplectic methods, w h < 2)",
+            "title": "Energy Bound"
+          },
+          "envelope": {
+            "$ref": "#/components/schemas/EnergyEnvelopeSeries"
+          },
+          "final_energy_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "E_N/E_0; null if diverged",
+            "title": "Final Energy Ratio"
+          },
+          "h": {
+            "description": "s",
+            "title": "H",
+            "type": "number"
+          },
+          "max_relative_energy_error": {
+            "description": "max |E_n - E_0|/E_0, completed nodes",
+            "title": "Max Relative Energy Error",
+            "type": "number"
+          },
+          "method": {
+            "enum": [
+              "euler",
+              "rk4",
+              "symplectic_euler",
+              "velocity_verlet"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "modified_energy_residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "max |H~_n - H~_0|/|H~_0| (symplectic methods); exactly 0 in exact arithmetic",
+            "title": "Modified Energy Residual"
+          },
+          "n_completed": {
+            "title": "N Completed",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "theta": {
+            "description": "w h, dimensionless",
+            "title": "Theta",
+            "type": "number"
+          }
+        },
+        "required": [
+          "method",
+          "h",
+          "theta",
+          "n_steps",
+          "diverged",
+          "diverged_at_step",
+          "n_completed",
+          "final_energy_ratio",
+          "max_relative_energy_error",
+          "energy_bound",
+          "modified_energy_residual",
+          "envelope"
+        ],
+        "title": "OscillatorEnergyRun",
+        "type": "object"
+      },
+      "OscillatorFitRule": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "max_amplitude_growth": {
+            "title": "Max Amplitude Growth",
+            "type": "number"
+          },
+          "max_theta": {
+            "title": "Max Theta",
+            "type": "number"
+          },
+          "min_points": {
+            "title": "Min Points",
+            "type": "integer"
+          },
+          "roundoff_safety_factor": {
+            "title": "Roundoff Safety Factor",
+            "type": "number"
+          }
+        },
+        "required": [
+          "max_theta",
+          "max_amplitude_growth",
+          "roundoff_safety_factor",
+          "min_points",
+          "description"
+        ],
+        "title": "OscillatorFitRule",
+        "type": "object"
+      },
+      "OscillatorIntegratorParameters": {
+        "additionalProperties": false,
+        "description": "Undamped, undriven oscillator, SI units. Defaults: w0 = 5 rad/s, x0 = 0.1 m.",
+        "properties": {
+          "initial_displacement": {
+            "default": 0.1,
+            "description": "Displacement x0 at t = 0, in m.",
+            "maximum": 1000.0,
+            "minimum": -1000.0,
+            "title": "Initial Displacement",
+            "type": "number"
+          },
+          "initial_velocity": {
+            "default": 0.0,
+            "description": "Velocity v0 at t = 0, in m/s.",
+            "maximum": 10000.0,
+            "minimum": -10000.0,
+            "title": "Initial Velocity",
+            "type": "number"
+          },
+          "mass": {
+            "default": 1.0,
+            "description": "Mass m in kg.",
+            "maximum": 1000000.0,
+            "minimum": 1e-06,
+            "title": "Mass",
+            "type": "number"
+          },
+          "spring_constant": {
+            "default": 25.0,
+            "description": "Spring constant k in N/m.",
+            "maximum": 1000000000.0,
+            "minimum": 1e-06,
+            "title": "Spring Constant",
+            "type": "number"
+          }
+        },
+        "title": "OscillatorIntegratorParameters",
+        "type": "object"
+      },
+      "OscillatorIntegratorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dt_values": {
+            "description": "Requested time steps (s) of the order study over one period T. Each run uses h = T/N with N = ceil(T/dt), so that every run ends exactly at T.",
+            "items": {
+              "description": "Requested time step in s.",
+              "exclusiveMinimum": 0.0,
+              "maximum": 10000.0,
+              "type": "number"
+            },
+            "maxItems": 12,
+            "minItems": 2,
+            "title": "Dt Values",
+            "type": "array"
+          },
+          "energy_dt": {
+            "default": 0.05,
+            "description": "Time step (s) of the long energy run.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000.0,
+            "title": "Energy Dt",
+            "type": "number"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "euler",
+                "rk4",
+                "symplectic_euler",
+                "velocity_verlet"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Methods",
+            "type": "array"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/OscillatorIntegratorParameters"
+          },
+          "periods": {
+            "default": 200,
+            "description": "Length of the long run.",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Periods",
+            "type": "integer"
+          },
+          "save_experiment": {
+            "default": true,
+            "title": "Save Experiment",
+            "type": "boolean"
+          }
+        },
+        "title": "OscillatorIntegratorRequest",
+        "type": "object"
+      },
+      "OscillatorIntegratorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amplitude_scale": {
+            "description": "X = sqrt(x0^2 + (v0/w)^2), m",
+            "title": "Amplitude Scale",
+            "type": "number"
+          },
+          "angular_frequency": {
+            "description": "w = sqrt(k/m), rad/s",
+            "title": "Angular Frequency",
+            "type": "number"
+          },
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "dt_values": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Dt Values",
+            "type": "array"
+          },
+          "energy": {
+            "items": {
+              "$ref": "#/components/schemas/OscillatorEnergyRun"
+            },
+            "title": "Energy",
+            "type": "array"
+          },
+          "energy_dt": {
+            "description": "s",
+            "title": "Energy Dt",
+            "type": "number"
+          },
+          "fit_rule": {
+            "$ref": "#/components/schemas/OscillatorFitRule"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "euler",
+                "rk4",
+                "symplectic_euler",
+                "velocity_verlet"
+              ],
+              "type": "string"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/OscillatorIntegratorParameters"
+          },
+          "period": {
+            "description": "T = 2 pi / w, s",
+            "title": "Period",
+            "type": "number"
+          },
+          "periods": {
+            "title": "Periods",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OscillatorMethodResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "dt_values",
+          "methods",
+          "energy_dt",
+          "periods",
+          "units",
+          "assumptions",
+          "angular_frequency",
+          "period",
+          "amplitude_scale",
+          "fit_rule",
+          "results",
+          "energy",
+          "checks",
+          "metadata"
+        ],
+        "title": "OscillatorIntegratorResponse",
+        "type": "object"
+      },
+      "OscillatorIntegratorRun": {
+        "additionalProperties": false,
+        "properties": {
+          "diverged": {
+            "title": "Diverged",
+            "type": "boolean"
+          },
+          "dt_requested": {
+            "description": "s",
+            "title": "Dt Requested",
+            "type": "number"
+          },
+          "exclusion_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusion Reason"
+          },
+          "h": {
+            "description": "Effective step T/N, s. Convergence is fitted against this.",
+            "title": "H",
+            "type": "number"
+          },
+          "in_fit": {
+            "title": "In Fit",
+            "type": "boolean"
+          },
+          "max_position_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m; null if the run diverged",
+            "title": "Max Position Error"
+          },
+          "max_scaled_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "max over the nodes of sqrt((x - x_exact)^2 + ((v - v_exact)/w)^2) / X, dimensionless; the fitted error. Null if the run diverged",
+            "title": "Max Scaled Error"
+          },
+          "max_velocity_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "m/s; null if the run diverged",
+            "title": "Max Velocity Error"
+          },
+          "n_completed": {
+            "title": "N Completed",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "theta": {
+            "description": "w h, dimensionless (rad per step at small w h)",
+            "title": "Theta",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dt_requested",
+          "h",
+          "n_steps",
+          "theta",
+          "diverged",
+          "n_completed",
+          "max_position_error",
+          "max_velocity_error",
+          "max_scaled_error",
+          "in_fit",
+          "exclusion_reason"
+        ],
+        "title": "OscillatorIntegratorRun",
+        "type": "object"
+      },
+      "OscillatorMethodResult": {
+        "additionalProperties": false,
+        "properties": {
+          "fit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderFitResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Order fitted to max_scaled_error vs h."
+          },
+          "method": {
+            "enum": [
+              "euler",
+              "rk4",
+              "symplectic_euler",
+              "velocity_verlet"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "runs": {
+            "description": "Coarsest to finest step.",
+            "items": {
+              "$ref": "#/components/schemas/OscillatorIntegratorRun"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "theoretical_order": {
+            "title": "Theoretical Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "method",
+          "theoretical_order",
+          "runs",
+          "fit"
+        ],
+        "title": "OscillatorMethodResult",
         "type": "object"
       },
       "OscillatorNumerical": {
@@ -3376,6 +3921,9 @@
               },
               {
                 "$ref": "#/components/schemas/OscillatorResponse"
+              },
+              {
+                "$ref": "#/components/schemas/OscillatorIntegratorResponse"
               }
             ],
             "title": "Response"
@@ -4721,6 +5269,47 @@
         "summary": "Health",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/v1/physics/oscillator/integrators": {
+      "post": {
+        "operationId": "oscillator_integrator_study_api_v1_physics_oscillator_integrators_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OscillatorIntegratorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OscillatorIntegratorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oscillator Integrator Study",
+        "tags": [
+          "physics"
         ]
       }
     },

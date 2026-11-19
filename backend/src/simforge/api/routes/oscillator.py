@@ -11,7 +11,11 @@ from simforge.api.dependencies import Repository
 from simforge.api.runs import ModelEntry, Tolerance, execute
 from simforge.core import formatting as fmt
 from simforge.core.schemas import RunMetadata
-from simforge.physics.oscillator import model
+from simforge.physics.oscillator import integrator_model, model
+from simforge.physics.oscillator.integrator_schemas import (
+    OscillatorIntegratorRequest,
+    OscillatorIntegratorResponse,
+)
 from simforge.physics.oscillator.schemas import (
     OscillatorDerived,
     OscillatorDiagnostics,
@@ -155,3 +159,103 @@ OSCILLATOR = ModelEntry(
 @router.post("/oscillator/simulate")
 async def simulate_oscillator(request: OscillatorRequest, repo: Repository) -> OscillatorResponse:
     return await execute(OSCILLATOR, request, repo, save=request.save_experiment)
+
+
+# --- Methods study (roadmap 2.4, slice 2; plan D8-D14) -----------------------------------
+
+
+def _study_response(
+    request: OscillatorIntegratorRequest,
+    r: integrator_model.OscillatorIntegratorComputation,
+    metadata: RunMetadata,
+) -> OscillatorIntegratorResponse:
+    return OscillatorIntegratorResponse(
+        model=integrator_model.MODEL_INFO,
+        parameters=request.parameters,
+        dt_values=request.dt_values,
+        methods=request.methods,
+        energy_dt=request.energy_dt,
+        periods=request.periods,
+        units=integrator_model.UNITS,
+        assumptions=integrator_model.ASSUMPTIONS,
+        angular_frequency=r.omega,
+        period=r.period,
+        amplitude_scale=r.amplitude_scale,
+        fit_rule=integrator_model.FIT_RULE,
+        results=r.results,
+        energy=r.energy,
+        checks=r.checks,
+        metadata=metadata,
+    )
+
+
+def _study_summary(r: integrator_model.OscillatorIntegratorComputation) -> dict[str, Any]:
+    energy = {e.method: e for e in r.energy}
+    return {
+        "methods": {
+            m.method: {
+                "order": m.fit.order if m.fit else None,
+                "fit_points": m.fit.n_points if m.fit else 0,
+                "final_energy_ratio": energy[m.method].final_energy_ratio,
+                "max_relative_energy_error": energy[m.method].max_relative_energy_error,
+            }
+            for m in r.results
+        },
+    }
+
+
+_STUDY_TOLERANCES = {
+    "methods.*.fit_points": Tolerance.exact(
+        "A count. If rounding moved a step size across the fit rule's boundary, the fit "
+        "would use different points: a different result, reported as such."
+    ),
+    "methods.*.order": Tolerance(
+        relative=1e-6,
+        absolute=0.0,
+        reason="Fitted only over steps whose errors are far above rounding (the fit rule), "
+        "so rounding moves the slope by far less than 1e-9; 1e-6 relative is the margin.",
+    ),
+    "methods.*.final_energy_ratio": Tolerance(
+        relative=2e-8,
+        absolute=0.0,
+        reason="E_N/E_0 is within ENERGY_IDENTITY_C N eps of its exact value on any machine "
+        "(500 x 5e4 x 2.2e-16 ~ 5.6e-9 at the per-run cap), so two machines differ by at most "
+        "~1.1e-8; 2e-8 relative. Null (diverged) must stay null.",
+    ),
+    "methods.*.max_relative_energy_error": Tolerance(
+        relative=2e-8,
+        absolute=2e-8,
+        reason="A maximum over the nodes of |E_n - E_0|/E_0: rounding moves it by at most "
+        "MODIFIED_ENERGY_C or ENERGY_IDENTITY_C N eps (<= 5.6e-9 at the per-run cap) on each "
+        "machine, so 2e-8 absolute; 2e-8 relative for the large values of a growing (Euler) "
+        "run. A divergence step moved by rounding would be a different result, reported.",
+    ),
+}
+
+
+OSCILLATOR_INTEGRATORS = ModelEntry(
+    info=integrator_model.MODEL_INFO,
+    request_type=OscillatorIntegratorRequest,
+    compute=integrator_model.run,
+    inputs=lambda req, _: req.model_dump(
+        include={"parameters", "dt_values", "methods", "energy_dt", "periods"}
+    ),
+    summary=_study_summary,
+    respond=_study_response,
+    elapsed_ms=lambda r: r.elapsed_ms,
+    rebuild=lambda inputs, _: OscillatorIntegratorRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+    tolerances=lambda inputs, summary: _STUDY_TOLERANCES,
+    headline=lambda s: ", ".join(
+        f"{method} p≈{'n/a' if m['order'] is None else f'{m["order"]:.2f}'}"
+        for method, m in s["methods"].items()
+    ),
+)
+
+
+@router.post("/oscillator/integrators")
+async def oscillator_integrator_study(
+    request: OscillatorIntegratorRequest, repo: Repository
+) -> OscillatorIntegratorResponse:
+    return await execute(OSCILLATOR_INTEGRATORS, request, repo, save=request.save_experiment)

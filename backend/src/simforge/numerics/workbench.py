@@ -25,6 +25,7 @@ class ErrorGroup:
     name: str
     components: tuple[int, ...]  # error at a node: Euclidean norm over these components
     scale: float  # same units; sets the round-off floor
+    weights: tuple[float, ...] | None = None  # per component, applied before the norm
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +75,8 @@ def _run(
     if not sol.diverged:
         diff = sol.y - problem.exact(sol.t)
         for g in problem.groups:
-            err = np.linalg.norm(diff[:, list(g.components)], axis=1)
+            d = diff[:, list(g.components)]
+            err = np.linalg.norm(d if g.weights is None else d * np.asarray(g.weights), axis=1)
             max_err[g.name], final_err[g.name] = float(err.max()), float(err[-1])
 
     reason = "diverged" if sol.diverged else problem.exclusion(method, h, n)

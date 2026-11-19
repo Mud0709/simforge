@@ -366,7 +366,8 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
   vacuum-parabola nodes, against a landing time computed in 50-digit `decimal`.
 - **Driver** (`workbench.py`, tested): on a synthetic problem whose error is c·T·h^p by
   construction, it recovers p within 1e-4 and applies the exclusion order (diverged, the
-  model's rule, the round-off floor). `energy_envelope` keeps each bin's minimum and maximum,
+  model's rule, the round-off floor). An error group may weight its components before the
+  norm (slice 2: the oscillator's scaled phase-space error). `energy_envelope` keeps each bin's minimum and maximum,
   checked by brute force.
 
 ---
@@ -1196,6 +1197,86 @@ items below are **tested** (Vitest and Playwright, 2026-11-17 journal); none is 
   the damping), so errors relative to X look smaller than errors relative to the motion.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
   draws it only when the backend sends one (only for underdamped runs: none undamped, critically damped or overdamped).
+
+## `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
+
+Euler, RK4, symplectic Euler (kick then drift) and velocity Verlet on x'' = −ω²x (undamped,
+undriven), `POST /api/v1/physics/oscillator/integrators`. Code:
+`backend/src/simforge/physics/oscillator/integrator_{study,schemas,model}.py`, built on the
+slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
+
+### What it computes
+- **Orders** (measured): each method at each dt over **one period** T = 2π/ω, N = ⌈T/dt⌉,
+  h = T/N. The fitted error is the scaled phase-space error
+  e(h) = max_n √((x_n − x(t_n))² + ((v_n − v(t_n))/ω)²)/X over **all** nodes (decision of
+  2026-11-19, plan D9); max|x − x_exact| (m) and max|v − v_exact| (m/s) are reported beside
+  it. Fit rule D9: excluded if diverged, θ = ωh > 0.2, closed-form amplitude change
+  |ρᴺ − 1| > 0.1, or e(h) below 100·N·ε (X cancels).
+- **Energy** (one long run per method at `energy_dt` over `periods`): (E_n − E₀)/E₀ with
+  E ∝ x² + (v/ω)², as a min/max envelope in ≤ 200 bins; E_N/E₀; for the symplectic methods
+  max|H̃_n − H̃₀|/|H̃₀| (R3, R4) and the bound R5.
+
+### Proved, tested, observed
+- **Proved** (plan R1-R5, checked exactly in slice 1): E_N/E₀ = (1 + θ²)ᴺ (Euler) and
+  (1 − θ⁶/72 + θ⁸/576)ᴺ (RK4) exactly; H̃ exactly constant (symplectic); |ΔE|/E₀ ≤ R5 for
+  θ < 2. Per-run checks: `energy_identity_<m>` and `modified_energy_<m>` (exact identities,
+  threshold C·N·ε), `energy_bound_<m>` (proved bound + C·N·ε; no verdict for θ ≥ 2),
+  `order_<m>` (measured, within 0.1 of theory), `fit_points_<m>` (info). A diverged run (a
+  state component past 1e100) gives no verdict on its energy rows; so does an energy that
+  falls below the normal float range (E_N < tiny/ε m²), and the H̃ row at θ ≥ 2 (H̃ is not
+  positive definite there, so |H̃₀| is no scale).
+- **Tested** (`backend/tests/physics/test_oscillator_integrators.py`,
+  `tests/api/test_oscillator_integrators_api.py`): the coarsest run's errors against each
+  method's exact discrete solution in closed form (1e-8 relative); the fit rule against its
+  closed-form criteria; E_N/E₀ against R1/R2 in 50-digit `decimal`; H̃ and R5 on the default
+  request and a corner grid (ω = 1e-3 and 1e4 rad/s; x₀ only, v₀ only, both; 1 and 1000
+  periods); Euler's divergence step bracketed by ρⁿ; no R5 verdict at θ ≥ 2; a planted
+  mutant (Verlet's second half-kick at the old position) fails the H̃ check; 422s for
+  non-finite values, x₀ = v₀ = 0, duplicates, bounds and both step caps (naming N).
+- **The superconvergence trap** (why the error is measured over all nodes). At t = T alone,
+  symplectic Euler's error is O(h²) for every start: its step map is conjugate to Verlet's
+  by an O(h) half-kick, and that O(h) part cancels when the exact flow returns to its start
+  after a full period. An endpoint fit would report order 2 for a first-order method.
+  **Tested** from the closed-form discrete map alone
+  (`test_symplectic_euler_endpoint_error_is_superconvergent`: endpoint slope 2 ± 0.05, slope of
+  the max over nodes 1 ± 0.05). A per-component max is also misleading: with x₀ = 0 the
+  position error alone is O(h²), and with v₀ = 0 the velocity error alone is (observed: fitted
+  2.001 in both cases). Kick-drift positions obey the second-order Störmer recurrence,
+  so the O(h) error enters only through the start value q₁ (off by −θ²x₀/2), and likewise
+  for v (off by an amount proportional to v₀). The scaled phase-space error combines both,
+  so it is first order whenever x₀ or v₀ is nonzero.
+- **Observed** (2026-11-19, fitted to e(h)): default request Euler 1.013, RK4 4.000,
+  symplectic Euler 1.014, Verlet 2.000; over the default starts and the corner grid (ω = 5,
+  1e-3, 1e4; three starts): Euler 1.013, RK4 4.000, symplectic Euler 0.996-1.014, Verlet
+  2.000-2.001.
+
+### Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
+- `ENERGY_IDENTITY_C` = **500**: worst |(E_N/E₀)/Fᴺ − 1|/(N·ε) as the model computes it
+  (Fᴺ in logs), over θ from 1e-3 to 1e8 (1601 log-spaced values and 181 in [1.5, 6]; ω ∈
+  {1e-3, 5, 1e4}; 1-5 periods) and the corner grid: **21.3** (RK4, θ = 56, N = 3; cancellation
+  between RK4's stage terms at large θ). The corner grid alone: 0.275. The test's own
+  `C_ENERGY_IDENTITY` = 2 (worst 0.154 against the 50-digit reference on the corner grid).
+- `MODIFIED_ENERGY_C` = **50**: worst max|H̃_n − H̃₀|/(|H̃₀|·N·ε) over θ ∈ [1e-3, 2 − 1e-8]
+  (320 values), ω ∈ {1e-3, 5, 1e4}, three starts, 1/30/300 periods: **3.46** (symplectic
+  Euler, θ = 1.999); corner grid alone 0.150. The same C is the R5 row's rounding allowance:
+  the worst excess of max|ΔE|/E₀ over R5 on that grid is **0.0114**·N·ε (Verlet, θ ≈ 0.003,
+  where R5 itself is ≈ 2e-6).
+
+### Caps and timings (same machine)
+- `MAX_STEPS_PER_RUN` = 50 000, `MAX_TOTAL_STEPS` = 150 000 (the plan's starting values,
+  kept): worst measured study at the caps **2.16 s** (RK4 alone, three runs of ~50 000 steps;
+  worst of 3), 1.38-1.54 s for four methods at the total cap, 0.61 s for the default request;
+  all below the plan's 5 s.
+- Input limits: the oscillator's field bounds; ω₀ from 1e-3 to 1e4 rad/s; dt and `energy_dt`
+  in (0, 1e4] s; 2-12 distinct dt values; 1-4 distinct methods; 1-1000 periods; x₀ = v₀ = 0
+  refused; **amplitude X ≥ 1e-50 m** (a diverged state reaches E ≈ 1e206 m², so E/E₀ stays
+  ≤ 1e306, finite).
+
+### Limitations
+- Timings and rounding constants are from one machine. The constants come from grids, not
+  proofs.
+- Near θ = 2 the H̃ residual is relative to |H̃₀|, which tends to 0 for Verlet (β → 0), so
+  rounding grows there; the grid reached θ = 2 − 1e-8 without exceeding 3.46·N·ε.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 
