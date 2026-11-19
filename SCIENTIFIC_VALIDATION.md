@@ -353,9 +353,13 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
   phase 2 asin(θ/2). Verlet diverges at θ = 2.01 and stays bounded at 1.99.
 - **Rounding allowances, measured** (2026-11-19, x86_64, Python 3.12.3). Over 10⁵ steps the
   float H̃ drifts by at most 0.781·(n + 1)·ε (worst case), so C_MODIFIED_ENERGY = 10. On the
-  R5 grid the bound is never tight: max|ΔE|/E₀ − R5 < 0 in every case. The allowance was
-  therefore set from the rounding that enters ΔE, max|H̃_n − H̃₀|/(E₀(n + 1)ε), whose worst
-  case is 4.02, so C_ENERGY_BOUND = 50. Both are 1-2-5 values at least 10× the worst case.
+  R5 grid no float run exceeded the bound (max|ΔE|/E₀ − R5 < 0 in every case), though the
+  worst came within 0.14% of R5 (Verlet) and 1.25% (symplectic Euler): close, not tight to
+  rounding. The allowance was set from the rounding that enters ΔE, max|H̃_n − H̃₀|/(E₀(n +
+  1)ε), worst 4.02, so C_ENERGY_BOUND = 50. **Caveat (slice 1 review):** through R5's proof that
+  drift is divided by (1 − θ/2) (symplectic Euler) or β = 1 − θ²/4 (Verlet), up to about 20×
+  and 10× at θ = 1.9, so 50 is not 10× the worst need near θ = 2; the test passes because R5's
+  slack there dwarfs N·ε. C_MODIFIED_ENERGY is a 1-2-5 value 10× its measured worst case.
 - **Event location** (`events.py`, tested): on e^t − 2 at s = ½, linear and cubic Hermite
   location give fitted orders 2 ± 0.02 and 4 ± 0.02 (R6). At the finest h they match the
   leading terms h²/8 and h⁴/384 within 1%. Hermite is exact to 8 ε on a cubic and on
