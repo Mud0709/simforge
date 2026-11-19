@@ -14,5 +14,8 @@
   Acceptance block (exact test files and commands, 3-5 yes/no checks), per the autopilot skill.
 - **The autopilot journal** is one file per tick in `journal/` (from `journal/_template.md`;
   numbers written by `scripts/tick_metrics.py`); `AUTOPILOT_JOURNAL.md` is a closed archive.
+- **Step briefs** (`briefs/`): one page per finished roadmap step, from `briefs/_template.md`, in
+  IB terms with every claim labelled proved, tested or observed; written at the close of a build
+  tick (autopilot skill, step 4).
 - **`LEARNING_LOG.md`**: after a merge an entry is written as a draft (heading tagged `DRAFT`,
   listed under "Open decisions"); only the author removes the tag.

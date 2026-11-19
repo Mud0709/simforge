@@ -10,7 +10,7 @@ scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewk
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 58396d3
+work limit from: 9748111
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -19,6 +19,9 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 (since 2026-11-07; before, the autopilot accepted its own defaults).
 
 ## Budget (the author may edit these numbers)
+- unit of work: a whole roadmap step, as a plan tick then a build tick (the author's rule of
+  2026-11-19). Caps: 4 working subagents per slice and 24 per tick, 5 Haiku helper spawns per
+  slice, 12 commits between work-limit resets (skill steps 0b and 4).
 - working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
   Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
   usage. This replaces the 0.08 daily allowance, which needed live readings. The weekly and
