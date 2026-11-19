@@ -9,11 +9,12 @@ import time
 from dataclasses import dataclass
 
 from simforge.core.errors import ModelDomainError
-from simforge.core.schemas import Assumption, ModelInfo
+from simforge.core.schemas import Assumption, ModelInfo, ValidationCheck
 from simforge.numerics.convergence import MIN_FIT_POINTS, OrderFit
 from simforge.physics.projectile import analytical
 from simforge.physics.projectile import integrator_study as study
 from simforge.physics.projectile.integrator_schemas import (
+    EventRun,
     FitRule,
     IntegratorRun,
     IntegratorStudyRequest,
@@ -28,10 +29,11 @@ from simforge.physics.projectile.model import to_setup
 
 MODEL_INFO = ModelInfo(
     id="physics.projectile.integrators",
-    version="1.0.0",
+    version="1.1.0",
     name="Integrator convergence study (projectile with linear drag)",
     description="Forward Euler, RK4 and velocity Verlet, implemented from scratch, compared "
-    "against the exact linear-drag solution over a range of fixed time steps.",
+    "against the exact linear-drag solution over a range of fixed time steps, with the "
+    "landing located between steps by linear and cubic Hermite interpolation.",
 )
 
 UNITS: dict[str, str] = {
@@ -39,6 +41,8 @@ UNITS: dict[str, str] = {
     "h": "s",
     "kh": "dimensionless",
     "horizon": "s",
+    "landing_time": "s",
+    "landing_error": "s",
     "k": "1/s",
     "position_error": "m",
     "velocity_error": "m/s",
@@ -50,10 +54,20 @@ ASSUMPTIONS: list[Assumption] = [
     *PROJECTILE_ASSUMPTIONS,
     Assumption(
         id="fixed_horizon",
-        statement="Every run integrates over the same window [0, T], where T is the exact "
-        "flight time, using N = ceil(T/dt) equal steps. Landing is not detected, because "
-        "locating it between grid points would add interpolation error that could hide "
-        "the method's true order.",
+        statement="Every order run integrates over the same window [0, T], where T is the "
+        "exact flight time, using N = ceil(T/dt) equal steps, so no landing detection "
+        "error enters the method's order.",
+    ),
+    Assumption(
+        id="event_location",
+        statement="Each order run has a matching event run with h = T/(N + 1/2), so the "
+        "exact landing sits mid-step. The landing is located between the two nodes "
+        "straddling y = 0 by linear interpolation (order 2) and cubic Hermite "
+        "interpolation using vy (order 4); the landing error is then O(h^min(p, q)). "
+        "A run whose integrator and interpolation errors cancel (|e| < 0.5 x their sum) "
+        "or whose error is at the round-off floor 100 (i + 1) eps T, or whose decay factor "
+        "is off by more than 10% (|R(-kh)^N e^(kNh) - 1| > 0.1, pre-asymptotic), is left out "
+        "of the fit.",
     ),
     Assumption(
         id="error_metric",
@@ -86,6 +100,12 @@ FIT_RULE = FitRule(
     ),
 )
 
+EVENT_CANCELLATION_RATIO = study.EVENT_CANCELLATION_RATIO
+# ||dv + k dr||_inf <= C N eps V for Euler and RK4 (an exact identity up to rounding).
+# Measured worst 0.83 (test_projectile_event_location.py); >= 10x on the 1-2-5 series.
+VELOCITY_POSITION_IDENTITY_C = 10.0
+ORDER_TOL = 0.1
+
 MAX_STEPS_PER_RUN = 50_000
 MAX_TOTAL_STEPS = 150_000
 
@@ -98,6 +118,7 @@ class StudyComputation:
     velocity_scale: float
     results: list[MethodStudyResult]
     exact_trajectory: XYSeries
+    checks: list[ValidationCheck]
     elapsed_ms: float
 
 
@@ -140,6 +161,99 @@ def _fit_note(m: study.MethodStudy) -> str | None:
     )
 
 
+def _order_check(cid: str, label: str, fit: OrderFitResult, what: str) -> ValidationCheck:
+    gap = abs(fit.order - fit.theoretical_order)
+    return ValidationCheck(
+        id=cid,
+        label=label,
+        value=gap,
+        threshold=ORDER_TOL,
+        passed=gap <= ORDER_TOL,
+        kind="numerical_diagnostic",
+        note=f"Value: |fitted {what} order {fit.order:.3f} - {fit.theoretical_order}|. "
+        "A measured slope, not a proof.",
+    )
+
+
+def _points_check(cid: str, label: str, fitted: int, total: int) -> ValidationCheck:
+    return ValidationCheck(
+        id=cid,
+        label=label,
+        value=float(fitted),
+        threshold=None,
+        passed=None,
+        kind="informational",
+        note=f"{fitted} of {total} runs met the fit rule (at least {MIN_FIT_POINTS} needed "
+        "for an order).",
+    )
+
+
+def _checks(m: study.MethodStudy, r: MethodStudyResult) -> list[ValidationCheck]:
+    name, out = r.name, []
+    if r.position_fit is not None:
+        out.append(
+            _order_check(f"order_{r.method}", f"{name}: position order", r.position_fit, "position")
+        )
+    out.append(
+        _points_check(
+            f"fit_points_{r.method}",
+            f"{name}: step sizes in the order fit",
+            sum(x.in_position_fit for x in m.runs),
+            len(m.runs),
+        )
+    )
+    if r.method in study.RK_METHODS:
+        res = m.identity_residual
+        out.append(
+            ValidationCheck(
+                id=f"velocity_position_identity_{r.method}",
+                label=f"{name}: velocity error = -k x position error",
+                value=0.0 if res is None else res,
+                threshold=VELOCITY_POSITION_IDENTITY_C,
+                passed=None if res is None else res <= VELOCITY_POSITION_IDENTITY_C,
+                kind="exact_identity",
+                note="No stable, non-diverged run to check."
+                if res is None
+                else "Value: max over stable runs and nodes of ||dv + k dr||_inf / (N eps V), "
+                "V = max|v| + k max|r| + g T. Runge-Kutta methods preserve v + k r + g t y_hat "
+                "exactly, so only rounding remains.",
+            )
+        )
+    for q in study.EVENT_KINDS:
+        fit: OrderFitResult | None = getattr(r, f"landing_fit_{q}")
+        evs = m.event_runs
+        n_in = sum(getattr(e, f"in_{q}_fit") for e in evs)
+        cid, label = f"event_order_{r.method}_{q}", f"{name}: landing-time order ({q})"
+        if fit is not None:
+            out.append(_order_check(cid, label, fit, f"{q} landing"))
+        else:
+            reasons = [getattr(e, f"{q}_exclusion_reason") or "" for e in evs]
+            counts = {w: sum(w in x for x in reasons) for w in ("round-off", "cancel", "crossing")}
+            out.append(
+                ValidationCheck(
+                    id=cid,
+                    label=label,
+                    value=float(n_in),
+                    threshold=None,
+                    passed=None,
+                    kind="numerical_diagnostic",
+                    note=f"No order fitted: {n_in} run(s) met the rule (need {MIN_FIT_POINTS}); "
+                    f"excluded at the round-off floor: {counts['round-off']}, errors cancelling: "
+                    f"{counts['cancel']}, no crossing: {counts['crossing']}, other reasons: "
+                    f"{len(evs) - n_in - sum(counts.values())}.",
+                )
+            )
+        out.append(
+            _points_check(
+                f"event_fit_points_{r.method}_{q}",
+                f"{name}: event runs in the {q} landing fit",
+                n_in,
+                len(evs),
+            )
+        )
+    return out
+
+
 def run(request: IntegratorStudyRequest) -> StudyComputation:
     start = time.perf_counter()
     setup = to_setup(request.parameters)
@@ -161,6 +275,7 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
     result = study.run_study(setup, request.dt_values, request.methods, horizon=horizon)
 
     methods: list[MethodStudyResult] = []
+    checks: list[ValidationCheck] = []
     for m in result.methods:
         p = m.theory.order
         methods.append(
@@ -188,8 +303,12 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
                     if m.trajectory is not None
                     else None
                 ),
+                event_runs=[EventRun.model_validate(e, from_attributes=True) for e in m.event_runs],
+                landing_fit_linear=_fit(m.landing_fit_linear, min(p, 2)),
+                landing_fit_hermite=_fit(m.landing_fit_hermite, min(p, 4)),
             )
         )
+        checks += _checks(m, methods[-1])
 
     x_ref, y_ref = result.exact_trajectory
     return StudyComputation(
@@ -199,5 +318,6 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
         velocity_scale=result.velocity_scale,
         results=methods,
         exact_trajectory=XYSeries(x=x_ref.tolist(), y=y_ref.tolist()),
+        checks=checks,
         elapsed_ms=(time.perf_counter() - start) * 1e3,
     )

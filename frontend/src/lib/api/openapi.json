@@ -735,6 +735,190 @@
         "title": "ErrorMetric",
         "type": "object"
       },
+      "EventRun": {
+        "additionalProperties": false,
+        "description": "The landing located between the nodes of a run with h = T/(N + 1/2).",
+        "properties": {
+          "crossed": {
+            "title": "Crossed",
+            "type": "boolean"
+          },
+          "crossing_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "i with y_i > 0 >= y_(i+1); null if none",
+            "title": "Crossing Step"
+          },
+          "diverged": {
+            "title": "Diverged",
+            "type": "boolean"
+          },
+          "h": {
+            "description": "T/(N + 1/2), s: the exact landing sits mid-step",
+            "title": "H",
+            "type": "number"
+          },
+          "hermite_exclusion_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hermite Exclusion Reason"
+          },
+          "in_hermite_fit": {
+            "title": "In Hermite Fit",
+            "type": "boolean"
+          },
+          "in_linear_fit": {
+            "title": "In Linear Fit",
+            "type": "boolean"
+          },
+          "interpolation_error_hermite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signed t~ - T, s",
+            "title": "Interpolation Error Hermite"
+          },
+          "interpolation_error_linear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signed t~ - T, s: the same interpolant on the exact nodal values",
+            "title": "Interpolation Error Linear"
+          },
+          "kh": {
+            "title": "Kh",
+            "type": "number"
+          },
+          "landing_error_hermite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "|t^ - T|, s",
+            "title": "Landing Error Hermite"
+          },
+          "landing_error_linear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "|t^ - T|, s",
+            "title": "Landing Error Linear"
+          },
+          "landing_time_hermite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "s",
+            "title": "Landing Time Hermite"
+          },
+          "landing_time_linear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "s",
+            "title": "Landing Time Linear"
+          },
+          "linear_exclusion_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linear Exclusion Reason"
+          },
+          "n_completed": {
+            "description": "Steps taken, at most 2N + 2",
+            "title": "N Completed",
+            "type": "integer"
+          },
+          "n_steps": {
+            "description": "N of the matching fixed-horizon run",
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "roundoff_floor": {
+            "description": "100 (i + 1) eps T, s; 0 if no crossing",
+            "title": "Roundoff Floor",
+            "type": "number"
+          },
+          "stability": {
+            "enum": [
+              "stable",
+              "marginal",
+              "unstable"
+            ],
+            "title": "Stability",
+            "type": "string"
+          }
+        },
+        "required": [
+          "n_steps",
+          "h",
+          "kh",
+          "stability",
+          "diverged",
+          "n_completed",
+          "crossed",
+          "crossing_step",
+          "landing_time_linear",
+          "landing_time_hermite",
+          "landing_error_linear",
+          "landing_error_hermite",
+          "interpolation_error_linear",
+          "interpolation_error_hermite",
+          "roundoff_floor",
+          "in_linear_fit",
+          "in_hermite_fit",
+          "linear_exclusion_reason",
+          "hermite_exclusion_reason"
+        ],
+        "title": "EventRun",
+        "type": "object"
+      },
       "Example": {
         "additionalProperties": false,
         "properties": {
@@ -1124,6 +1308,13 @@
             "title": "Assumptions",
             "type": "array"
           },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
           "dt_values": {
             "items": {
               "type": "number"
@@ -1207,6 +1398,7 @@
           "fit_rule",
           "results",
           "exact_trajectory",
+          "checks",
           "metadata"
         ],
         "title": "IntegratorStudyResponse",
@@ -1384,6 +1576,14 @@
       "MethodStudyResult": {
         "additionalProperties": false,
         "properties": {
+          "event_runs": {
+            "description": "One per run, in the same order.",
+            "items": {
+              "$ref": "#/components/schemas/EventRun"
+            },
+            "title": "Event Runs",
+            "type": "array"
+          },
           "fit_note": {
             "anyOf": [
               {
@@ -1395,6 +1595,26 @@
             ],
             "description": "Why no order was fitted, if none was.",
             "title": "Fit Note"
+          },
+          "landing_fit_hermite": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderFitResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "landing_fit_linear": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderFitResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "method": {
             "enum": [
@@ -1526,7 +1746,10 @@
           "position_reference",
           "velocity_reference",
           "fit_note",
-          "trajectory"
+          "trajectory",
+          "event_runs",
+          "landing_fit_linear",
+          "landing_fit_hermite"
         ],
         "title": "MethodStudyResult",
         "type": "object"

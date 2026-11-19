@@ -191,7 +191,7 @@ launch apex, both solvers against the exact vacuum flight and `analytical.flight
 
 ---
 
-## `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
+## `physics.projectile.integrators` v1.1.0: fixed-step integrator convergence study, with event location
 
 ### Purpose
 
@@ -199,7 +199,8 @@ The linear-drag projectile has an exact solution, so the error of any integrator
 it can be measured exactly. This study implements three fixed-step methods **from scratch**
 (no SciPy integrators) and measures how their errors shrink as the time step `h` is reduced.
 
-Engine code: `backend/src/simforge/numerics/fixed_step.py` and `convergence.py` (generic) and
+Engine code: `backend/src/simforge/numerics/fixed_step.py`, `convergence.py`, `workbench.py`
+(the shared convergence driver, since v1.1.0) and `events.py` (generic), and
 `backend/src/simforge/physics/projectile/integrator_study.py` (problem-specific).
 
 ### Equations
@@ -249,8 +250,9 @@ computation refused to find a root there, which is how the mistake was caught.
 - **Fixed horizon.** Every run integrates over `[0, T]`, where `T` is the exact flight time,
   using `N = ⌈T/dt⌉` equal steps of `h = T/N ≤ dt` (up to a relative 1e-12 that absorbs
   rounding noise in `T/dt`). Convergence is fitted against `h`, not
-  the requested `dt`. Landing is *not* detected: locating it between nodes would add an
-  interpolation error (typically O(h²)) that could mask RK4's fourth order.
+  the requested `dt`. The order runs do not detect landing, so no interpolation error
+  (typically O(h²)) can mask RK4's fourth order; the landing time is measured separately by
+  the event runs (see "Event location" below).
 - **Max position error** = `max_n |r_n − r(t_n)|` (m), and **max velocity error** =
   `max_n |v_n − v(t_n)|` (m/s), over all nodes. Errors at `t = T` are also reported.
 - **Reference.** The existing exact solution, evaluated in float64 with relative error about
@@ -355,23 +357,88 @@ How to read this table:
 To reproduce: `cd backend && uv run pytest tests/physics/test_projectile_integrators.py -v`,
 or run the study from the UI (Physics Lab → Integrators).
 
+### Event location (v1.1.0, roadmap 2.4 slice 4; plan D11, D13, R6)
+
+**What is computed.** For each order run of N steps there is an event run with
+`h_e = T/(N + ½)`, so the exact landing falls at s = ½ of step N + 1. The run stops at the
+first downward crossing of y = 0 (`y_i > 0 ≥ y_{i+1}`, `events.first_crossing`). It takes
+N + 2 steps and, if needed, N more, so at most 2N + 2. The landing is then located on
+`[t_i, t_{i+1}]` by linear (secant) and cubic Hermite interpolation (values y, slopes vy).
+The landing error is `|t̂ − T|`, against `analytical.flight_time` (brentq on the closed-form
+y(t); validated in `test_projectile_analytical.py`).
+
+**Theory (R6; a standard result, tested here, not proved in this repo).** The landing error
+is O(h^min(p, q)): p is the method's order and q = 2 (linear) or 4 (Hermite). The
+interpolation error alone (the interpolant on the exact nodal values) has leading terms
+`s(1 − s) h² g″/(2|g′|)` (linear) and `s²(1 − s)² h⁴ |g⁗|/(24|g′|)` in magnitude (Hermite).
+Here g = y, and `y⁗ = −k³ A < 0` (A = (vy₀ + g/k) e^{−kT} > 0), so y lies below its cubic
+and **the Hermite landing is late** (t̃ − T > 0). y is concave, so the chord lands early.
+Both signs and magnitudes match the response's `interpolation_error_*` within 1e-3 relative
+at s = ½ for N ≥ 22 (test).
+
+**Fit rule for the landing order** (per method and interpolant, against `h_e`; at least 3
+points). The run must have crossed. It must be stable, with `kh_e ≤ 0.2` and `h_e ≤ T/20`
+(the order runs' rule). It must not be **pre-asymptotic**: it is excluded when
+`|R(−kh)^N e^{kNh} − 1| > 0.1` (N = n_steps, h the event step, so N h = T − h/2 is the span
+R^N covers and a correct method is not penalised for the half step). Why: `kh ≤ 0.2` is not
+enough when kT is large. At b = 10 kg/s, m = 1 kg (kT ≈ 15) Euler's decaying mode is off by
+about e^{−kT·kh/2}, its landing-error local orders measured 0.48 → 0.93, and without this rule
+the fits gave 0.838, 0.779 and 0.772 (45°, 75°, 90°): false fails. The position fit is not
+affected because its maximum error sits early, at t ≈ 1/k. The rule mirrors the oscillator's
+10% amplitude rule (D9). With it, those three requests give no Euler verdict (passed = null,
+too few points) and no check fails. Its error must be above the **round-off floor**
+`100 (i + 1) ε T`, since the located time carries rounding from i + 1 steps on a time scale T.
+On the default request this removes the three finest RK4/Hermite runs (errors 9e-12, 6e-13
+and 4e-14 s against floors of 1.7e-11 to 6.6e-11 s). Finally, the run must not
+**cancel**: it is excluded when `|e| < 0.5 (|e_interp| + |e − e_interp|)`, where e = t̂ − T and
+`e_interp` is the interpolation error alone. Why: RK4's own landing error and Hermite's are
+both O(h⁴) and can have opposite signs. At (15°, b = 0.3) and (5°, b = 1) their ratio was
+−1.03 and −0.92. Without the rule, 12-point fits there gave 3.67-4.12, which are false fails.
+With ratio 0.5 the surviving |e| is at least half the sum of its parts, so the O(h⁵)
+remainder is amplified at most 2×. With too few points left the check gives no verdict
+(passed = null, with a note counting the round-off, cancellation and no-crossing exclusions).
+
+**Checks in every response** (`checks`): `order_<m>` (|position order − p| ≤ 0.1) and
+`fit_points_<m>`; `event_order_<m>_<q>` (|landing order − min(p, q)| ≤ 0.1) and
+`event_fit_points_<m>_<q>`; `velocity_position_identity_{euler,rk4}`, an **exact identity**
+up to rounding. Every Runge-Kutta method preserves `v + k r + g t ŷ`, so δv = −k δr at
+every node. The value is `max ||δv + k δr||_∞ / (N ε V)` over stable runs, with
+`V = max|v| + k max|r| + g T`, and the threshold is `C = 10`. C was measured, not derived:
+the worst case was 0.83 over 6 angles × 5 drags × 2 heights × 20 steps (test writer), and
+0.827 over 48 accepted parameter sets on the default steps (this slice: angles {0.5, 5, 15,
+45, 75, 90}°, b ∈ {1e-3, 0.1, 1, 10, 100}, h₀ ∈ {0, 100} m; 12 sets refused by the step
+cap). 10 is the 1-2-5 value at least 10× the worst case. A planted non-RK stepper
+(semi-implicit Euler) fails it.
+
+**Measured on the default request** (v₀ = 20 m/s, 45°, h₀ = 0, b = 1, m = 1, the 8 default
+steps; 2026-11-19, same machine as below). Landing-time orders, linear / Hermite (points):
+Euler 0.997 (6) / 0.998 (6) (the coarsest eligible run, N = 22, is pre-asymptotic); RK4 2.000 (7) / 4.039 (4); Verlet 2.000 (7) / 2.000 (7). Every
+check passed. Tests: `backend/tests/physics/test_projectile_event_location.py` (orders, mid-step
+placement, R6 leading terms and signs, both traps, no-crossing exclusion, the identity, a
+planted wrong Hermite slope giving order ≈ 2).
+
 ### Known limitations
 
 - **One problem only.** Convergence is demonstrated on a single, linear ODE system (plus the
   scalar test equation). Nonlinear problems, such as quadratic drag, can behave differently.
-- **Fixed horizon, not landing.** The study does not measure errors in the landing time or
-  range for fixed-step methods. Those would need event location, whose interpolation error
-  would itself need analysis.
+- **Landing time only, not range.** The event runs measure the landing-time error; the range
+  error at the located landing is not reported.
 - **Velocity orders for Euler/RK4 are not independent**, because of the linear invariant.
 - **The thresholds are heuristics.** `kh ≤ 0.2`, `h ≤ T/20` and the ×100 round-off margin are
   conventional choices, stated in advance. Different reasonable thresholds would include
   different points.
 - **Performance.** The integrators are plain Python loops (about 17 µs per RK4 step). Requests
-  are therefore capped at 50,000 steps per run and 150,000 per study.
+  are therefore capped at 50,000 steps per run and 150,000 per study. Since v1.1.0 each run
+  also has an event run (about N + 2 steps) and the Euler and RK4 runs are integrated once
+  more for the identity check. Measured worst case at the caps (2026-11-19, x86_64 Intel
+  Xeon 2.10 GHz, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; best/worst of 3): RK4 with
+  3 × 50,000 steps took 6.7-7.4 s; Euler + RK4 with 50,000 + 25,000 steps took 4.9-5.0 s; all
+  three methods with 2 × 25,000 steps took 4.1-4.2 s. The time before v1.1.0 was not
+  re-measured.
 - **Not a proof.** The fits are empirical evidence consistent with theory on the cases tested.
   They are not a proof of order and say nothing about other problems.
 
-### numerics/ (roadmap 2.4, slice 1: not yet used by any model)
+### numerics/ (roadmap 2.4, slice 1; used by the oscillator and projectile integrator studies)
 
 Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
 `backend/tests/numerics/test_symplectic.py`, `test_events.py`, `test_workbench.py`.
@@ -402,7 +469,9 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
 - **Driver** (`workbench.py`, tested): on a synthetic problem whose error is c·T·h^p by
   construction, it recovers p within 1e-4 and applies the exclusion order (diverged, the
   model's rule, the round-off floor). An error group may weight its components before the
-  norm (slice 2: the oscillator's scaled phase-space error). `energy_envelope` keeps each bin's minimum and maximum,
+  norm (slice 2: the oscillator's scaled phase-space error). A two-component group's norm is
+  `np.hypot` (slice 4), which cannot overflow or underflow in the squares and kept the
+  projectile study's v1.0.0 golden digest bit-identical when it moved onto the driver. `energy_envelope` keeps each bin's minimum and maximum,
   checked by brute force.
 
 ---

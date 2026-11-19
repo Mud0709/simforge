@@ -255,8 +255,8 @@ error larger than the quantity itself (above 100%) is reported with `passed = nu
 note, not as passed: the quadratic-drag model and its sweep (v1.0.1, a version bump because
 stored responses can differ) and the oscillator. A sweep's aggregate is failed if any run
 failed, else no verdict if any run had none, else passed. The three Phase 0 physics models
-(projectile, integrators, linear sweep) still return no `checks`; that is planned with
-roadmap 2.4 (`docs/plans/ROADMAP_2_4_NOTES.md`).
+gained `checks` in roadmap 2.4: the projectile and its linear sweep in slice 3 (v1.1.0), the
+integrator study in slice 4 (v1.1.0, with the landing-time order checks).
 
 ### 13. Imported datasets live for one request; their identity is a hash
 An uploaded CSV is sent as base64 inside the JSON body, so it goes through the same strict

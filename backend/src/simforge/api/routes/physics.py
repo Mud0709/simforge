@@ -195,6 +195,7 @@ def _study_response(
         fit_rule=integrator_model.FIT_RULE,
         results=result.results,
         exact_trajectory=result.exact_trajectory,
+        checks=result.checks,
         metadata=metadata,
     )
 

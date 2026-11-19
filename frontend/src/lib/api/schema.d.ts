@@ -651,6 +651,86 @@ export interface components {
        */
       relative: number | null;
     };
+    /**
+     * EventRun
+     * @description The landing located between the nodes of a run with h = T/(N + 1/2).
+     */
+    EventRun: {
+      /** Crossed */
+      crossed: boolean;
+      /**
+       * Crossing Step
+       * @description i with y_i > 0 >= y_(i+1); null if none
+       */
+      crossing_step: number | null;
+      /** Diverged */
+      diverged: boolean;
+      /**
+       * H
+       * @description T/(N + 1/2), s: the exact landing sits mid-step
+       */
+      h: number;
+      /** Hermite Exclusion Reason */
+      hermite_exclusion_reason: string | null;
+      /** In Hermite Fit */
+      in_hermite_fit: boolean;
+      /** In Linear Fit */
+      in_linear_fit: boolean;
+      /**
+       * Interpolation Error Hermite
+       * @description Signed t~ - T, s
+       */
+      interpolation_error_hermite: number | null;
+      /**
+       * Interpolation Error Linear
+       * @description Signed t~ - T, s: the same interpolant on the exact nodal values
+       */
+      interpolation_error_linear: number | null;
+      /** Kh */
+      kh: number;
+      /**
+       * Landing Error Hermite
+       * @description |t^ - T|, s
+       */
+      landing_error_hermite: number | null;
+      /**
+       * Landing Error Linear
+       * @description |t^ - T|, s
+       */
+      landing_error_linear: number | null;
+      /**
+       * Landing Time Hermite
+       * @description s
+       */
+      landing_time_hermite: number | null;
+      /**
+       * Landing Time Linear
+       * @description s
+       */
+      landing_time_linear: number | null;
+      /** Linear Exclusion Reason */
+      linear_exclusion_reason: string | null;
+      /**
+       * N Completed
+       * @description Steps taken, at most 2N + 2
+       */
+      n_completed: number;
+      /**
+       * N Steps
+       * @description N of the matching fixed-horizon run
+       */
+      n_steps: number;
+      /**
+       * Roundoff Floor
+       * @description 100 (i + 1) eps T, s; 0 if no crossing
+       */
+      roundoff_floor: number;
+      /**
+       * Stability
+       * @enum {string}
+       */
+      stability: "stable" | "marginal" | "unstable";
+    };
     /** Example */
     Example: {
       /**
@@ -805,6 +885,8 @@ export interface components {
     IntegratorStudyResponse: {
       /** Assumptions */
       assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       /** Dt Values */
       dt_values: number[];
       exact_trajectory: components["schemas"]["XYSeries"];
@@ -937,10 +1019,17 @@ export interface components {
     /** MethodStudyResult */
     MethodStudyResult: {
       /**
+       * Event Runs
+       * @description One per run, in the same order.
+       */
+      event_runs: components["schemas"]["EventRun"][];
+      /**
        * Fit Note
        * @description Why no order was fitted, if none was.
        */
       fit_note: string | null;
+      landing_fit_hermite: components["schemas"]["OrderFitResult"] | null;
+      landing_fit_linear: components["schemas"]["OrderFitResult"] | null;
       /**
        * Method
        * @enum {string}

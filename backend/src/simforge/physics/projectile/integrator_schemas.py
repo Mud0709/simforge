@@ -6,7 +6,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
-from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel
+from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel, ValidationCheck
 from simforge.physics.projectile.integrator_study import MethodName
 from simforge.physics.projectile.schemas import ProjectileParameters
 
@@ -76,6 +76,32 @@ class IntegratorRun(StrictModel):
     exclusion_reason: str | None
 
 
+class EventRun(StrictModel):
+    """The landing located between the nodes of a run with h = T/(N + 1/2)."""
+
+    n_steps: int = Field(description="N of the matching fixed-horizon run")
+    h: float = Field(description="T/(N + 1/2), s: the exact landing sits mid-step")
+    kh: float
+    stability: Literal["stable", "marginal", "unstable"]
+    diverged: bool
+    n_completed: int = Field(description="Steps taken, at most 2N + 2")
+    crossed: bool
+    crossing_step: int | None = Field(description="i with y_i > 0 >= y_(i+1); null if none")
+    landing_time_linear: float | None = Field(description="s")
+    landing_time_hermite: float | None = Field(description="s")
+    landing_error_linear: float | None = Field(description="|t^ - T|, s")
+    landing_error_hermite: float | None = Field(description="|t^ - T|, s")
+    interpolation_error_linear: float | None = Field(
+        description="Signed t~ - T, s: the same interpolant on the exact nodal values"
+    )
+    interpolation_error_hermite: float | None = Field(description="Signed t~ - T, s")
+    roundoff_floor: float = Field(description="100 (i + 1) eps T, s; 0 if no crossing")
+    in_linear_fit: bool
+    in_hermite_fit: bool
+    linear_exclusion_reason: str | None
+    hermite_exclusion_reason: str | None
+
+
 class OrderFitResult(StrictModel):
     order: float = Field(description="Least-squares slope of log10(error) against log10(h).")
     theoretical_order: int
@@ -118,6 +144,9 @@ class MethodStudyResult(StrictModel):
     trajectory: TrajectorySample | None = Field(
         description="Coarsest linearly stable, non-divergent run, for plotting."
     )
+    event_runs: list[EventRun] = Field(description="One per run, in the same order.")
+    landing_fit_linear: OrderFitResult | None
+    landing_fit_hermite: OrderFitResult | None
 
 
 class FitRule(StrictModel):
@@ -147,4 +176,5 @@ class IntegratorStudyResponse(StrictModel):
     fit_rule: FitRule
     results: list[MethodStudyResult]
     exact_trajectory: XYSeries
+    checks: list[ValidationCheck]
     metadata: RunMetadata

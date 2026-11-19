@@ -69,7 +69,7 @@
  },
  {
   "environment": {
-   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz",
    "numpy_version": "2.5.4",
    "platform": "linux-x86_64",
    "scipy_version": "1.18.1"
@@ -94,8 +94,8 @@
    }
   },
   "model_id": "physics.projectile.integrators",
-  "model_version": "1.0.0",
-  "output_digest": "8f5707cfc2257db2b64365efd986b4de2138817bfb2c97c3e687c76a1dd2d3b7",
+  "model_version": "1.1.0",
+  "output_digest": "209db8753d08d6d0b9867c42bf295738e37f2fadc81fd4c4300921700c118d56",
   "summary": {
    "horizon": 2.160642244407215,
    "methods": {

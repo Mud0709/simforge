@@ -76,7 +76,9 @@ def _run(
         diff = sol.y - problem.exact(sol.t)
         for g in problem.groups:
             d = diff[:, list(g.components)]
-            err = np.linalg.norm(d if g.weights is None else d * np.asarray(g.weights), axis=1)
+            d = d if g.weights is None else d * np.asarray(g.weights)
+            # hypot for two components: no overflow/underflow in the squares
+            err = np.hypot(d[:, 0], d[:, 1]) if d.shape[1] == 2 else np.linalg.norm(d, axis=1)
             max_err[g.name], final_err[g.name] = float(err.max()), float(err[-1])
 
     reason = "diverged" if sol.diverged else problem.exclusion(method, h, n)
