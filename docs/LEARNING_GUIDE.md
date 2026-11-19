@@ -10,7 +10,8 @@ This guide stays the home of the Physics Lab and of the engineering shared by ev
 Parts 13-17 cover the working tools, the review lessons, replay, the experiment log, and
 comparison and export. Part 18 covers quadratic drag, the first Physics Lab model with no
 exact 2-D answer, and how it is checked anyway. Part 19 covers the angle sweep for quadratic
-drag: finding a best angle when every point is a full simulation. Every line number points at the code as it is
+drag: finding a best angle when every point is a full simulation. Part 20 covers the
+oscillators (simple, damped and driven), whose exact solution checks the numerical one. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -54,6 +55,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
 12. **The quadratic angle sweep:** Part 19. It needs Part 11 (grids, Brent, flat peaks) and
    Part 18; 19.9 also uses 15.4 (declared tolerances). The derivation outline in 19.3 is
    Beyond IB, but its last step (setting the slope to zero) is IB HL.
+13. **Oscillators:** Part 20. It needs Part 3 (an exact answer to compare with), 1.7 (floating
+   point, for the three traps in 20.5) and 6.7 (an invariant as a check). 20.1 is IB level;
+   20.5-20.8 are Beyond IB and can be skimmed on a first pass.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -78,6 +82,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 17 — Comparison and export: a reference run, CSV and JSON](#part-17--comparison-and-export-a-reference-run-csv-and-json)
 - [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
 - [Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down](#part-19--angle-sweeps-for-both-drag-laws-finding-a-maximum-you-cannot-write-down)
+- [Part 20 — Oscillators: springs, damping and resonance](#part-20--oscillators-springs-damping-and-resonance)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Four name clashes to know before reading code
@@ -131,6 +136,11 @@ numbers are checked instead (an exact throw straight up, limits, an energy balan
 conserved quantity and proved bounds). That page has its own "Range against launch angle"
 panel too, where every point of the curve is a full simulation; Part 19 explains how its best
 angle is found and how accurately it is known.
+
+A fourth page, `/physics/oscillator`, simulates a mass on a spring with optional damping and a
+sinusoidal drive. Unlike the projectile models it has an exact answer in every case, so each
+run is checked against it; Part 20 explains the physics (damping, resonance, Q) and how the
+exact answer is kept accurate in floating point.
 
 ---
 
@@ -2436,10 +2446,11 @@ values, which check the order, and which only check things like input validation
 | 4 | Parts 6-9 | Exercises 1(b), 3 and 8; Exercise 7 if you want more | explain the reported orders, the stability limits and the invariant to someone else |
 | 5 (short) | Part 11 | Exercises 9 and 10, then 11 and 12 | explain why the best angle drops below 45°, and why the angle is known less precisely than the range |
 
-**After that**, a Phase 2 roadmap item, a **harmonic oscillator** with
-symplectic Euler and standard velocity Verlet, is a good first feature to write *yourself*,
-with me reviewing. It reuses `numerics/fixed_step.py` directly, and it's where Verlet's
-energy behaviour genuinely matters.
+**After that**, the harmonic oscillator now exists (roadmap 2.3, Part 20), with an exact
+solution and SciPy's adaptive solve. What is still open is roadmap 2.4, the methods workbench
+for any time-stepping model: symplectic Euler and velocity Verlet on the oscillator, and
+energy drift. That is a good feature to write *yourself*, with me reviewing. It reuses
+`numerics/fixed_step.py` directly, and it's where Verlet's energy behaviour genuinely matters.
 
 ## Part 11 — The angle sweep: which launch angle throws furthest?
 
@@ -4440,6 +4451,240 @@ the versions used, is in the quadratic angle-sweep section of `SCIENTIFIC_VALIDA
 
 ---
 
+## Part 20 — Oscillators: springs, damping and resonance
+
+**Code:** `backend/src/simforge/physics/oscillator/` (roadmap 2.3): `analytical.py` (the exact
+solution, pure), `numerical.py` (the scaled SciPy solve), `model.py` (limits, per-run checks),
+`schemas.py` (the request and response); the page is `frontend/src/components/OscillatorLab.tsx`
+at `/physics/oscillator`. **Read after:** Part 3 (an exact answer to compare with), 6.7 (an
+invariant as a check) and 1.7 (floating point). Plan and decisions:
+`docs/plans/ROADMAP_2_3_PLAN.md`.
+
+A mass `m` on a spring `k`, with a damper `b` and a push `F₀ cos ωt`:
+`m ẍ + b ẋ + k x = F₀ cos ωt`. One equation holds simple, damped and driven motion. Unlike
+projectiles, **every case has an exact answer**, so the numerical solve is checked against it on
+every run. The interesting engineering is making that exact answer *accurate in floating point*.
+
+**IB labels** (only what `docs/IB_FOUNDATIONS.md` lists): simple harmonic motion is the C.1
+topic (P5 there). Damping, driving, resonance and Q are **verify against the IB guide**: C.4
+there is "Standing waves and resonance", not these. The exact unified solution is **[Beyond IB]**.
+
+### 20.1 Simple harmonic motion: the spring pulls back, the mass overshoots **[IB core, C.1]**
+**Intuition.** Pull the mass right; the spring pulls it left, harder the further you pulled. It
+speeds up towards the middle, overshoots, and the spring now pulls it right. It swings forever
+(no damping). The force `−kx` points back towards the middle and grows with the distance. That
+is the whole definition of SHM.
+
+- **Angular frequency** `ω₀ = √(k/m)` (rad/s). A stiffer spring or a lighter mass is faster.
+- **Period** `T = 2π/ω₀`, and it does **not** depend on how far you pulled. A small swing and a
+  big swing take the same time (a surprise worth trying on the page: change `x₀`, not `k`).
+- **Energy swaps:** `½kx²` (spring) and `½mv²` (motion) trade places while the sum is constant.
+  The page's energy chart shows it; with `b = F₀ = 0` the sum is exactly `E₀` for the exact motion; the chart shows the numerical solve, which keeps it to within the measured check threshold.
+
+At the defaults `m = 1 kg`, `k = 25 N/m`, so `ω₀ = 5 rad/s` and `T = 2π/5 ≈ 1.26 s` (worked by
+hand here). **Proved** (closed form), and **tested**: SHM with these numbers on the page.
+
+### 20.2 Damping, and three regimes **[verify against the IB guide]**
+A damper takes energy out: it pushes against the velocity with `−bv`. Two numbers describe how
+strong it is, each a rate or a ratio:
+- `γ = b/2m` (1/s): how fast the swings shrink. The peaks fall by a factor `e^{−γT_d}` each
+  period `T_d` (an exact identity, **proved** and **tested**).
+- `ζ = γ/ω₀` (no units): damping compared with the spring. It decides the regime.
+
+| Regime | Condition | What the motion looks like |
+|---|---|---|
+| Underdamped | `ζ < 1` | still swings, but each swing is smaller; period `T_d = 2π/ω_d`, `ω_d = √(ω₀² − γ²)` |
+| Critically damped | `ζ = 1` | returns to the middle as fast as possible without crossing |
+| Overdamped | `ζ > 1` | creeps back, never crossing; no period at all |
+
+The dotted **envelope** `e^{−γt}` on the displacement chart is the shrinking cap on the swings.
+The backend sends it only for underdamped runs, so the page draws it only then (not undamped,
+critically damped or overdamped).
+
+### 20.3 Driving, resonance and the phase lag **[verify against the IB guide]**
+Now push with `F₀ cos ωt`. After a while the start-up wobble (the **transient**) has died away
+and the mass follows the push at the *drive's* frequency: the **steady state**
+`x = A cos(ωt − δ)`, with
+
+`A = (F₀/m) / √((ω₀² − ω²)² + (2γω)²)`  and  `δ = atan2(2γω, ω₀² − ω²)`  (δ between 0 and π).
+
+**Intuition for the shape.** Push slowly (`ω ≪ ω₀`) and the mass just follows: it moves with the
+push, `δ ≈ 0`. Push very fast (`ω ≫ ω₀`) and the mass cannot keep up: `A` is small and it moves
+against the push, `δ ≈ 180°`. Push at the natural frequency and every push arrives just as the
+mass is moving the right way, so energy builds until damping takes out as much per cycle as the
+push puts in. That is **resonance**: a large response, with `δ = 90°` at `ω = ω₀` (the mass lags
+the push by a quarter of a cycle). At `ω = ω₀` the formula gives `A = F₀/(bω₀)`; the amplitude
+peak itself is at `ω_r` (below), slightly lower, so ω₀ is near the peak, not at it.
+
+On the Driven preset (`b = 0.5`, `F₀ = 1`, `ω = 5`) that is `A = 1/(0.5 × 5) = 0.4 m`.
+The exact peak of the amplitude curve is at `ω_r = √(ω₀² − 2γ²)`, and it exists only when
+`ζ < 1/√2`; for stronger damping the curve has no peak above `ω = 0`. **Proved** (closed form);
+**tested** against the textbook formula on the page (Playwright) and in the backend.
+
+The **resonance chart** plots `A` against `ω`, with this run marked. It appears only when
+`F₀ > 0`; with no drive there is no steady state, and the page says so instead of drawing 0.
+
+### 20.4 Quality factor Q: how sharp the peak is **[verify; otherwise Beyond IB]**
+`Q = ω₀/(2γ)` (no units). A large `Q` means light damping and a tall, narrow peak. Two readings
+of the same number:
+- **Width:** the power curve falls to half its peak at `√(ω₀² + γ²) ∓ γ` (for the Driven preset
+  `√25.0625 ∓ 0.25`), about `ω₀ ± γ` when `γ ≪ ω₀`. Only the **width** `Δω = 2γ` is exact
+  (**proved**), so `Q = ω₀/Δω` exactly; the points themselves are not `ω₀ ± γ` exactly.
+- **Energy:** `Q ≈ 2π × (energy stored) / (energy lost per cycle)`. This one is **approximate**
+  and this guide labels it so. Never present it as exact.
+
+On the Driven preset, `Q = 5/(2 × 0.25) = 10`. With `b = 0` there is no damping, so `Q` does not
+exist: the page shows it as **absent**, not as "infinity" or 0. Likewise an undriven run has no
+steady state and an overdamped run has no `ω_d` and no period. The backend sends `null`, and the
+page shows nothing for those, because **0 would be a claim** (decision D12).
+
+### 20.5 The exact solution, and three traps **[Beyond IB]**
+The complete motion is `x(t) = x_steady(t) + x_transient(t)`, where the transient is the
+free motion that makes the start conditions work. For *all three* regimes one formula
+`x_h = e^{−γt}[x̃₀·C + (ṽ₀ + γx̃₀)·S]` does the job, where `C` and `S` are cos and
+`t·sinc` (under), `1` and `t` (critical), cosh and sinh (over). That is what the code builds.
+
+The textbook formulas are exact but **break in floating point** (1.7). Three traps, each avoided:
+1. **0/0 at critical damping.** Textbook underdamped `sin(ω_d t)/ω_d` is 0/0 when `ω_d = 0`.
+   The code uses `sinc(y) = sin(y)/y`, defined as 1 at `y = 0`, so one formula runs on both sides.
+2. **Overflow when heavily damped.** `e^{−γt}cosh(βt)` multiplies a tiny number by a huge one.
+   The code rewrites it as a slow decay `e^{−st}` with `s = ω₀²/(γ + β)`, never `γ − β`
+   (two nearly equal numbers subtracted: lost digits, 1.7).
+3. **Cancellation at resonance with `b = 0`.** Two huge terms nearly cancel. The exact "beat
+   form" avoids the subtraction.
+
+The regime label itself is exact: `q = ω₀² − γ²` is computed from exact fractions of the input
+floats, so "critically damped" means exactly `b² = 4mk`, not "close". These are **proved** forms;
+their floating-point behaviour is **tested** against a 90-digit reference.
+
+<!-- src: backend/src/simforge/physics/oscillator/analytical.py:534-537 -->
+```python
+def _sinc(y: FloatArray) -> FloatArray:
+    """sin(y)/y with the limit 1 at y = 0 (the 0/0 of pitfall i)."""
+    safe = np.where(y == 0, 1.0, y)
+    return np.where(y == 0, 1.0, np.sin(safe) / safe)
+```
+The `safe` array swaps the one bad input (`y = 0`) for 1 *before* dividing, so no division by
+zero ever happens; the `where` then replaces the result by the limit.
+
+<!-- src: backend/src/simforge/physics/oscillator/analytical.py:226-231 -->
+```python
+def _regime(p: OscillatorInputs, q: Fraction) -> Regime:
+    if p.damping_coefficient == 0:
+        return "undamped"
+    if q > 0:
+        return "underdamped"
+    return "critically_damped" if q == 0 else "overdamped"
+```
+Here `q` is a `Fraction`, so `q == 0` is a true test of equality, not a float comparison.
+
+### 20.6 The steady state in code **[Beyond IB]**
+The amplitude `A` and phase `δ` of 20.3 come from one `hypot`:
+
+<!-- src: backend/src/simforge/physics/oscillator/analytical.py:294-297 -->
+```python
+    detuning = _detuning(p, w)  # exact, then one rounding
+    width = p.damping_coefficient * w / p.mass  # 2 gamma w
+    hyp = math.hypot(detuning, width)  # no overflow of the squares
+    amplitude = (p.drive_amplitude / p.mass) / hyp
+```
+`detuning` is `ω₀² − ω²` and `width` is `2γω`. `hypot` is `√(detuning² + width²)` without squaring
+first (which could overflow). At resonance `detuning = 0`, so `hyp = width` and
+`A = (F₀/m)/(2γω₀) = F₀/(bω₀)`: the 0.4 m of 20.3.
+
+### 20.7 Scaling: why the solver works in dimensionless variables **[Beyond IB]**
+SciPy's tolerances (`rtol`, `atol`) are absolute numbers. If `x` is in metres and the oscillator is
+the size of a hair, `atol = 10⁻¹⁰` means something very different than for a bridge. So the solve
+uses `τ = ω₀t`, `ξ = x/X`, `η = v/(ω₀X)`, where `X` is a **proved upper bound** on `|x|` over
+the run, computed from the inputs alone. Then `atol` is a fraction of the motion at *any* unit
+scale. The damping work is integrated from `b v²` and the drive work from `F₀ cos(ωt)·v`, never
+from the force alone, so the energy balance is a real check. In the scaled equation the damping
+term is a single line:
+
+<!-- src: backend/src/simforge/physics/oscillator/numerical.py:58 -->
+```python
+    return -2.0 * zeta * eta
+```
+It is the damping force `−bv`, divided by `m ω₀² X`. A test replaces this function with a wrong
+law (`−b·v·|v|/V`) and shows the checks catch it (**tested**, a mutation test).
+
+### 20.8 The checks: how the page knows a run is right **[Beyond IB]**
+Every run is judged against its own exact solution, with **thresholds measured, not proved**
+(`SCIENTIFIC_VALIDATION.md`):
+- **Displacement and velocity error** at the solver's step nodes, as fractions of `X` and `ω₀X`.
+- **Energy balance** `KE + PE + W_damp − W_drive = E₀`: exact for the true motion, so the residual
+  is the solver's error alone.
+- **Free decay** (undriven, underdamped): the time between the first two maxima against `T_d`, and
+  their ratio against `e^{−γT_d}`, both exact identities.
+
+<!-- src: backend/src/simforge/physics/oscillator/model.py:293-304 -->
+```python
+def _node_errors(p: OscillatorInputs, sol: OscillatorSolution) -> tuple[float, float, float]:
+    """(max |x - x_exact| / X, max |v - v_exact| / (w0 X), max energy residual / k X^2)."""
+    x_scale = sol.scale
+    w0 = sol.natural_angular_frequency
+    m, k = p.mass, p.spring_constant
+    x_exact, v_exact = analytical.state(p, sol.t)
+    dx = float(np.max(np.abs(sol.x - x_exact))) / x_scale
+    dv = float(np.max(np.abs(sol.v - v_exact))) / (w0 * x_scale)
+    e0 = 0.5 * m * p.initial_velocity**2 + 0.5 * k * p.initial_displacement**2
+    balance = 0.5 * m * sol.v**2 + 0.5 * k * sol.x**2 + sol.damping_work - sol.drive_work - e0
+    de = float(np.max(np.abs(balance))) / (k * x_scale**2)
+    return dx, dv, de
+```
+Read it in three parts: the exact answer at the same times (`analytical.state`), the two worst
+errors, and the energy balance (`balance`) rewritten as "everything now minus everything we put
+in". Dividing by `X`, `ω₀X` and `kX²` is 20.7 again.
+
+**Two honest limits.** A check whose threshold is above 1 *cannot fail* within the scale, so it
+has no verdict (`passed = null`), as in the quadratic-drag model (Part 18). And the limits on
+inputs come from measurement: `Q ≤ 10⁴` when `b > 0`, at most 500 cycles, a stiffness guard and
+a budget of 400 000 right-hand-side calls per run. A run over a limit is refused with the number
+to change (422); it is never run badly.
+
+### 20.9 The page and its presets **[SimForge]**
+Three buttons fill the form; they send nothing until you press **Run simulation** (tested). With
+`m = 1 kg`, `k = 25 N/m`, so `ω₀ = 5 rad/s`:
+
+| Preset | `b` (kg/s) | `F₀` (N) | `ω` (rad/s) | `x₀` (m) | `v₀` (m/s) |
+|---|---|---|---|---|---|
+| Simple | 0 | 0 | (default 5, unused) | 0.1 | 0 |
+| Damped | 0.5 | 0 | (default 5, unused) | 0.1 | 0 |
+| Driven | 0.5 | 1 | 5 | 0 | 0 |
+
+Three charts: displacement (numerical solid, exact dashed, envelope dotted), energy, and the
+resonance curve for driven runs. Every number in Results is labelled **numerical**, **exact** or
+**formula**; the pinned reference run of Part 17 appears on the displacement and energy charts.
+The Driven preset is a decision taken for you (drive at `ω₀`), not a physical default: change it
+in `frontend/src/lib/oscillator/fields.ts`.
+
+### 20.10 Checkpoint **[answer in your own words]**
+1. Why does a heavier mass give a *longer* period, and why does the amplitude not matter?
+2. At resonance the steady-state phase lag is 90°. What does that say about the push and the
+   velocity at each instant?
+3. Why is `Q` absent, rather than 0 or infinity, when `b = 0`?
+4. Why is the page's energy balance a better check than comparing positions alone?
+5. Which of these are **proved**, which **tested** and which only **observed**: `A = F₀/(bω₀)`,
+   a threshold of the form `F(rtol + atol)(1 + cycles) + floor`, "Q ≈ 2π × stored/lost"?
+
+### 20.11 Exercises (no solutions given)
+- **E20.1** Using the default `m` and `k`, predict the period, then check it on the Simple preset
+  with `x₀ = 0.05` and `x₀ = 0.2`. Does the period change?
+- **E20.2** For the Damped preset, find `γ`, `ζ` and `T_d` by hand, then compare with the page.
+  Then raise `b` until the run is critically damped and say what `b` must be.
+- **E20.3** Using 20.3, find `δ` at `ω = ω₀` from the `atan2` formula, and `A` at `ω = 0`.
+  Check both on the Driven preset by changing `ω`.
+- **E20.4** Two oscillators have the same `ω₀` but one has twice the damping. Predict how the
+  height and width of the resonance peak change, and test it on the page.
+- **E20.5** Show from the table in 20.2 why `sinc` is needed at `ζ = 1`: what does the textbook
+  `sin(ω_d t)/ω_d` do as `ω_d → 0`?
+- **E20.6** (thinking about tests) Imagine a bug that writes the damping force as `+bv`. Which
+  of the checks in 20.8 would see it first, and why?
+- **E20.7** (stretch) Pick `b` so that `ζ` is just above `1/√2` and read the resonance chart.
+  Where is the peak, and what does 20.3 say about it?
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -4493,11 +4738,27 @@ the versions used, is in the quadratic angle-sweep section of `SCIENTIFIC_VALIDA
 | `Δ` | grid step between angles (radians in `K`) | degrees, rad | `step` |
 | `d₂` | the grid's second difference `R(θᵢ₊₁) − 2R(θᵢ) + R(θᵢ₋₁)` | m | `d2` |
 | `ε_R` | solver-error scale in a range, `10·(rtol·R + atol)` (a convention, not a bound) | m | `eps_r` |
+| `ω₀` (Part 20) | natural angular frequency `√(k/m)` of the oscillator | rad/s | `natural_angular_frequency`, `w0` |
+| `γ` (Part 20) | damping rate `b/2m`. Not the Euler-Mascheroni constant, not a Lorentz factor | 1/s | `damping_rate` |
+| `ζ` (Part 20) | damping ratio `γ/ω₀` (1 is critical damping) | — | `damping_ratio`, `zeta` |
+| `Q` (Part 20) | quality factor `ω₀/2γ`; absent when `b = 0` | — | `quality_factor` |
+| `ω_d`, `T_d` (Part 20) | damped angular frequency `√(ω₀² − γ²)` and period `2π/ω_d` | rad/s, s | `damped_angular_frequency`, `damped_period` |
+| `δ` (Part 20) | steady-state phase lag behind the drive, 0 to π. Not a small step `δ` | rad | `phase_lag` |
+| `X` (Part 20) | proved bound on \|x\| for the run; scales the solver's tolerances | m | `scale` |
 | `u` (Part 19) | estimated accuracy of the best angle, `2√(ε_R/K)` (an estimate, not a bound). Not Part 3's `u = k·t`! | degrees | `best_angle_uncertainty_deg` |
 
 ---
 
 ## Changes from the previous version of this guide
+
+**This version (roadmap 2.3, oscillators):**
+- **Added Part 20:** simple harmonic motion, damping and its three regimes, driving, resonance
+  and the phase lag, Q, the unified exact solution and its three floating-point traps, scaling
+  by a proved bound X, the per-run checks, the page's presets, five checked excerpts,
+  checkpoint and exercises E20.1-E20.7. IB coverage claimed only for SHM (C.1).
+- **Added** Part 20 to the header, the reading order (stage 13), the contents, Part 0 and
+  Part 10's "After that" (now points to 2.4); symbol-table rows for `ω₀`, `γ`, `ζ`, `Q`,
+  `ω_d`, `T_d`, `δ` and `X` (Part 20); two stale excerpt line references re-pointed earlier.
 
 **Review of 2026-11-10 (no new part):** 18.14 gains "A check that cannot fail is not a
 pass" (quadratic drag v1.0.1) and 18.15 a ninth checkpoint question.

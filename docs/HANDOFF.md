@@ -1,4 +1,4 @@
-Last updated: 9748111 2026-11-19
+Last updated: slice 5 commit 2026-11-19
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,11 +9,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review and merge the draft PR `claude/determined-meitner-xpu871` into the working branch: the
-autopilot's unit becomes a whole roadmap step (plan tick, then build tick). Then the next tick
-builds 2.3 slice 5 (docs, full `check.sh --e2e`, whole-step review), writes the 2.3 step brief in
-`docs/briefs/` and opens the 2.3 PR (it never merges). Read the learning-log draft (top of
-`docs/LEARNING_LOG.md`) and approve it when you can.
+Review and merge the 2.3 PR (oscillators; the autopilot never merges): read `docs/briefs/2.3.md` and Part 20 of the learning guide first. Then the next tick moves 🔜 to 2.4 and writes its plan. Approve the learning-log draft when you can.
 
 ## Open decisions
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
@@ -23,11 +19,11 @@ builds 2.3 slice 5 (docs, full `check.sh --e2e`, whole-step review), writes the 
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers for every model (add `strict=True`?). Sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: a whole step per tick (author's request, 2026-11-19)
-- **Done locally, committed, pushed (draft PR, not merged):** SKILL.md: unit = a roadmap step; plan tick, then build tick (every slice: test writer, builder, fresh reviewer if risky, one commit each; then full check, learning-guide chapter, step brief, whole-step review, the PR); caps 4 working subagents per slice and 24 per tick, 5 Haiku helpers per slice, work limit 12 commits; a finished step waits for your merge (one line per tick). New commit trailer `Autopilot-run: slice` (daily cap still counts `work`, one per tick). `docs/briefs/_template.md`: one-page step brief (IB terms, claims labelled proved, tested or observed, a two-minute demo, three questions) for your portfolio.
-- **Also fixed (it would have blocked every build tick):** the guard-rail hook treated `python3 scripts/doc_index.py > /dev/null` as a write to `scripts/`; it now blocks only real writes to a guard-rail path (redirect target, `tee`, `cp`, `sed -i`, `git checkout`...), and heredoc text is data. Docs index regenerated; two guide excerpt line references updated.
-- **Verified:** `backend/tests/scripts` passes (hook tests for `slice`, the script run, heredoc and every write form); full backend run: see the PR. **Not verified:** how long a scheduled session can run, so a long build tick may end early; its commits are safe and the next tick resumes at the next slice.
-- **Not enforceable by script:** the per-slice and per-tick subagent caps, the 12-commit work limit, "slice N+1 only after slice N".
+## Last task: 2.3 slice 5, docs close-out (autopilot tick, 2026-11-19)
+- **Committed and pushed; draft PR opened (not merged):** Part 20, ARCHITECTURE decision 20, README, ROADMAP 2.3 ✅, SCIENTIFIC_VALIDATION oscillator section done, step brief `docs/briefs/2.3.md`.
+- **Verified:** full `scripts/check.sh --e2e` green on its third run (2872 passed; first runs hit the known Next.js build notice and a sandbox Playwright browser path). Whole-step Opus review: 1 must-fix (half-power points) and 4 overstated claims, all fixed; no second review. CI: not run until the PR exists.
+- **Expected:** the start hook prints "Roadmap 🔜: not found" until the merge.
+- **Not verified:** the brief's demo was not run in a browser by this tick.
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.

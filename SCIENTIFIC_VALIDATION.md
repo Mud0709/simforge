@@ -940,13 +940,14 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
 
 ---
 
-## `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
+## `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
 
 Plan and decisions: `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, grilling record G1-G4 and the
 slice-1 amendments). The model is `m ẍ + b ẋ + k x = F₀ cos ωt`. Slice 1 is the **exact
 solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure); slice 2 the
 **numerical solve** checked against it (`numerical.py`, `model.py`, `schemas.py`; see the
-slice 2 section below). No endpoint or page exists yet.
+slice 2 section below); slice 3 the endpoint `POST /api/v1/physics/oscillator/simulate`;
+slice 4 the page `/physics/oscillator`.
 
 ### What is exact, and how it is evaluated
 - **Proved (closed forms):** the steady state A, δ; the transient in one unified form for
@@ -1120,6 +1121,34 @@ slice 2 section below). No endpoint or page exists yet.
   the unit corner m = k = 1e-6, γ just under 1e4, F₀ = 1e6 N, ω = 0, shortest duration,
   Radau at the default pair the displacement check fails, and (the test writer's observation, not re-run by the tick) with DOP853 the energy-balance check fails.
 
+### Slice 4: the page (`/physics/oscillator`)
+No new physics: the page shows the backend's numbers and does not compute any of them. All
+items below are **tested** (Vitest and Playwright, 2026-11-17 journal); none is proved.
+- **Tested (Vitest, `OscillatorLab.test.tsx`, `lib/oscillator/fields.test.ts`):** the form's
+  eight fields come from the OpenAPI schema with the backend's defaults and single-field
+  limits, and every default passes its own validation; the three presets (Simple, Damped,
+  Driven) only fill fields and send nothing until Run; invalid input is blocked without a
+  request; every number in Results is labelled numerical, exact or formula; the derived
+  quantities carry units; the nulls of D12 (undriven: no steady state; b = 0: no Q and no
+  steady state; overdamped: beta but no damped frequency or period) are shown as absent, never
+  as 0; the checks appear under Validation; results are marked out of date when an input
+  changes; the server's 422 reason is shown; displacement (numerical solid, exact dashed,
+  envelope dotted) and energy charts are drawn, no envelope when the backend sends none; the
+  resonance chart appears only when F0 > 0 with this run marked, otherwise an explanation.
+  The full Vitest run was 270 passed.
+- **Tested (Playwright, `e2e/oscillator.spec.ts`, 5 tests; 7 passed with the 2 stored-fields
+  cases):** the page is reached from the nav link and the home-page card; the Simple preset
+  shows w0 = sqrt(k/m) with no Q and no steady state; the Damped preset shows gamma, zeta, Q
+  and the damped period from their formulas; the Driven preset at resonance shows A = F0/(b w0)
+  and a phase lag of pi/2; a pinned reference run appears on the displacement and energy
+  charts. These assertions compare the page with textbook formulas, not with the code's own
+  output.
+- **Not shown by these runs:** the "red before" Playwright run (red was shown under Vitest
+  only), and any visual judgement of the charts beyond what the tests assert. The first
+  `npm run build` of the tick failed with a Next.js security notice and passed on retry.
+- **Decision (reversible):** the Driven preset is b = 0.5, F0 = 1, omega = 5 (= sqrt(k/m)),
+  chosen so the steady state is at resonance.
+
 ### Limitations
 - Measurements are from one machine (Python 3.12, NumPy 2.5.4, SciPy 1.18.1); run times vary
   by up to ~1.5× on it.
@@ -1133,7 +1162,7 @@ slice 2 section below). No endpoint or page exists yet.
   the motion stays below X by a factor of about ζ (X uses √(x₀² + (v₀/ω₀)²), which ignores
   the damping), so errors relative to X look smaller than errors relative to the motion.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
-  (slice 4) will show it only when it is useful.
+  draws it only when the backend sends one (only for underdamped runs: none undamped, critically damped or overdamped).
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

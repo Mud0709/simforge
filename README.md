@@ -9,7 +9,7 @@ each run was produced, and is tested against analytical results wherever they ex
 
 | Module | Status | Scope |
 |---|---|---|
-| **Physics Lab** | Projectile models (linear and quadratic drag) and integrator convergence study | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
+| **Physics Lab** | Projectile models (linear and quadratic drag), integrator convergence study, and simple, damped and driven oscillators | Motion, collisions, energy transfer, orbital mechanics. Numerical results compared with theory. |
 | **Economy Lab** | Solow growth model with a savings-policy experiment | Growth, then interest rates, taxes, spending and supply shocks, and their effect on inflation, output and unemployment. |
 | **Quant Research Lab** | CSV import and dataset profile | Data import and exploration, then regression, hypothesis tests, time series, backtesting and overfitting checks. |
 
@@ -54,6 +54,14 @@ best grid point with a Brent search. It is reported with an accuracy *estimate* 
 and every check of every run is summarised under Validation. A work budget (300 000 solver
 evaluations per sweep) keeps one request from running for minutes; for weak drag the result is
 checked against a hand-derived formula, θ* ≈ 45° − 6.02°·(v₀/v_t)².
+
+**Oscillators** (`/physics/oscillator`). A mass on a spring, with optional damping and a
+sinusoidal drive. Three presets (Simple, Damped, Driven) fill the form; the page shows the
+displacement against the exact solution (with the decay envelope when there is one), the energy
+budget and, for a driven run, the resonance curve. Every quantity is labelled numerical, exact
+or formula, and quantities that do not exist for a case (no Q without damping, no steady state
+without a drive) are shown as absent, never as 0. Runs the page cannot do accurately or in time
+are refused with the number to change.
 
 **Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
 RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed
