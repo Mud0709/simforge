@@ -8,6 +8,7 @@ import { formatExp, formatSig } from "@/lib/format";
 import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { AssumptionsList } from "./AssumptionsList";
 import { AngleSweepPanel } from "./AngleSweepPanel";
+import { ChecksTable } from "./ChecksTable";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 import { Reproducibility } from "./Reproducibility";
@@ -187,6 +188,7 @@ export function ProjectileValidation({ result }: Props) {
         </div>
       </dl>
 
+      <ChecksTable checks={result.checks} />
       <Reproducibility metadata={metadata} />
     </>
   );

@@ -7,6 +7,7 @@ import type { IntegratorStudyResponse, MethodStudyResult, ModelResponse } from "
 import { formatExp, formatSig } from "@/lib/format";
 import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
 import { AssumptionsList } from "./AssumptionsList";
+import { ChecksTable } from "./ChecksTable";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -235,6 +236,7 @@ export function IntegratorValidation({ result }: Props) {
       <p className="note">
         <strong>Fit rule.</strong> {result.fit_rule.description}
       </p>
+      <ChecksTable checks={result.checks} />
       {result.results.map((m) => (
         // The heading sits outside <summary>: a summary is a button to screen readers, and
         // headings inside it do not appear in heading navigation.

@@ -15,6 +15,27 @@ vi.mock("./PlotlyChart", () => ({
   },
 }));
 
+const CHECKS = [
+  {
+    id: "energy_balance",
+    label: "Energy balance",
+    value: 1.3e-12,
+    threshold: 1e-9,
+    passed: true,
+    kind: "numerical_diagnostic",
+    note: "Energy balance note",
+  },
+  {
+    id: "cost",
+    label: "Cost",
+    value: 70,
+    threshold: null,
+    passed: null,
+    kind: "informational",
+    note: "Cost note",
+  },
+];
+
 const metrics = {
   flight_time: 2.9,
   range: 36.4,
@@ -26,6 +47,7 @@ const err = { absolute: 1e-12, relative: 3e-14 };
 const RESPONSE = {
   model: { id: "physics.projectile", version: "1.0.0", name: "Projectile", description: "" },
   parameters: {},
+  checks: CHECKS,
   solver: { method: "DOP853", rtol: 1e-10, atol: 1e-10 },
   units: {},
   assumptions: [{ id: "point_mass", statement: "The projectile is a point mass." }],
@@ -126,6 +148,20 @@ describe("ProjectileLab", () => {
     expect(
       within(region("Assumptions")).getByText("The projectile is a point mass."),
     ).toBeInTheDocument();
+  });
+
+  it("shows the shared ChecksTable under Validation and keeps the exact-vs-numerical table", async () => {
+    mockFetch(200, RESPONSE);
+    render(<ProjectileLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run simulation" }));
+    await screen.findByText("Analytical vs numerical");
+    const validation = within(screen.getByRole("region", { name: "Validation" }));
+    expect(validation.getByTestId("check-energy_balance")).toHaveTextContent("Pass");
+    expect(validation.getByTestId("check-energy_balance")).toHaveTextContent("Energy balance");
+    expect(validation.getByTestId("check-cost")).toHaveTextContent("Info");
+    // The author's decision: both are kept.
+    expect(validation.getByText("Analytical vs numerical")).toBeInTheDocument();
+    expect(validation.getByTestId("max-position-error")).toHaveTextContent("2.2e-11 m");
   });
 
   it("marks the results as out of date when an input changes, until the next run", async () => {

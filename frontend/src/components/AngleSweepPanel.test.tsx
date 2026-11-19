@@ -18,7 +18,29 @@ const PARAMS = {
   gravity: 9.80665,
 } as ProjectileParameters;
 
+const CHECKS = [
+  {
+    id: "energy_balance",
+    label: "Energy balance",
+    value: 1.3e-12,
+    threshold: 1e-9,
+    passed: true,
+    kind: "numerical_diagnostic",
+    note: "Energy balance note",
+  },
+  {
+    id: "cost",
+    label: "Cost",
+    value: 70,
+    threshold: null,
+    passed: null,
+    kind: "informational",
+    note: "Cost note",
+  },
+];
+
 const RESPONSE = {
+  checks: CHECKS,
   angles_deg: [0, 45, 90],
   ranges: [0, 12.5, 0],
   flight_times: [0, 2.16, 2.5],
@@ -63,6 +85,17 @@ describe("AngleSweepPanel", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe("/api/v1/physics/projectile/angle-sweep");
     expect(JSON.parse(init.body).parameters).toEqual(PARAMS);
+  });
+
+  it("shows the shared ChecksTable and keeps the best-angle figures and the range chart", async () => {
+    mockFetch(200, RESPONSE);
+    render(<AngleSweepPanel parameters={PARAMS} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
+    expect(await screen.findByTestId("check-energy_balance")).toHaveTextContent("Pass");
+    expect(screen.getByTestId("check-cost")).toHaveTextContent("Info");
+    // Kept alongside: the exact-vs-vacuum table of the sweep.
+    expect(screen.getByTestId("best-angle")).toHaveTextContent("30.08°");
+    expect(screen.getByTestId("vacuum-angle")).toHaveTextContent("45.00°");
   });
 
   it("shows the server's explanation on failure", async () => {

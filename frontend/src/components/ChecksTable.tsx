@@ -22,7 +22,8 @@ const defaultFormat = (v: number) =>
  * shows the check's kind, its value, its limit and whether it passed; hover for the note.
  */
 export function ChecksTable({
-  checks,
+  // Default [] only so older hand-made fixtures without `checks` still render; the API always sends it.
+  checks = [],
   format = defaultFormat,
 }: {
   checks: ValidationCheck[];

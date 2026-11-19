@@ -90,6 +90,18 @@ const CASES: [string, string, Record<string, unknown>][] = [
     },
   ],
   [
+    // Roadmap 2.4: the oscillator workbench; list fields (dt_values, methods) stay lists.
+    "physics.oscillator.integrators",
+    "/physics/oscillator/integrators",
+    {
+      parameters: { mass: 1.3, spring_constant: 31.7, initial_displacement: 0.07 },
+      dt_values: [0.06, 0.03, 0.015],
+      methods: ["velocity_verlet", "rk4"],
+      energy_dt: 0.07,
+      periods: 13,
+    },
+  ],
+  [
     // Roadmap 2.3: b = 0 and F0 = 0, so Q, the steady state and the free-decay residuals are null.
     "physics.oscillator (undriven, undamped: nulls)",
     "/physics/oscillator/simulate",

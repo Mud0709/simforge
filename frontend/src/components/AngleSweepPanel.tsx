@@ -13,6 +13,7 @@ import type { ResponseOf } from "@/lib/api/models";
 import { type NumericFieldSpec, validateField } from "@/lib/fields";
 import { formatSig } from "@/lib/format";
 import { overlayFor, referenceTraces } from "@/lib/reference/overlay";
+import { ChecksTable } from "./ChecksTable";
 import { CsvDownloads } from "./CsvDownloads";
 import { PlotlyChart } from "./PlotlyChart";
 import { ComparisonTable } from "./ComparisonTable";
@@ -229,6 +230,7 @@ export function AngleSweepPanel({
       bestAngleLabel: () => `Best angle${drag ? " (with drag)" : ""}`,
       bestAngleText: (s) => `${s.best_angle_deg.toFixed(2)}°`,
       bestMarkerName: "Best angle",
+      notes: (s) => <ChecksTable checks={s.checks} />,
     };
   }, [parameters]);
   return <SweepPanel adapter={adapter} referenceRun={referenceRun} />;

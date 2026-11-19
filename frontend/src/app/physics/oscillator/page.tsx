@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { OscillatorLab } from "@/components/OscillatorLab";
 
@@ -15,6 +16,9 @@ export default function OscillatorPage() {
           a preset or set the mass, spring, damping and drive yourself. The solver&apos;s answer is
           compared with the exact solution, the energy balance is checked, and a driven run shows
           its resonance curve.
+        </p>
+        <p>
+          <Link href="/physics/oscillator/integrators">Compare integrators on the oscillator</Link>
         </p>
       </header>
       <OscillatorLab />
