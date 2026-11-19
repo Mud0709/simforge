@@ -1,17 +1,16 @@
 # Autopilot state
 
 Read and updated by every autopilot tick (`.claude/skills/autopilot/SKILL.md`). The author can
-edit it too: change `status`, or add a line starting `Answer:` under an item in "Open
-decisions" of `docs/HANDOFF.md`. While the task is paused, an answer takes effect only once
-the author says "resume autopilot" (which also resets `work limit from:`).
+edit it too: set `stop:` to `none` to clear a stop, or add a line starting `Answer:` under an
+item in "Open decisions" of `docs/HANDOFF.md`. On/off is not here: it is the scheduled task's
+enabled flag only (skill step 6).
 
-status: paused
-paused note: the author's instruction of 2026-11-15; stays paused until the author says "resume autopilot".
+stop: none (the other values, set by a tick: `blocked`, `waiting-review`)
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 4413a2f
+work limit from: 9748111
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -20,6 +19,9 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 (since 2026-11-07; before, the autopilot accepted its own defaults).
 
 ## Budget (the author may edit these numbers)
+- unit of work: a whole roadmap step, as a plan tick then a build tick (the author's rule of
+  2026-11-19). Caps: 4 working subagents per slice and 24 per tick, 5 Haiku helper spawns per
+  slice, 12 commits between work-limit resets (skill steps 0b and 4).
 - working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
   Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
   usage. This replaces the 0.08 daily allowance, which needed live readings. The weekly and
@@ -48,11 +50,11 @@ Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its
 2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
 author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
 branch): do not redo them; if that PR is not merged yet, wait for it (it touches
-`physics/oscillator/` and `physics/projectile/quadratic_*`). Next: slice 3 (its Acceptance
-block first), which includes the evaluation budget (review item 1).
+`physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
+Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Slice 5 built, checked (full e2e green) and reviewed 2026-11-19; 2.3 PR opened, waits for the author's merge. Next after merge: 2.4 plan tick.
 
 ## Remainder of the current unit
-Slices 3-5 of `docs/plans/ROADMAP_2_3_PLAN.md`.
+None: 2.3 finished, PR awaiting merge.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open

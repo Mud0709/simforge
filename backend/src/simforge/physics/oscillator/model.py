@@ -159,6 +159,22 @@ ERROR_GROWTH_PER_CYCLE = 1.0
 # Other settings are slower (Radau at the default pair: 36 to 78 s at 500 cycles); a cycle
 # limit alone does not bound them.
 MAX_CYCLES = 500
+# The run-cost rule (the author's decision of 2026-11-10): right-hand-side calls per run,
+# counted inside the right-hand side (Radau's Jacobian columns included), so a solve over it
+# stops there. Measured in slice 3 (one machine, x86_64, Python 3.12.3, NumPy 2.5.4, SciPy
+# 1.18.1; 500 cycles at m = k = 1 on the corners of tests/api/test_oscillator_limits.py):
+# - cost per call: DOP853 7-10 us, RK45 10-14 us, Radau 28-31 us, so Radau sets the wall time
+#   at the budget: 400 000 calls took 11.4 to 11.7 s before the refusal (w = 100 w0, tightest
+#   pair; unbounded it ran 792 s), so a machine 2x slower still answers inside the 30 s proxy
+#   limit (2.2's B2; the 2.2 sweep chose 3e5 at 11.4 s for the same reason).
+# - admitted: DOP853 at the default pair on every corner (117 000 to 253 000) and at the
+#   tightest pair where w0 is the fastest motion (318 000 to 330 000); RK45 at the default pair
+#   with a drive (258 000 to 362 000); every method at the loosest pair (Radau 68 727 at
+#   w = 100 w0); Radau stiff runs (472 at gamma = 1e4).
+# - refused: RK45 free runs at the default pair (405 000, 410 000), DOP853 at the tightest pair
+#   with w = 100 w0 (401 000, 538 000), Radau at the default pair on 500 cycles (1.25e6 to over
+#   2.5e6) and at the tightest pair; these need a looser tolerance, fewer cycles or DOP853.
+MAX_RUN_RHS_EVALUATIONS = 400_000
 # ============================================================================================
 
 # The free-decay checks need a second maximum of at least this fraction of X (_free_decay):
@@ -231,6 +247,7 @@ class ResonanceCurve:
 
 @dataclass(frozen=True, slots=True)
 class OscillatorComputation:
+    inputs: OscillatorInputs
     derived: Derived
     scale: float  # X, m
     velocity_scale: float  # V = w0 X, m/s
@@ -574,8 +591,13 @@ def run(
     solver: SolverSettings,
     *,
     n_samples: int = 400,
+    max_rhs_evaluations: int = MAX_RUN_RHS_EVALUATIONS,
 ) -> OscillatorComputation:
-    """One run: guard, numerical solve, exact comparison, checks, closed forms, series."""
+    """One run: guard, numerical solve, exact comparison, checks, closed forms, series.
+
+    Raises ModelDomainError for a stiff run with an explicit method (before any solve) and
+    for a solve that needs more than ``max_rhs_evaluations`` right-hand-side calls (stopped
+    at the budget)."""
     start = time.perf_counter()
     p = inputs
     d = analytical.derived(p)
@@ -588,14 +610,37 @@ def run(
     stiffness = stiffness_number(d, duration)
     _guard(stiffness, solver.method)
 
-    sol = numerical.integrate(
-        p,
-        duration=duration,
-        scale=x_scale,
-        method=solver.method,
-        rtol=solver.rtol,
-        atol=solver.atol,
-    )
+    try:
+        # Overflow raises instead of warning: SciPy's finite-difference Jacobian (Radau) grows
+        # the step factor of a column the right-hand side does not depend on (the two works)
+        # tenfold at every recomputation, so a run that recomputes it a few hundred times
+        # overflows (measured: m = 1e-6 kg, k = 100 N/m, zeta ~ 1, w ~ 1e4 rad/s, 500 cycles,
+        # rtol = 1e-3, atol = 0.1). Such a run is refused (422) below.
+        with np.errstate(over="raise"):
+            sol = numerical.integrate(
+                p,
+                duration=duration,
+                scale=x_scale,
+                method=solver.method,
+                rtol=solver.rtol,
+                atol=solver.atol,
+                max_rhs_evaluations=max_rhs_evaluations,
+            )
+    except FloatingPointError:
+        raise ModelDomainError(
+            f"{solver.method} overflowed during the solve (at rtol = {solver.rtol:g}, atol = "
+            f"{solver.atol:g}, Radau's finite-difference Jacobian can overflow when it is "
+            "recomputed many times). Use a smaller atol, or another method (DOP853 or RK45)."
+        ) from None
+    except numerical.RhsBudgetError:
+        raise ModelDomainError(
+            f"The run needs more than {max_rhs_evaluations:,} right-hand-side evaluations "
+            f"(the per-run budget that keeps a request within the server's time limit; "
+            f"{analytical.cycles(p, duration):.4g} cycles with {solver.method} at rtol = "
+            f"{solver.rtol:g}, atol = {solver.atol:g}). Use a looser tolerance, fewer cycles "
+            "(a shorter duration or a slower drive), or another method (DOP853 is the "
+            "cheapest for runs that are not stiff)."
+        ) from None
     dx, dv, de = _node_errors(p, sol)
     period_residual, ratio_residual = _free_decay(p, d, sol)
     steady = analytical.steady_state(p)
@@ -620,6 +665,7 @@ def run(
         atol=sol.atol,
     )
     return OscillatorComputation(
+        inputs=p,
         derived=d,
         scale=x_scale,
         velocity_scale=w0 * x_scale,

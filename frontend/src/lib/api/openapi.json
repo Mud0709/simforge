@@ -1678,6 +1678,606 @@
         "title": "OrderFitResult",
         "type": "object"
       },
+      "OscillatorDerived": {
+        "additionalProperties": false,
+        "description": "Exact formulas of the inputs (``analytical.derived``) and the scale X.",
+        "properties": {
+          "damped_angular_frequency": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "wd = sqrt(w0^2 - gamma^2), rad/s; null unless under- or undamped",
+            "title": "Damped Angular Frequency"
+          },
+          "damped_period": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "T_d = 2 pi / wd, s; null when wd is null",
+            "title": "Damped Period"
+          },
+          "damping_rate": {
+            "description": "gamma = b/2m, 1/s",
+            "title": "Damping Rate",
+            "type": "number"
+          },
+          "damping_ratio": {
+            "description": "zeta = b / (2 sqrt(mk)), dimensionless",
+            "title": "Damping Ratio",
+            "type": "number"
+          },
+          "natural_angular_frequency": {
+            "description": "w0 = sqrt(k/m), rad/s",
+            "title": "Natural Angular Frequency",
+            "type": "number"
+          },
+          "overdamped_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "beta = sqrt(gamma^2 - w0^2), 1/s; null unless overdamped",
+            "title": "Overdamped Rate"
+          },
+          "quality_factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Q = sqrt(mk)/b (exact, by definition); null when b = 0",
+            "title": "Quality Factor"
+          },
+          "regime": {
+            "enum": [
+              "undamped",
+              "underdamped",
+              "critically_damped",
+              "overdamped"
+            ],
+            "title": "Regime",
+            "type": "string"
+          },
+          "scale": {
+            "description": "X, m: a proved bound on |x| over the run, from the inputs",
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "natural_angular_frequency",
+          "damping_rate",
+          "damping_ratio",
+          "quality_factor",
+          "regime",
+          "damped_angular_frequency",
+          "overdamped_rate",
+          "damped_period",
+          "scale"
+        ],
+        "title": "OscillatorDerived",
+        "type": "object"
+      },
+      "OscillatorDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "cycles": {
+            "description": "duration max(w0, w) / 2 pi (w0 alone when F0 = 0)",
+            "title": "Cycles",
+            "type": "number"
+          },
+          "free_decay_period_residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "w0 |(t2 - t1) - T_d| for the first two maxima; null unless free, underdamped and with at least two maxima",
+            "title": "Free Decay Period Residual"
+          },
+          "free_decay_ratio_residual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "|x2 - e^(-gamma T_d) x1| / X for the first two maxima; null as above",
+            "title": "Free Decay Ratio Residual"
+          },
+          "max_displacement_error": {
+            "description": "max |x - x_exact| / X over the solver's step nodes",
+            "title": "Max Displacement Error",
+            "type": "number"
+          },
+          "max_energy_balance_residual": {
+            "description": "max |KE + PE + W_damp - W_drive - E0| / (k X^2) over the nodes; exactly 0 for the true motion",
+            "title": "Max Energy Balance Residual",
+            "type": "number"
+          },
+          "max_velocity_error": {
+            "description": "max |v - v_exact| / (w0 X) over the nodes",
+            "title": "Max Velocity Error",
+            "type": "number"
+          },
+          "remaining_transient": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The transient left at the end as a fraction of A (exact); null unless driven and damped",
+            "title": "Remaining Transient"
+          },
+          "stiffness_number": {
+            "description": "(gamma + beta) duration when overdamped, w0 duration otherwise",
+            "title": "Stiffness Number",
+            "type": "number"
+          }
+        },
+        "required": [
+          "max_displacement_error",
+          "max_velocity_error",
+          "max_energy_balance_residual",
+          "free_decay_period_residual",
+          "free_decay_ratio_residual",
+          "remaining_transient",
+          "cycles",
+          "stiffness_number"
+        ],
+        "title": "OscillatorDiagnostics",
+        "type": "object"
+      },
+      "OscillatorNumerical": {
+        "additionalProperties": false,
+        "properties": {
+          "atol": {
+            "description": "dimensionless, a fraction of the scale X",
+            "title": "Atol",
+            "type": "number"
+          },
+          "final_displacement": {
+            "description": "x at t = duration, m (numerical)",
+            "title": "Final Displacement",
+            "type": "number"
+          },
+          "final_velocity": {
+            "description": "v at t = duration, m/s (numerical)",
+            "title": "Final Velocity",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "n_rhs_evaluations": {
+            "title": "N Rhs Evaluations",
+            "type": "integer"
+          },
+          "n_steps": {
+            "title": "N Steps",
+            "type": "integer"
+          },
+          "rtol": {
+            "title": "Rtol",
+            "type": "number"
+          }
+        },
+        "required": [
+          "final_displacement",
+          "final_velocity",
+          "n_steps",
+          "n_rhs_evaluations",
+          "method",
+          "rtol",
+          "atol"
+        ],
+        "title": "OscillatorNumerical",
+        "type": "object"
+      },
+      "OscillatorParameters": {
+        "additionalProperties": false,
+        "description": "Physical inputs and duration, SI units. Defaults: the Damped preset (plan D2).",
+        "properties": {
+          "damping_coefficient": {
+            "default": 0.5,
+            "description": "Damping coefficient b in kg/s (damping force F = -b v). 0 means undamped.",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Damping Coefficient",
+            "type": "number"
+          },
+          "drive_amplitude": {
+            "default": 0.0,
+            "description": "Amplitude F0 of the driving force F0 cos(w t), in N. 0 means undriven.",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Drive Amplitude",
+            "type": "number"
+          },
+          "drive_angular_frequency": {
+            "default": 5.0,
+            "description": "Angular frequency w of the drive, in rad/s.",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Drive Angular Frequency",
+            "type": "number"
+          },
+          "duration": {
+            "default": 20.0,
+            "description": "Length of the run, in s.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
+            "title": "Duration",
+            "type": "number"
+          },
+          "initial_displacement": {
+            "default": 0.1,
+            "description": "Displacement x0 at t = 0, in m.",
+            "maximum": 1000.0,
+            "minimum": -1000.0,
+            "title": "Initial Displacement",
+            "type": "number"
+          },
+          "initial_velocity": {
+            "default": 0.0,
+            "description": "Velocity v0 at t = 0, in m/s.",
+            "maximum": 10000.0,
+            "minimum": -10000.0,
+            "title": "Initial Velocity",
+            "type": "number"
+          },
+          "mass": {
+            "default": 1.0,
+            "description": "Mass m in kg.",
+            "maximum": 1000000.0,
+            "minimum": 1e-06,
+            "title": "Mass",
+            "type": "number"
+          },
+          "spring_constant": {
+            "default": 25.0,
+            "description": "Spring constant k in N/m.",
+            "maximum": 1000000000.0,
+            "minimum": 1e-06,
+            "title": "Spring Constant",
+            "type": "number"
+          }
+        },
+        "title": "OscillatorParameters",
+        "type": "object"
+      },
+      "OscillatorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "n_samples": {
+            "default": 400,
+            "description": "Number of points in the resampled series.",
+            "maximum": 5000.0,
+            "minimum": 10.0,
+            "title": "N Samples",
+            "type": "integer"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/OscillatorParameters"
+          },
+          "save_experiment": {
+            "default": true,
+            "description": "Record inputs and summary metrics in the experiment log.",
+            "title": "Save Experiment",
+            "type": "boolean"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          }
+        },
+        "title": "OscillatorRequest",
+        "type": "object"
+      },
+      "OscillatorResonance": {
+        "additionalProperties": false,
+        "description": "The steady state against drive frequency (formula, OR1; plan D9).",
+        "properties": {
+          "amplitude": {
+            "description": "m",
+            "items": {
+              "type": "number"
+            },
+            "title": "Amplitude",
+            "type": "array"
+          },
+          "angular_frequency": {
+            "description": "rad/s, from 0 to max(3 w0, 1.2 w)",
+            "items": {
+              "type": "number"
+            },
+            "title": "Angular Frequency",
+            "type": "array"
+          },
+          "phase_lag": {
+            "description": "rad",
+            "items": {
+              "type": "number"
+            },
+            "title": "Phase Lag",
+            "type": "array"
+          }
+        },
+        "required": [
+          "angular_frequency",
+          "amplitude",
+          "phase_lag"
+        ],
+        "title": "OscillatorResonance",
+        "type": "object"
+      },
+      "OscillatorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/Assumption"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "derived": {
+            "$ref": "#/components/schemas/OscillatorDerived"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/OscillatorDiagnostics"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/RunMetadata"
+          },
+          "method_note": {
+            "title": "Method Note",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "numerical": {
+            "$ref": "#/components/schemas/OscillatorNumerical"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/OscillatorParameters"
+          },
+          "resonance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OscillatorResonance"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when undriven or undamped (A has a pole at w0 without damping)"
+          },
+          "series": {
+            "$ref": "#/components/schemas/OscillatorSeries"
+          },
+          "solver": {
+            "$ref": "#/components/schemas/SolverSettings"
+          },
+          "steady_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OscillatorSteadyState"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when undriven (F0 = 0) or undamped (b = 0: no steady state)"
+          },
+          "units": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Units",
+            "type": "object"
+          }
+        },
+        "required": [
+          "model",
+          "parameters",
+          "solver",
+          "units",
+          "assumptions",
+          "derived",
+          "steady_state",
+          "numerical",
+          "diagnostics",
+          "checks",
+          "series",
+          "resonance",
+          "method_note",
+          "metadata"
+        ],
+        "title": "OscillatorResponse",
+        "type": "object"
+      },
+      "OscillatorSeries": {
+        "additionalProperties": false,
+        "description": "Evenly resampled series (SI): numerical from the solver's dense output, exact from the\nclosed form at the same times.",
+        "properties": {
+          "damping_work": {
+            "description": "J, energy removed by damping since t = 0",
+            "items": {
+              "type": "number"
+            },
+            "title": "Damping Work",
+            "type": "array"
+          },
+          "drive_work": {
+            "description": "J, work done by the drive since t = 0",
+            "items": {
+              "type": "number"
+            },
+            "title": "Drive Work",
+            "type": "array"
+          },
+          "envelope": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "R e^(-gamma t), m, the transient's decay envelope; null unless underdamped",
+            "title": "Envelope"
+          },
+          "kinetic_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Kinetic Energy",
+            "type": "array"
+          },
+          "potential_energy": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Potential Energy",
+            "type": "array"
+          },
+          "t": {
+            "items": {
+              "type": "number"
+            },
+            "title": "T",
+            "type": "array"
+          },
+          "v": {
+            "items": {
+              "type": "number"
+            },
+            "title": "V",
+            "type": "array"
+          },
+          "v_exact": {
+            "items": {
+              "type": "number"
+            },
+            "title": "V Exact",
+            "type": "array"
+          },
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X",
+            "type": "array"
+          },
+          "x_exact": {
+            "items": {
+              "type": "number"
+            },
+            "title": "X Exact",
+            "type": "array"
+          }
+        },
+        "required": [
+          "t",
+          "x",
+          "v",
+          "x_exact",
+          "v_exact",
+          "envelope",
+          "kinetic_energy",
+          "potential_energy",
+          "damping_work",
+          "drive_work"
+        ],
+        "title": "OscillatorSeries",
+        "type": "object"
+      },
+      "OscillatorSteadyState": {
+        "additionalProperties": false,
+        "description": "x_p = A cos(w t - delta) (formula, OR1); the amplitude peak (OR5).",
+        "properties": {
+          "amplitude": {
+            "description": "A, m",
+            "title": "Amplitude",
+            "type": "number"
+          },
+          "peak_amplitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A_max = (F0/m) / (2 gamma wd), m; null when zeta >= 1/sqrt(2)",
+            "title": "Peak Amplitude"
+          },
+          "peak_angular_frequency": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "w_r = sqrt(w0^2 - 2 gamma^2), rad/s; null when zeta >= 1/sqrt(2)",
+            "title": "Peak Angular Frequency"
+          },
+          "phase_lag": {
+            "description": "delta in [0, pi], rad",
+            "title": "Phase Lag",
+            "type": "number"
+          }
+        },
+        "required": [
+          "amplitude",
+          "phase_lag",
+          "peak_angular_frequency",
+          "peak_amplitude"
+        ],
+        "title": "OscillatorSteadyState",
+        "type": "object"
+      },
       "ParseOptions": {
         "additionalProperties": false,
         "properties": {
@@ -2773,6 +3373,9 @@
               },
               {
                 "$ref": "#/components/schemas/QuadraticAngleSweepResponse"
+              },
+              {
+                "$ref": "#/components/schemas/OscillatorResponse"
               }
             ],
             "title": "Response"
@@ -4118,6 +4721,47 @@
         "summary": "Health",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/v1/physics/oscillator/simulate": {
+      "post": {
+        "operationId": "simulate_oscillator_api_v1_physics_oscillator_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OscillatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OscillatorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Simulate Oscillator",
+        "tags": [
+          "physics"
         ]
       }
     },

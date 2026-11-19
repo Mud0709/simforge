@@ -316,3 +316,75 @@ describe("exportTables", () => {
     expect(exportTables(response)).toEqual([]);
   });
 });
+
+describe("exportTables: oscillator (roadmap 2.3, D15)", () => {
+  // Units copied by hand from UNITS in backend/src/simforge/physics/oscillator/model.py:59-
+  // (the resonance frequency column takes the unit of "drive_angular_frequency").
+  const units = {
+    t: "s",
+    x: "m",
+    v: "m/s",
+    energy: "J",
+    drive_angular_frequency: "rad/s",
+    amplitude: "m",
+    phase_lag: "rad",
+  };
+  const make = (envelope: number[] | null, resonance: boolean) =>
+    ({
+      model: { id: "physics.oscillator" },
+      metadata,
+      units,
+      series: {
+        t: [0, 0.5],
+        x: [0.1, 0.0625],
+        v: [0, -0.25],
+        x_exact: [0.1, 0.0626],
+        v_exact: [0, -0.2501],
+        envelope,
+        kinetic_energy: [0, 0.03125],
+        potential_energy: [0.125, 0.0488],
+        damping_work: [0, 0.01],
+        drive_work: [0, 0.5],
+      },
+      resonance: resonance
+        ? {
+            angular_frequency: [0, 5, 15],
+            amplitude: [0.004, 0.8, 0.0042],
+            phase_lag: [0, 1.57, 3.1],
+          }
+        : null,
+    }) as unknown as Parameters<typeof exportTables>[0];
+
+  it("an undriven run: the time series only, the envelope column when it exists", () => {
+    const tables = exportTables(make([0.1, 0.09], false));
+    expect(tables.map((t) => t.name)).toEqual(["time_series"]);
+    expect(tables[0]!.label).toBe("time series");
+    const lines = toCsv(tables[0]!).split("\r\n");
+    expect(lines[0]).toBe(
+      "t [s],x [m],v [m/s],x_exact [m],v_exact [m/s],envelope [m],kinetic_energy [J]," +
+        "potential_energy [J],damping_work [J],drive_work [J]",
+    );
+    expect(lines[1]).toBe("0,0.1,0,0.1,0,0.1,0,0.125,0,0");
+    expect(lines[2]).toBe("0.5,0.0625,-0.25,0.0626,-0.2501,0.09,0.03125,0.0488,0.01,0.5");
+  });
+
+  it("no envelope column when the backend sends null (undamped or overdamped)", () => {
+    const [table] = exportTables(make(null, false));
+    expect(toCsv(table!).split("\r\n")[0]).toBe(
+      "t [s],x [m],v [m/s],x_exact [m],v_exact [m/s],kinetic_energy [J]," +
+        "potential_energy [J],damping_work [J],drive_work [J]",
+    );
+  });
+
+  it("a driven run adds the resonance curve table", () => {
+    const tables = exportTables(make(null, true));
+    expect(tables.map((t) => t.name)).toEqual(["time_series", "resonance"]);
+    expect(tables[1]!.label).toBe("resonance curve");
+    const lines = toCsv(tables[1]!).split("\r\n");
+    expect(lines.slice(0, 3)).toEqual([
+      "angular_frequency [rad/s],amplitude [m],phase_lag [rad]",
+      "0,0.004,0",
+      "5,0.8,1.57",
+    ]);
+  });
+});

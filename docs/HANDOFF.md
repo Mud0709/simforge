@@ -1,4 +1,4 @@
-Last updated: b7504bd 2026-11-15
+Last updated: slice 5 commit 2026-11-19
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,21 +9,21 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review the small draft PR `claude/autopilot-resume-rule` into the working branch (you merge): it
-makes only your words "resume autopilot" restart a paused autopilot. Then fix the scheduled task's
-branch by hand (first open decision), then say "resume autopilot". Then 2.3 slice 3 (Acceptance
-block and the evaluation budget first).
+Review and merge the 2.3 PR (oscillators; the autopilot never merges): read `docs/briefs/2.3.md` and Part 20 of the learning guide first. Then the next tick moves 🔜 to 2.4 and writes its plan. Approve the learning-log draft when you can.
 
 ## Open decisions
+- **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
+- **Next.js 16.4.1 security notice:** the first `npm run build` stops with SecurityFatalError, a retry passes; decide on upgrading. Not blocking.
 - Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
-- Not blocking: sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
+- Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers for every model (add `strict=True`?). Sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: pre-resume fixes (author's request, 2026-11-15)
-- **Done locally and pushed (PR open, not merged):** SKILL.md step 1.2 and step 6: a `paused` autopilot ends with one line; only the author's words "resume autopilot" set `status: running`, never an `Answer:` line, a STATE edit or a comment. `blocked`/`waiting-review` keep the answer rule.
-- **Verified:** SKILL.md on the working branch (`b7504bd`) is the new version: 8 agent files, the CLAUDE.md model-table pointer, the 4-subagent cap with the 5-Haiku-spawn limit (line 160). Stored task read back: Sonnet 5.5, disabled, prompt as shortened.
-- **Not done:** the task's branch (no tool for it; see Open decisions). Autopilot stays paused.
+## Last task: 2.3 slice 5, docs close-out (autopilot tick, 2026-11-19)
+- **Committed and pushed; draft PR opened (not merged):** Part 20, ARCHITECTURE decision 20, README, ROADMAP 2.3 ✅, SCIENTIFIC_VALIDATION oscillator section done, step brief `docs/briefs/2.3.md`.
+- **Verified:** full `scripts/check.sh --e2e` green on its third run (2872 passed; first runs hit the known Next.js build notice and a sandbox Playwright browser path). Whole-step Opus review: 1 must-fix (half-power points) and 4 overstated claims, all fixed; no second review. CI: not run until the PR exists.
+- **Expected:** the start hook prints "Roadmap 🔜: not found" until the merge.
+- **Not verified:** the brief's demo was not run in a browser by this tick.
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.

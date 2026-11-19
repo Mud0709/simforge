@@ -122,3 +122,49 @@ describe("isModelResponse", () => {
     expect(isModelResponse(PROFILE, "quant.dataset_profile")).toBe(true);
   });
 });
+
+describe("oscillator (roadmap 2.3, D15)", () => {
+  // Hand-made; units as UNITS in backend/src/simforge/physics/oscillator/model.py:59-.
+  const OSCILLATOR = {
+    model: { id: "physics.oscillator", version: "1.0.0" },
+    units: { t: "s", x: "m", v: "m/s", energy: "J" },
+    series: {
+      t: [0, 1],
+      x: [0.1, -0.05],
+      v: [0, 0.3],
+      x_exact: [0.1, -0.0501],
+      v_exact: [0, 0.3001],
+      envelope: [0.1, 0.09],
+      kinetic_energy: [0, 0.045],
+      potential_energy: [0.125, 0.03125],
+      damping_work: [0, 0.05],
+      drive_work: [0, 0.2],
+    },
+  } as unknown as ModelResponse;
+
+  it("the numerical displacement and the four energies, with units", () => {
+    const s = referenceSeries(OSCILLATOR);
+    // What the reference's solver computed (not its exact curve or envelope).
+    expect(s.displacement).toEqual([
+      {
+        label: "numerical displacement",
+        x: { name: "t", unit: "s", values: [0, 1] },
+        y: { name: "x", unit: "m", values: [0.1, -0.05] },
+      },
+    ]);
+    expect(s.energy!.map((e) => [e.label, e.y.name, e.y.unit, e.y.values])).toEqual([
+      ["kinetic energy", "kinetic_energy", "J", [0, 0.045]],
+      ["potential energy", "potential_energy", "J", [0.125, 0.03125]],
+      ["work done against damping", "damping_work", "J", [0, 0.05]],
+      ["work done by the drive", "drive_work", "J", [0, 0.2]],
+    ]);
+    expect(s.energy![0]!.x).toEqual({ name: "t", unit: "s", values: [0, 1] });
+  });
+
+  it("overlays only on the oscillator's own charts", () => {
+    expect(overlayFor(OSCILLATOR, "physics.oscillator").displacement).toHaveLength(1);
+    expect(overlayFor(OSCILLATOR, "physics.oscillator").energy).toHaveLength(4);
+    expect(overlayFor(OSCILLATOR, "physics.projectile.quadratic_drag")).toEqual({});
+    expect(isModelResponse(OSCILLATOR, "physics.oscillator")).toBe(true);
+  });
+});

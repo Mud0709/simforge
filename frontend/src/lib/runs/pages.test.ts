@@ -12,3 +12,9 @@ describe("reopenLink", () => {
     expect(reopenLink("physics.unknown", "r3")).toBeNull();
   });
 });
+
+describe("reopenLink: the oscillator (roadmap 2.3, D15)", () => {
+  it("reopens an oscillator run on its own page", () => {
+    expect(reopenLink("physics.oscillator", "r4")).toBe("/physics/oscillator?run=r4");
+  });
+});

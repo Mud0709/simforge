@@ -54,7 +54,16 @@ amendments below (G1-G4), which take precedence over the text of the decisions t
   threshold above 1 now gives no verdict (`passed = null`), not a pass. **Item 1 (worst-case
   run times) stays with slice 3's evaluation budget**; measured for it: Radau at 500 cycles,
   ω = 100ω₀, 792 s (tightest pair) and 133 s (default pair).
-- Slices 3-5: not started. Slice 3 includes the run-cost rule (author, 2026-11-10; see slice 3).
+- **Slice 3 (API, limits, run-cost rule): built 2026-11-16, not yet reviewed.** Route
+  `api/routes/oscillator.py`, `ModelEntry`, registry, response union, golden run appended.
+  `MAX_RUN_RHS_EVALUATIONS = 400 000`, counted in the right-hand side (measured: a Radau run
+  at the budget is refused after 11.4-11.7 s; table in `SCIENTIFIC_VALIDATION.md`). Builder's
+  choices, open for the author: a Radau run whose finite-difference Jacobian overflows is
+  refused (422) rather than given an analytic Jacobian; the 422 messages for field bounds now
+  print the bound in Python's form (`1e-06`, not `0.000001`) for every model; the stored
+  summary adds `initial_displacement` (for the headline). `/security-review` still to run.
+- Slice 4 (frontend): committed `aafefa1` (2026-11-17). Slice 5 (docs): not started;
+  Acceptance block added 2026-11-18 (it records 2 stale guide excerpts left by slice 4).
 
 **Scope: the 2.3 row**, "Simple, damped and driven oscillators", read with the capability
 map's Oscillators row (Core: "simple, damped and driven harmonic oscillator, resonance
@@ -365,12 +374,187 @@ matched to 5.5e-15 and 1.2e-14 relative. OR6-OR8 are not yet checked.
    run stays well inside the 30 s proxy limit, and the measurement is recorded in
    `SCIENTIFIC_VALIDATION.md`. It covers every method and tolerance (Radau at the tightest pair
    was measured at ~5 min for 500 cycles in slice 2's review), so no per-method limit is needed.
-   Slice 3's Acceptance block includes it.
+   **Acceptance block** (added 2026-11-15). The new test files and the appended registry case
+   are written first and must fail on the current code (no `/api/v1/physics/oscillator` route,
+   no `ModelEntry`, no budget). Names follow 2.2's `test_quadratic_drag_api.py`,
+   `test_quadratic_drag_limits.py` and `test_quadratic_angle_sweep_limits.py`.
+   - **Test files:** `backend/tests/api/test_oscillator_api.py` (response shape per D12, the
+     three presets, nulls when undriven, undamped or overdamped, `record_run` summary fields);
+     `backend/tests/api/test_oscillator_limits.py` (`schemas.py` validation deferred from slice
+     2: NaN and ±Infinity per field, every bound and combined rule (Q ≤ 1e4 when b > 0,
+     `MAX_CYCLES`, the minimum duration max(ω₀, ω, γ)·T ≥ 1, ω ≤ 100ω₀, the stiffness and
+     drag-rate rules) each with its 422 message naming the number and nothing stored; the
+     run-cost rule; a `test_corners_of_the_allowed_space_never_crash_and_finish_in_time` as in
+     the sweep's limits file, with the per-request ceiling of 25 s and its reason);
+     `backend/tests/physics/test_oscillator_run_cost.py` (new; the budget unit tests: the counter
+     stops the solve at the budget; the refusal text contains the budget formatted `{:,}` and
+     names a looser tolerance, fewer cycles and another method). One case appended at the end
+     of `CASES` in `backend/tests/api/test_registry.py` (picked up by `test_replay.py` and
+     `test_golden_digests.py`); its entry appended to `backend/tests/api/golden_runs.json` only
+     by `uv run python -m tests.api.pin_golden_runs`, after the route is green.
+   - **Run-cost rule, how:** a named constant (e.g. `MAX_RUN_RHS_EVALUATIONS` in `model.py`)
+     whose comment cites its measurement, as `MAX_SWEEP_RHS_EVALUATIONS` does; the count is
+     taken inside the right-hand side, so an over-budget solve stops at the budget instead of
+     running to the end (item 1's 792 s run must become a refusal in seconds); the refusal is
+     a `ModelDomainError` mapped to 422. **Measured and recorded** in `SCIENTIFIC_VALIDATION.md`'s
+     oscillator section: the evaluations of the costliest accepted corners (each method at the
+     default and tightest pairs, 500 cycles, ω = 100ω₀ and ω far below ω₀), the wall time of a
+     run that reaches the budget (Radau, tightest pair), which corners the budget admits and
+     refuses, and the machine, NumPy and SciPy versions. Not a timed assertion beyond the
+     corners test's ceiling.
+   - **Commands** (from `backend/`): `uv run pytest tests/api/test_oscillator_api.py
+     tests/api/test_oscillator_limits.py tests/physics/test_oscillator_run_cost.py
+     tests/api/test_registry.py -q` (red before the build, green after);
+     `uv run ruff check . && uv run ruff format --check . && uv run mypy`. From the root:
+     `scripts/run_logged.sh backend 'cd backend && uv run pytest -q'` (golden digests and replay
+     included); `make api-types`, then `git status --short frontend/src/lib/api`;
+     `python3 -c "import json,subprocess; old=json.loads(subprocess.check_output(['git','show','HEAD:backend/tests/api/golden_runs.json'])); new=json.load(open('backend/tests/api/golden_runs.json')); assert new[:len(old)]==old and len(new)==len(old)+1 and new[-1]['model_id']=='physics.oscillator', 'golden diff'"`;
+     `git diff --stat --diff-filter=MDR HEAD -- backend/tests` (expected: only
+     `test_registry.py` and `golden_runs.json`);
+     `python3 scripts/doc_index.py --check`; `/security-review` on the slice's diff.
+   - **Checks (yes/no):** (1) The four test targets fail before the build and pass after, and
+     the full backend `pytest -q` passes (replay bit-identical, golden digests matched)?
+     (2) The golden script exits 0: the existing entries are unchanged and exactly one
+     `physics.oscillator` entry was appended, and `test_registry.py` changed only by the
+     appended case? (3) A run over the budget is refused with 422 whose message names the
+     budget and the three remedies, it stops at the budget (the corners test's slowest request
+     ≤ 25 s, Radau at the tightest pair and ω = 100ω₀ included), and the constant's measurement
+     is in `SCIENTIFIC_VALIDATION.md` (read in the diff)? (4) Every new input bound and combined
+     rule has a 422 test naming its number with nothing stored, and no corner returns a 500?
+     (5) After `make api-types` the `git status` lists the regenerated `openapi.json` and
+     `schema.d.ts` as part of the slice and a second run changes nothing (API contract in
+     sync), and `/security-review` was run with its findings fixed or recorded?
+   - **Not done (worth doing from the Acceptance review, 2026-11-15):** say what to do when
+     `pin_golden_runs` rewrites all 8 old digests on another machine (append the new entry by
+     hand from `current_runs()[-1]`); check "test_registry.py changed only by the appended case"
+     with `git diff HEAD -- backend/tests/api/test_registry.py | grep '^-[^-]'` and a second
+     `make api-types` + `git diff --quiet`; "golden digests matched" needs `-W error` on the
+     tolerance-only warning or rewording; pin the baseline with `git merge-base` if anything is
+     committed mid-slice. (Overthinking: the stiffness rule lives in `model.run`.)
 4. **Frontend** (seam 5). Page, presets, three charts, results, validation, nav, D15 wiring.
    Accept when: Vitest and the new Playwright cases pass; no existing frontend test changes.
+   **Acceptance block** (added 2026-11-17). New tests are written first and must fail on the
+   current code (no page, no `lib/oscillator/`, no `physics.oscillator` in the union or the
+   1.6 maps). Names follow 2.2's `QuadraticDragLab.test.tsx` and `e2e/quadratic.spec.ts`.
+   "No existing test changes" means no existing case is edited or removed; D15's cases are
+   **appended** to the shared files, as 2.2 did.
+   - **New test files:** `frontend/src/components/OscillatorLab.test.tsx` (the three presets
+     fill the form; results label every number "numerical", "exact" or "formula"; D12's nulls
+     render as absent, not 0 (undriven, b = 0, overdamped); the resonance chart only when
+     F₀ > 0; a 422 message is shown); `frontend/src/lib/oscillator/fields.test.ts` (each
+     `spec()` bound equals the backend's, copied by hand with its source line, as
+     `lib/projectile/fields.test.ts`); `frontend/e2e/oscillator.spec.ts` (run each preset at
+     `/physics/oscillator`, find the run in the log and reopen it; pin a reference run and see
+     its curve on the displacement and energy charts).
+   - **Appended cases** (one `it` each, new lines only): `src/lib/export/tables.test.ts` (time
+     series; the resonance table only when driven; units copied from `UNITS`),
+     `src/lib/reference/compare.test.ts` (D12's inputs and stored summary),
+     `src/lib/reference/overlay.test.ts`, `src/lib/runs/pages.test.ts`; two `CASES` in
+     `e2e/stored-fields.spec.ts` named `"physics.oscillator (undriven, undamped: nulls)"` and
+     `"physics.oscillator (driven, overdamped, Radau)"` (odd `n_samples`).
+   - **Commands** (from `frontend/`): `npx vitest run src/components/OscillatorLab.test.tsx
+     src/lib/oscillator/fields.test.ts src/lib/export/tables.test.ts
+     src/lib/reference/compare.test.ts src/lib/reference/overlay.test.ts
+     src/lib/runs/pages.test.ts` (red before, green after); `npm run lint && npm run
+     format:check && npm run typecheck`. From the root:
+     `scripts/run_logged.sh vitest 'cd frontend && npx vitest run'`;
+     `scripts/run_logged.sh build 'cd frontend && npm run build'`;
+     `scripts/run_logged.sh e2e-osc 'cd frontend && CI=1 npx playwright test e2e/oscillator.spec.ts && CI=1 npx playwright test e2e/stored-fields.spec.ts --grep "physics\.oscillator"'`;
+     `git diff --stat --diff-filter=MD HEAD -- frontend` and
+     `git diff HEAD -- frontend/src/lib/export/tables.test.ts frontend/src/lib/reference/compare.test.ts frontend/src/lib/reference/overlay.test.ts frontend/src/lib/runs/pages.test.ts frontend/e2e/stored-fields.spec.ts | grep '^-[^-]'`
+     (expected: nothing).
+   - **Checks (yes/no):** (1) The six Vitest targets and both Playwright commands fail before
+     the build and pass after, and the full Vitest run passes? (2) lint, Prettier, tsc and
+     `npm run build` pass? (3) The `--stat` lists, among test files, only the five appended
+     files (no `D` anywhere), and the `grep '^-[^-]'` prints nothing (no existing line of any
+     test changed)? (4) The Playwright run executes exactly the new oscillator tests plus the
+     two stored-fields cases (count in the digest), and each stored-fields case shows the
+     comparison's fields equal the stored record's? (5) No `openapi.json` or `schema.d.ts`
+     edit by hand (`git diff --quiet HEAD -- frontend/src/lib/api/openapi.json
+     frontend/src/lib/api/schema.d.ts` exits 0)?
+   - **Not done (worth doing from the Acceptance review, 2026-11-17):** run the two Playwright
+     commands separately (or join with `;`) for the red run, so "both fail before" is decided;
+     use `grep -E '^-([^-]|$)'` (or `git diff --numstat` deletions = 0) for "appends only";
+     state the expected Playwright count (`test(` calls in `oscillator.spec.ts` + 2); add one
+     e2e step reaching the page through the nav link and home-page card (D14).
 5. **Docs** (D16), then `scripts/check.sh --e2e` and a fresh-context review of the whole PR.
    Accept when: Part 20 ≈ 250 lines with tags matching the files; ROADMAP 2.3 ✅; all checks
    green; the handoff rewritten.
+   **Acceptance block** (added 2026-11-18). Docs only: no production code, test, threshold or
+   tolerance changes. Checked on 2026-11-18 at `aafefa1` (grep), still missing:
+   - **Corrections to D16.** Tags *are* checked by a script: `scripts/check_excerpts.py` (run by
+     `scripts/check.sh`, line 12; tested in `backend/tests/scripts/test_check_excerpts.py`)
+     compares each unquoted tag's fenced block with the source lines; it does not check that the
+     code is the one the prose describes (the listing below does). **It fails now:** 2 of 71
+     excerpts differ, `LEARNING_GUIDE.md:2009` (`frontend/src/lib/api/client.ts:75-90`) and
+     `:3153` (`frontend/src/lib/reference/compare.ts:230-248`), moved by slice 4; re-point both.
+     IB labels: only C.1 SHM is listed in `docs/IB_FOUNDATIONS.md` (P5); C.4 there is "Standing
+     waves and resonance", so damping, driving and Q keep D16's "verify" or "Beyond IB" labels.
+   - **Files touched.** `docs/LEARNING_GUIDE.md`: new Part 20 after Part 19 (line 4020, before
+     the Appendix at 4443), Contents and reading order (lines 32-80), Part 0, Part 10's "After
+     that" (now 2439-2442; it still calls the oscillator a future feature), symbol table,
+     "Changes", the two stale tags. `docs/INDEX.md` (regenerated, not hand-edited).
+     `SCIENTIFIC_VALIDATION.md`: the section exists (line 943, "in progress", slices 1-2 in the
+     title); retitle as done and add slice 4's tested items. `ARCHITECTURE.md`: decision 20 (none
+     yet; 19 is the last, line 415), layout line 49 ("API in slice 3"), the endpoint table
+     (no `/api/v1/physics/oscillator/simulate` row). `README.md`: no oscillator mention; the
+     Physics Lab row (line 12) and a page paragraph like quadratic drag's (line 39). `ROADMAP.md`:
+     2.3 row (line 103) ✅ with a one-line outcome and plan link; capability map Oscillators row
+     (line 34) Core ✅, "Ext: nonlinear pendulum" unchanged. Plus `docs/HANDOFF.md`, the tick's
+     journal file, `.claude/autopilot/STATE.md` and this plan's slice status.
+   - **The 🔜 marker.** 2.3 becomes ✅ and 2.4 stays ⏳; the marker is moved only after merge
+     (autopilot skill step 4), so until then the start hook prints "Roadmap 🔜: not found"
+     (`session-start.sh` line 81). Expected; say so in the handoff.
+   - **Commands** (repository root). `python3 scripts/doc_index.py` then
+     `python3 scripts/doc_index.py --check`; `python3 scripts/check_excerpts.py`; the Part 20
+     listing (prints each tag, the prose line before it and the source's first line, then
+     `lines N, tags N, quoted N`):
+     ```
+     python3 - 20 <<'EOF'
+     import re, sys, pathlib
+     L = pathlib.Path('docs/LEARNING_GUIDE.md').read_text(encoding='utf-8').split('\n')
+     s = next(i for i, l in enumerate(L) if l.startswith(f'## Part {sys.argv[1]} '))
+     e = next(i for i in range(s + 1, len(L)) if L[i].startswith('## '))
+     T = re.compile(r'<!-- src: (\S+?):(\d+)(?:-(\d+))? -->'); n = q = 0
+     for i in range(s, e):
+         m = T.search(L[i])
+         if not m: continue
+         n += 1; q += '`<!--' in L[i]; p, a = m.group(1), int(m.group(2))
+         b = next(L[j] for j in range(i - 1, s, -1) if L[j].strip())
+         first = pathlib.Path(p).read_text(encoding='utf-8').split('\n')[a - 1].strip()
+         print(f'{i+1}: {p}:{a}-{m.group(3) or a} | before: {b.strip()[-60:]} | first: {first[:50]}')
+     print(f'lines {e - s}, tags {n}, quoted {q}')
+     EOF
+     ```
+     (dry-run on Part 19: `lines 423, tags 6, quoted 0`). Part 20's headings and its
+     exercises: `awk '/^## Part 20 /{p=1;print;next} p&&/^## /{exit} p&&/^###/' docs/LEARNING_GUIDE.md`;
+     `sed -n '/^## Part 20 /,/^## Appendix/p' docs/LEARNING_GUIDE.md | grep -niE 'solution:|answer:'`
+     (expected: nothing); `sed -n '/^## Part 10 /,/^## Part 11 /p' docs/LEARNING_GUIDE.md | grep -nE 'Part 20|2\.4'`.
+     Other docs: `grep -n '^## `physics.oscillator`' SCIENTIFIC_VALIDATION.md`;
+     `grep -nE '^### 20\. |oscillator/simulate|API in slice 3' ARCHITECTURE.md`;
+     `grep -ni 'oscillator' README.md`; `grep -nE '^\| (2\.[34]|Oscillators) ' ROADMAP.md`.
+     **Scope, against the fixed base `aafefa1`** (committed and uncommitted work alike):
+     `git diff --name-only aafefa1 -- . ':!*.md'` and
+     `git ls-files --others --exclude-standard -- . ':!*.md'` (both: nothing);
+     `git diff --quiet aafefa1 -- docs/IB_FOUNDATIONS.md` (exit 0);
+     `diff <(git show aafefa1:ROADMAP.md | sed -n '/^## Track A/,$p') <(sed -n '/^## Track A/,$p' ROADMAP.md)`
+     (silent). Then `scripts/run_logged.sh check 'scripts/check.sh --e2e'`, and one fresh Opus
+     `reviewer` on the whole PR diff (`git diff main...HEAD`), whose must-fix items are fixed
+     before "done".
+   - **Checks (yes/no):** (1) `check_excerpts.py` reports 0 mismatches with a total of 71 plus
+     Part 20's tag count, and the listing shows `quoted 0` and, for every tag, a source line
+     that names or belongs to what the prose before it describes? (2) Part 20 is 220-280 lines;
+     its `###` headings cover D16's list (SHM, damping, driving and resonance, Q, the exact
+     solution, scaling, the checks, code walkthrough, checkpoints and exercises); the
+     solutions grep prints nothing; Part 10's grep shows both `Part 20` and `2.4`; Contents,
+     Part 0, the symbol table and "Changes" mention Part 20? (3) The other-docs greps show: the
+     oscillator section heading without "in progress"; a `### 20.` decision, an
+     `oscillator/simulate` endpoint row and no "API in slice 3"; at least one README oscillator
+     line; 2.3 ✅, 2.4 ⏳, no row moved to 🔜, the Oscillators row Core ✅ with Ext unchanged?
+     (4) All four scope commands are silent or exit 0 (no code, test, tolerance or contract
+     edit; Track A and `IB_FOUNDATIONS.md` untouched)? (5) The `check` digest is green (doc
+     index, ruff, mypy, pytest, contract, ESLint, Prettier, tsc, Vitest, build, Playwright) and
+     the whole-PR review has no open must-fix?
 
 ## Risks
 - **Thresholds and N_max are unmeasured** (D6, D8); the phase error of long runs may force a

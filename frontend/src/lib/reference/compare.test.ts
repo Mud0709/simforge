@@ -509,3 +509,112 @@ describe("summary fields of the physics models, as their run records store them"
     });
   });
 });
+
+describe("oscillator (roadmap 2.3, D12 and D15)", () => {
+  // The stored record is `_summary` in backend/src/simforge/api/routes/oscillator.py:72-86 and
+  // the hashed inputs are `parameters`, `solver`, `n_samples` (same file, `inputs=`), flattened
+  // with dots as replay.py `flatten` does. Hand-made values.
+  const derived = {
+    natural_angular_frequency: 5,
+    damping_rate: 0,
+    damping_ratio: 0,
+    quality_factor: null,
+    regime: "undamped",
+    damped_angular_frequency: 5,
+    overdamped_rate: null,
+    damped_period: 1.2566,
+    scale: 0.1,
+  };
+  const osc = (over: Record<string, unknown> = {}) =>
+    as({
+      model: { id: "physics.oscillator", version: "1.0.0", name: "O" },
+      parameters: {
+        mass: 1,
+        spring_constant: 25,
+        damping_coefficient: 0,
+        initial_displacement: 0.1,
+      },
+      solver: { method: "Radau", rtol: 1e-8, atol: 1e-9 },
+      derived,
+      steady_state: null,
+      numerical: {
+        final_displacement: 0.02,
+        final_velocity: -0.2,
+        n_steps: 120,
+        n_rhs_evaluations: 1600,
+        method: "Radau",
+        rtol: 1e-8,
+        atol: 1e-9,
+      },
+      diagnostics: {
+        max_displacement_error: 2e-11,
+        max_velocity_error: 3e-11,
+        max_energy_balance_residual: 4e-12,
+        free_decay_period_residual: null,
+        free_decay_ratio_residual: null,
+        remaining_transient: 0.5,
+        cycles: 3.18,
+        stiffness_number: 100,
+      },
+      series: { t: [0, 1, 2] },
+      metadata: meta("o"),
+      ...over,
+    });
+
+  it("inputs: parameters, solver and n_samples (the number of samples)", () => {
+    expect(inputFields(osc())).toEqual({
+      "parameters.mass": 1,
+      "parameters.spring_constant": 25,
+      "parameters.damping_coefficient": 0,
+      "parameters.initial_displacement": 0.1,
+      "solver.method": "Radau",
+      "solver.rtol": 1e-8,
+      "solver.atol": 1e-9,
+      n_samples: 3,
+    });
+  });
+
+  it("summary: the initial displacement, derived, steady state, five errors and two counts", () => {
+    // Undriven and undamped: steady_state is null and stays one field (nulls kept); the two
+    // free-decay residuals are null; remaining_transient, cycles, stiffness, the final state,
+    // method and tolerances are shown, not stored.
+    expect(summaryFields(osc())).toEqual({
+      initial_displacement: 0.1,
+      "derived.natural_angular_frequency": 5,
+      "derived.damping_rate": 0,
+      "derived.damping_ratio": 0,
+      "derived.quality_factor": null,
+      "derived.regime": "undamped",
+      "derived.damped_angular_frequency": 5,
+      "derived.overdamped_rate": null,
+      "derived.damped_period": 1.2566,
+      "derived.scale": 0.1,
+      steady_state: null,
+      "diagnostics.max_displacement_error": 2e-11,
+      "diagnostics.max_velocity_error": 3e-11,
+      "diagnostics.max_energy_balance_residual": 4e-12,
+      "diagnostics.free_decay_period_residual": null,
+      "diagnostics.free_decay_ratio_residual": null,
+      "numerical.n_steps": 120,
+      "numerical.n_rhs_evaluations": 1600,
+    });
+  });
+
+  it("summary of a driven run flattens the steady state's four fields", () => {
+    const f = summaryFields(
+      osc({
+        steady_state: {
+          amplitude: 0.8,
+          phase_lag: 1.57,
+          peak_angular_frequency: null,
+          peak_amplitude: null,
+        },
+      }),
+    );
+    expect(f["steady_state.amplitude"]).toBe(0.8);
+    expect(f["steady_state.phase_lag"]).toBe(1.57);
+    expect(f["steady_state.peak_angular_frequency"]).toBeNull();
+    expect(f["steady_state.peak_amplitude"]).toBeNull();
+    expect("steady_state" in f).toBe(false);
+  });
+});

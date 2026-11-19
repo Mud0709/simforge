@@ -46,16 +46,16 @@ simforge/
 │   │   │   │                            aggregated checks (roadmap 2.2)
 │   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules (both
 │   │   │                                quadratic models)
-│   │   ├── physics/oscillator/      Harmonic oscillator (roadmap 2.3; no endpoint yet):
+│   │   ├── physics/oscillator/      Harmonic oscillator (roadmap 2.3; route in api/routes/oscillator.py, page /physics/oscillator):
 │   │   │   ├── analytical.py          exact solution in every regime, scale X, resonance curve
 │   │   │   ├── numerical.py           scaled ODE solve (xi, eta and both works), maxima events
-│   │   │   ├── model.py               stiffness guard, diagnostics, measured checks, series
+│   │   │   ├── model.py               stiffness guard, run-cost budget, measured checks, series
 │   │   │   └── schemas.py             request/response contract and input limits
 │   │   ├── quant/profiling/         Dataset profile: limits.py, parsing.py (bytes -> text table),
 │   │   │                              inference.py (cell and column types), statistics.py,
 │   │   │                              model.py (orchestration, checks), schemas.py, samples/
 │   │   ├── persistence/             SQLite experiment log (stdlib sqlite3)
-│   │   ├── api/                     FastAPI routes (physics, economy, quant, experiments; each
+│   │   ├── api/                     FastAPI routes (physics, oscillator, economy, quant, experiments; each
 │   │   │                              model's registry entry sits next to its route),
 │   │   │                              runs.py (ModelEntry + the shared run path), registry.py
 │   │   │                              (every model by id), recording.py (run metadata +
@@ -445,6 +445,26 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
   peak count and a number-of-angles field. No cross-model overlay (decision 17 stays
   same-model only).
 
+### 20. The oscillator is a pure exact solution plus a checked numerical solve (roadmap 2.3)
+`physics.oscillator` lives in `physics/oscillator/` (plan and decisions D1-D17:
+`docs/plans/ROADMAP_2_3_PLAN.md`). The choices that shape the code:
+
+- **The exact solution is the reference, not a result to trust blindly.** `analytical.py` is
+  pure and gives one unified form for under-, critically and over-damped motion, the steady
+  state and the undamped beat form; `numerical.py` solves the same equation with SciPy and
+  `model.py` checks the two against each other on every run.
+- **Scaled variables.** The solve uses tau = w0 t, xi = x/X, eta = v/(w0 X) so tolerances are
+  fractions of a proved scale X at any unit scale; the two works are integrated from b v^2
+  and F0 cos(wt) v, never from the force.
+- **Limits come from measurement.** Q <= 1e4 when b > 0, a minimum duration, 500 cycles, a
+  stiffness guard and a run-cost budget of right-hand-side evaluations (not a timeout) are
+  set from measured error and cost (`SCIENTIFIC_VALIDATION.md`); a refused run is a 422 naming
+  the number to change.
+- **Missing quantities are `null`, never 0** (undriven, undamped or overdamped runs), and the
+  page shows them as absent.
+- **The page derives its form from the OpenAPI schema** (`lib/oscillator/fields.ts`); it
+  computes no physics, so the backend's numbers are the only ones shown.
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -455,6 +475,7 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
 | POST | `/api/v1/physics/projectile/integrators` | Fixed-step convergence study |
 | POST | `/api/v1/physics/projectile/angle-sweep` | Range against launch angle, and the best angle |
 | POST | `/api/v1/physics/projectile/quadratic-drag/simulate` | Quadratic drag: adaptive SciPy solution with the exact vertical flight, vacuum comparison, diagnostics and per-run checks |
+| POST | `/api/v1/physics/oscillator/simulate` | Simple, damped or driven harmonic oscillator: adaptive SciPy solution beside the exact one, derived quantities, steady state and resonance curve (`null` where undefined), and per-run checks |
 | POST | `/api/v1/physics/projectile/quadratic-drag/angle-sweep` | Range against launch angle with quadratic drag (one 2.1 run per angle), the refined best angle with an accuracy estimate, the exact drag-free curve and optimum, and checks over every run |
 | GET | `/api/v1/economy/solow/info` | Model metadata |
 | POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |

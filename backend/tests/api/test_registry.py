@@ -77,6 +77,15 @@ CASES: list[tuple[str, str, dict[str, Any], bytes | None]] = [
         },
         None,
     ),
+    (
+        "physics.oscillator",
+        "/api/v1/physics/oscillator/simulate",
+        {
+            "parameters": {"drive_amplitude": 1.0, "drive_angular_frequency": 4.0},
+            "n_samples": 201,
+        },
+        None,
+    ),
 ]
 
 

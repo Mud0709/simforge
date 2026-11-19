@@ -940,13 +940,14 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
 
 ---
 
-## `physics.oscillator` (roadmap 2.3, in progress): exact solution (slice 1), numerical solve and checks (slice 2)
+## `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
 
 Plan and decisions: `docs/plans/ROADMAP_2_3_PLAN.md` (D1-D17, grilling record G1-G4 and the
 slice-1 amendments). The model is `m ẍ + b ẋ + k x = F₀ cos ωt`. Slice 1 is the **exact
 solution** (`backend/src/simforge/physics/oscillator/analytical.py`, pure); slice 2 the
 **numerical solve** checked against it (`numerical.py`, `model.py`, `schemas.py`; see the
-slice 2 section below). No endpoint or page exists yet.
+slice 2 section below); slice 3 the endpoint `POST /api/v1/physics/oscillator/simulate`;
+slice 4 the page `/physics/oscillator`.
 
 ### What is exact, and how it is evaluated
 - **Proved (closed forms):** the steady state A, δ; the transient in one unified form for
@@ -1074,6 +1075,80 @@ slice 2 section below). No endpoint or page exists yet.
   the even grid stepped over it. The curve now adds ω_r and points at ω_r ± γ·{¼, ½, 1, 2, 4,
   8, 16, 32}; every point is still the exact formula.
 
+### Slice 3: the API, its limits and the run-cost rule
+- **Run-cost rule (measured, one machine: x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1).**
+  `model.MAX_RUN_RHS_EVALUATIONS = 400 000` right-hand-side calls per run, counted inside the
+  right-hand side (Radau's finite-difference Jacobian columns included), so a solve over it
+  stops at the budget and is refused (422) naming the budget, a looser tolerance, fewer
+  cycles and another method. Evaluations at 500 cycles, m = k = 1 (the corners test's cost
+  corners), default pair (1e-10, 1e-10) / tightest pair (1e-13, 1e-14):
+
+  | Corner | DOP853 | RK45 (default) | Radau (default) | Radau (loosest) |
+  |---|---|---|---|---|
+  | free, undamped | 126 617 / 328 667 | 409 820 | 1 531 002 | 650 |
+  | free, Q = 1e4 | 125 927 / 328 202 | 405 116 | 1 531 002 | 643 |
+  | ω = 100ω₀, ζ = 0.05 | 186 548 / 401 231 | 257 564 | 2 499 081 | 68 727 |
+  | ω = 100ω₀, undamped | 252 728 / 537 827 | 317 786 | > 2.5e6 | 95 039 |
+  | ω = ω₀, Q = 1e4 | 116 777 / 318 257 | 353 570 | 1 252 577 | 83 |
+  | ω = ω₀/100, Q = 1e4 | 119 717 / 329 882 | 361 730 | 1 643 922 | 669 |
+  | γ = 1e4 (stiff) | refused by the guard | refused | 472 | 104 |
+
+  Cost per call: DOP853 7-10 µs, RK45 10-14 µs, Radau 28-31 µs, so Radau sets the wall time
+  at the budget: a run reaching it (Radau, tightest pair, ω = 100ω₀; 792 s unbounded) is
+  refused after 11.4-11.7 s, inside the 30 s proxy limit with room for a machine ~2× slower
+  (2.2's sweep budget was chosen the same way). **Admitted:** DOP853 at the default pair
+  everywhere and at the tightest pair where ω₀ is the fastest motion; RK45 at the default pair
+  with a drive; every method at the loosest pair; Radau on stiff runs. **Refused:** RK45 free
+  runs at the default pair, DOP853 at the tightest pair with ω = 100ω₀, Radau at the default
+  or tightest pair on 500 cycles. The corners test (`test_oscillator_limits.py`) ran 116
+  requests and refused 7 (3 over budget); slowest request 11.74 s (the Radau refusal above),
+  under its 25 s ceiling. Not a timed assertion beyond that ceiling.
+- **Radau's Jacobian overflow (found by the corners test).** SciPy's finite-difference
+  Jacobian multiplies the step factor of a column the right-hand side does not depend on (the
+  two works) by 10 at every recomputation; a run that recomputes it a few hundred times
+  overflows (m = 1e-6 kg, k = 100 N/m, ζ ≈ 1, ω ≈ 1e4 rad/s, 500 cycles, Radau at rtol = 1e-3,
+  atol = 0.1). The solve runs under `np.errstate(over="raise")` and such a run is refused
+  (422) naming a smaller atol or another method; both were checked on that motion (atol =
+  1e-3: 23 567 evaluations; DOP853 at the loosest pair: 13 193)
+  (`tests/physics/test_oscillator_overflow.py`). An analytic Jacobian would remove the cause;
+  not done, as it changes Radau's numerics that slice 2's thresholds were measured with.
+- **Tested** (`tests/api/test_oscillator_api.py`, `test_oscillator_limits.py`,
+  `tests/physics/test_oscillator_run_cost.py`, the appended registry case and golden run):
+  the response against textbook formulas for the three presets, overdamped and critical
+  runs; nulls as strict JSON; the D12 summary and replay tolerances; NaN/±Infinity and every
+  single-field bound and combined rule refused with its number and nothing stored; the
+  budget's counter stopping the solve at the budget. **Observed (reported, not asserted):** at
+  the unit corner m = k = 1e-6, γ just under 1e4, F₀ = 1e6 N, ω = 0, shortest duration,
+  Radau at the default pair the displacement check fails, and (the test writer's observation, not re-run by the tick) with DOP853 the energy-balance check fails.
+
+### Slice 4: the page (`/physics/oscillator`)
+No new physics: the page shows the backend's numbers and does not compute any of them. All
+items below are **tested** (Vitest and Playwright, 2026-11-17 journal); none is proved.
+- **Tested (Vitest, `OscillatorLab.test.tsx`, `lib/oscillator/fields.test.ts`):** the form's
+  eight fields come from the OpenAPI schema with the backend's defaults and single-field
+  limits, and every default passes its own validation; the three presets (Simple, Damped,
+  Driven) only fill fields and send nothing until Run; invalid input is blocked without a
+  request; every number in Results is labelled numerical, exact or formula; the derived
+  quantities carry units; the nulls of D12 (undriven: no steady state; b = 0: no Q and no
+  steady state; overdamped: beta but no damped frequency or period) are shown as absent, never
+  as 0; the checks appear under Validation; results are marked out of date when an input
+  changes; the server's 422 reason is shown; displacement (numerical solid, exact dashed,
+  envelope dotted) and energy charts are drawn, no envelope when the backend sends none; the
+  resonance chart appears only when F0 > 0 with this run marked, otherwise an explanation.
+  The full Vitest run was 270 passed.
+- **Tested (Playwright, `e2e/oscillator.spec.ts`, 5 tests; 7 passed with the 2 stored-fields
+  cases):** the page is reached from the nav link and the home-page card; the Simple preset
+  shows w0 = sqrt(k/m) with no Q and no steady state; the Damped preset shows gamma, zeta, Q
+  and the damped period from their formulas; the Driven preset at resonance shows A = F0/(b w0)
+  and a phase lag of pi/2; a pinned reference run appears on the displacement and energy
+  charts. These assertions compare the page with textbook formulas, not with the code's own
+  output.
+- **Not shown by these runs:** the "red before" Playwright run (red was shown under Vitest
+  only), and any visual judgement of the charts beyond what the tests assert. The first
+  `npm run build` of the tick failed with a Next.js security notice and passed on retry.
+- **Decision (reversible):** the Driven preset is b = 0.5, F0 = 1, omega = 5 (= sqrt(k/m)),
+  chosen so the steady state is at resonance.
+
 ### Limitations
 - Measurements are from one machine (Python 3.12, NumPy 2.5.4, SciPy 1.18.1); run times vary
   by up to ~1.5× on it.
@@ -1087,7 +1162,7 @@ slice 2 section below). No endpoint or page exists yet.
   the motion stays below X by a factor of about ζ (X uses √(x₀² + (v₀/ω₀)²), which ignores
   the damping), so errors relative to X look smaller than errors relative to the motion.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
-  (slice 4) will show it only when it is useful.
+  draws it only when the backend sends one (only for underdamped runs: none undamped, critically damped or overdamped).
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

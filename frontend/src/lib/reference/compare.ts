@@ -83,6 +83,10 @@ export function inputFields(r: ModelResponse): Fields {
       n_angles: r.angles_deg.length,
     });
   }
+  if (isModelResponse(r, "physics.oscillator")) {
+    // As the projectile models: the time grid has n_samples points.
+    return flatten({ parameters: r.parameters, solver: r.solver, n_samples: r.series.t.length });
+  }
   if (isModelResponse(r, "physics.projectile.integrators")) {
     return flatten({ parameters: r.parameters, dt_values: r.dt_values, methods: r.methods });
   }
@@ -142,6 +146,24 @@ export function summaryFields(r: ModelResponse): Fields {
       terminal_speed: r.terminal_speed,
       n_rhs_evaluations: r.n_rhs_evaluations,
     };
+  }
+  if (isModelResponse(r, "physics.oscillator")) {
+    // As _summary in backend/.../routes/oscillator.py; the curves, the final state, the checks
+    // and the other diagnostics are shown, not stored. A null steady_state stays one field.
+    const d = r.diagnostics;
+    return flatten({
+      initial_displacement: r.parameters.initial_displacement,
+      derived: r.derived,
+      steady_state: r.steady_state,
+      diagnostics: {
+        max_displacement_error: d.max_displacement_error,
+        max_velocity_error: d.max_velocity_error,
+        max_energy_balance_residual: d.max_energy_balance_residual,
+        free_decay_period_residual: d.free_decay_period_residual,
+        free_decay_ratio_residual: d.free_decay_ratio_residual,
+      },
+      numerical: { n_steps: r.numerical.n_steps, n_rhs_evaluations: r.numerical.n_rhs_evaluations },
+    });
   }
   if (isModelResponse(r, "physics.projectile.integrators")) {
     const methods = Object.fromEntries(

@@ -3,8 +3,8 @@
 # (core.hooksPath=.githooks); runs for `git commit` and `git merge`.
 # 1. An `Autopilot-run:` line outside the final trailer block (as in 10db2a9, 2026-11-09) is
 #    moved into it, so git parses it as a trailer.
-# 2. A running autopilot tick has written `work` or `state` to <git dir>/autopilot-run (autopilot
-#    skill, step 5); while that file is fresh (under 6 hours old) a message with no
+# 2. A running autopilot tick has written `work`, `slice` or `state` to <git dir>/autopilot-run
+#    (autopilot skill, step 0); `slice` marks the second and later slice commits of one tick; while that file is fresh (under 6 hours old) a message with no
 #    `Autopilot-run:` trailer gets one, so the trailer cannot be forgotten.
 # 3. "Co-Authored-By: Claude <noreply@anthropic.com>" is added when no Co-Authored-By trailer
 #    names Claude (the author's rule of 2026-11-02).
@@ -38,6 +38,7 @@ if [ -z "$run" ] && ! git interpret-trailers --parse "$msg" | grep -q '^Autopilo
    [ -n "$(find "$marker" -mmin -360 2>/dev/null)" ]; then
   case "$(tr -d '[:space:]' < "$marker")" in
     work) run="Autopilot-run: work" ;;
+    slice) run="Autopilot-run: slice" ;;
     state) run="Autopilot-run: state" ;;
   esac
 fi
