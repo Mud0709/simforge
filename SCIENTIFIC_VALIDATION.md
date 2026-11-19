@@ -29,6 +29,9 @@ evidence goes. It is a living document: every new model adds a section.
 
 ## `physics.projectile` v1.1.0: projectile motion with linear drag
 
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
+
 ### Model
 
 A point mass `m` under uniform gravity `g` with linear drag `F = −b v`. With `k = b/m`:
@@ -192,6 +195,9 @@ launch apex, both solvers against the exact vacuum flight and `analytical.flight
 ---
 
 ## `physics.projectile.integrators` v1.1.0: fixed-step integrator convergence study, with event location
+
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
 
 ### Purpose
 
@@ -488,6 +494,9 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
 ---
 
 ## `physics.projectile.angle_sweep` v1.1.0: range against launch angle
+
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
 
 ### What it computes
 For fixed speed, height, mass, drag and gravity, the exact linear-drag range `R(θ)` is computed

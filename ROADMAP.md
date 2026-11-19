@@ -107,7 +107,9 @@ drift, event-location error); generic sweeps; animation.
 
 Done when every item above is built and validated in the shared workspace: quadratic drag
 against its references, angle sweeps for both drag laws, the three oscillators, the methods
-workbench for any time-stepping model, generic sweeps and animation.
+workbench (2.4: a generic driver used by the oscillator and the projectile; further
+time-stepping models such as orbits join it in Phase 4's long-run integrator comparison),
+generic sweeps and animation.
 
 ## Phase 3: Economy Lab, macro policy studio ⏳
 Multiplier, AD-AS, the backward-looking three-equation NK model with Okun's law; shock

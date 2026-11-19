@@ -45,97 +45,97 @@ is in `CLAUDE.md`).
 - 520-535: Adding a new model (the intended pattern)
 - 536-539: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1862 lines)
+## `SCIENTIFIC_VALIDATION.md` (1871 lines)
 - 6-29: Principles
-- 30-193: `physics.projectile` v1.1.0: projectile motion with linear drag
-  - 32-43: Model
-  - 44-52: Two independent solutions
-  - 53-70: Numerical-analysis issue handled: catastrophic cancellation
-  - 71-107: What is tested
-  - 108-137: Observed accuracy
-  - 138-172: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
-  - 173-193: Known limitations
-- 194-489: `physics.projectile.integrators` v1.1.0: fixed-step integrator convergence study, with event location
-  - 196-205: Purpose
-  - 206-231: Equations
-  - 232-247: Linear stability
-  - 248-260: Error metrics
-  - 261-270: A conserved linear invariant (and why it matters for the evidence)
-  - 271-295: Fit-range rule (fixed before inspecting results)
-  - 296-326: Tests
-  - 327-359: Observed results
-  - 360-427: Event location (v1.1.0, roadmap 2.4 slice 4; plan D11, D13, R6)
-  - 428-448: Known limitations
-  - 449-489: numerics/ (roadmap 2.4, slice 1; used by the oscillator and projectile integrator studies)
-- 490-552: `physics.projectile.angle_sweep` v1.1.0: range against launch angle
-  - 492-503: What it computes
-  - 504-509: Precision
-  - 510-524: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
-  - 525-528: Observed (2026-10-15)
-  - 529-544: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
-  - 545-552: Limitations
-- 553-890: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
-  - 558-576: Model
-  - 577-596: No exact 2-D solution: what replaces it
-  - 597-624: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
-  - 625-639: Numerical-analysis issues handled
-  - 640-717: What is tested
-  - 718-762: Per-run checks shown in the app
-  - 763-784: Input limits, the integration cap and the stiffness guard
-  - 785-835: Observed accuracy
-  - 836-854: Replay tolerances
-  - 855-890: Known limitations
-- 891-1106: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
-  - 899-918: What it computes
-  - 919-943: Mathematical results (proved on paper)
-  - 944-952: The accuracy estimate u (an estimate, not a bound)
-  - 953-992: What is tested
-  - 993-1002: Per-run checks shown in the app
-  - 1003-1034: Observed accuracy and cost (one machine)
-  - 1035-1058: Input limits and the work budget
-  - 1059-1073: Replay tolerances
-  - 1074-1106: Known limitations
-- 1107-1330: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
-  - 1116-1135: What is exact, and how it is evaluated
-  - 1136-1147: Limits introduced by this slice (measured, not assumed)
-  - 1148-1159: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
-  - 1160-1241: Slice 2: the numerical solve and its per-run checks
-  - 1242-1287: Slice 3: the API, its limits and the run-cost rule
-  - 1288-1315: Slice 4: the page (`/physics/oscillator`)
-  - 1316-1330: Limitations
-- 1331-1422: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
-  - 1338-1348: What it computes
-  - 1349-1384: Proved, tested, observed
-  - 1385-1400: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
-  - 1401-1410: Caps and timings (same machine)
-  - 1411-1422: Limitations
-- 1423-1561: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1429-1450: Model
-  - 1451-1486: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1487-1494: Numerical-analysis issue handled: cancellation in λ
-  - 1495-1516: Empirical evidence (held on the grid; not theorems)
-  - 1517-1532: What is tested
-  - 1533-1542: Per-run checks shown in the app
-  - 1543-1547: Observed (2026-10-15, default inputs)
-  - 1548-1561: Limitations
-- 1562-1643: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1564-1570: What it computes, and what it does not
-  - 1571-1586: Definitions
-  - 1587-1598: Numerical-analysis issues handled
-  - 1599-1613: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1614-1620: Per-run checks shown in the app
-  - 1621-1625: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1626-1643: Limitations
-- 1644-1737: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1673-1717: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1718-1729: Tests
-  - 1730-1737: Known limitations
-- 1738-1862: Comparison and export (roadmap 1.6)
-  - 1747-1781: Recomputed series: the digest says whether they are exact
-  - 1782-1810: CSV: what is written is the number that was computed
-  - 1811-1818: JSON export
-  - 1819-1852: The comparison: differences, not verdicts
-  - 1853-1862: Limitations
+- 30-196: `physics.projectile` v1.1.0: projectile motion with linear drag
+  - 35-46: Model
+  - 47-55: Two independent solutions
+  - 56-73: Numerical-analysis issue handled: catastrophic cancellation
+  - 74-110: What is tested
+  - 111-140: Observed accuracy
+  - 141-175: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+  - 176-196: Known limitations
+- 197-495: `physics.projectile.integrators` v1.1.0: fixed-step integrator convergence study, with event location
+  - 202-211: Purpose
+  - 212-237: Equations
+  - 238-253: Linear stability
+  - 254-266: Error metrics
+  - 267-276: A conserved linear invariant (and why it matters for the evidence)
+  - 277-301: Fit-range rule (fixed before inspecting results)
+  - 302-332: Tests
+  - 333-365: Observed results
+  - 366-433: Event location (v1.1.0, roadmap 2.4 slice 4; plan D11, D13, R6)
+  - 434-454: Known limitations
+  - 455-495: numerics/ (roadmap 2.4, slice 1; used by the oscillator and projectile integrator studies)
+- 496-561: `physics.projectile.angle_sweep` v1.1.0: range against launch angle
+  - 501-512: What it computes
+  - 513-518: Precision
+  - 519-533: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
+  - 534-537: Observed (2026-10-15)
+  - 538-553: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+  - 554-561: Limitations
+- 562-899: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
+  - 567-585: Model
+  - 586-605: No exact 2-D solution: what replaces it
+  - 606-633: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
+  - 634-648: Numerical-analysis issues handled
+  - 649-726: What is tested
+  - 727-771: Per-run checks shown in the app
+  - 772-793: Input limits, the integration cap and the stiffness guard
+  - 794-844: Observed accuracy
+  - 845-863: Replay tolerances
+  - 864-899: Known limitations
+- 900-1115: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
+  - 908-927: What it computes
+  - 928-952: Mathematical results (proved on paper)
+  - 953-961: The accuracy estimate u (an estimate, not a bound)
+  - 962-1001: What is tested
+  - 1002-1011: Per-run checks shown in the app
+  - 1012-1043: Observed accuracy and cost (one machine)
+  - 1044-1067: Input limits and the work budget
+  - 1068-1082: Replay tolerances
+  - 1083-1115: Known limitations
+- 1116-1339: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
+  - 1125-1144: What is exact, and how it is evaluated
+  - 1145-1156: Limits introduced by this slice (measured, not assumed)
+  - 1157-1168: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+  - 1169-1250: Slice 2: the numerical solve and its per-run checks
+  - 1251-1296: Slice 3: the API, its limits and the run-cost rule
+  - 1297-1324: Slice 4: the page (`/physics/oscillator`)
+  - 1325-1339: Limitations
+- 1340-1431: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
+  - 1347-1357: What it computes
+  - 1358-1393: Proved, tested, observed
+  - 1394-1409: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
+  - 1410-1419: Caps and timings (same machine)
+  - 1420-1431: Limitations
+- 1432-1570: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1438-1459: Model
+  - 1460-1495: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1496-1503: Numerical-analysis issue handled: cancellation in λ
+  - 1504-1525: Empirical evidence (held on the grid; not theorems)
+  - 1526-1541: What is tested
+  - 1542-1551: Per-run checks shown in the app
+  - 1552-1556: Observed (2026-10-15, default inputs)
+  - 1557-1570: Limitations
+- 1571-1652: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1573-1579: What it computes, and what it does not
+  - 1580-1595: Definitions
+  - 1596-1607: Numerical-analysis issues handled
+  - 1608-1622: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1623-1629: Per-run checks shown in the app
+  - 1630-1634: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1635-1652: Limitations
+- 1653-1746: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1682-1726: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1727-1738: Tests
+  - 1739-1746: Known limitations
+- 1747-1871: Comparison and export (roadmap 1.6)
+  - 1756-1790: Recomputed series: the digest says whether they are exact
+  - 1791-1819: CSV: what is written is the number that was computed
+  - 1820-1827: JSON export
+  - 1828-1861: The comparison: differences, not verdicts
+  - 1862-1871: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
