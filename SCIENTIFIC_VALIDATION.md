@@ -156,8 +156,10 @@ stiffness guard are excluded. Worst F needed for a 10× margin: 295 (flight time
 DOP853, v₀ = 1e4 m/s, b = 0.1, rtol = 1e-6, atol = 0.1); energy 220; max height 26. Scale
 max(R, H) was chosen over v₀, which needed F ≈ 4e4 on the corners (tiny trajectories at atol =
 1e-14). With F = 500 and floor 1e-10, 10 679 runs give a verdict, none fails, and the smallest
-threshold/value is 17×. F × rtol alone covered every run; the floor only guards rounding on
-other machines. Tests: `backend/tests/physics/test_projectile_checks.py` (corner grid, ordinary
+threshold/value is 17×. F × rtol alone covered every run. The floor 1e-10 is a chosen value,
+not derived: below rtol ≈ 2e-13 (schema minimum 1e-13) it is larger than F × rtol and sets
+most of the threshold, so at the tightest tolerances a regression 2-3× worse than measured
+would still pass (slice 3 review; a derived floor, e.g. N·ε of the energy sums, is not done). Tests: `backend/tests/physics/test_projectile_checks.py` (corner grid, ordinary
 runs, no verdict above 100%, wrong drag sign everywhere fails the energy balance, wrong drag
 sign in the solver fails the three exact comparisons).
 
