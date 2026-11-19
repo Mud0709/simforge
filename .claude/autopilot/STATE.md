@@ -49,15 +49,14 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   rungs and usage unknown (no usage readings in fresh sessions).
 
 ## Current unit
-Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its review items
-2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
-author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
-branch): do not redo them; if that PR is not merged yet, wait for it (it touches
-`physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
-Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Slice 5 built, checked (full e2e green) and reviewed 2026-11-19; 2.3 PR #26 merged 2026-11-19; learning-log draft written. Next: 2.4 plan tick (move 🔜, add 2.3 step-cost line).
+Roadmap 2.4: planned (self-grilled at the author's request, 3 reviews) and built in one chat
+session on 2026-11-19, slices 1-5, each risky slice reviewed, whole-step review done, full
+check run (Next.js build notice: retry passed). Draft PR opened for the author's review.
+The work limit (12 commits since bcf6518) is reached with the close-out commit; the next
+tick waits for the merge (skill step 2.5), then resets the limit at the merge.
 
 ## Remainder of the current unit
-None: 2.3 finished and merged.
+None: 2.4 finished; its PR waits for the author's merge (never merged by Claude).
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
