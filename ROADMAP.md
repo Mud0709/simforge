@@ -101,7 +101,7 @@ drift, event-location error); generic sweeps; animation.
 | 2.1 | **Quadratic drag.** Validated against the exact vertical `tanh` solution, the c → 0 limit, terminal speed and energy balance, plus the hodograph invariant and two proved bounds; `/physics/projectile/quadratic-drag` (plan and amendments: `docs/plans/ROADMAP_2_1_PLAN.md`) | ✅ |
 | 2.2 | **Angle sweeps for both drag laws.** The quadratic-drag sweep `physics.projectile.quadratic_angle_sweep` on `/physics/projectile/quadratic-drag` (every point a 2.1 run; best angle by Brent with an accuracy estimate; checked against the vacuum closed form, a weak-drag first-order result and an independent integration; work budget); the linear sweep unchanged (plan and amendments: `docs/plans/ROADMAP_2_2_PLAN.md`) | ✅ |
 | 2.3 | **Simple, damped and driven oscillators.** Exact solution in every regime checked against a SciPy solve with measured per-run checks, `/api/v1/physics/oscillator/simulate` and the page `/physics/oscillator` (plan: `docs/plans/ROADMAP_2_3_PLAN.md`) | ✅ |
-| 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error | ⏳ |
+| 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error | 🔜 |
 | 2.5 | **Generic sweeps.** | ⏳ |
 | 2.6 | **Animation.** | ⏳ |
 

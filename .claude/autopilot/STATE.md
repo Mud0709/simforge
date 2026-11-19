@@ -44,6 +44,9 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 ## Step costs (one line per merged roadmap step; unknown parts written "unknown")
 - 2.2 (PR #14): 7-day usage 0.44 → 0.74 (about 0.30 of a week) over 6 ticks: planning plus 5
   slices, builder and reviewer per slice (high, then medium); measured from usage readings.
+- 2.3 (PR #26): 10 journalled autopilot ticks 2026-11-09 to 2026-11-19 for slices 2-5 plus
+  chat sessions for planning, slice 1 and the slice 2 review (not counted); subagents by agent,
+  rungs and usage unknown (no usage readings in fresh sessions).
 
 ## Current unit
 Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its review items
