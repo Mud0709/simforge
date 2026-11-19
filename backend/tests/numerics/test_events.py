@@ -29,9 +29,9 @@ from decimal import Decimal, localcontext
 
 import numpy as np
 import pytest
-from simforge.numerics.events import first_crossing, locate_crossing
 
 from simforge.numerics.convergence import fit_order
+from simforge.numerics.events import first_crossing, locate_crossing
 from tests.approx import rel_approx
 
 EPS = float(np.finfo(np.float64).eps)

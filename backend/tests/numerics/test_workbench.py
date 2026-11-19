@@ -43,13 +43,13 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+
 from simforge.numerics.workbench import (
     ErrorGroup,
     Problem,
     energy_envelope,
     run_convergence,
 )
-
 from tests.approx import rel_approx
 
 EPS = float(np.finfo(np.float64).eps)
