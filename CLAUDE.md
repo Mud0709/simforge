@@ -137,7 +137,9 @@ denied in `.claude/settings.json`; un-deny one there if needed.
 ## Autopilot
 A scheduled task starts a fresh session per run and follows `.claude/skills/autopilot/SKILL.md`
 (procedure, limits, ladder, stops); its per-run state is `.claude/autopilot/STATE.md` and its
-lessons are `.claude/autopilot/FINDINGS.md`. "Pause/resume autopilot" anytime: it only
+lessons are `.claude/autopilot/FINDINGS.md`. A tick's unit is a whole roadmap step (a plan tick,
+then a build tick: every slice, a step brief for the author's portfolio, the PR; the author's
+rule of 2026-11-19). "Pause/resume autopilot" anytime: it only
 disables or enables the scheduled task (`update_trigger`), with no commit or PR.
 
 ## Standards (non-negotiable)

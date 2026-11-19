@@ -194,6 +194,46 @@ def test_a_shell_write_to_a_guard_rail_is_blocked_but_reading_is_not(tmp_path: P
     assert code("cat CLAUDE.md | head") == 0
 
 
+def test_running_a_guarded_script_is_not_writing_it(tmp_path: Path) -> None:
+    """Regenerating the docs index runs scripts/doc_index.py; a redirect elsewhere is no write."""
+    env = tick_env(tmp_path)
+
+    def code(command: str) -> int:
+        return run_hook("guard_rails.py", [], bash(command), env).returncode
+
+    assert code("python3 scripts/doc_index.py > /dev/null") == 0
+    assert (
+        code("python3 scripts/doc_index.py && python3 scripts/doc_index.py --check; echo rc=$?")
+        == 0
+    )
+    assert code("python3 scripts/doc_index.py 2>&1 | tail -3") == 0
+    assert code("scripts/run_logged.sh check 'scripts/check.sh --e2e'") == 0
+    assert code("echo x > docs/journal/note.md") == 0
+
+
+def test_text_inside_a_heredoc_is_data_not_a_command(tmp_path: Path) -> None:
+    env = tick_env(tmp_path)
+    journal = "cat > docs/journal/x.md <<'EOF'\nran scripts/check.sh and rm CLAUDE.md\nEOF"
+    assert run_hook("guard_rails.py", [], bash(journal), env).returncode == 0
+    into_rail = "cat > scripts/new.sh <<'EOF'\nhello\nEOF"
+    assert run_hook("guard_rails.py", [], bash(into_rail), env).returncode == 2
+
+
+def test_every_write_form_aimed_at_a_guard_rail_is_still_blocked(tmp_path: Path) -> None:
+    env = tick_env(tmp_path)
+
+    def code(command: str) -> int:
+        return run_hook("guard_rails.py", [], bash(command), env).returncode
+
+    assert code("echo x > scripts/check.sh") == 2
+    assert code("cp /tmp/a scripts/check.sh") == 2
+    assert code("mv /tmp/a Makefile") == 2
+    assert code("echo x | tee CLAUDE.md") == 2
+    assert code("rm .claude/agents/builder.md") == 2
+    assert code("git checkout -- scripts/check.sh") == 2
+    assert code("cd . && sed -i s/a/b/ backend/pyproject.toml") == 2
+
+
 # --- loop_guard.py -----------------------------------------------------------------------
 
 
@@ -264,7 +304,7 @@ def commit(tmp_path: Path, message: str, marker: Path | None, age_hours: float =
     ).stdout
 
 
-@pytest.mark.parametrize("kind", ["work", "state"])
+@pytest.mark.parametrize("kind", ["work", "slice", "state"])
 def test_commit_msg_adds_the_autopilot_trailer_while_a_tick_marker_is_fresh(
     tmp_path: Path, kind: str
 ) -> None:

@@ -5,6 +5,17 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 `docs/journal/`), with its `##` and `###` sections and their line ranges (the read rule
 is in `CLAUDE.md`).
 
+## `.claude/skills/autopilot/SKILL.md` (271 lines)
+- 15-41: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
+- 42-56: 0b. Budget gate (before any work; keep it cheap)
+- 57-88: 1. Reorient (every tick)
+- 89-120: 2. Choose the unit of work (first match wins)
+- 121-162: 3. The decision rule
+- 163-231: 4. Do the work, then verify it
+- 232-251: 5. Journal and state (every tick that did anything)
+- 252-261: 6. Pausing and resuming
+- 262-271: 7. Reply at the end of a tick
+
 ## `ARCHITECTURE.md` (489 lines)
 - 7-19: System overview
 - 20-101: Repository layout
@@ -407,15 +418,15 @@ is in `CLAUDE.md`).
 - 494-513: Out of scope (awaiting the author)
 - 514-522: Genuine stops found
 
-## `docs/plans/ROADMAP_2_3_PLAN.md` (513 lines)
+## `docs/plans/ROADMAP_2_3_PLAN.md` (589 lines)
 - 7-26: Grilling record (2026-11-03)
-- 27-80: Slice status
-- 81-95: What 2.3 builds
-- 96-106: Design tree and rounds (self-grilled)
-- 107-258: Decisions
-- 259-287: Reference formulas (derived for this plan)
-- 288-308: Seams (where tests attach; what each catches and misses)
-- 309-482: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
-- 483-496: Risks
-- 497-503: Out of scope (for the author)
-- 504-513: Genuine stops found
+- 27-81: Slice status
+- 82-96: What 2.3 builds
+- 97-107: Design tree and rounds (self-grilled)
+- 108-259: Decisions
+- 260-288: Reference formulas (derived for this plan)
+- 289-309: Seams (where tests attach; what each catches and misses)
+- 310-558: Slices (test-first with `tdd`, one per autopilot tick, one commit each)
+- 559-572: Risks
+- 573-579: Out of scope (for the author)
+- 580-589: Genuine stops found
