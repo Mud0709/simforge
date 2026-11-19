@@ -107,9 +107,11 @@ MAX_TOTAL_STEPS = 150_000
 # physics.oscillator.integrators v1.0.0, "Rounding constants"). Energy identity: worst 21.3
 # (RK4, wh = 56, N = 3; the corner grid's worst is 0.275), so 500.
 ENERGY_IDENTITY_C = 500.0
-# Modified energy: worst 3.46 (symplectic Euler, wh = 1.999; the corner grid's worst is 0.150),
-# so 50; the same C is the R5 row's rounding allowance (worst excess over R5: 0.0114).
-MODIFIED_ENERGY_C = 50.0
+# Modified energy: threshold C N eps kappa(theta) (kappa: H~'s conditioning, _conditioning);
+# worst residual / (N eps kappa) over 24 182 runs, theta from 1e-3 to 2 - 1e-9, is 1.014
+# (Verlet, theta = pi/2, N = 4), so 20. The same C is the R5 row's rounding allowance (worst
+# excess over R5: 0.0114 N eps).
+MODIFIED_ENERGY_C = 20.0
 
 EPS = float(np.finfo(np.float64).eps)
 # E_N (m^2) below this has subnormal parts, where rounding is absolute, not C N eps relative.
@@ -187,6 +189,14 @@ def _energy_run(m: MethodName, e: study.EnergyRun) -> OscillatorEnergyRun:
     )
 
 
+def _conditioning(method: str, theta: float) -> float:
+    """kappa: H~ >= E/kappa (R3, R4 with |q u| <= E/2), so rounding relative to |H~_0| is
+    magnified by up to kappa; 1/(1 - theta/2) (symplectic Euler), 1/(1 - theta^2/4) (Verlet)."""
+    if method == "symplectic_euler":
+        return 1 / (1 - theta / 2)
+    return 1 / (1 - theta * theta / 4)
+
+
 def _verdict(value: float, threshold: float | None) -> bool | None:
     return None if threshold is None else value <= threshold
 
@@ -241,12 +251,20 @@ def _energy_checks(e: study.EnergyRun, amplitude: float) -> list[ValidationCheck
             else f"wh = {e.theta:.4g} >= 2: H~ is not positive definite, so |H~_0| is no scale "
             "for a relative residual; no verdict is given."
         )
+    elif (scaled := rounding * _conditioning(m, e.theta)) > 1:
+        mod_threshold, mod_passed = None, None
+        mod_note = (
+            f"wh = {e.theta:.4g} is so close to 2 that H~ is ill-conditioned: the rounding "
+            f"allowance {MODIFIED_ENERGY_C:g} N eps kappa = {scaled:.3g} exceeds 100%, so no "
+            "verdict is given."
+        )
     else:
-        mod_threshold, mod_passed = rounding, residual <= rounding
+        mod_threshold, mod_passed = scaled, residual <= scaled
         mod_note = (
             f"Value: max |H~_n - H~_0| / |H~_0| over N = {n} steps. H~ is conserved exactly by "
-            f"the step map (plan R3, R4); the threshold {MODIFIED_ENERGY_C:g} N eps is measured "
-            "rounding."
+            f"the step map (plan R3, R4); the threshold {MODIFIED_ENERGY_C:g} N eps kappa is "
+            f"measured rounding, kappa = {_conditioning(m, e.theta):.4g} the conditioning of H~ "
+            "(how much smaller than the energy it can be)."
         )
     if e.diverged:
         bound_threshold, bound_note = None, diverged

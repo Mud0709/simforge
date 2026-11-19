@@ -1219,8 +1219,10 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
 ### Proved, tested, observed
 - **Proved** (plan R1-R5, checked exactly in slice 1): E_N/E₀ = (1 + θ²)ᴺ (Euler) and
   (1 − θ⁶/72 + θ⁸/576)ᴺ (RK4) exactly; H̃ exactly constant (symplectic); |ΔE|/E₀ ≤ R5 for
-  θ < 2. Per-run checks: `energy_identity_<m>` and `modified_energy_<m>` (exact identities,
-  threshold C·N·ε), `energy_bound_<m>` (proved bound + C·N·ε; no verdict for θ ≥ 2),
+  θ < 2. Per-run checks: `energy_identity_<m>` (exact identity, threshold C·N·ε) and
+  `modified_energy_<m>` (exact identity, threshold C·N·ε·κ(θ), κ = 1/(1 − θ/2) for symplectic
+  Euler and 1/(1 − θ²/4) for Verlet: H̃ ≥ E/κ, so rounding relative to |H̃₀| is magnified by
+  up to κ; no verdict when C·N·ε·κ > 1), `energy_bound_<m>` (proved bound + C·N·ε; no verdict for θ ≥ 2),
   `order_<m>` (measured, within 0.1 of theory), `fit_points_<m>` (info). A diverged run (a
   state component past 1e100) gives no verdict on its energy rows; so does an energy that
   falls below the normal float range (E_N < tiny/ε m²), and the H̃ row at θ ≥ 2 (H̃ is not
@@ -1256,11 +1258,15 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
   {1e-3, 5, 1e4}; 1-5 periods) and the corner grid: **21.3** (RK4, θ = 56, N = 3; cancellation
   between RK4's stage terms at large θ). The corner grid alone: 0.275. The test's own
   `C_ENERGY_IDENTITY` = 2 (worst 0.154 against the 50-digit reference on the corner grid).
-- `MODIFIED_ENERGY_C` = **50**: worst max|H̃_n − H̃₀|/(|H̃₀|·N·ε) over θ ∈ [1e-3, 2 − 1e-8]
-  (320 values), ω ∈ {1e-3, 5, 1e4}, three starts, 1/30/300 periods: **3.46** (symplectic
-  Euler, θ = 1.999); corner grid alone 0.150. The same C is the R5 row's rounding allowance:
-  the worst excess of max|ΔE|/E₀ over R5 on that grid is **0.0114**·N·ε (Verlet, θ ≈ 0.003,
-  where R5 itself is ≈ 2e-6).
+- `MODIFIED_ENERGY_C` = **20**: worst max|H̃_n − H̃₀|/(|H̃₀|·N·ε·κ(θ)) over 24 182 runs
+  (θ: 60 log-spaced values in [1e-3, 1.9], 200 values 2 − 10⁻¹…2 − 10⁻⁹, 200 random in
+  (1.9, 2); ω ∈ {1e-3, 1, 1e4}; random starts; 1/10/113 periods; plus the review repro):
+  **1.014** (Verlet, θ = π/2, N = 4). **Review fix (2026-11-19):** the first version used
+  C·N·ε without κ, from a grid whose worst was 3.46 (θ = 1.999), and it failed valid runs
+  near θ = 2: symplectic Euler at k = m = 1, `energy_dt` = 2, 113 periods (θ = 1.99999983)
+  gave 1.2e-10 to 1.3e-9 against 3.9e-12, and a scan found 4.35 at θ = 1.9947. The same C is
+  the R5 row's rounding allowance: the worst excess of max|ΔE|/E₀ over R5 on the earlier grid
+  is **0.0114**·N·ε (Verlet, θ ≈ 0.003, where R5 itself is ≈ 2e-6).
 
 ### Caps and timings (same machine)
 - `MAX_STEPS_PER_RUN` = 50 000, `MAX_TOTAL_STEPS` = 150 000 (the plan's starting values,
@@ -1275,8 +1281,14 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
 ### Limitations
 - Timings and rounding constants are from one machine. The constants come from grids, not
   proofs.
-- Near θ = 2 the H̃ residual is relative to |H̃₀|, which tends to 0 for Verlet (β → 0), so
-  rounding grows there; the grid reached θ = 2 − 1e-8 without exceeding 3.46·N·ε.
+- Near θ = 2, H̃ is ill-conditioned for both symplectic methods (κ → ∞; symplectic Euler is
+  the one that failed the first threshold, since its κ = 1/(1 − θ/2) is about twice
+  Verlet's there). The check scales with κ and gives no verdict once C·N·ε·κ > 1, so close to
+  θ = 2 it can only detect large violations.
+- Replay tolerances (`routes/oscillator.py`) near θ = 2: probed only by a 1-ulp change of x₀
+  (a proxy for another machine's last-bit differences, not a proof). The largest change of
+  `max_relative_energy_error` was 2.1e-5 of its tolerance (θ = 1.99999983, four starts, both
+  methods), so the margins held there.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

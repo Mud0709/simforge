@@ -44,7 +44,7 @@ is in `CLAUDE.md`).
 - 491-506: Adding a new model (the intended pattern)
 - 507-510: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1720 lines)
+## `SCIENTIFIC_VALIDATION.md` (1732 lines)
 - 6-29: Principles
 - 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
   - 32-43: Model
@@ -99,39 +99,39 @@ is in `CLAUDE.md`).
   - 1112-1157: Slice 3: the API, its limits and the run-cost rule
   - 1158-1185: Slice 4: the page (`/physics/oscillator`)
   - 1186-1200: Limitations
-- 1201-1280: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
+- 1201-1292: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
   - 1208-1218: What it computes
-  - 1219-1252: Proved, tested, observed
-  - 1253-1264: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
-  - 1265-1274: Caps and timings (same machine)
-  - 1275-1280: Limitations
-- 1281-1419: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1287-1308: Model
-  - 1309-1344: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1345-1352: Numerical-analysis issue handled: cancellation in λ
-  - 1353-1374: Empirical evidence (held on the grid; not theorems)
-  - 1375-1390: What is tested
-  - 1391-1400: Per-run checks shown in the app
-  - 1401-1405: Observed (2026-10-15, default inputs)
-  - 1406-1419: Limitations
-- 1420-1501: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1422-1428: What it computes, and what it does not
-  - 1429-1444: Definitions
-  - 1445-1456: Numerical-analysis issues handled
-  - 1457-1471: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1472-1478: Per-run checks shown in the app
-  - 1479-1483: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1484-1501: Limitations
-- 1502-1595: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1531-1575: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1576-1587: Tests
-  - 1588-1595: Known limitations
-- 1596-1720: Comparison and export (roadmap 1.6)
-  - 1605-1639: Recomputed series: the digest says whether they are exact
-  - 1640-1668: CSV: what is written is the number that was computed
-  - 1669-1676: JSON export
-  - 1677-1710: The comparison: differences, not verdicts
-  - 1711-1720: Limitations
+  - 1219-1254: Proved, tested, observed
+  - 1255-1270: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
+  - 1271-1280: Caps and timings (same machine)
+  - 1281-1292: Limitations
+- 1293-1431: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1299-1320: Model
+  - 1321-1356: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1357-1364: Numerical-analysis issue handled: cancellation in λ
+  - 1365-1386: Empirical evidence (held on the grid; not theorems)
+  - 1387-1402: What is tested
+  - 1403-1412: Per-run checks shown in the app
+  - 1413-1417: Observed (2026-10-15, default inputs)
+  - 1418-1431: Limitations
+- 1432-1513: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1434-1440: What it computes, and what it does not
+  - 1441-1456: Definitions
+  - 1457-1468: Numerical-analysis issues handled
+  - 1469-1483: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1484-1490: Per-run checks shown in the app
+  - 1491-1495: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1496-1513: Limitations
+- 1514-1607: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1543-1587: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1588-1599: Tests
+  - 1600-1607: Known limitations
+- 1608-1732: Comparison and export (roadmap 1.6)
+  - 1617-1651: Recomputed series: the digest says whether they are exact
+  - 1652-1680: CSV: what is written is the number that was computed
+  - 1681-1688: JSON export
+  - 1689-1722: The comparison: differences, not verdicts
+  - 1723-1732: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide

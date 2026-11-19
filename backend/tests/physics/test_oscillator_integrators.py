@@ -369,8 +369,10 @@ def test_default_energy_runs_and_checks(schemas: ModuleType, model: ModuleType) 
     assert checks["energy_identity_euler"].threshold == rel_approx(
         model.ENERGY_IDENTITY_C * n * EPS, rel=1e-12
     )
+    verlet = next(e for e in c.energy if e.method == "velocity_verlet")
     assert checks["modified_energy_velocity_verlet"].threshold == rel_approx(
-        model.MODIFIED_ENERGY_C * n * EPS, rel=1e-12
+        model.MODIFIED_ENERGY_C * n * EPS * conditioning("velocity_verlet", verlet.theta),
+        rel=1e-12,
     )
 
 
@@ -441,13 +443,108 @@ def test_symplectic_runs_beyond_theta_2_give_no_verdict_on_r5(
     schemas: ModuleType, model: ModuleType
 ) -> None:
     """energy_dt = 0.5 s over one period: N = 3, theta = 5 T/3 ~ 2.09 >= 2 (unstable, R7),
-    where R5 does not hold."""
+    where R5 does not hold and H~ is no longer positive definite (kappa infinite), so the
+    modified-energy row gives no verdict either."""
     c = run(schemas, model, methods=list(SYMPLECTIC), energy_dt=0.5, periods=1)
     checks = {ch.id: ch for ch in c.checks}
     for e in c.energy:
         assert e.theta >= 2
         assert e.energy_bound is None
         assert checks[f"energy_bound_{e.method}"].passed is None
+        assert checks[f"modified_energy_{e.method}"].passed is None
+
+
+def conditioning(method: str, theta: float) -> float:
+    """kappa(theta): how much smaller H~ can be than the energy scale (from R3, R4 and
+    |q u| <= E/2): 1/(1 - theta/2) for symplectic Euler, 1/(1 - theta^2/4) for Verlet;
+    rounding relative to |H~_0| is magnified by up to kappa."""
+    if method == "symplectic_euler":
+        return 1 / (1 - theta / 2)
+    return 1 / (1 - theta * theta / 4)
+
+
+def check_modified_energy_rows(c: Any, model: ModuleType) -> None:
+    """Every modified-energy row is passed or null, never False; a verdict uses the
+    threshold MODIFIED_ENERGY_C * N * eps * kappa(theta) and is given only when that
+    threshold is at most 1 (100% relative error; above it, null)."""
+    checks = {ch.id: ch for ch in c.checks}
+    for e in c.energy:
+        ch = checks[f"modified_energy_{e.method}"]
+        assert ch.passed is not False, (e.method, e.theta, ch.value, ch.threshold)
+        if e.diverged:
+            continue
+        expected = model.MODIFIED_ENERGY_C * e.n_steps * EPS * conditioning(e.method, e.theta)
+        if expected > 1:
+            assert ch.passed is None, (e.method, e.theta)
+        else:
+            # the threshold is a few float operations on theta, N, C: 1e-12 relative
+            assert ch.threshold == rel_approx(expected, rel=1e-12), (e.method, e.theta)
+            assert ch.passed is True, (e.method, e.theta, ch.value, ch.threshold)
+
+
+@pytest.mark.parametrize(("x0", "v0"), [(1.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, -1.0)])
+def test_modified_energy_near_theta_2_is_never_failed(
+    schemas: ModuleType, model: ModuleType, x0: float, v0: float
+) -> None:
+    """Review repro (2026-11-19): k = m = 1 (w = 1), energy_dt = 2, periods = 113: T_total =
+    226 pi = 709.99994, so N = 355 and theta = 1.99999983 < 2 (stable, R7). H~ is exactly
+    conserved there too (R3, R4); only its conditioning kappa ~ 1.2e7 (SE) or 6e6 (Verlet)
+    magnifies the rounding."""
+    c = run(
+        schemas,
+        model,
+        parameters={
+            "mass": 1.0,
+            "spring_constant": 1.0,
+            "initial_displacement": x0,
+            "initial_velocity": v0,
+        },
+        dt_values=[0.4, 0.2],
+        methods=list(SYMPLECTIC),
+        energy_dt=2.0,
+        periods=113,
+    )
+    for e in c.energy:
+        assert e.n_steps == 355
+        assert 1.9999998 < e.theta < 2
+    check_modified_energy_rows(c, model)
+
+
+def test_modified_energy_rows_on_a_random_scan_below_theta_2(
+    schemas: ModuleType, model: ModuleType
+) -> None:
+    """theta = 2 pi p / N in (1.9, 2), small N (fast): periods = p and energy_dt =
+    p T / (N - 0.5), so the run takes exactly N steps (T/energy_dt sits half a step from an
+    integer). Fixed seed, so the scan is reproducible."""
+    rng = np.random.default_rng(20261119)
+    period = 2 * math.pi
+    cases = 0
+    while cases < 20:
+        n = int(rng.integers(20, 400))
+        p = math.floor(n * rng.uniform(1.9, 2.0) / period)
+        theta = period * p / n
+        if p < 1 or not 1.9 < theta < 2:
+            continue
+        cases += 1
+        x0, v0 = rng.uniform(-1, 1, size=2)
+        c = run(
+            schemas,
+            model,
+            parameters={
+                "mass": 1.0,
+                "spring_constant": 1.0,
+                "initial_displacement": float(x0),
+                "initial_velocity": float(v0),
+            },
+            dt_values=[0.4, 0.2],
+            methods=list(SYMPLECTIC),
+            energy_dt=p * period / (n - 0.5),
+            periods=p,
+        )
+        for e in c.energy:
+            assert e.n_steps == n
+            assert e.theta == rel_approx(theta, rel=1e-14)
+        check_modified_energy_rows(c, model)
 
 
 # --- Planted mutant ----------------------------------------------------------------------
