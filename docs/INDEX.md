@@ -44,7 +44,7 @@ is in `CLAUDE.md`).
 - 491-506: Adding a new model (the intended pattern)
 - 507-510: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1606 lines)
+## `SCIENTIFIC_VALIDATION.md` (1635 lines)
 - 6-29: Principles
 - 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
   - 32-43: Model
@@ -53,7 +53,7 @@ is in `CLAUDE.md`).
   - 71-107: What is tested
   - 108-137: Observed accuracy
   - 138-158: Known limitations
-- 159-340: `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
+- 159-369: `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
   - 161-169: Purpose
   - 170-195: Equations
   - 196-211: Linear stability
@@ -62,69 +62,70 @@ is in `CLAUDE.md`).
   - 234-258: Fit-range rule (fixed before inspecting results)
   - 259-289: Tests
   - 290-322: Observed results
-  - 323-340: Known limitations
-- 341-387: `physics.projectile.angle_sweep` v1.0.0: range against launch angle
-  - 343-354: What it computes
-  - 355-360: Precision
-  - 361-375: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
-  - 376-379: Observed (2026-10-15)
-  - 380-387: Limitations
-- 388-726: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
-  - 393-411: Model
-  - 412-431: No exact 2-D solution: what replaces it
-  - 432-459: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
-  - 460-474: Numerical-analysis issues handled
-  - 475-552: What is tested
-  - 553-597: Per-run checks shown in the app
-  - 598-619: Input limits, the integration cap and the stiffness guard
-  - 620-670: Observed accuracy
-  - 671-689: Replay tolerances
-  - 690-726: Known limitations
-- 727-942: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
-  - 735-754: What it computes
-  - 755-779: Mathematical results (proved on paper)
-  - 780-788: The accuracy estimate u (an estimate, not a bound)
-  - 789-828: What is tested
-  - 829-838: Per-run checks shown in the app
-  - 839-870: Observed accuracy and cost (one machine)
-  - 871-894: Input limits and the work budget
-  - 895-909: Replay tolerances
-  - 910-942: Known limitations
-- 943-1166: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
-  - 952-971: What is exact, and how it is evaluated
-  - 972-983: Limits introduced by this slice (measured, not assumed)
-  - 984-995: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
-  - 996-1077: Slice 2: the numerical solve and its per-run checks
-  - 1078-1123: Slice 3: the API, its limits and the run-cost rule
-  - 1124-1151: Slice 4: the page (`/physics/oscillator`)
-  - 1152-1166: Limitations
-- 1167-1305: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1173-1194: Model
-  - 1195-1230: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1231-1238: Numerical-analysis issue handled: cancellation in λ
-  - 1239-1260: Empirical evidence (held on the grid; not theorems)
-  - 1261-1276: What is tested
-  - 1277-1286: Per-run checks shown in the app
-  - 1287-1291: Observed (2026-10-15, default inputs)
-  - 1292-1305: Limitations
-- 1306-1387: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1308-1314: What it computes, and what it does not
-  - 1315-1330: Definitions
-  - 1331-1342: Numerical-analysis issues handled
-  - 1343-1357: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1358-1364: Per-run checks shown in the app
-  - 1365-1369: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1370-1387: Limitations
-- 1388-1481: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1417-1461: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1462-1473: Tests
-  - 1474-1481: Known limitations
-- 1482-1606: Comparison and export (roadmap 1.6)
-  - 1491-1525: Recomputed series: the digest says whether they are exact
-  - 1526-1554: CSV: what is written is the number that was computed
-  - 1555-1562: JSON export
-  - 1563-1596: The comparison: differences, not verdicts
-  - 1597-1606: Limitations
+  - 323-338: Known limitations
+  - 339-369: numerics/ (roadmap 2.4, slice 1: not yet used by any model)
+- 370-416: `physics.projectile.angle_sweep` v1.0.0: range against launch angle
+  - 372-383: What it computes
+  - 384-389: Precision
+  - 390-404: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
+  - 405-408: Observed (2026-10-15)
+  - 409-416: Limitations
+- 417-755: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
+  - 422-440: Model
+  - 441-460: No exact 2-D solution: what replaces it
+  - 461-488: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
+  - 489-503: Numerical-analysis issues handled
+  - 504-581: What is tested
+  - 582-626: Per-run checks shown in the app
+  - 627-648: Input limits, the integration cap and the stiffness guard
+  - 649-699: Observed accuracy
+  - 700-718: Replay tolerances
+  - 719-755: Known limitations
+- 756-971: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
+  - 764-783: What it computes
+  - 784-808: Mathematical results (proved on paper)
+  - 809-817: The accuracy estimate u (an estimate, not a bound)
+  - 818-857: What is tested
+  - 858-867: Per-run checks shown in the app
+  - 868-899: Observed accuracy and cost (one machine)
+  - 900-923: Input limits and the work budget
+  - 924-938: Replay tolerances
+  - 939-971: Known limitations
+- 972-1195: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
+  - 981-1000: What is exact, and how it is evaluated
+  - 1001-1012: Limits introduced by this slice (measured, not assumed)
+  - 1013-1024: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+  - 1025-1106: Slice 2: the numerical solve and its per-run checks
+  - 1107-1152: Slice 3: the API, its limits and the run-cost rule
+  - 1153-1180: Slice 4: the page (`/physics/oscillator`)
+  - 1181-1195: Limitations
+- 1196-1334: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1202-1223: Model
+  - 1224-1259: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1260-1267: Numerical-analysis issue handled: cancellation in λ
+  - 1268-1289: Empirical evidence (held on the grid; not theorems)
+  - 1290-1305: What is tested
+  - 1306-1315: Per-run checks shown in the app
+  - 1316-1320: Observed (2026-10-15, default inputs)
+  - 1321-1334: Limitations
+- 1335-1416: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1337-1343: What it computes, and what it does not
+  - 1344-1359: Definitions
+  - 1360-1371: Numerical-analysis issues handled
+  - 1372-1386: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1387-1393: Per-run checks shown in the app
+  - 1394-1398: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1399-1416: Limitations
+- 1417-1510: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1446-1490: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1491-1502: Tests
+  - 1503-1510: Known limitations
+- 1511-1635: Comparison and export (roadmap 1.6)
+  - 1520-1554: Recomputed series: the digest says whether they are exact
+  - 1555-1583: CSV: what is written is the number that was computed
+  - 1584-1591: JSON export
+  - 1592-1625: The comparison: differences, not verdicts
+  - 1626-1635: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -200,7 +201,7 @@ is in `CLAUDE.md`).
 - 510-522: Product structure (proposed)
 - 523-536: Sources
 
-## `docs/LEARNING_GUIDE.md` (4882 lines)
+## `docs/LEARNING_GUIDE.md` (4883 lines)
 - 21-103: How to use this guide
   - 23-32: Difficulty labels
   - 33-63: Suggested reading order
@@ -237,144 +238,144 @@ is in `CLAUDE.md`).
   - 948-989: 4.5 RK4: sample the slope four times **[Beyond IB]**
   - 990-1009: 4.6 Why the weights are 1-2-2-1 **[Beyond IB]**
   - 1010-1074: 4.7 The specialised velocity update ("velocity Verlet, implicit drag") **[IB core idea + Beyond IB]**
-- 1075-1473: Part 5 — Line-by-line walkthroughs of the engine
-  - 1079-1114: 5.1 Types and constants: `fixed_step.py:23-39`
-  - 1115-1135: 5.2 `euler_step`: `fixed_step.py:42-43`
-  - 1136-1163: 5.3 `rk4_step`: `fixed_step.py:46-51`
-  - 1164-1218: 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:54-85`
-  - 1219-1235: 5.5 Stability functions: `fixed_step.py:94-100`
-  - 1236-1271: 5.6 The Verlet stepper: `integrator_study.py:140-157`
-  - 1272-1318: 5.7 Choosing the method and the number of steps: `integrator_study.py:160-181`
-  - 1319-1377: 5.8 One run, measured: `_run`, `integrator_study.py:241-294`
-  - 1378-1417: 5.9 The whole study: `run_study`, `integrator_study.py:306-368` (key lines)
-  - 1418-1473: 5.10 Estimating the order: `numerics/convergence.py`
-- 1474-1771: Part 6 — Convergence, error, stability and the invariant
-  - 1476-1495: 6.1 Convergence order, precisely **[Beyond IB, built on IB logs]**
-  - 1496-1537: 6.2 Reading the order off a log-log plot, by hand
-  - 1538-1576: 6.3 SimForge's reported orders, and why they're not exactly 1, 4 and 2
-  - 1577-1595: 6.4 The round-off floor
-  - 1596-1678: 6.5 Stability and the amplification factor **[Beyond IB]**
-  - 1679-1696: 6.6 Stable is not the same as accurate
-  - 1697-1771: 6.7 The linear invariant: `v + k·r + g·t·ŷ = constant` **[IB core calculus + Beyond IB]**
-- 1772-1922: Part 7 — Tests as scientific evidence
-  - 1774-1788: 7.1 Four kinds of test, and what each can catch
-  - 1789-1820: 7.2 The strongest integrator test: the exact discrete solution
-  - 1821-1856: 7.3 The convergence test
-  - 1857-1884: 7.4 How a bug can pass a weak test and fail a strong one
-  - 1885-1901: 7.5 Traps the test design avoids
-  - 1902-1922: 7.6 What the tests prove, and what they don't
-- 1923-2252: Part 8 — Tracing one request through the whole application
-  - 1941-1966: The layers, and the rule that keeps them separate
-  - 1967-2016: [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
-  - 2017-2052: [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
-  - 2053-2069: [3] The proxy: `frontend/next.config.ts:6-13`
-  - 2070-2140: [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
-  - 2141-2165: [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
-  - 2166-2205: [6] Orchestration: `integrator_model.run`, `integrator_model.py:143-203`
-  - 2206-2210: [7] The science
-  - 2211-2223: [8] Recording the run: `record_run`, `api/recording.py:14-52`
-  - 2224-2252: [9]-[10] The response, and how it's drawn
-- 2253-2295: Part 9 — What we have demonstrated and what is still uncertain
-  - 2255-2274: Verified (by running code, or reading git and CI)
-  - 2275-2287: Assumptions and judgement calls (reasonable, but not proven)
-  - 2288-2295: Open questions this milestone does not answer
-- 2296-2454: Part 10 — Exercises and learning plan
-  - 2302-2320: Exercise 1: Euler's stable-but-strange zone
-  - 2321-2337: Exercise 2: derive Euler's exact error in a vacuum
-  - 2338-2354: Exercise 3: predict, then check, the halving ratios
-  - 2355-2369: Exercise 4: derive the specialised velocity update yourself
-  - 2370-2384: Exercise 5: test the invariant by hand
-  - 2385-2400: Exercise 6: measure an order from data
-  - 2401-2418: Exercise 7 (stretch): RK4 is not exact for `t⁴`
-  - 2419-2438: Exercise 8 (coding): break it on purpose
-  - 2439-2454: A suggested four-week learning plan
-- 2455-2667: Part 11 — The angle sweep: which launch angle throws furthest?
-  - 2465-2494: 11.1 The vacuum answer, and why 45° is a special case **[IB core]**
-  - 2495-2515: 11.2 With drag there is no formula, so we search **[IB core idea]**
-  - 2516-2560: 11.3 The method: a coarse grid, then refine **[Beyond IB]**
-  - 2561-2596: 11.4 Why the range is precise but the angle isn't: flat peaks **[IB core calculus + Beyond IB]**
-  - 2597-2621: 11.5 From request to response
-  - 2622-2642: 11.6 What the tests show, and what they don't
-  - 2643-2667: 11.7 Exercises (no solutions printed)
-- 2668-2728: Part 12 — The Economy Lab: the Solow growth model
-  - 2675-2684: 12.1 What carries over from the Physics Lab
-  - 2685-2693: 12.2 What is new, and shared by every lab from now on
-  - 2694-2718: 12.3 The physics pages in the workspace (roadmap step 1.2)
-  - 2719-2728: 12.4 Checkpoint
-- 2729-2766: Part 13 — Working tools: Claude Code skills and the session hook
-  - 2761-2766: 13.1 Checkpoint
-- 2767-2824: Part 14 — What reviewing the merged work taught us
-  - 2818-2824: 14.1 Checkpoint
-- 2825-2934: Part 15 — Replay: asking the same question twice
-  - 2830-2844: 15.1 Two hashes, two questions
-  - 2845-2851: 15.2 The model registry
-  - 2852-2859: 15.3 Migrating the experiment log without losing anything
-  - 2860-2892: 15.4 When the answers are not bit-identical: declared tolerances
-  - 2893-2899: 15.5 What the first replay found
-  - 2900-2914: 15.6 What CI found: same code, different CPU, different last bits
-  - 2915-2922: 15.7 Checkpoint
-  - 2923-2934: 15.8 Exercises
-- 2935-3003: Part 16 — The experiment log: find, reopen, replay, label
-  - 2939-2945: 16.1 The log page knows no model
-  - 2946-2950: 16.2 Reopening a run
-  - 2951-2982: 16.3 A reply that arrives too late
-  - 2983-2990: 16.4 Labels are not results
-  - 2991-2995: 16.5 Checkpoint
-  - 2996-3003: 16.6 Exercises
-- 3004-3251: Part 17 — Comparison and export: a reference run, CSV and JSON
-  - 3015-3059: 17.1 Why recompute instead of store, and how the digest proves it **[Beyond IB idea]**
-  - 3060-3082: 17.2 CSV, RFC 4180, and why `0.1 + 0.2` is written `0.30000000000000004` **[IB CS-ish]**
-  - 3083-3125: 17.3 CSV formula injection, and why numbers are exempt **[Security]**
-  - 3126-3158: 17.4 The reference run lives in the URL, not the database
-  - 3159-3197: 17.5 Relative change, and why a reference of 0 is undefined **[IB Maths]**
-  - 3198-3218: 17.6 Why replay tolerances are not significance tests **[IB Physics/Econ: uncertainty]**
-  - 3219-3225: 17.7 The JSON export
-  - 3226-3234: 17.8 Checkpoint
-  - 3235-3251: 17.9 Exercises
-- 3252-4030: Part 18 — Quadratic drag: checking a model with no exact answer
-  - 3261-3305: 18.1 Why air resistance grows like v² for a fast ball **[IB core idea]**
-  - 3306-3327: 18.2 The equations, and why x and y no longer separate **[IB core → IB HL]**
-  - 3328-3346: 18.3 Terminal speed as a force balance **[IB core]**
-  - 3347-3420: 18.4 Straight up: the rise, with `tan` **[IB HL]**
-  - 3421-3510: 18.5 Coming down: the fall, with `tanh` **[IB HL → Beyond IB]**
-  - 3511-3526: 18.6 The c → 0 limit **[IB HL]**
-  - 3527-3546: 18.7 The energy balance **[IB core]**
-  - 3547-3637: 18.8 The hodograph invariant **[Beyond IB]**
-  - 3638-3672: 18.9 Two proved bounds, and why the solver needs them **[Beyond IB]**
-  - 3673-3765: 18.10 The stiffness guard, redesigned **[IB core idea → Beyond IB]**
-  - 3766-3837: 18.11 A wrong force law that passes three tests **[Beyond IB idea]**
-  - 3838-3857: 18.12 Why 2.1 is a new model, not an option on the old one
-  - 3858-3944: 18.13 The code
-  - 3945-3978: 18.14 What the evidence does and does not show
-  - 3979-3997: 18.15 Checkpoint
-  - 3998-4030: 18.16 Exercises
-- 4031-4453: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
-  - 4048-4064: 19.1 Why drag lowers the best angle **[IB core idea]**
-  - 4065-4077: 19.2 One number for "how strong is the drag": ε **[IB core]**
-  - 4078-4152: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
-  - 4153-4169: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
-  - 4170-4204: 19.5 Refining the best angle with Brent **[Beyond IB]**
-  - 4205-4266: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
-  - 4267-4340: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
-  - 4341-4377: 19.8 Why a new model again
-  - 4378-4393: 19.9 Replay: what may move on another computer
-  - 4394-4408: 19.10 What the evidence does and does not show
-  - 4409-4424: 19.11 Checkpoint
-  - 4425-4453: 19.12 Exercises
-- 4454-4687: Part 20 — Oscillators: springs, damping and resonance
-  - 4472-4486: 20.1 Simple harmonic motion: the spring pulls back, the mass overshoots **[IB core, C.1]**
-  - 4487-4503: 20.2 Damping, and three regimes **[verify against the IB guide]**
-  - 4504-4526: 20.3 Driving, resonance and the phase lag **[verify against the IB guide]**
-  - 4527-4540: 20.4 Quality factor Q: how sharp the peak is **[verify; otherwise Beyond IB]**
-  - 4541-4580: 20.5 The exact solution, and three traps **[Beyond IB]**
-  - 4581-4594: 20.6 The steady state in code **[Beyond IB]**
-  - 4595-4610: 20.7 Scaling: why the solver works in dimensionless variables **[Beyond IB]**
-  - 4611-4644: 20.8 The checks: how the page knows a run is right **[Beyond IB]**
-  - 4645-4660: 20.9 The page and its presets **[SimForge]**
-  - 4661-4669: 20.10 Checkpoint **[answer in your own words]**
-  - 4670-4687: 20.11 Exercises (no solutions given)
-- 4688-4751: Appendix — Symbol table
-- 4752-4882: Changes from the previous version of this guide
+- 1075-1474: Part 5 — Line-by-line walkthroughs of the engine
+  - 1079-1115: 5.1 Types and constants: `fixed_step.py:26-43`
+  - 1116-1136: 5.2 `euler_step`: `fixed_step.py:46-47`
+  - 1137-1164: 5.3 `rk4_step`: `fixed_step.py:50-55`
+  - 1165-1219: 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:58-89`
+  - 1220-1236: 5.5 Stability functions: `fixed_step.py:98-104`
+  - 1237-1272: 5.6 The Verlet stepper: `integrator_study.py:140-157`
+  - 1273-1319: 5.7 Choosing the method and the number of steps: `integrator_study.py:160-181`
+  - 1320-1378: 5.8 One run, measured: `_run`, `integrator_study.py:241-294`
+  - 1379-1418: 5.9 The whole study: `run_study`, `integrator_study.py:306-368` (key lines)
+  - 1419-1474: 5.10 Estimating the order: `numerics/convergence.py`
+- 1475-1772: Part 6 — Convergence, error, stability and the invariant
+  - 1477-1496: 6.1 Convergence order, precisely **[Beyond IB, built on IB logs]**
+  - 1497-1538: 6.2 Reading the order off a log-log plot, by hand
+  - 1539-1577: 6.3 SimForge's reported orders, and why they're not exactly 1, 4 and 2
+  - 1578-1596: 6.4 The round-off floor
+  - 1597-1679: 6.5 Stability and the amplification factor **[Beyond IB]**
+  - 1680-1697: 6.6 Stable is not the same as accurate
+  - 1698-1772: 6.7 The linear invariant: `v + k·r + g·t·ŷ = constant` **[IB core calculus + Beyond IB]**
+- 1773-1923: Part 7 — Tests as scientific evidence
+  - 1775-1789: 7.1 Four kinds of test, and what each can catch
+  - 1790-1821: 7.2 The strongest integrator test: the exact discrete solution
+  - 1822-1857: 7.3 The convergence test
+  - 1858-1885: 7.4 How a bug can pass a weak test and fail a strong one
+  - 1886-1902: 7.5 Traps the test design avoids
+  - 1903-1923: 7.6 What the tests prove, and what they don't
+- 1924-2253: Part 8 — Tracing one request through the whole application
+  - 1942-1967: The layers, and the rule that keeps them separate
+  - 1968-2017: [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
+  - 2018-2053: [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
+  - 2054-2070: [3] The proxy: `frontend/next.config.ts:6-13`
+  - 2071-2141: [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
+  - 2142-2166: [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
+  - 2167-2206: [6] Orchestration: `integrator_model.run`, `integrator_model.py:143-203`
+  - 2207-2211: [7] The science
+  - 2212-2224: [8] Recording the run: `record_run`, `api/recording.py:14-52`
+  - 2225-2253: [9]-[10] The response, and how it's drawn
+- 2254-2296: Part 9 — What we have demonstrated and what is still uncertain
+  - 2256-2275: Verified (by running code, or reading git and CI)
+  - 2276-2288: Assumptions and judgement calls (reasonable, but not proven)
+  - 2289-2296: Open questions this milestone does not answer
+- 2297-2455: Part 10 — Exercises and learning plan
+  - 2303-2321: Exercise 1: Euler's stable-but-strange zone
+  - 2322-2338: Exercise 2: derive Euler's exact error in a vacuum
+  - 2339-2355: Exercise 3: predict, then check, the halving ratios
+  - 2356-2370: Exercise 4: derive the specialised velocity update yourself
+  - 2371-2385: Exercise 5: test the invariant by hand
+  - 2386-2401: Exercise 6: measure an order from data
+  - 2402-2419: Exercise 7 (stretch): RK4 is not exact for `t⁴`
+  - 2420-2439: Exercise 8 (coding): break it on purpose
+  - 2440-2455: A suggested four-week learning plan
+- 2456-2668: Part 11 — The angle sweep: which launch angle throws furthest?
+  - 2466-2495: 11.1 The vacuum answer, and why 45° is a special case **[IB core]**
+  - 2496-2516: 11.2 With drag there is no formula, so we search **[IB core idea]**
+  - 2517-2561: 11.3 The method: a coarse grid, then refine **[Beyond IB]**
+  - 2562-2597: 11.4 Why the range is precise but the angle isn't: flat peaks **[IB core calculus + Beyond IB]**
+  - 2598-2622: 11.5 From request to response
+  - 2623-2643: 11.6 What the tests show, and what they don't
+  - 2644-2668: 11.7 Exercises (no solutions printed)
+- 2669-2729: Part 12 — The Economy Lab: the Solow growth model
+  - 2676-2685: 12.1 What carries over from the Physics Lab
+  - 2686-2694: 12.2 What is new, and shared by every lab from now on
+  - 2695-2719: 12.3 The physics pages in the workspace (roadmap step 1.2)
+  - 2720-2729: 12.4 Checkpoint
+- 2730-2767: Part 13 — Working tools: Claude Code skills and the session hook
+  - 2762-2767: 13.1 Checkpoint
+- 2768-2825: Part 14 — What reviewing the merged work taught us
+  - 2819-2825: 14.1 Checkpoint
+- 2826-2935: Part 15 — Replay: asking the same question twice
+  - 2831-2845: 15.1 Two hashes, two questions
+  - 2846-2852: 15.2 The model registry
+  - 2853-2860: 15.3 Migrating the experiment log without losing anything
+  - 2861-2893: 15.4 When the answers are not bit-identical: declared tolerances
+  - 2894-2900: 15.5 What the first replay found
+  - 2901-2915: 15.6 What CI found: same code, different CPU, different last bits
+  - 2916-2923: 15.7 Checkpoint
+  - 2924-2935: 15.8 Exercises
+- 2936-3004: Part 16 — The experiment log: find, reopen, replay, label
+  - 2940-2946: 16.1 The log page knows no model
+  - 2947-2951: 16.2 Reopening a run
+  - 2952-2983: 16.3 A reply that arrives too late
+  - 2984-2991: 16.4 Labels are not results
+  - 2992-2996: 16.5 Checkpoint
+  - 2997-3004: 16.6 Exercises
+- 3005-3252: Part 17 — Comparison and export: a reference run, CSV and JSON
+  - 3016-3060: 17.1 Why recompute instead of store, and how the digest proves it **[Beyond IB idea]**
+  - 3061-3083: 17.2 CSV, RFC 4180, and why `0.1 + 0.2` is written `0.30000000000000004` **[IB CS-ish]**
+  - 3084-3126: 17.3 CSV formula injection, and why numbers are exempt **[Security]**
+  - 3127-3159: 17.4 The reference run lives in the URL, not the database
+  - 3160-3198: 17.5 Relative change, and why a reference of 0 is undefined **[IB Maths]**
+  - 3199-3219: 17.6 Why replay tolerances are not significance tests **[IB Physics/Econ: uncertainty]**
+  - 3220-3226: 17.7 The JSON export
+  - 3227-3235: 17.8 Checkpoint
+  - 3236-3252: 17.9 Exercises
+- 3253-4031: Part 18 — Quadratic drag: checking a model with no exact answer
+  - 3262-3306: 18.1 Why air resistance grows like v² for a fast ball **[IB core idea]**
+  - 3307-3328: 18.2 The equations, and why x and y no longer separate **[IB core → IB HL]**
+  - 3329-3347: 18.3 Terminal speed as a force balance **[IB core]**
+  - 3348-3421: 18.4 Straight up: the rise, with `tan` **[IB HL]**
+  - 3422-3511: 18.5 Coming down: the fall, with `tanh` **[IB HL → Beyond IB]**
+  - 3512-3527: 18.6 The c → 0 limit **[IB HL]**
+  - 3528-3547: 18.7 The energy balance **[IB core]**
+  - 3548-3638: 18.8 The hodograph invariant **[Beyond IB]**
+  - 3639-3673: 18.9 Two proved bounds, and why the solver needs them **[Beyond IB]**
+  - 3674-3766: 18.10 The stiffness guard, redesigned **[IB core idea → Beyond IB]**
+  - 3767-3838: 18.11 A wrong force law that passes three tests **[Beyond IB idea]**
+  - 3839-3858: 18.12 Why 2.1 is a new model, not an option on the old one
+  - 3859-3945: 18.13 The code
+  - 3946-3979: 18.14 What the evidence does and does not show
+  - 3980-3998: 18.15 Checkpoint
+  - 3999-4031: 18.16 Exercises
+- 4032-4454: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
+  - 4049-4065: 19.1 Why drag lowers the best angle **[IB core idea]**
+  - 4066-4078: 19.2 One number for "how strong is the drag": ε **[IB core]**
+  - 4079-4153: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
+  - 4154-4170: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
+  - 4171-4205: 19.5 Refining the best angle with Brent **[Beyond IB]**
+  - 4206-4267: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
+  - 4268-4341: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
+  - 4342-4378: 19.8 Why a new model again
+  - 4379-4394: 19.9 Replay: what may move on another computer
+  - 4395-4409: 19.10 What the evidence does and does not show
+  - 4410-4425: 19.11 Checkpoint
+  - 4426-4454: 19.12 Exercises
+- 4455-4688: Part 20 — Oscillators: springs, damping and resonance
+  - 4473-4487: 20.1 Simple harmonic motion: the spring pulls back, the mass overshoots **[IB core, C.1]**
+  - 4488-4504: 20.2 Damping, and three regimes **[verify against the IB guide]**
+  - 4505-4527: 20.3 Driving, resonance and the phase lag **[verify against the IB guide]**
+  - 4528-4541: 20.4 Quality factor Q: how sharp the peak is **[verify; otherwise Beyond IB]**
+  - 4542-4581: 20.5 The exact solution, and three traps **[Beyond IB]**
+  - 4582-4595: 20.6 The steady state in code **[Beyond IB]**
+  - 4596-4611: 20.7 Scaling: why the solver works in dimensionless variables **[Beyond IB]**
+  - 4612-4645: 20.8 The checks: how the page knows a run is right **[Beyond IB]**
+  - 4646-4661: 20.9 The page and its presets **[SimForge]**
+  - 4662-4670: 20.10 Checkpoint **[answer in your own words]**
+  - 4671-4688: 20.11 Exercises (no solutions given)
+- 4689-4752: Appendix — Symbol table
+- 4753-4883: Changes from the previous version of this guide
 
 ## `docs/QUANT_LEARNING_GUIDE.md` (668 lines)
 - 18-42: How to use this guide

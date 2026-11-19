@@ -336,6 +336,35 @@ or run the study from the UI (Physics Lab → Integrators).
 - **Not a proof.** The fits are empirical evidence consistent with theory on the cases tested.
   They are not a proof of order and say nothing about other problems.
 
+### numerics/ (roadmap 2.4, slice 1: not yet used by any model)
+
+Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
+`backend/tests/numerics/test_symplectic.py`, `test_events.py`, `test_workbench.py`.
+
+- **Steppers** (`fixed_step.py`): `symplectic_euler` (kick then drift) and `velocity_verlet`,
+  for an acceleration a(t, q) that does not depend on velocity.
+- **Proved, and checked exactly** (exact `fractions` iteration, 40 steps, θ = 1/5 and 3/2):
+  on q'' = −ω²q the modified energy H̃ (R3, R4) stays exactly constant, and Euler's and RK4's
+  E_{n+1}/E_n equals R1 and R2 exactly. `harmonic_energy_factor` and `modified_energy`
+  match these to 4-8 ε.
+- **Proved bound, tested in floats**: R5 (|E_n − E₀|/E₀ ≤ θ/(1 − θ/2) or
+  (θ²/4)/(1 − θ²/4) for θ < 2) holds on 40 random cases (θ ∈ (0, 1.9), 2000 steps) with
+  the rounding allowance C_ENERGY_BOUND·N·ε. R7 is tested: trace 2 − θ², det 1, and
+  phase 2 asin(θ/2). Verlet diverges at θ = 2.01 and stays bounded at 1.99.
+- **Rounding allowances, measured** (2026-11-19, x86_64, Python 3.12.3). Over 10⁵ steps the
+  float H̃ drifts by at most 0.781·(n + 1)·ε (worst case), so C_MODIFIED_ENERGY = 10. On the
+  R5 grid the bound is never tight: max|ΔE|/E₀ − R5 < 0 in every case. The allowance was
+  therefore set from the rounding that enters ΔE, max|H̃_n − H̃₀|/(E₀(n + 1)ε), whose worst
+  case is 4.02, so C_ENERGY_BOUND = 50. Both are 1-2-5 values at least 10× the worst case.
+- **Event location** (`events.py`, tested): on e^t − 2 at s = ½, linear and cubic Hermite
+  location give fitted orders 2 ± 0.02 and 4 ± 0.02 (R6). At the finest h they match the
+  leading terms h²/8 and h⁴/384 within 1%. Hermite is exact to 8 ε on a cubic and on
+  vacuum-parabola nodes, against a landing time computed in 50-digit `decimal`.
+- **Driver** (`workbench.py`, tested): on a synthetic problem whose error is c·T·h^p by
+  construction, it recovers p within 1e-4 and applies the exclusion order (diverged, the
+  model's rule, the round-off floor). `energy_envelope` keeps each bin's minimum and maximum,
+  checked by brute force.
+
 ---
 
 ## `physics.projectile.angle_sweep` v1.0.0: range against launch angle

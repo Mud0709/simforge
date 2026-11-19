@@ -252,7 +252,7 @@ current time and state and returns the rate of change. A starting value such as
 
 **In SimForge.** The projectile is a *system* of four first-order ODEs, one for each of
 `x, y, vx, vy`. The function `rhs` (`integrator_study.py:131-137`) is literally `f`.
-The type alias `RHS = Callable[[float, FloatArray], FloatArray]` (`fixed_step.py:32`) means
+The type alias `RHS = Callable[[float, FloatArray], FloatArray]` (`fixed_step.py:36`) means
 "a function that takes a time and a state array and returns an array of rates".
 
 **Check yourself.** Write down a differential equation for "a cup of tea cools at a rate
@@ -1076,12 +1076,13 @@ excellent stability (Part 6.5). Don't describe it as symplectic or energy-preser
 
 Open `backend/src/simforge/numerics/fixed_step.py` beside this section.
 
-### 5.1 Types and constants: `fixed_step.py:23-39`
+### 5.1 Types and constants: `fixed_step.py:26-43`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:23-39 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:26-43 -->
 ```python
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -1101,20 +1102,20 @@ DIVERGENCE_THRESHOLD = 1e100
 
 | Line | Meaning |
 |---|---|
-| 23 | Lets type hints refer to types defined later in the file, and keeps them cheap at runtime. Boilerplate you'll see in every file. |
-| 25-29 | Imports. `Callable` describes "a function with this shape"; `NDArray` describes NumPy arrays. |
-| 31 | `FloatArray` is a nickname for "a NumPy array of 64-bit floats". |
-| 32 | `RHS`: a function taking `(t: float, state: array)` and returning an array of rates. That's `f` from Part 1.4. |
-| 33 | `Stepper`: a function taking `(f, t, state, h)` and returning the **next state**. `euler_step` and `rk4_step` both have exactly this shape, which is what makes them interchangeable. |
-| 39 | If any number in the state exceeds `10¹⁰⁰`, the run counts as *diverged* (blown up). Even the most extreme inputs the API allows give positions of only around `10⁷ m` (a `10⁴ m/s` launch with very weak drag). Stopping at `10¹⁰⁰` leaves a huge margin below the float64 maximum, about `1.8 × 10³⁰⁸`, where numbers become `inf`. |
+| 26 | Lets type hints refer to types defined later in the file, and keeps them cheap at runtime. Boilerplate you'll see in every file. |
+| 28-33 | Imports (`math` for the closed forms further down). `Callable` describes "a function with this shape"; `NDArray` describes NumPy arrays. |
+| 35 | `FloatArray` is a nickname for "a NumPy array of 64-bit floats". |
+| 36 | `RHS`: a function taking `(t: float, state: array)` and returning an array of rates. That's `f` from Part 1.4. |
+| 37 | `Stepper`: a function taking `(f, t, state, h)` and returning the **next state**. `euler_step` and `rk4_step` both have exactly this shape, which is what makes them interchangeable. |
+| 43 | If any number in the state exceeds `10¹⁰⁰`, the run counts as *diverged* (blown up). Even the most extreme inputs the API allows give positions of only around `10⁷ m` (a `10⁴ m/s` launch with very weak drag). Stopping at `10¹⁰⁰` leaves a huge margin below the float64 maximum, about `1.8 × 10³⁰⁸`, where numbers become `inf`. |
 
 Type hints like `-> FloatArray` **don't change what Python does**. They're checked by
 `mypy --strict` in CI and help catch mistakes, such as passing a single number where an
 array is expected.
 
-### 5.2 `euler_step`: `fixed_step.py:42-43`
+### 5.2 `euler_step`: `fixed_step.py:46-47`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:42-43 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:46-47 -->
 ```python
 def euler_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
     return y + h * f(t, y)
@@ -1133,9 +1134,9 @@ of one whole second, whatever `h` is. Smaller `h` means more steps, so the run w
 simulate *more* time instead of the same time more accurately, and the error would stop
 shrinking as `h` shrinks. That's exactly the behaviour the convergence tests check for.
 
-### 5.3 `rk4_step`: `fixed_step.py:46-51`
+### 5.3 `rk4_step`: `fixed_step.py:50-55`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:46-51 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:50-55 -->
 ```python
 def rk4_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
     k1 = f(t, y)
@@ -1147,13 +1148,13 @@ def rk4_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
 
 | Line | What it computes | Why it's needed |
 |---|---|---|
-| 47 | `k1`: slope at the start | Same information Euler uses |
-| 48 | `k2`: slope at the midpoint `t + h/2`, at the trial state `y + (h/2)·k1` | Corrects for the slope changing during the step |
-| 49 | `k3`: slope at the midpoint again, now using the better slope `k2` to get there | Refines the midpoint estimate |
-| 50 | `k4`: slope at the end `t + h`, reached using `k3` | Information about the end of the step |
-| 51 | Weighted average `(k1 + 2k2 + 2k3 + k4)/6`, times `h`, added to `y` | The weights make the step match the Taylor series to 4th order (4.6) |
+| 51 | `k1`: slope at the start | Same information Euler uses |
+| 52 | `k2`: slope at the midpoint `t + h/2`, at the trial state `y + (h/2)·k1` | Corrects for the slope changing during the step |
+| 53 | `k3`: slope at the midpoint again, now using the better slope `k2` to get there | Refines the midpoint estimate |
+| 54 | `k4`: slope at the end `t + h`, reached using `k3` | Information about the end of the step |
+| 55 | Weighted average `(k1 + 2k2 + 2k3 + k4)/6`, times `h`, added to `y` | The weights make the step match the Taylor series to 4th order (4.6) |
 
-**What if line 49 used `k1` instead of `k2`?** That typo gives a method that still
+**What if line 53 used `k1` instead of `k2`?** That typo gives a method that still
 converges, but at **second** order instead of fourth. Measured in Part 7.4.
 
 **Cost:** four calls to `f` per step, against Euler's one. RK4 is still far cheaper for a
@@ -1161,9 +1162,9 @@ given accuracy. In the default case, RK4 with 87 steps (348 evaluations of `f`) 
 maximum position error of `3.3 × 10⁻⁸ m`. Euler with 1,383 steps (1,383 evaluations) is
 still off by `8.0 × 10⁻³ m`, which is 8 mm.
 
-### 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:54-85`
+### 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:58-89`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:54-85 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:58-89 -->
 ```python
 @dataclass(frozen=True, slots=True)
 class FixedStepSolution:
@@ -1204,21 +1205,21 @@ This is the **driver**. It doesn't know any numerical method itself; you pass on
 
 | Line | Meaning | Why |
 |---|---|---|
-| 54-58 | A small immutable record of the result: node times, states (one row per node) and a `diverged` flag. | Bundles the output so callers can't confuse which array is which. |
-| 62 | Inputs: `step` (the method), `f` (the physics), `y0` (initial state), `t0` (start time), `h` (step), `n_steps` (how many). | Passing the method in as an argument is the **strategy pattern**: one loop, many interchangeable methods. |
-| 70-71 | Rejects `h ≤ 0` or zero steps. `not h > 0` (rather than `h <= 0`) also rejects `NaN`, because every comparison with `NaN` is false. | Fail loudly on nonsense input. |
-| 72 | Pre-allocates a table with `n_steps + 1` rows (the start plus one row per step) and one column per state component (4 here). | Faster than growing a list, and the shape is known in advance. |
-| 73 | Row 0 is the initial state. | |
-| 76 | `np.errstate(...)` temporarily silences NumPy's overflow warnings, inside the `with` block only. | An unstable run *will* overflow. Line 79 handles that explicitly, rather than emitting warnings (which this project's test settings turn into failures). |
-| 77-78 | The loop. Each pass computes the next state from the current row. Note `t0 + n * h`. | **Why not `t += h`?** Adding `0.1` ten times in float64 gives `0.9999999999999999`, while `10 * 0.1` gives exactly `1.0`. Multiplying avoids accumulating rounding error in the clock. |
-| 79-81 | If any value is `inf`/`NaN` or bigger than `10¹⁰⁰`, mark the run as diverged and **stop**. | Unstable methods grow geometrically. Stopping early keeps every stored number finite, which the API needs because JSON can't represent `inf`. |
-| 82-83 | Store the new row and count it. | `n_done` records how far we got, even if we stopped early. |
-| 84 | Builds the node times `t0, t0+h, t0+2h, …` in one go. | Same multiply-don't-add reason. |
-| 85 | Returns only the rows actually computed (`y[: n_done + 1]` means "rows 0 to n_done"). | A diverged run returns a shorter table. |
+| 58-62 | A small immutable record of the result: node times, states (one row per node) and a `diverged` flag. | Bundles the output so callers can't confuse which array is which. |
+| 66 | Inputs: `step` (the method), `f` (the physics), `y0` (initial state), `t0` (start time), `h` (step), `n_steps` (how many). | Passing the method in as an argument is the **strategy pattern**: one loop, many interchangeable methods. |
+| 74-75 | Rejects `h ≤ 0` or zero steps. `not h > 0` (rather than `h <= 0`) also rejects `NaN`, because every comparison with `NaN` is false. | Fail loudly on nonsense input. |
+| 76 | Pre-allocates a table with `n_steps + 1` rows (the start plus one row per step) and one column per state component (4 here). | Faster than growing a list, and the shape is known in advance. |
+| 77 | Row 0 is the initial state. | |
+| 80 | `np.errstate(...)` temporarily silences NumPy's overflow warnings, inside the `with` block only. | An unstable run *will* overflow. Line 83 handles that explicitly, rather than emitting warnings (which this project's test settings turn into failures). |
+| 81-82 | The loop. Each pass computes the next state from the current row. Note `t0 + n * h`. | **Why not `t += h`?** Adding `0.1` ten times in float64 gives `0.9999999999999999`, while `10 * 0.1` gives exactly `1.0`. Multiplying avoids accumulating rounding error in the clock. |
+| 83-85 | If any value is `inf`/`NaN` or bigger than `10¹⁰⁰`, mark the run as diverged and **stop**. | Unstable methods grow geometrically. Stopping early keeps every stored number finite, which the API needs because JSON can't represent `inf`. |
+| 86-87 | Store the new row and count it. | `n_done` records how far we got, even if we stopped early. |
+| 88 | Builds the node times `t0, t0+h, t0+2h, …` in one go. | Same multiply-don't-add reason. |
+| 89 | Returns only the rows actually computed (`y[: n_done + 1]` means "rows 0 to n_done"). | A diverged run returns a shorter table. |
 
-### 5.5 Stability functions: `fixed_step.py:94-100`
+### 5.5 Stability functions: `fixed_step.py:98-104`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:94-100 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:98-104 -->
 ```python
 def euler_stability(z: float) -> float:
     return 1.0 + z
@@ -1614,7 +1615,7 @@ which is always between 0 and 1. The method keeps errors from growing only if
 |1 − kh| ≤ 1   ⇔   −1 ≤ 1 − kh ≤ 1   ⇔   0 ≤ kh ≤ 2
 ```
 So **Euler is stable only for `kh ≤ 2`**, i.e. `h ≤ 2/k`. In general, `R(z)` with
-`z = −kh` is the method's **stability function** (`fixed_step.py:94-100`,
+`z = −kh` is the method's **stability function** (`fixed_step.py:98-104`,
 `integrator_study.py:96-97`).
 
 **Amplification factors from the code** (`amplification_factor(method, kh)`):
@@ -2420,7 +2421,7 @@ with `h⁵/5`.
 - **Objective:** learn which tests guard which part of the code, and how to change the
   engine safely.
 - **Task:** in your local copy, change the last line of `rk4_step`
-  (`numerics/fixed_step.py:51`) to the "equal weights" bug from 7.4. *Predict* which tests
+  (`numerics/fixed_step.py:55`) to the "equal weights" bug from 7.4. *Predict* which tests
   will fail before running
   `cd backend && uv run pytest tests/numerics tests/physics/test_projectile_integrators.py -q`.
   Compare your prediction with the result. Then, from the repository root, **restore the file**
