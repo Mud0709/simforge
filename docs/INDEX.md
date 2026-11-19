@@ -445,21 +445,21 @@ is in `CLAUDE.md`).
 - 573-579: Out of scope (for the author)
 - 580-589: Genuine stops found
 
-## `docs/plans/ROADMAP_2_4_PLAN.md` (374 lines)
+## `docs/plans/ROADMAP_2_4_PLAN.md` (398 lines)
 - 9-20: Grilling record (2026-11-19)
 - 21-23: Slice status
 - 24-33: Scope
 - 34-65: Before deciding
 - 66-77: Design tree and rounds (self-grilled)
-- 78-189: Decisions
-- 190-222: Reference formulas (derived for this plan)
-- 223-234: Seams (where tests attach; what each catches and misses)
-- 235-343: Slices (test-first with `tdd`: `test-writer-risky` then `builder-risky`, then a fresh `reviewer`)
-  - 240-259: Slice 1: numerics core (risky: numerics, references, tolerances)
-  - 260-281: Slice 2: the oscillator methods study and its API (risky: scientific core, limits)
-  - 282-304: Slice 3: projectile and linear-sweep checks; shared landing logic (risky: thresholds, refactor of two solvers)
-  - 305-325: Slice 4: the projectile study on the workbench, with event location (risky: numerics, tolerances)
-  - 326-343: Slice 5: frontend, guide, brief and close-out (routine)
-- 344-356: Risks
-- 357-365: Out of scope / Not done
-- 366-374: Genuine stops found
+- 78-194: Decisions
+- 195-228: Reference formulas (derived for this plan)
+- 229-240: Seams (where tests attach; what each catches and misses)
+- 241-355: Slices (test-first with `tdd`: `test-writer-risky` then `builder-risky`, then a fresh `reviewer`)
+  - 246-265: Slice 1: numerics core (risky: numerics, references, tolerances)
+  - 266-290: Slice 2: the oscillator methods study and its API (risky: scientific core, limits)
+  - 291-313: Slice 3: projectile and linear-sweep checks; shared landing logic (risky: thresholds, refactor of two solvers)
+  - 314-337: Slice 4: the projectile study on the workbench, with event location (risky: numerics, tolerances)
+  - 338-355: Slice 5: frontend, guide, brief and close-out (routine)
+- 356-368: Risks
+- 369-389: Out of scope / Not done
+- 390-398: Genuine stops found

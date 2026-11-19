@@ -152,15 +152,20 @@ slice that owns it, edit the decision; after, edit that slice.
 - **D13. Per-run checks** (`ValidationCheck`, decision 12; above 100% gives `passed = null`).
   *Oscillator study:* per method with a fit, order within 0.1 of theory (diagnostic); per
   method, the long run's E_N/E₀ against R1/R2 (Euler, RK4) or max H̃ residual (symplectic)
-  within C·N·ε (exact identity; C measured, 1-2-5, ≥ 10× the worst); symplectic max |ΔE|/E₀
-  within the R5 bound × (1 + C·N·ε) (exact identity, proved bound); fit counts and excluded
-  runs (info); a run with ωh ≥ the stability limit gives no verdict on the energy rows.
+  within C·N·ε (exact identity; C measured, 1-2-5, ≥ 10× the worst). **Euler's row compares
+  E_N/E₀ with (1 + θ²)^N while the run stays finite, whatever its stability** (the identity
+  holds for every θ). Symplectic max |ΔE|/E₀ within **R5 bound + C·N·ε** (additive: rounding
+  adds about N·ε regardless of θ; C measured as for the H̃ row; label **proved bound**, not
+  exact identity). A run that diverges (`DIVERGENCE_THRESHOLD`, `fixed_step.py:39`) reports
+  status "diverged" with the step at which it did, and its energy rows give `passed = null`
+  with that reason; symplectic runs at θ ≥ 2 (R7) give no verdict on the R5 row. Fit counts
+  and excluded runs (info).
   *Projectile study:* the notes' rows (order within 0.1; δv = −k·δr for Euler and RK4 to
   measured rounding; counts) plus landing-time order within 0.1 of R6 per method and
   interpolant. *Projectile:* flight time, range, max height against the exact solution and the
   energy balance, thresholds `F·(rtol + atol/scale) + floor` measured on a grid (form of 2.1).
   *Linear angle sweep:* interior peaks on the grid = 1 (diagnostic); **range with drag ≤
-  vacuum range at every angle and for the best angle** (exact identity, proved in R8, with an
+  vacuum range at every angle and for the best angle** (**proved inequality**, R8, with an
   allowance c·ε·range measured).
 - **D14. Response, versions, golden runs.** New fields only; nothing renamed.
   `physics.oscillator.integrators` v1.0.0 (hash: parameters, dt_values, methods, energy_dt,
@@ -202,6 +207,7 @@ Harmonic test equation q̈ = −ω²q, u = v/ω, θ = ωh, E ∝ q² + u² (E = 
 - **R5 Proved energy bounds** (θ < 2). From R3, |qu| ≤ E/2:
   |E_n − E₀|/E₀ ≤ θ/(1 − θ/2) (symplectic Euler). From R4, E_n = H̃ + (θ²/4)q_n² and
   q_n² ≤ H̃/β: |E_n − E₀|/E₀ ≤ (θ²/4)/(1 − θ²/4) (Verlet). Bounded for all n: no secular drift.
+  A proved bound in exact arithmetic; the float check adds C·N·ε (D13).
 - **R6 Event location.** With a crossing at fraction s of a step and g the event function,
   linear interpolation errs by s(1 − s)h²g″/(2|g′|) + O(h³); cubic Hermite by
   s²(1 − s)²h⁴g⁗/(24|g′|) + O(h⁵) (at s = ½: h²g″/(8|g′|) and h⁴g⁗/(384|g′|)). Hermite is
@@ -210,7 +216,7 @@ Harmonic test equation q̈ = −ω²q, u = v/ω, θ = ωh, E ∝ q² + u² (E = 
 - **R7 Stability and phase on the test equation.** Symplectic Euler and Verlet: trace
   2 − θ², stable for θ < 2, phase per step φ = arccos(1 − θ²/2) = θ + θ³/24 + …; RK4 stable
   for θ ≤ 2√2; Euler unstable for θ > 0.
-- **R8 Drag never lengthens the range** (linear drag, vₓ₀ > 0, any launch height). With
+- **R8 Drag never lengthens the range** (a proved inequality; linear drag, vₓ₀ > 0, any launch height). With
   u = kx/vₓ₀: y_drag(x) = h₀ + x tan α + (g/k²)(u + ln(1 − u)) and
   y_vac(x) = h₀ + x tan α − (g/k²)u²/2; since u + ln(1 − u) = −u²/2 − u³/3 − … ≤ −u²/2, the
   drag path is never above the vacuum path at the same x, so it lands no farther.
@@ -272,8 +278,11 @@ section `physics.oscillator.integrators` v1.0.0 with measured C, caps and timing
   tests/api/test_golden_digests.py -q`; `scripts/run_logged.sh s2-pytest 'cd backend && uv
   run pytest -q'`; from the root `make api-types` then `git diff --stat frontend/src/lib/api`.
 - **Checks:** (1) On the default request and a corner grid (ω at its bounds, x₀ only, v₀ only,
-  both; `periods` 1 and 1000 within the caps), every check passes and the four fitted orders
-  are within 0.1 of 1, 4, 1, 2? (2) The mutant fails the modified-energy check while the true
+  both; `periods` 1 and 1000 within the caps), every check of a finite run passes, Euler's
+  energy row matches (1 + θ²)^N while finite, a run that reaches `DIVERGENCE_THRESHOLD`
+  (e.g. Euler at the defaults with `periods` = 1000) reports "diverged" with its step and
+  `passed = null` on its energy rows, and the four fitted orders are within 0.1 of 1, 4, 1, 2?
+  (2) The mutant fails the modified-energy check while the true
   code passes? (3) Each refusal is a 422 naming its number, and the caps and C are named
   constants whose comments cite the measurement recorded in SV? (4) Golden digests of all
   existing models are unchanged and the new case is appended (not inserted)? (5) Full pytest,
@@ -303,8 +312,10 @@ before any version bump**; (b) checks for `physics.projectile` and `.angle_sweep
   files are unchanged and pass?
 
 ### Slice 4: the projectile study on the workbench, with event location (risky: numerics, tolerances)
-`integrator_study.py` uses `numerics/workbench.py`; event runs (D11); checks (D13); schemas;
-1.1.0; re-pin; `make api-types`; SV: "Fixed horizon, not landing" limitation replaced by the
+Order inside the slice: (a) `integrator_study.py` moved onto `numerics/workbench.py`, with no
+other change, and **the golden digests run before any version bump** (the integrators'
+v1.0.0 digest must be unchanged); only then (b) event runs (D11), checks (D13), schemas,
+1.1.0, re-pin, `make api-types`; SV: "Fixed horizon, not landing" limitation replaced by the
 measured event-location results.
 **Acceptance.**
 - **Test files:** new `backend/tests/physics/test_projectile_event_location.py` (orders per
@@ -312,13 +323,14 @@ measured event-location results.
   no-crossing exclusion; δv = −k·δr check; a planted wrong interpolant slope fails);
   `golden_runs.json` re-pinned. Unchanged and passing: `test_projectile_integrators.py`,
   `tests/api/test_integrators_api.py`.
-- **Commands:** before the bump: `uv run pytest tests/api/test_golden_digests.py -q`; then
-  `uv run pytest tests/physics/test_projectile_event_location.py
+- **Commands:** after (a): `uv run pytest tests/api/test_golden_digests.py
+  tests/physics/test_projectile_integrators.py tests/api/test_integrators_api.py -q` (all
+  pass, v1.0.0 unchanged); after (b): `uv run pytest tests/physics/test_projectile_event_location.py
   tests/physics/test_projectile_integrators.py tests/api/test_integrators_api.py -q`;
   `uv run python -m tests.api.pin_golden_runs`; `scripts/run_logged.sh s4-pytest 'cd backend
   && uv run pytest -q'`; `make api-types`.
-- **Checks:** (1) Before the bump the integrators' v1.0.0 digest is unchanged (the move onto
-  the driver is bit-identical)? (2) On the default request the landing-time orders are within
+- **Checks:** (1) After (a), before any event code or bump, every golden digest is unchanged,
+  the integrators' v1.0.0 included (the move onto the driver is bit-identical)? (2) On the default request the landing-time orders are within
   0.1 of 1/1, 2/4, 2/2 (linear/Hermite) and every check passes? (3) The worst-case request at
   the step caps runs within the measured time recorded in SV? (4) The golden diff changes
   only the integrators entry (1.1.0), and full pytest, ruff, format and mypy pass?
@@ -360,6 +372,18 @@ D15 and D16; `docs/HANDOFF.md`; this plan's status.
   exercise); higher-order symplectic methods; adaptive-solver event error analysis.
 - Boris pusher (Ext), orbits and long-run Kepler comparison (capability map, later), generic
   sweeps (2.5), animation (2.6). The 25 lines of grid-and-Brent logic stay with 2.5.
+- Review items (2026-11-19, worth doing, not applied): run `cd frontend && npx tsc --noEmit`
+  after each `make api-types` (slices 2-4).
+- A grep that every named threshold constant appears in the code and in SV.
+- The sweep's "interior peaks = 1" check tested in `test_projectile_checks.py`.
+- Split slice 5 into a frontend slice and a docs slice.
+- Record damped/driven and quadratic-drag fixed-step studies as an open decision in HANDOFF; word the ✅ "a generic driver used by two models".
+- A round-off floor (e.g. 100·N·ε·scale) for landing-time and oscillator errors, so near-exact RK4/Verlet + Hermite fits do not falsely fail.
+- State which error (position) the order check fits.
+- RK4 + Hermite O(h⁴) cancellation risk: test the coefficient, or give no verdict.
+- Compare old and new `integrate()` outputs over a grid of inputs before deleting old code (one golden case per model is thin).
+- Label O(h^min(p, q)) in R6 "standard result, tested in slice 4".
+- Use a well-conditioned cubic for the ≤ 8ε Hermite test.
 - Capability-map items with no Phase 2 step ("best angle against drag strength", "drag-law
   comparison") stay an open decision in `docs/HANDOFF.md`, untouched here.
 
