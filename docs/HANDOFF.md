@@ -1,4 +1,4 @@
-Last updated: 870b07e 2026-11-15 (learning-log draft written)
+Last updated: 9748111 2026-11-19
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,11 +9,13 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`), edit or approve it.
-2.3 slice 3 (API, limits, run-cost rule) is built and committed on the working branch (2026-11-16 autopilot); CI not run. A fresh security review found no must-fix (journal 2026-11-16). Slice 4 (frontend) is built and committed (2026-11-17 autopilot; Vitest 270 passed, 7 Playwright passed; CI not run). Slice 5's Acceptance block was written and reviewed 2026-11-18 (plan only). Next for the autopilot: build slice 5 (docs, full check, whole-PR review). The scheduled task's branch on claude.ai is still yours to fix.
+Review and merge the draft PR `claude/determined-meitner-xpu871` into the working branch: the
+autopilot's unit becomes a whole roadmap step (plan tick, then build tick). Then the next tick
+builds 2.3 slice 5 (docs, full `check.sh --e2e`, whole-step review), writes the 2.3 step brief in
+`docs/briefs/` and opens the 2.3 PR (it never merges). Read the learning-log draft (top of
+`docs/LEARNING_LOG.md`) and approve it when you can.
 
 ## Open decisions
-- **Stale docs index (your action, blocks: slice 5 checks):** the plan file changed and the guard-rail hook stops an autopilot run regenerating the docs index. Run the doc index script by hand (see `docs/INDEX.md` header) and commit. Also 2 stale guide excerpts (LEARNING_GUIDE.md lines 2009, 3153) are fixed in slice 5.
 - **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
 - **Next.js 16.4.1 security notice:** the first `npm run build` stops with SecurityFatalError, a retry passes; decide on upgrading. Not blocking.
@@ -21,10 +23,11 @@ Read the learning-log draft for PRs #20 and #23 (top of `docs/LEARNING_LOG.md`),
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
 - Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers for every model (add `strict=True`?). Sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
 
-## Last task: 2.3 slice 3 (autopilot, 2026-11-16)
-- **Done locally, committed, pushed (no PR yet):** `/api/v1/physics/oscillator/simulate`, `ModelEntry`, one appended golden entry, `MAX_RUN_RHS_EVALUATIONS = 400,000` counted inside the RHS (Radau Jacobian included; slowest budgeted run 11.7 s on the builder's machine), and SciPy's Radau Jacobian overflow turned into a 422. **Verified by the tick:** full backend `pytest -q -W error` 2565 passed; ruff, format, mypy clean; golden diff OK; protected test hashes unchanged. **Not run:** `scripts/check.sh --e2e`, a separate `/security-review`, a second `make api-types`.
-- **Fresh review (Opus):** no must-fix. Worth doing: the `api/errors.py` comment says "Python form" but writes e.g. `1000000.0` (changes bound wording for every model); the limits test's `str(bound) in msg` is self-referential (a protected test file); the overflow message blames Radau for every method; the DOP853 energy-balance observation is unverified.
-- **Decisions taken for you:** stored summary adds `initial_displacement`; the overflow is a 422, not an analytic Jacobian (that would change Radau numerics).
+## Last task: a whole step per tick (author's request, 2026-11-19)
+- **Done locally, committed, pushed (draft PR, not merged):** SKILL.md: unit = a roadmap step; plan tick, then build tick (every slice: test writer, builder, fresh reviewer if risky, one commit each; then full check, learning-guide chapter, step brief, whole-step review, the PR); caps 4 working subagents per slice and 24 per tick, 5 Haiku helpers per slice, work limit 12 commits; a finished step waits for your merge (one line per tick). New commit trailer `Autopilot-run: slice` (daily cap still counts `work`, one per tick). `docs/briefs/_template.md`: one-page step brief (IB terms, claims labelled proved, tested or observed, a two-minute demo, three questions) for your portfolio.
+- **Also fixed (it would have blocked every build tick):** the guard-rail hook treated `python3 scripts/doc_index.py > /dev/null` as a write to `scripts/`; it now blocks only real writes to a guard-rail path (redirect target, `tee`, `cp`, `sed -i`, `git checkout`...), and heredoc text is data. Docs index regenerated; two guide excerpt line references updated.
+- **Verified:** `backend/tests/scripts` passes (hook tests for `slice`, the script run, heredoc and every write form); full backend run: see the PR. **Not verified:** how long a scheduled session can run, so a long build tick may end early; its commits are safe and the next tick resumes at the next slice.
+- **Not enforceable by script:** the per-slice and per-tick subagent caps, the 12-commit work limit, "slice N+1 only after slice N".
 
 ## Learning handoff
 - **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.
