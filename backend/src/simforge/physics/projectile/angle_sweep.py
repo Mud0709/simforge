@@ -96,6 +96,16 @@ def vacuum_optimum(setup: ProjectileSetup) -> tuple[float, float]:
     return math.degrees(math.atan2(v, root)), v * root / g
 
 
+def vacuum_range(setup: ProjectileSetup, angle_deg: float) -> float:
+    """Closed-form range (m) with no drag at one angle: vx0 (vy0 + sqrt(vy0^2 + 2 g h)) / g.
+
+    vy0 >= 0 on [0, 90] degrees, so the sum has no cancellation; 0 for a vertical launch.
+    """
+    s = with_angle(setup, angle_deg)
+    g = s.gravity
+    return s.vx0 * (s.vy0 + math.sqrt(s.vy0 * s.vy0 + 2.0 * g * s.launch_height)) / g
+
+
 def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
     """Range at each angle, plus the refined best angle over [0, 90] degrees."""
     if len(angles_deg) < 3:

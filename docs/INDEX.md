@@ -44,94 +44,96 @@ is in `CLAUDE.md`).
 - 491-506: Adding a new model (the intended pattern)
 - 507-510: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1732 lines)
+## `SCIENTIFIC_VALIDATION.md` (1780 lines)
 - 6-29: Principles
-- 30-158: `physics.projectile` v1.0.0: projectile motion with linear drag
+- 30-191: `physics.projectile` v1.1.0: projectile motion with linear drag
   - 32-43: Model
   - 44-52: Two independent solutions
   - 53-70: Numerical-analysis issue handled: catastrophic cancellation
   - 71-107: What is tested
   - 108-137: Observed accuracy
-  - 138-158: Known limitations
-- 159-374: `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
-  - 161-169: Purpose
-  - 170-195: Equations
-  - 196-211: Linear stability
-  - 212-223: Error metrics
-  - 224-233: A conserved linear invariant (and why it matters for the evidence)
-  - 234-258: Fit-range rule (fixed before inspecting results)
-  - 259-289: Tests
-  - 290-322: Observed results
-  - 323-338: Known limitations
-  - 339-374: numerics/ (roadmap 2.4, slice 1: not yet used by any model)
-- 375-421: `physics.projectile.angle_sweep` v1.0.0: range against launch angle
-  - 377-388: What it computes
-  - 389-394: Precision
-  - 395-409: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
-  - 410-413: Observed (2026-10-15)
-  - 414-421: Limitations
-- 422-760: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
-  - 427-445: Model
-  - 446-465: No exact 2-D solution: what replaces it
-  - 466-493: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
-  - 494-508: Numerical-analysis issues handled
-  - 509-586: What is tested
-  - 587-631: Per-run checks shown in the app
-  - 632-653: Input limits, the integration cap and the stiffness guard
-  - 654-704: Observed accuracy
-  - 705-723: Replay tolerances
-  - 724-760: Known limitations
-- 761-976: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
-  - 769-788: What it computes
-  - 789-813: Mathematical results (proved on paper)
-  - 814-822: The accuracy estimate u (an estimate, not a bound)
-  - 823-862: What is tested
-  - 863-872: Per-run checks shown in the app
-  - 873-904: Observed accuracy and cost (one machine)
-  - 905-928: Input limits and the work budget
-  - 929-943: Replay tolerances
-  - 944-976: Known limitations
-- 977-1200: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
-  - 986-1005: What is exact, and how it is evaluated
-  - 1006-1017: Limits introduced by this slice (measured, not assumed)
-  - 1018-1029: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
-  - 1030-1111: Slice 2: the numerical solve and its per-run checks
-  - 1112-1157: Slice 3: the API, its limits and the run-cost rule
-  - 1158-1185: Slice 4: the page (`/physics/oscillator`)
-  - 1186-1200: Limitations
-- 1201-1292: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
-  - 1208-1218: What it computes
-  - 1219-1254: Proved, tested, observed
-  - 1255-1270: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
-  - 1271-1280: Caps and timings (same machine)
-  - 1281-1292: Limitations
-- 1293-1431: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1299-1320: Model
-  - 1321-1356: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1357-1364: Numerical-analysis issue handled: cancellation in λ
-  - 1365-1386: Empirical evidence (held on the grid; not theorems)
-  - 1387-1402: What is tested
-  - 1403-1412: Per-run checks shown in the app
-  - 1413-1417: Observed (2026-10-15, default inputs)
-  - 1418-1431: Limitations
-- 1432-1513: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1434-1440: What it computes, and what it does not
-  - 1441-1456: Definitions
-  - 1457-1468: Numerical-analysis issues handled
-  - 1469-1483: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1484-1490: Per-run checks shown in the app
-  - 1491-1495: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1496-1513: Limitations
-- 1514-1607: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1543-1587: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1588-1599: Tests
-  - 1600-1607: Known limitations
-- 1608-1732: Comparison and export (roadmap 1.6)
-  - 1617-1651: Recomputed series: the digest says whether they are exact
-  - 1652-1680: CSV: what is written is the number that was computed
-  - 1681-1688: JSON export
-  - 1689-1722: The comparison: differences, not verdicts
-  - 1723-1732: Limitations
+  - 138-170: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+  - 171-191: Known limitations
+- 192-407: `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
+  - 194-202: Purpose
+  - 203-228: Equations
+  - 229-244: Linear stability
+  - 245-256: Error metrics
+  - 257-266: A conserved linear invariant (and why it matters for the evidence)
+  - 267-291: Fit-range rule (fixed before inspecting results)
+  - 292-322: Tests
+  - 323-355: Observed results
+  - 356-371: Known limitations
+  - 372-407: numerics/ (roadmap 2.4, slice 1: not yet used by any model)
+- 408-470: `physics.projectile.angle_sweep` v1.1.0: range against launch angle
+  - 410-421: What it computes
+  - 422-427: Precision
+  - 428-442: Tests (`backend/tests/physics/test_angle_sweep.py`, `tests/api/test_angle_sweep_api.py`)
+  - 443-446: Observed (2026-10-15)
+  - 447-462: Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+  - 463-470: Limitations
+- 471-808: `physics.projectile.quadratic_drag` v1.0.1: projectile motion with quadratic drag
+  - 476-494: Model
+  - 495-514: No exact 2-D solution: what replaces it
+  - 515-542: Mathematical guarantees (proved on paper; the tests check the implementation obeys them)
+  - 543-557: Numerical-analysis issues handled
+  - 558-635: What is tested
+  - 636-680: Per-run checks shown in the app
+  - 681-702: Input limits, the integration cap and the stiffness guard
+  - 703-753: Observed accuracy
+  - 754-772: Replay tolerances
+  - 773-808: Known limitations
+- 809-1024: `physics.projectile.quadratic_angle_sweep` v1.0.1: range against launch angle with quadratic drag
+  - 817-836: What it computes
+  - 837-861: Mathematical results (proved on paper)
+  - 862-870: The accuracy estimate u (an estimate, not a bound)
+  - 871-910: What is tested
+  - 911-920: Per-run checks shown in the app
+  - 921-952: Observed accuracy and cost (one machine)
+  - 953-976: Input limits and the work budget
+  - 977-991: Replay tolerances
+  - 992-1024: Known limitations
+- 1025-1248: `physics.oscillator` (roadmap 2.3, done): exact solution (slice 1), numerical solve and checks (slice 2), API (slice 3), page (slice 4)
+  - 1034-1053: What is exact, and how it is evaluated
+  - 1054-1065: Limits introduced by this slice (measured, not assumed)
+  - 1066-1077: What is tested (`backend/tests/physics/test_oscillator_analytical.py`; 317 tests)
+  - 1078-1159: Slice 2: the numerical solve and its per-run checks
+  - 1160-1205: Slice 3: the API, its limits and the run-cost rule
+  - 1206-1233: Slice 4: the page (`/physics/oscillator`)
+  - 1234-1248: Limitations
+- 1249-1340: `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
+  - 1256-1266: What it computes
+  - 1267-1302: Proved, tested, observed
+  - 1303-1318: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
+  - 1319-1328: Caps and timings (same machine)
+  - 1329-1340: Limitations
+- 1341-1479: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1347-1368: Model
+  - 1369-1404: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1405-1412: Numerical-analysis issue handled: cancellation in λ
+  - 1413-1434: Empirical evidence (held on the grid; not theorems)
+  - 1435-1450: What is tested
+  - 1451-1460: Per-run checks shown in the app
+  - 1461-1465: Observed (2026-10-15, default inputs)
+  - 1466-1479: Limitations
+- 1480-1561: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1482-1488: What it computes, and what it does not
+  - 1489-1504: Definitions
+  - 1505-1516: Numerical-analysis issues handled
+  - 1517-1531: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1532-1538: Per-run checks shown in the app
+  - 1539-1543: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1544-1561: Limitations
+- 1562-1655: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1591-1635: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1636-1647: Tests
+  - 1648-1655: Known limitations
+- 1656-1780: Comparison and export (roadmap 1.6)
+  - 1665-1699: Recomputed series: the digest says whether they are exact
+  - 1700-1728: CSV: what is written is the number that was computed
+  - 1729-1736: JSON export
+  - 1737-1770: The comparison: differences, not verdicts
+  - 1771-1780: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -207,7 +209,7 @@ is in `CLAUDE.md`).
 - 510-522: Product structure (proposed)
 - 523-536: Sources
 
-## `docs/LEARNING_GUIDE.md` (4883 lines)
+## `docs/LEARNING_GUIDE.md` (4887 lines)
 - 21-103: How to use this guide
   - 23-32: Difficulty labels
   - 33-63: Suggested reading order
@@ -275,7 +277,7 @@ is in `CLAUDE.md`).
   - 1968-2017: [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
   - 2018-2053: [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
   - 2054-2070: [3] The proxy: `frontend/next.config.ts:6-13`
-  - 2071-2141: [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
+  - 2071-2141: [4] The endpoint: `backend/src/simforge/api/routes/physics.py:246-250`
   - 2142-2166: [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`
   - 2167-2206: [6] Orchestration: `integrator_model.run`, `integrator_model.py:143-203`
   - 2207-2211: [7] The science
@@ -338,7 +340,7 @@ is in `CLAUDE.md`).
   - 3220-3226: 17.7 The JSON export
   - 3227-3235: 17.8 Checkpoint
   - 3236-3252: 17.9 Exercises
-- 3253-4031: Part 18 — Quadratic drag: checking a model with no exact answer
+- 3253-4035: Part 18 — Quadratic drag: checking a model with no exact answer
   - 3262-3306: 18.1 Why air resistance grows like v² for a fast ball **[IB core idea]**
   - 3307-3328: 18.2 The equations, and why x and y no longer separate **[IB core → IB HL]**
   - 3329-3347: 18.3 Terminal speed as a force balance **[IB core]**
@@ -351,37 +353,37 @@ is in `CLAUDE.md`).
   - 3674-3766: 18.10 The stiffness guard, redesigned **[IB core idea → Beyond IB]**
   - 3767-3838: 18.11 A wrong force law that passes three tests **[Beyond IB idea]**
   - 3839-3858: 18.12 Why 2.1 is a new model, not an option on the old one
-  - 3859-3945: 18.13 The code
-  - 3946-3979: 18.14 What the evidence does and does not show
-  - 3980-3998: 18.15 Checkpoint
-  - 3999-4031: 18.16 Exercises
-- 4032-4454: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
-  - 4049-4065: 19.1 Why drag lowers the best angle **[IB core idea]**
-  - 4066-4078: 19.2 One number for "how strong is the drag": ε **[IB core]**
-  - 4079-4153: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
-  - 4154-4170: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
-  - 4171-4205: 19.5 Refining the best angle with Brent **[Beyond IB]**
-  - 4206-4267: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
-  - 4268-4341: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
-  - 4342-4378: 19.8 Why a new model again
-  - 4379-4394: 19.9 Replay: what may move on another computer
-  - 4395-4409: 19.10 What the evidence does and does not show
-  - 4410-4425: 19.11 Checkpoint
-  - 4426-4454: 19.12 Exercises
-- 4455-4688: Part 20 — Oscillators: springs, damping and resonance
-  - 4473-4487: 20.1 Simple harmonic motion: the spring pulls back, the mass overshoots **[IB core, C.1]**
-  - 4488-4504: 20.2 Damping, and three regimes **[verify against the IB guide]**
-  - 4505-4527: 20.3 Driving, resonance and the phase lag **[verify against the IB guide]**
-  - 4528-4541: 20.4 Quality factor Q: how sharp the peak is **[verify; otherwise Beyond IB]**
-  - 4542-4581: 20.5 The exact solution, and three traps **[Beyond IB]**
-  - 4582-4595: 20.6 The steady state in code **[Beyond IB]**
-  - 4596-4611: 20.7 Scaling: why the solver works in dimensionless variables **[Beyond IB]**
-  - 4612-4645: 20.8 The checks: how the page knows a run is right **[Beyond IB]**
-  - 4646-4661: 20.9 The page and its presets **[SimForge]**
-  - 4662-4670: 20.10 Checkpoint **[answer in your own words]**
-  - 4671-4688: 20.11 Exercises (no solutions given)
-- 4689-4752: Appendix — Symbol table
-- 4753-4883: Changes from the previous version of this guide
+  - 3859-3949: 18.13 The code
+  - 3950-3983: 18.14 What the evidence does and does not show
+  - 3984-4002: 18.15 Checkpoint
+  - 4003-4035: 18.16 Exercises
+- 4036-4458: Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down
+  - 4053-4069: 19.1 Why drag lowers the best angle **[IB core idea]**
+  - 4070-4082: 19.2 One number for "how strong is the drag": ε **[IB core]**
+  - 4083-4157: 19.3 How much lower: the weak-drag formula **[IB HL → Beyond IB]**
+  - 4158-4174: 19.4 A sweep is about 100 runs of the 2.1 model **[IB core idea]**
+  - 4175-4209: 19.5 Refining the best angle with Brent **[Beyond IB]**
+  - 4210-4271: 19.6 The flat top, and how accurately we know the best angle **[IB HL]**
+  - 4272-4345: 19.7 A work budget, counted in evaluations, not seconds **[IB core idea]**
+  - 4346-4382: 19.8 Why a new model again
+  - 4383-4398: 19.9 Replay: what may move on another computer
+  - 4399-4413: 19.10 What the evidence does and does not show
+  - 4414-4429: 19.11 Checkpoint
+  - 4430-4458: 19.12 Exercises
+- 4459-4692: Part 20 — Oscillators: springs, damping and resonance
+  - 4477-4491: 20.1 Simple harmonic motion: the spring pulls back, the mass overshoots **[IB core, C.1]**
+  - 4492-4508: 20.2 Damping, and three regimes **[verify against the IB guide]**
+  - 4509-4531: 20.3 Driving, resonance and the phase lag **[verify against the IB guide]**
+  - 4532-4545: 20.4 Quality factor Q: how sharp the peak is **[verify; otherwise Beyond IB]**
+  - 4546-4585: 20.5 The exact solution, and three traps **[Beyond IB]**
+  - 4586-4599: 20.6 The steady state in code **[Beyond IB]**
+  - 4600-4615: 20.7 Scaling: why the solver works in dimensionless variables **[Beyond IB]**
+  - 4616-4649: 20.8 The checks: how the page knows a run is right **[Beyond IB]**
+  - 4650-4665: 20.9 The page and its presets **[SimForge]**
+  - 4666-4674: 20.10 Checkpoint **[answer in your own words]**
+  - 4675-4692: 20.11 Exercises (no solutions given)
+- 4693-4756: Appendix — Symbol table
+- 4757-4887: Changes from the previous version of this guide
 
 ## `docs/QUANT_LEARNING_GUIDE.md` (668 lines)
 - 18-42: How to use this guide

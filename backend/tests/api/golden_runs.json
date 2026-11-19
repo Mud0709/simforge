@@ -23,8 +23,8 @@
    }
   },
   "model_id": "physics.projectile",
-  "model_version": "1.0.0",
-  "output_digest": "42c7fe10ebb4ff6f0dba7d7af78e544b60cbde0ff4ba3e78fc2480d4282268cd",
+  "model_version": "1.1.0",
+  "output_digest": "b088d6346c3d5134c0ee2b47e47b0f881a8f3d6a5ae63553badbba0c01f72fc1",
   "summary": {
    "analytical": {
     "apex_time": 0.8896794676211058,
@@ -134,8 +134,8 @@
    }
   },
   "model_id": "physics.projectile.angle_sweep",
-  "model_version": "1.0.0",
-  "output_digest": "b96d243c782874bee8d23fdb766f952d91c4d4fa0b169569ee5e46912f7ca6bf",
+  "model_version": "1.1.0",
+  "output_digest": "ece3caed9ca1e5e21accd98496daad985b93c47f5ef2d7aad49a2b66bf8e526e",
   "summary": {
    "best_angle_deg": 40.3510006620548,
    "best_range": 29.45427692230627,

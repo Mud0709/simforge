@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from simforge.core.errors import ModelDomainError
-from simforge.core.schemas import Assumption, ModelInfo
+from simforge.core.schemas import Assumption, ModelInfo, ValidationCheck
 from simforge.physics.projectile import analytical, angle_sweep
 from simforge.physics.projectile.analytical import ProjectileSetup
 from simforge.physics.projectile.numerical import NumericalSolution, integrate
@@ -29,7 +29,7 @@ from simforge.physics.projectile.schemas import (
 
 MODEL_INFO = ModelInfo(
     id="physics.projectile",
-    version="1.0.0",
+    version="1.1.0",
     name="Projectile motion with linear drag",
     description="2-D point-mass projectile under uniform gravity and linear (Stokes) drag. "
     "Exact closed-form trajectory compared against an adaptive Runge-Kutta integration.",
@@ -96,6 +96,15 @@ ANALYTICAL_NOTE = (
 EXPLICIT_STIFFNESS_LIMIT = 1e4
 IMPLICIT_STIFFNESS_LIMIT = 1e7
 
+# Per-run check thresholds: PROJECTILE_ERROR_F x (rtol + atol / max(R, H)) + PROJECTILE_ERROR_FLOOR,
+# R and H the exact range and max height in m. Measured, not proved (SCIENTIFIC_VALIDATION.md,
+# physics.projectile, "Per-run checks"): 12 432 runs, worst F needed for a 10x margin 295.
+PROJECTILE_ERROR_F = 500.0
+PROJECTILE_ERROR_FLOOR = 1e-10  # guard for rounding; F x rtol alone covered every run measured
+# R8 allowance in eps, relative to the vacuum range (SCIENTIFIC_VALIDATION.md,
+# physics.projectile.angle_sweep, "Per-run checks"): worst measured 2.16 eps, x10 = 21.6.
+R8_ALLOWANCE_C = 50.0
+
 
 @dataclass(frozen=True, slots=True)
 class ProjectileComputation:
@@ -103,6 +112,7 @@ class ProjectileComputation:
     numerical: NumericalResult
     comparison: Comparison
     series: ProjectileSeries
+    checks: list[ValidationCheck]
     elapsed_ms: float
 
 
@@ -157,6 +167,67 @@ def _energies(
     kinetic = 0.5 * setup.mass * (vx**2 + vy**2)
     potential = setup.mass * setup.gravity * y
     return kinetic, potential
+
+
+UNINFORMATIVE_NOTE = (
+    " Uninformative at these tolerances: the threshold allows an error larger than the "
+    "quantity itself (above 100%), so the check could not fail and no verdict is given; "
+    "tighten rtol and atol for a meaningful check."
+)
+
+
+def _checks(
+    exact: AnalyticalResult, comparison: Comparison, rtol: float, atol: float
+) -> list[ValidationCheck]:
+    # atol is absolute in every state unit; the trajectory's size max(R, H) (> 0: a run with
+    # no flight is refused) is the scale it is measured against (SV, "Per-run checks").
+    size = max(exact.range, exact.max_height)
+    limit = PROJECTILE_ERROR_F * (rtol + atol / size) + PROJECTILE_ERROR_FLOOR
+    informative = limit <= 1.0
+    formula = (
+        f" Threshold: {PROJECTILE_ERROR_F:g} x (rtol + atol / max(R, H)) + "
+        f"{PROJECTILE_ERROR_FLOOR:g}, measured on a grid."
+    )
+    rows = [
+        (
+            "flight_time_error",
+            "Flight time vs the exact solution",
+            comparison.flight_time.absolute / exact.flight_time,
+            "|T_num - T_exact| / T_exact.",
+        ),
+        (
+            "range_error",
+            "Range vs the exact solution",
+            comparison.range.absolute / size,
+            "|R_num - R_exact| / max(R_exact, H_exact): relative to the trajectory's size, "
+            "since R_exact = 0 for a vertical launch.",
+        ),
+        (
+            "max_height_error",
+            "Max height vs the exact solution",
+            comparison.max_height.absolute / exact.max_height,
+            "|H_num - H_exact| / H_exact.",
+        ),
+        (
+            "energy_balance",
+            "Energy balance KE + PE + W = E0",
+            comparison.max_energy_balance_residual,
+            "max |KE + PE + W - E0| / E0 over the step nodes, with W integrated from b|v|^2. "
+            "Exactly 0 for the true motion.",
+        ),
+    ]
+    return [
+        ValidationCheck(
+            id=check_id,
+            label=label,
+            value=value,
+            threshold=limit,
+            passed=(value <= limit) if informative else None,
+            kind="numerical_diagnostic",
+            note=note + formula + ("" if informative else UNINFORMATIVE_NOTE),
+        )
+        for check_id, label, value, note in rows
+    ]
 
 
 def run(request: ProjectileRequest) -> ProjectileComputation:
@@ -219,15 +290,16 @@ def run(request: ProjectileRequest) -> ProjectileComputation:
         drag_work=ws.tolist(),
     )
 
+    checks = _checks(exact, comparison, solver.rtol, solver.atol)
     elapsed_ms = (time.perf_counter() - start) * 1e3
-    return ProjectileComputation(exact, numerical, comparison, series, elapsed_ms)
+    return ProjectileComputation(exact, numerical, comparison, series, checks, elapsed_ms)
 
 
 # --- Angle sweep ----------------------------------------------------------------------------
 
 ANGLE_SWEEP_INFO = ModelInfo(
     id="physics.projectile.angle_sweep",
-    version="1.0.0",
+    version="1.1.0",
     name="Range versus launch angle (linear drag)",
     description="Range from the analytical solution at evenly spaced launch angles from 0 to 90 "
     "degrees, and the angle that maximises it, compared with the closed-form vacuum optimum.",
@@ -253,11 +325,51 @@ ANGLE_SWEEP_NOTE = (
 class AngleSweepComputation:
     result: angle_sweep.AngleSweep
     angles_deg: list[float]
+    checks: list[ValidationCheck]
     elapsed_ms: float
+
+
+def _sweep_checks(setup: ProjectileSetup, result: angle_sweep.AngleSweep) -> list[ValidationCheck]:
+    r = [p.range for p in result.points]
+    peaks = sum(1 for i in range(1, len(r) - 1) if r[i] > r[i - 1] and r[i] > r[i + 1])
+    # (R - V) / V at each grid angle and at the refined best angle (where V > 0: not 90
+    # degrees, nor 0 degrees from the ground), and best range against the vacuum best range.
+    pairs = [(p.range, angle_sweep.vacuum_range(setup, p.angle_deg)) for p in result.points]
+    pairs.append((result.best_range, angle_sweep.vacuum_range(setup, result.best_angle_deg)))
+    pairs.append((result.best_range, result.vacuum_best_range))
+    excess = max((rng - vac) / vac for rng, vac in pairs if vac > 0)
+    allowance = R8_ALLOWANCE_C * float(np.finfo(np.float64).eps)
+    return [
+        ValidationCheck(
+            id="interior_peaks",
+            label="Interior peaks of the range curve",
+            value=float(peaks),
+            threshold=1.0,
+            passed=peaks <= 1,
+            kind="numerical_diagnostic",
+            note="Grid points (not the first or last) whose range is strictly greater than "
+            "both neighbours'. One peak is what the refined best angle assumes; 0 means the "
+            "best grid point is an edge.",
+        ),
+        ValidationCheck(
+            id="drag_never_lengthens_range",
+            label="Drag never lengthens the range (proved, R8)",
+            value=excess,
+            threshold=allowance,
+            passed=excess <= allowance,
+            kind="exact_identity",
+            note="Largest (R - V) / V over the grid angles and the best angle, V the vacuum "
+            "range at the same angle and launch height, and (R* - V*) / V* for the best "
+            "ranges. Proved <= 0 for linear drag; the threshold "
+            f"{R8_ALLOWANCE_C:g} x eps allows only rounding, measured on a grid.",
+        ),
+    ]
 
 
 def run_angle_sweep(request: AngleSweepRequest) -> AngleSweepComputation:
     start = time.perf_counter()
     angles = np.linspace(0.0, 90.0, request.n_angles).tolist()
-    result = angle_sweep.sweep(to_setup(request.parameters), angles)
-    return AngleSweepComputation(result, angles, (time.perf_counter() - start) * 1e3)
+    setup = to_setup(request.parameters)
+    result = angle_sweep.sweep(setup, angles)
+    checks = _sweep_checks(setup, result)
+    return AngleSweepComputation(result, angles, checks, (time.perf_counter() - start) * 1e3)

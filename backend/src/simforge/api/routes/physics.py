@@ -55,6 +55,7 @@ def _projectile_response(
         analytical=result.analytical,
         numerical=result.numerical,
         comparison=result.comparison,
+        checks=result.checks,
         series=result.series,
         metadata=metadata,
     )
@@ -272,6 +273,7 @@ def _sweep_response(
         best_range=r.best_range,
         vacuum_best_angle_deg=r.vacuum_best_angle_deg,
         vacuum_best_range=r.vacuum_best_range,
+        checks=computation.checks,
         method_note=projectile.ANGLE_SWEEP_NOTE,
         metadata=metadata,
     )

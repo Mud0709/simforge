@@ -386,6 +386,8 @@ export interface components {
        * @description m
        */
       best_range: number;
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       /**
        * Flight Times
        * @description s
@@ -1725,6 +1727,8 @@ export interface components {
       analytical: components["schemas"]["AnalyticalResult"];
       /** Assumptions */
       assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       comparison: components["schemas"]["Comparison"];
       metadata: components["schemas"]["RunMetadata"];
       model: components["schemas"]["ModelInfo"];

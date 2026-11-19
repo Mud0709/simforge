@@ -27,7 +27,7 @@ evidence goes. It is a living document: every new model adds a section.
 
 ---
 
-## `physics.projectile` v1.0.0: projectile motion with linear drag
+## `physics.projectile` v1.1.0: projectile motion with linear drag
 
 ### Model
 
@@ -134,6 +134,39 @@ How to read this table:
 
 To reproduce, run `cd backend && uv run pytest tests/physics -v`. Any single run's figures
 also appear in its API response under `comparison`.
+
+### Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+
+Four `numerical_diagnostic` checks, each a dimensionless error against the exact solution:
+`flight_time_error` (|T_num − T|/T), `range_error` (|R_num − R|/max(R, H), since R = 0 for a
+vertical launch), `max_height_error` (|H_num − H|/H) and `energy_balance` (max |KE + PE + W −
+E₀|/E₀ over the step nodes). Threshold, the same for all four:
+`PROJECTILE_ERROR_F × (rtol + atol / max(R, H)) + PROJECTILE_ERROR_FLOOR` with **F = 500** and
+**floor = 1e-10** (`model.py`). A threshold above 1 (an allowance above 100%) gives
+`passed = null` and an "uninformative" note. These are **measured** thresholds, not proved bounds.
+
+Measured 2026-11-19 on linux-x86_64 (Intel Xeon @ 2.10 GHz), Python 3.12, NumPy 2.5.4, SciPy
+1.18.1, 12 432 runs: methods RK45/DOP853/Radau × 8 (rtol, atol) pairs from (1e-13, 1e-14) to
+(1e-3, 0.1) × (a) the corners of the input space (m ∈ {1e-6, 1e6} kg, v₀ ∈ {1e-3, 1e4} m/s,
+k ∈ {0, 1e4} s⁻¹, g ∈ {0.01, 1000}, h ∈ {0, 1e5} m, θ ∈ {0.001°, 90°}); (b) m = 1 kg, v₀ ∈
+{0.01, 1, 20, 300, 1e4}, b ∈ {0, 0.1, 10} kg/s, h ∈ {0, 10, 1e3, 1e5} m, θ ∈ {0, 15, 45, 75,
+89.99, 90}°; (c) m ∈ {1e-6, 1e6} kg, v₀ ∈ {0.01, 1, 20, 300}, k ∈ {0, 0.1, 10} s⁻¹, h ∈ {0, 10,
+1e3}, θ ∈ {15, 45, 90}°; (d) the API defaults and five ordinary variants. Runs refused by the
+stiffness guard are excluded. Worst F needed for a 10× margin: 295 (flight time and range,
+DOP853, v₀ = 1e4 m/s, b = 0.1, rtol = 1e-6, atol = 0.1); energy 220; max height 26. Scale
+max(R, H) was chosen over v₀, which needed F ≈ 4e4 on the corners (tiny trajectories at atol =
+1e-14). With F = 500 and floor 1e-10, 10 679 runs give a verdict, none fails, and the smallest
+threshold/value is 17×. F × rtol alone covered every run; the floor only guards rounding on
+other machines. Tests: `backend/tests/physics/test_projectile_checks.py` (corner grid, ordinary
+runs, no verdict above 100%, wrong drag sign everywhere fails the energy balance, wrong drag
+sign in the solver fails the three exact comparisons).
+
+The landing and apex events and SciPy's status handling now live once, in
+`physics/projectile/landing.py`, used by both the linear and quadratic solvers (plan D12). The
+move was bit-identical: every golden digest was unchanged before the version bump, and 1530
+runs (both solvers, 3 methods, 3 tolerance pairs, θ incl. 0°, h₀ > 0, five drag values) gave
+identical arrays. Tests: `backend/tests/physics/test_landing.py` (the t = 0 guard, horizontal
+launch apex, both solvers against the exact vacuum flight and `analytical.flight_time`).
 
 ### Known limitations
 
@@ -372,7 +405,7 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
 
 ---
 
-## `physics.projectile.angle_sweep` v1.0.0: range against launch angle
+## `physics.projectile.angle_sweep` v1.1.0: range against launch angle
 
 ### What it computes
 For fixed speed, height, mass, drag and gravity, the exact linear-drag range `R(θ)` is computed
@@ -410,6 +443,22 @@ about `√ε` in relative terms. Tests check the range to `1e-12` relative and t
 ### Observed (2026-10-15)
 With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48°, 35.46°,
 30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
+
+### Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+
+- `interior_peaks` (numerical diagnostic): grid points, not the first or last, whose range
+  is strictly above both neighbours'; threshold 1 (one peak is what the refinement assumes).
+  Measured: at most 1 on every sweep of the grid below.
+- `drag_never_lengthens_range` (**proved inequality**, R8, kind `exact_identity`): the largest
+  (R − V)/V over grid angles and the refined best angle (V = vacuum range from the closed form
+  vx₀(vy₀ + √(vy₀² + 2gh))/g, where V > 0) and (R* − V*)/V* for the best ranges. Proved ≤ 0
+  for linear drag; the allowance `R8_ALLOWANCE_C × ε` with **C = 50** covers rounding only.
+  Measured 2026-11-19 (same machine as the projectile checks) on 432 sweeps: m = 1 kg, v₀ ∈
+  {0.01, 1, 20, 300, 1e4} m/s, b ∈ {0, 1e-12, 1e-6, 0.1, 10, 1e4} kg/s, h ∈ {0, 10, 1e3, 1e5}
+  m, plus the input corners, each at 10, 91 and 361 angles: worst value 2.16 ε (b = 0, where R
+  and V are the same quantity computed two ways), so 10× needs 21.6 and C = 50.
+  Tests: `backend/tests/physics/test_projectile_checks.py` (every angle with ground and cliff
+  launches; a forward "drag" fails R8).
 
 ### Limitations
 - Linear drag only. Quadratic drag has its own sweep model, `physics.projectile.quadratic_angle_sweep` (roadmap 2.2, below); the two sweeps are not compared beyond their shared vacuum limit.
@@ -753,7 +802,6 @@ default and the golden run) the floor changes nothing.
   no such field and send none, so the default 400 applies. A run saved through the API with another `n_samples`
   reopens with 400, which is a different question (different input hash); replay and
   recompute use the stored value.
-- About 40 lines of event logic are duplicated from the linear solver until roadmap 2.4.
 - The hodograph-method literature was not checked.
 
 ---

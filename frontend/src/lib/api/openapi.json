@@ -96,6 +96,13 @@
             "title": "Best Range",
             "type": "number"
           },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
           "flight_times": {
             "description": "s",
             "items": {
@@ -164,6 +171,7 @@
           "best_range",
           "vacuum_best_angle_deg",
           "vacuum_best_range",
+          "checks",
           "method_note",
           "metadata"
         ],
@@ -3107,6 +3115,13 @@
             "title": "Assumptions",
             "type": "array"
           },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
           "comparison": {
             "$ref": "#/components/schemas/Comparison"
           },
@@ -3145,6 +3160,7 @@
           "analytical",
           "numerical",
           "comparison",
+          "checks",
           "series",
           "metadata"
         ],

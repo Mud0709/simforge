@@ -11,7 +11,7 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel
+from simforge.core.schemas import Assumption, ModelInfo, RunMetadata, StrictModel, ValidationCheck
 
 # Physical limits, agreed with the author. Below them the linear-drag model is not physically
 # meaningful (tiny particles are in another flow regime) and the arithmetic can overflow or
@@ -160,6 +160,7 @@ class ProjectileResponse(StrictModel):
     analytical: AnalyticalResult
     numerical: NumericalResult
     comparison: Comparison
+    checks: list[ValidationCheck]
     series: ProjectileSeries
     metadata: RunMetadata
 
@@ -198,5 +199,6 @@ class AngleSweepResponse(StrictModel):
         description="Closed-form best angle with no drag: tan(theta) = v0 / sqrt(v0^2 + 2 g h)."
     )
     vacuum_best_range: float = Field(description="m, closed form with no drag")
+    checks: list[ValidationCheck]
     method_note: str
     metadata: RunMetadata

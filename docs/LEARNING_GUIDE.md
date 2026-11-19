@@ -2068,9 +2068,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:246-250`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:248-252 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:249-253 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2516,7 +2516,7 @@ flatter, faster flight wins.
 
 ### 11.3 The method: a coarse grid, then refine **[Beyond IB]**
 
-<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:99-117 -->
+<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:109-127 -->
 ```python
 def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
     """Range at each angle, plus the refined best angle over [0, 90] degrees."""
@@ -2599,9 +2599,9 @@ explain the physics.)
 
 `run_angle_sweep` (`model.py:258-262`) builds the grid with
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
-(`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
+(`backend/src/simforge/physics/projectile/schemas.py:171-181`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:297-306 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:299-308 -->
 ```python
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
@@ -3902,7 +3902,7 @@ above. Three more pieces complete the picture.
 **The right-hand side** (`quadratic_numerical.py`), the five rates for the state
 `[x, y, vx, vy, W]`:
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:92-98 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:90-96 -->
 ```python
     def rhs(_t: float, s: FloatArray) -> FloatArray:
         vx, vy = float(s[2]), float(s[3])
@@ -3915,33 +3915,37 @@ above. Three more pieces complete the picture.
 
 | Line | Meaning |
 |---|---|
-| 95 | The drag acceleration `−κ|v|v`, from the separate function `drag_acceleration`. It is looked up when called, so a test can swap in the wrong law (18.11). |
-| 97 | `dW/dt = c|v|³`, computed from the velocity directly and **not** from line 95's force (18.7): a wrong force would not make `W` agree with it. |
-| 98 | `dx/dt = vx`, `dy/dt = vy`, the two accelerations (gravity added to the vertical one) and the power. |
+| 93 | The drag acceleration `−κ|v|v`, from the separate function `drag_acceleration`. It is looked up when called, so a test can swap in the wrong law (18.11). |
+| 95 | `dW/dt = c|v|³`, computed from the velocity directly and **not** from line 93's force (18.7): a wrong force would not make `W` agree with it. |
+| 96 | `dx/dt = vx`, `dy/dt = vy`, the two accelerations (gravity added to the vertical one) and the power. |
 
-**The landing and apex events**, copied on purpose from the linear solver (18.12):
+**The landing and apex events**, one copy shared with the linear solver since roadmap 2.4
+(`landing.py`; both solvers hand their right-hand side to `landing.solve_to_landing`, which
+runs SciPy with these two events and checks that the ground was reached):
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:100-111 -->
+<!-- src: backend/src/simforge/physics/projectile/landing.py:54-67 -->
 ```python
-    def hits_ground(t: float, s: FloatArray) -> float:
-        # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
-        # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
-        # Treating the launch instant as "above ground" leaves only the real landing.
-        return float(s[1]) if t > 0.0 else 1.0
+def hits_ground(t: float, s: FloatArray) -> float:
+    # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
+    # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
+    # Treating the launch instant as "above ground" leaves only the real landing.
+    return float(s[1]) if t > 0.0 else 1.0
 
-    def reaches_apex(_t: float, s: FloatArray) -> float:
-        return float(s[3])
 
-    hits_ground.terminal = True  # type: ignore[attr-defined]
-    hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
-    reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
+def reaches_apex(_t: float, s: FloatArray) -> float:
+    return float(s[3])
+
+
+hits_ground.terminal = True  # type: ignore[attr-defined]
+hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
+reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
 ```
 
 | Line | Meaning |
 |---|---|
-| 100-104 | The landing is where `y` crosses 0. Launched from the ground, `y = 0` exactly at `t = 0`; if the first step overshot the landing, the solver would read "0, then negative" as a landing at `t = 0`. Reporting `1.0` at the launch instant leaves only the real landing (a test launches at 0.001° to 1° and checks the landing time). |
-| 106-107 | The apex is where `vy` crosses 0. |
-| 109-111 | `terminal = True` stops the integration at the landing; `direction = −1` counts only crossings while descending. |
+| 54-58 | The landing is where `y` crosses 0. Launched from the ground, `y = 0` exactly at `t = 0`; if the first step overshot the landing, the solver would read "0, then negative" as a landing at `t = 0`. Reporting `1.0` at the launch instant leaves only the real landing (a test launches at 0.1° with v₀ = 1 m/s, a flight shorter than the first step, and checks the landing time). |
+| 61-62 | The apex is where `vy` crosses 0. |
+| 65-67 | `terminal = True` stops the integration at the landing; `direction = −1` counts only crossings while descending. |
 
 ### 18.14 What the evidence does and does not show
 The five checks, together: exact vertical flights (18.4-18.5), the vacuum limit (18.6),
@@ -4348,7 +4352,7 @@ refuse every one of them. A quadratic sweep also needs inputs the linear one doe
 a new model, `physics.projectile.quadratic_angle_sweep` v1.0.0, with its own endpoint
 (`POST /api/v1/physics/projectile/quadratic-drag/angle-sweep`) and registry entry:
 
-<!-- src: backend/src/simforge/api/routes/physics.py:708-718 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:710-720 -->
 ```python
 QUADRATIC_ANGLE_SWEEP = ModelEntry(
     info=qas.MODEL_INFO,
