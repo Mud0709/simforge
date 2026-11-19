@@ -10,7 +10,7 @@ scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewk
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 9748111
+work limit from: bcf6518
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -51,10 +51,10 @@ Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its
 author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
 branch): do not redo them; if that PR is not merged yet, wait for it (it touches
 `physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
-Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Slice 5 built, checked (full e2e green) and reviewed 2026-11-19; 2.3 PR opened, waits for the author's merge. Next after merge: 2.4 plan tick.
+Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Slice 5 built, checked (full e2e green) and reviewed 2026-11-19; 2.3 PR #26 merged 2026-11-19; learning-log draft written. Next: 2.4 plan tick (move 🔜, add 2.3 step-cost line).
 
 ## Remainder of the current unit
-None: 2.3 finished, PR awaiting merge.
+None: 2.3 finished and merged.
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open

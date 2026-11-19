@@ -14,6 +14,23 @@ maps each to its new hash. GitHub PR pages keep the old hashes.
 
 ---
 
+## Roadmap 2.3: the damped, driven oscillator (DRAFT, awaiting the author)
+- **Merged:** PR #26 (`bcf6518`, 2026-11-19), which carried the rest of step 2.3 (slices 3 to 5: the
+  endpoint and corners test, the frontend lab, the docs close-out) and PR #25's hook fixes. Slices 1
+  and 2 were logged with the entries below.
+- **What it does:** the Physics Lab has an oscillator page: you set the damping and the driving
+  force, solve it numerically, and see it against the exact solution, with checks per run and an
+  exported table. Part 20 of the learning guide and `docs/briefs/2.3.md` explain it.
+- **Key concepts:** exact solution and numerical solution compared with a justified tolerance;
+  half-power points are at sqrt(w0^2 + g^2) -/+ g, not w0 +/- g (the whole-step review caught that
+  claim); a limit (cycles, right-hand-side evaluations, Q cap) is a decision with a record.
+- **Decisions and trade-offs:** limits live in the backend schema only; the full end-to-end check
+  passed on its third run (2872 tests; the first two hit a known Next.js build notice and a
+  sandbox browser path, not code).
+- **Revisit:** the brief's demo was not run in a browser by the autopilot; the worth-doing review
+  items (per-method run cost, high-Q resonance curve, `F0 = 0`); the Next.js upgrade decision.
+- **Next:** 2.4 plan tick (🔜 moves to 2.4); the per-step cost line for 2.3 is written by that tick.
+
 ## Roadmap 2.3 slice 2 and lean agents (DRAFT, awaiting the author)
 - **Merged:** PR #20 (`97ffe6b`, 2026-11-13) and PR #23 (`58396d3`, 2026-11-15). PR #23 carried
   2.3 slice 2 (the numerical oscillator solve, its run model and schemas), the 2.4 notes, the
