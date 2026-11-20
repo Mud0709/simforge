@@ -7,6 +7,7 @@
 import type {
   AngleSweepResponse,
   IntegratorStudyResponse,
+  OscillatorIntegratorResponse,
   OscillatorResponse,
   ProfileResponse,
   ProjectileResponse,
@@ -191,6 +192,28 @@ export function integratorTables(r: IntegratorStudyResponse): Table[] {
   return [...runs, { name: "trajectories", label: "trajectories", columns: pairs }];
 }
 
+export function oscillatorIntegratorTables(r: OscillatorIntegratorResponse): Table[] {
+  const u = r.units;
+  return r.results.map((m) => {
+    const of = <K extends keyof (typeof m.runs)[number]>(k: K) => m.runs.map((run) => run[k]);
+    return {
+      name: `runs_${m.method}`,
+      label: `${m.method} runs`,
+      columns: [
+        col("h", of("h"), u, "h"),
+        col("n_steps", of("n_steps"), u, "n_steps"),
+        col("theta", of("theta"), u, "theta"),
+        col("diverged", of("diverged"), u, "diverged"),
+        col("max_scaled_error", of("max_scaled_error"), u, "scaled_error"),
+        col("max_position_error", of("max_position_error"), u, "position_error"),
+        col("max_velocity_error", of("max_velocity_error"), u, "velocity_error"),
+        col("in_fit", of("in_fit"), u, "in_fit"),
+        col("exclusion_reason", of("exclusion_reason"), u, "exclusion_reason"),
+      ],
+    };
+  });
+}
+
 const SOLOW_SERIES = [
   "capital",
   "output",
@@ -260,6 +283,7 @@ export type ExportableResponse =
   | AngleSweepResponse
   | QuadraticAngleSweepResponse
   | IntegratorStudyResponse
+  | OscillatorIntegratorResponse
   | SolowResponse
   | ProfileResponse;
 
@@ -278,6 +302,8 @@ export function exportTables(response: ExportableResponse): Table[] {
       return quadraticAngleSweepTables(response as QuadraticAngleSweepResponse);
     case "physics.projectile.integrators":
       return integratorTables(response as IntegratorStudyResponse);
+    case "physics.oscillator.integrators":
+      return oscillatorIntegratorTables(response as OscillatorIntegratorResponse);
     case "economy.solow":
       return solowTables(response as SolowResponse);
     case "quant.dataset_profile":

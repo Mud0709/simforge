@@ -55,6 +55,7 @@ def _projectile_response(
         analytical=result.analytical,
         numerical=result.numerical,
         comparison=result.comparison,
+        checks=result.checks,
         series=result.series,
         metadata=metadata,
     )
@@ -194,6 +195,7 @@ def _study_response(
         fit_rule=integrator_model.FIT_RULE,
         results=result.results,
         exact_trajectory=result.exact_trajectory,
+        checks=result.checks,
         metadata=metadata,
     )
 
@@ -272,6 +274,7 @@ def _sweep_response(
         best_range=r.best_range,
         vacuum_best_angle_deg=r.vacuum_best_angle_deg,
         vacuum_best_range=r.vacuum_best_range,
+        checks=computation.checks,
         method_note=projectile.ANGLE_SWEEP_NOTE,
         metadata=metadata,
     )

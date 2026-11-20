@@ -14,9 +14,8 @@ The state vector is ``[x, y, vx, vy, W]``, where ``W`` is the work done *against
 force function: a wrong force law would then also give a "consistent" ``W``, and the energy
 balance ``KE + PE + W = E0`` (R5) would catch nothing.
 
-The event logic copies the linear solver's (:mod:`.numerical`) on purpose (plan D3): sharing
-it would edit the linear model's code path and risk its golden digests. A shared stepping
-and event layer belongs to roadmap 2.4.
+The landing and apex events are shared with the linear solver in :mod:`.landing`
+(roadmap 2.4, plan D12).
 """
 
 from __future__ import annotations
@@ -25,9 +24,8 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.integrate import solve_ivp
 
-from simforge.core.errors import SolverError
+from simforge.physics.projectile import landing
 from simforge.physics.projectile import quadratic_reference as qr
 from simforge.physics.projectile.numerical import FloatArray, NumericalSolution, SolverMethod
 
@@ -97,57 +95,6 @@ def integrate(
         power = c * (vx * vx + vy * vy) ** 1.5
         return np.array([vx, vy, ax, ay - g, power])
 
-    def hits_ground(t: float, s: FloatArray) -> float:
-        # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
-        # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
-        # Treating the launch instant as "above ground" leaves only the real landing.
-        return float(s[1]) if t > 0.0 else 1.0
-
-    def reaches_apex(_t: float, s: FloatArray) -> float:
-        return float(s[3])
-
-    hits_ground.terminal = True  # type: ignore[attr-defined]
-    hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
-    reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
-
     y0 = np.array([0.0, setup.launch_height, setup.vx0, setup.vy0, 0.0])
-    sol = solve_ivp(
-        rhs,
-        (0.0, t_max),
-        y0,
-        method=method,
-        rtol=rtol,
-        atol=atol,
-        events=[hits_ground, reaches_apex],
-        dense_output=True,
-    )
-    if sol.status == -1:
-        raise SolverError(f"{method} failed: {sol.message}")
-    if sol.status != 1 or len(sol.t_events[0]) == 0:
-        raise SolverError(f"{method} did not reach the ground before t_max = {t_max:.6g} s")
-
-    t_land = float(sol.t_events[0][0])
-    # A horizontal launch (vy0 = 0) starts at its apex; SciPy may or may not report an event
-    # that is exactly zero at t0, so either way the apex is (t = 0, y = launch height).
-    if len(sol.t_events[1]) > 0:
-        t_apex, max_height = float(sol.t_events[1][0]), float(sol.y_events[1][0][1])
-    else:
-        t_apex, max_height = 0.0, setup.launch_height
-    # solve_ivp's final node is the event time itself, so the node series ends at landing.
-    return NumericalSolution(
-        t=sol.t,
-        x=sol.y[0],
-        y=sol.y[1],
-        vx=sol.y[2],
-        vy=sol.y[3],
-        drag_work=sol.y[4],
-        flight_time=t_land,
-        apex_time=t_apex,
-        max_height=max_height,
-        n_steps=len(sol.t) - 1,
-        n_rhs_evaluations=int(sol.nfev),
-        method=method,
-        rtol=rtol,
-        atol=atol,
-        dense=sol.sol,
-    )
+    # Looked up at call time, so a test can spy on the shared landing logic.
+    return landing.solve_to_landing(rhs, y0, method=method, rtol=rtol, atol=atol, t_max=t_max)

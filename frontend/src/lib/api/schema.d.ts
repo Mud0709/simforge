@@ -150,6 +150,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/oscillator/integrators": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Oscillator Integrator Study */
+    post: operations["oscillator_integrator_study_api_v1_physics_oscillator_integrators_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/oscillator/simulate": {
     parameters: {
       query?: never;
@@ -369,6 +386,8 @@ export interface components {
        * @description m
        */
       best_range: number;
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       /**
        * Flight Times
        * @description s
@@ -590,6 +609,26 @@ export interface components {
       /** Groups */
       groups: number;
     };
+    /**
+     * EnergyEnvelopeSeries
+     * @description Min and max of (E_n - E_0)/E_0 in at most 200 contiguous bins of nodes.
+     */
+    EnergyEnvelopeSeries: {
+      /** Hi */
+      hi: number[];
+      /** Lo */
+      lo: number[];
+      /**
+       * T End
+       * @description s
+       */
+      t_end: number[];
+      /**
+       * T Start
+       * @description s
+       */
+      t_start: number[];
+    };
     /** EnvironmentDifference */
     EnvironmentDifference: {
       /** Key */
@@ -611,6 +650,86 @@ export interface components {
        * @description |numerical - analytical| / |analytical|; null when the reference is 0.
        */
       relative: number | null;
+    };
+    /**
+     * EventRun
+     * @description The landing located between the nodes of a run with h = T/(N + 1/2).
+     */
+    EventRun: {
+      /** Crossed */
+      crossed: boolean;
+      /**
+       * Crossing Step
+       * @description i with y_i > 0 >= y_(i+1); null if none
+       */
+      crossing_step: number | null;
+      /** Diverged */
+      diverged: boolean;
+      /**
+       * H
+       * @description T/(N + 1/2), s: the exact landing sits mid-step
+       */
+      h: number;
+      /** Hermite Exclusion Reason */
+      hermite_exclusion_reason: string | null;
+      /** In Hermite Fit */
+      in_hermite_fit: boolean;
+      /** In Linear Fit */
+      in_linear_fit: boolean;
+      /**
+       * Interpolation Error Hermite
+       * @description Signed t~ - T, s
+       */
+      interpolation_error_hermite: number | null;
+      /**
+       * Interpolation Error Linear
+       * @description Signed t~ - T, s: the same interpolant on the exact nodal values
+       */
+      interpolation_error_linear: number | null;
+      /** Kh */
+      kh: number;
+      /**
+       * Landing Error Hermite
+       * @description |t^ - T|, s
+       */
+      landing_error_hermite: number | null;
+      /**
+       * Landing Error Linear
+       * @description |t^ - T|, s
+       */
+      landing_error_linear: number | null;
+      /**
+       * Landing Time Hermite
+       * @description s
+       */
+      landing_time_hermite: number | null;
+      /**
+       * Landing Time Linear
+       * @description s
+       */
+      landing_time_linear: number | null;
+      /** Linear Exclusion Reason */
+      linear_exclusion_reason: string | null;
+      /**
+       * N Completed
+       * @description Steps taken, at most 2N + 2
+       */
+      n_completed: number;
+      /**
+       * N Steps
+       * @description N of the matching fixed-horizon run
+       */
+      n_steps: number;
+      /**
+       * Roundoff Floor
+       * @description 100 (i + 1) eps T, s; 0 if no crossing
+       */
+      roundoff_floor: number;
+      /**
+       * Stability
+       * @enum {string}
+       */
+      stability: "stable" | "marginal" | "unstable";
     };
     /** Example */
     Example: {
@@ -766,6 +885,8 @@ export interface components {
     IntegratorStudyResponse: {
       /** Assumptions */
       assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       /** Dt Values */
       dt_values: number[];
       exact_trajectory: components["schemas"]["XYSeries"];
@@ -898,10 +1019,17 @@ export interface components {
     /** MethodStudyResult */
     MethodStudyResult: {
       /**
+       * Event Runs
+       * @description One per run, in the same order.
+       */
+      event_runs: components["schemas"]["EventRun"][];
+      /**
        * Fit Note
        * @description Why no order was fitted, if none was.
        */
       fit_note: string | null;
+      landing_fit_hermite: components["schemas"]["OrderFitResult"] | null;
+      landing_fit_linear: components["schemas"]["OrderFitResult"] | null;
       /**
        * Method
        * @enum {string}
@@ -1130,6 +1258,229 @@ export interface components {
        * @description (gamma + beta) duration when overdamped, w0 duration otherwise
        */
       stiffness_number: number;
+    };
+    /** OscillatorEnergyRun */
+    OscillatorEnergyRun: {
+      /** Diverged */
+      diverged: boolean;
+      /** Diverged At Step */
+      diverged_at_step: number | null;
+      /**
+       * Energy Bound
+       * @description Proved bound R5 on |E_n - E_0|/E_0 (symplectic methods, w h < 2)
+       */
+      energy_bound: number | null;
+      envelope: components["schemas"]["EnergyEnvelopeSeries"];
+      /**
+       * Final Energy Ratio
+       * @description E_N/E_0; null if diverged
+       */
+      final_energy_ratio: number | null;
+      /**
+       * H
+       * @description s
+       */
+      h: number;
+      /**
+       * Max Relative Energy Error
+       * @description max |E_n - E_0|/E_0, completed nodes
+       */
+      max_relative_energy_error: number;
+      /**
+       * Method
+       * @enum {string}
+       */
+      method: "euler" | "rk4" | "symplectic_euler" | "velocity_verlet";
+      /**
+       * Modified Energy Residual
+       * @description max |H~_n - H~_0|/|H~_0| (symplectic methods); exactly 0 in exact arithmetic
+       */
+      modified_energy_residual: number | null;
+      /** N Completed */
+      n_completed: number;
+      /** N Steps */
+      n_steps: number;
+      /**
+       * Theta
+       * @description w h, dimensionless
+       */
+      theta: number;
+    };
+    /** OscillatorFitRule */
+    OscillatorFitRule: {
+      /** Description */
+      description: string;
+      /** Max Amplitude Growth */
+      max_amplitude_growth: number;
+      /** Max Theta */
+      max_theta: number;
+      /** Min Points */
+      min_points: number;
+      /** Roundoff Safety Factor */
+      roundoff_safety_factor: number;
+    };
+    /**
+     * OscillatorIntegratorParameters
+     * @description Undamped, undriven oscillator, SI units. Defaults: w0 = 5 rad/s, x0 = 0.1 m.
+     */
+    OscillatorIntegratorParameters: {
+      /**
+       * Initial Displacement
+       * @description Displacement x0 at t = 0, in m.
+       * @default 0.1
+       */
+      initial_displacement?: number;
+      /**
+       * Initial Velocity
+       * @description Velocity v0 at t = 0, in m/s.
+       * @default 0
+       */
+      initial_velocity?: number;
+      /**
+       * Mass
+       * @description Mass m in kg.
+       * @default 1
+       */
+      mass?: number;
+      /**
+       * Spring Constant
+       * @description Spring constant k in N/m.
+       * @default 25
+       */
+      spring_constant?: number;
+    };
+    /** OscillatorIntegratorRequest */
+    OscillatorIntegratorRequest: {
+      /**
+       * Dt Values
+       * @description Requested time steps (s) of the order study over one period T. Each run uses h = T/N with N = ceil(T/dt), so that every run ends exactly at T.
+       */
+      dt_values?: number[];
+      /**
+       * Energy Dt
+       * @description Time step (s) of the long energy run.
+       * @default 0.05
+       */
+      energy_dt?: number;
+      /** Methods */
+      methods?: ("euler" | "rk4" | "symplectic_euler" | "velocity_verlet")[];
+      parameters?: components["schemas"]["OscillatorIntegratorParameters"];
+      /**
+       * Periods
+       * @description Length of the long run.
+       * @default 200
+       */
+      periods?: number;
+      /**
+       * Save Experiment
+       * @default true
+       */
+      save_experiment?: boolean;
+    };
+    /** OscillatorIntegratorResponse */
+    OscillatorIntegratorResponse: {
+      /**
+       * Amplitude Scale
+       * @description X = sqrt(x0^2 + (v0/w)^2), m
+       */
+      amplitude_scale: number;
+      /**
+       * Angular Frequency
+       * @description w = sqrt(k/m), rad/s
+       */
+      angular_frequency: number;
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      /** Dt Values */
+      dt_values: number[];
+      /** Energy */
+      energy: components["schemas"]["OscillatorEnergyRun"][];
+      /**
+       * Energy Dt
+       * @description s
+       */
+      energy_dt: number;
+      fit_rule: components["schemas"]["OscillatorFitRule"];
+      metadata: components["schemas"]["RunMetadata"];
+      /** Methods */
+      methods: ("euler" | "rk4" | "symplectic_euler" | "velocity_verlet")[];
+      model: components["schemas"]["ModelInfo"];
+      parameters: components["schemas"]["OscillatorIntegratorParameters"];
+      /**
+       * Period
+       * @description T = 2 pi / w, s
+       */
+      period: number;
+      /** Periods */
+      periods: number;
+      /** Results */
+      results: components["schemas"]["OscillatorMethodResult"][];
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
+    };
+    /** OscillatorIntegratorRun */
+    OscillatorIntegratorRun: {
+      /** Diverged */
+      diverged: boolean;
+      /**
+       * Dt Requested
+       * @description s
+       */
+      dt_requested: number;
+      /** Exclusion Reason */
+      exclusion_reason: string | null;
+      /**
+       * H
+       * @description Effective step T/N, s. Convergence is fitted against this.
+       */
+      h: number;
+      /** In Fit */
+      in_fit: boolean;
+      /**
+       * Max Position Error
+       * @description m; null if the run diverged
+       */
+      max_position_error: number | null;
+      /**
+       * Max Scaled Error
+       * @description max over the nodes of sqrt((x - x_exact)^2 + ((v - v_exact)/w)^2) / X, dimensionless; the fitted error. Null if the run diverged
+       */
+      max_scaled_error: number | null;
+      /**
+       * Max Velocity Error
+       * @description m/s; null if the run diverged
+       */
+      max_velocity_error: number | null;
+      /** N Completed */
+      n_completed: number;
+      /** N Steps */
+      n_steps: number;
+      /**
+       * Theta
+       * @description w h, dimensionless (rad per step at small w h)
+       */
+      theta: number;
+    };
+    /** OscillatorMethodResult */
+    OscillatorMethodResult: {
+      /** @description Order fitted to max_scaled_error vs h. */
+      fit: components["schemas"]["OrderFitResult"] | null;
+      /**
+       * Method
+       * @enum {string}
+       */
+      method: "euler" | "rk4" | "symplectic_euler" | "velocity_verlet";
+      /**
+       * Runs
+       * @description Coarsest to finest step.
+       */
+      runs: components["schemas"]["OscillatorIntegratorRun"][];
+      /** Theoretical Order */
+      theoretical_order: number;
     };
     /** OscillatorNumerical */
     OscillatorNumerical: {
@@ -1465,6 +1816,8 @@ export interface components {
       analytical: components["schemas"]["AnalyticalResult"];
       /** Assumptions */
       assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
       comparison: components["schemas"]["Comparison"];
       metadata: components["schemas"]["RunMetadata"];
       model: components["schemas"]["ModelInfo"];
@@ -1844,7 +2197,8 @@ export interface components {
         | components["schemas"]["ProfileResponse"]
         | components["schemas"]["QuadraticDragResponse"]
         | components["schemas"]["QuadraticAngleSweepResponse"]
-        | components["schemas"]["OscillatorResponse"];
+        | components["schemas"]["OscillatorResponse"]
+        | components["schemas"]["OscillatorIntegratorResponse"];
     };
     /**
      * ReferenceLine
@@ -2548,6 +2902,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Health"];
+        };
+      };
+    };
+  };
+  oscillator_integrator_study_api_v1_physics_oscillator_integrators_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OscillatorIntegratorRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OscillatorIntegratorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

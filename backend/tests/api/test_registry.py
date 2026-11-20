@@ -86,6 +86,17 @@ CASES: list[tuple[str, str, dict[str, Any], bytes | None]] = [
         },
         None,
     ),
+    (
+        "physics.oscillator.integrators",
+        "/api/v1/physics/oscillator/integrators",
+        {
+            "parameters": {"initial_displacement": 0.05, "initial_velocity": 0.2},
+            "dt_values": [0.04, 0.02, 0.01, 0.005],
+            "methods": ["velocity_verlet", "euler"],
+            "periods": 10,
+        },
+        None,
+    ),
 ]
 
 

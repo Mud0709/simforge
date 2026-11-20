@@ -41,6 +41,13 @@ order. Verlet's usual advantages (symplecticity, long-term energy behaviour) con
 conservative Hamiltonian systems. They do **not** apply to this dissipative system, and no
 such claim is made. Explicit "predicted-velocity" variants are not used; they are ad hoc
 and their order depends on the predictor.
+
+Event location (roadmap 2.4 slice 4, plan D11, R6)
+--------------------------------------------------
+Each fixed-horizon run of N steps has an event run with h = T/(N + 1/2), so the exact landing
+sits mid-step. The first downward crossing of y = 0 is located by linear and cubic Hermite
+interpolation (``numerics.events``); the landing error is O(h^min(p, q)), q = 2 or 4.
+``euler_step``, ``rk4_step`` and ``locate_crossing`` are looked up in this module at run time.
 """
 
 from __future__ import annotations
@@ -48,16 +55,17 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.optimize import brentq
 
-from simforge.numerics.convergence import OrderFit, fit_order, local_orders
+from simforge.numerics.convergence import OrderFit, fit_order
+from simforge.numerics.events import first_crossing, locate_crossing
 from simforge.numerics.fixed_step import (
     RHS,
     FixedStepSolution,
+    FloatArray,
     Stepper,
     euler_stability,
     euler_step,
@@ -65,11 +73,15 @@ from simforge.numerics.fixed_step import (
     rk4_stability,
     rk4_step,
 )
+from simforge.numerics.workbench import ConvergenceRun, ErrorGroup, Problem, run_convergence
 from simforge.physics.projectile import analytical
 from simforge.physics.projectile.analytical import ProjectileSetup
 
-FloatArray = NDArray[np.float64]
 MethodName = Literal["euler", "rk4", "verlet"]
+EventKind = Literal["linear", "hermite"]
+EVENT_KINDS: tuple[EventKind, ...] = ("linear", "hermite")
+INTERPOLANT_ORDER: dict[EventKind, int] = {"linear": 2, "hermite": 4}
+RK_METHODS: tuple[MethodName, ...] = ("euler", "rk4")  # preserve v + k r + g t y_hat exactly
 StabilityClass = Literal["stable", "marginal", "unstable"]
 
 # --- Fit-range rule ------------------------------------------------------------------
@@ -80,6 +92,13 @@ MAX_KH_FOR_FIT = 0.2
 MAX_H_OVER_T_FOR_FIT = 1.0 / 20.0
 ROUNDOFF_SAFETY = 100.0  # floor = ROUNDOFF_SAFETY * N * eps * scale
 EPS = float(np.finfo(np.float64).eps)
+# An event run leaves the landing fit when its error |e| < ratio (|e_interp| + |e - e_interp|):
+# the integrator's and the interpolant's errors cancel, and the O(h^5) remainder they leave
+# would bias the slope; at 0.5 it is amplified at most 2x (plan R6, SCIENTIFIC_VALIDATION.md).
+EVENT_CANCELLATION_RATIO = 0.5
+# The error at landing is asymptotic only if the decaying mode is: kh <= 0.2 is not enough
+# when kT is large (Euler at b = 10: local orders 0.48 -> 0.93). Mirrors the oscillator's rule.
+MAX_DECAY_MISMATCH_FOR_EVENT_FIT = 0.1
 
 
 def _rk4_real_stability_limit() -> float:
@@ -161,13 +180,21 @@ def initial_state(setup: ProjectileSetup) -> FloatArray:
     return np.array([0.0, setup.launch_height, setup.vx0, setup.vy0])
 
 
+def _stepper(setup: ProjectileSetup, method: MethodName) -> Stepper:
+    # Looked up in this module's namespace at call time, so a test can plant a mutant.
+    if method == "euler":
+        return euler_step
+    if method == "rk4":
+        return rk4_step
+    return verlet_step_factory(setup)
+
+
 def integrate(
     setup: ProjectileSetup, method: MethodName, h: float, n_steps: int
 ) -> FixedStepSolution:
-    stepper: Stepper = {"euler": euler_step, "rk4": rk4_step}.get(method) or verlet_step_factory(
-        setup
+    return integrate_fixed(
+        _stepper(setup, method), rhs(setup), initial_state(setup), 0.0, h, n_steps
     )
-    return integrate_fixed(stepper, rhs(setup), initial_state(setup), 0.0, h, n_steps)
 
 
 # --- The study ---------------------------------------------------------------------------
@@ -203,6 +230,29 @@ class RunResult:
 
 
 @dataclass(frozen=True, slots=True)
+class EventRun:
+    n_steps: int  # N of the matching fixed-horizon run
+    h: float  # s, T / (N + 1/2): the exact landing sits mid-step
+    kh: float
+    stability: StabilityClass
+    diverged: bool
+    n_completed: int  # steps taken, at most 2N + 2
+    crossed: bool
+    crossing_step: int | None  # i: y_i > 0 >= y_{i+1}
+    landing_time_linear: float | None  # s
+    landing_time_hermite: float | None
+    landing_error_linear: float | None  # |t^ - T|, s
+    landing_error_hermite: float | None
+    interpolation_error_linear: float | None  # signed, the interpolant on the exact nodes, s
+    interpolation_error_hermite: float | None
+    roundoff_floor: float  # s; 0 if no crossing
+    in_linear_fit: bool
+    in_hermite_fit: bool
+    linear_exclusion_reason: str | None
+    hermite_exclusion_reason: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class MethodStudy:
     method: MethodName
     theory: MethodTheory
@@ -212,6 +262,10 @@ class MethodStudy:
     position_fit: OrderFit | None
     velocity_fit: OrderFit | None
     trajectory: tuple[FloatArray, FloatArray, float] | None  # (x, y, h) of coarsest stable run
+    event_runs: list[EventRun]  # same order as runs
+    landing_fit_linear: OrderFit | None
+    landing_fit_hermite: OrderFit | None
+    identity_residual: float | None  # RK methods: max ||dv + k dr||_inf / (N eps V), stable runs
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,69 +292,168 @@ def _exclusion_reason(
     return None
 
 
-def _run(
-    setup: ProjectileSetup,
-    method: MethodName,
-    dt: float,
-    horizon: float,
-    pos_scale: float,
-    vel_scale: float,
-) -> tuple[RunResult, FixedStepSolution]:
-    n = steps_for(horizon, dt)
-    h = horizon / n
-    kh = setup.k * h
-    sol = integrate(setup, method, h, n)
-    stability = classify_stability(method, kh)
-    pos_floor = ROUNDOFF_SAFETY * n * EPS * pos_scale
-    vel_floor = ROUNDOFF_SAFETY * n * EPS * vel_scale
+def _problem(setup: ProjectileSetup, horizon: float, pos_scale: float, vel_scale: float) -> Problem:
+    def exact(t: FloatArray) -> FloatArray:
+        return np.column_stack(analytical.state(setup, t))
 
-    errors: list[float | None] = [None, None, None, None]
-    if not sol.diverged:
-        x, y, vx, vy = analytical.state(setup, sol.t)
-        pos_err = np.hypot(sol.y[:, 0] - x, sol.y[:, 1] - y)
-        vel_err = np.hypot(sol.y[:, 2] - vx, sol.y[:, 3] - vy)
-        errors = [
-            float(pos_err.max()),
-            float(vel_err.max()),
-            float(pos_err[-1]),
-            float(vel_err[-1]),
-        ]
+    def exclusion(method: str, h: float, _n: int) -> str | None:
+        kh = setup.k * h
+        stability = classify_stability(cast(MethodName, method), kh)
+        return _exclusion_reason(stability, False, kh, h / horizon)
 
-    reason = _exclusion_reason(stability, sol.diverged, kh, h / horizon)
-    in_pos = reason is None and errors[0] is not None and errors[0] > pos_floor
-    in_vel = reason is None and errors[1] is not None and errors[1] > vel_floor
-    if reason is None and not (in_pos or in_vel):
-        reason = "error below round-off floor"
+    return Problem(
+        rhs=rhs(setup),
+        y0=initial_state(setup),
+        t0=0.0,
+        horizon=horizon,
+        exact=exact,
+        groups=(
+            ErrorGroup("position", (0, 1), pos_scale),
+            ErrorGroup("velocity", (2, 3), vel_scale),
+        ),
+        exclusion=exclusion,
+    )
 
-    result = RunResult(
-        dt_requested=dt,
-        h=h,
-        n_steps=n,
+
+def _run_result(method: MethodName, k: float, r: ConvergenceRun) -> RunResult:
+    kh = k * r.h
+    return RunResult(
+        dt_requested=r.dt_requested,
+        h=r.h,
+        n_steps=r.n_steps,
         kh=kh,
         amplification_factor=amplification_factor(method, kh),
-        stability=stability,
-        diverged=sol.diverged,
-        n_completed=len(sol.t) - 1,
-        max_position_error=errors[0],
-        max_velocity_error=errors[1],
-        final_position_error=errors[2],
-        final_velocity_error=errors[3],
-        position_roundoff_floor=pos_floor,
-        velocity_roundoff_floor=vel_floor,
-        in_position_fit=in_pos,
-        in_velocity_fit=in_vel,
-        exclusion_reason=reason,
+        stability=classify_stability(method, kh),
+        diverged=r.diverged,
+        n_completed=r.n_completed,
+        max_position_error=r.max_errors["position"],
+        max_velocity_error=r.max_errors["velocity"],
+        final_position_error=r.final_errors["position"],
+        final_velocity_error=r.final_errors["velocity"],
+        position_roundoff_floor=r.roundoff_floors["position"],
+        velocity_roundoff_floor=r.roundoff_floors["velocity"],
+        in_position_fit=r.in_fit["position"],
+        in_velocity_fit=r.in_fit["velocity"],
+        exclusion_reason=r.exclusion_reason,
     )
-    return result, sol
-
-
-def _local_orders(runs: list[RunResult], attr: str) -> list[float | None]:
-    # Diverged runs have no error; 0.0 makes local_orders return None for those pairs.
-    return local_orders([r.h for r in runs], [getattr(r, attr) or 0.0 for r in runs])
 
 
 def _downsample(n: int, max_points: int) -> FloatArray:
     return np.unique(np.linspace(0, n - 1, min(n, max_points)).round().astype(int))
+
+
+def _event_run(setup: ProjectileSetup, method: MethodName, n: int, horizon: float) -> EventRun:
+    """Integrate with h = T/(N + 1/2) until the first downward crossing of y = 0 (at most
+    2N + 2 steps) and locate it with both interpolants of y (slopes vy)."""
+    h = horizon / (n + 0.5)
+    kh = setup.k * h
+    stability = classify_stability(method, kh)
+    sol = integrate(setup, method, h, n + 2)  # an accurate run crosses in step N + 1
+    ys, diverged = sol.y, sol.diverged
+    i = first_crossing(ys[:, 1])
+    if i is None and not diverged:
+        rest = integrate_fixed(_stepper(setup, method), rhs(setup), ys[-1], (n + 2) * h, h, n)
+        ys, diverged = np.vstack([ys, rest.y[1:]]), rest.diverged
+        i = first_crossing(ys[:, 1])
+    n_completed = len(ys) - 1
+    if i is None:
+        missing = f"no downward crossing of y = 0 within {n_completed} steps"
+        return EventRun(
+            n_steps=n,
+            h=h,
+            kh=kh,
+            stability=stability,
+            diverged=diverged,
+            n_completed=n_completed,
+            crossed=False,
+            crossing_step=None,
+            landing_time_linear=None,
+            landing_time_hermite=None,
+            landing_error_linear=None,
+            landing_error_hermite=None,
+            interpolation_error_linear=None,
+            interpolation_error_hermite=None,
+            roundoff_floor=0.0,
+            in_linear_fit=False,
+            in_hermite_fit=False,
+            linear_exclusion_reason=missing,
+            hermite_exclusion_reason=missing,
+        )
+
+    t0, t1 = i * h, (i + 1) * h
+    floor = ROUNDOFF_SAFETY * (i + 1) * EPS * horizon
+    _, y_ex, _, vy_ex = analytical.state(setup, np.array([t0, t1]))
+    brackets = bool(y_ex[0] * y_ex[1] <= 0)
+    base = _exclusion_reason(stability, diverged, kh, h / horizon)
+    if base is None:
+        # The discrete decay R^N against the exact e^{-kNh} over the same span (N h = T - h/2).
+        mismatch = abs(amplification_factor(method, kh) ** n * math.exp(kh * n) - 1.0)
+        if mismatch > MAX_DECAY_MISMATCH_FOR_EVENT_FIT:
+            base = f"pre-asymptotic: |R(-kh)^N e^(kNh) - 1| = {mismatch:.3g} > 0.1"
+    t_hat: dict[EventKind, float] = {}
+    e_int: dict[EventKind, float | None] = {}
+    why: dict[EventKind, str | None] = {}
+    for q in EVENT_KINDS:
+        t_hat[q] = locate_crossing(t0, t1, ys[i, 1], ys[i + 1, 1], ys[i, 3], ys[i + 1, 3], kind=q)
+        e = t_hat[q] - horizon
+        ei = (
+            locate_crossing(t0, t1, y_ex[0], y_ex[1], vy_ex[0], vy_ex[1], kind=q) - horizon
+            if brackets
+            else None
+        )
+        reason: str | None = base
+        if reason is None and abs(e) <= floor:
+            reason = f"landing error at or below the round-off floor ({floor:.2g} s)"
+        if reason is None and ei is None:
+            reason = "exact nodes do not bracket the landing, so cancellation cannot be checked"
+        if (
+            reason is None
+            and ei is not None
+            and (abs(e) < EVENT_CANCELLATION_RATIO * (abs(ei) + abs(e - ei)))
+        ):
+            reason = "integrator and interpolation errors cancel (|e| < 0.5 x their sum)"
+        e_int[q], why[q] = ei, reason
+    return EventRun(
+        n_steps=n,
+        h=h,
+        kh=kh,
+        stability=stability,
+        diverged=diverged,
+        n_completed=n_completed,
+        crossed=True,
+        crossing_step=i,
+        landing_time_linear=t_hat["linear"],
+        landing_time_hermite=t_hat["hermite"],
+        landing_error_linear=abs(t_hat["linear"] - horizon),
+        landing_error_hermite=abs(t_hat["hermite"] - horizon),
+        interpolation_error_linear=e_int["linear"],
+        interpolation_error_hermite=e_int["hermite"],
+        roundoff_floor=floor,
+        in_linear_fit=why["linear"] is None,
+        in_hermite_fit=why["hermite"] is None,
+        linear_exclusion_reason=why["linear"],
+        hermite_exclusion_reason=why["hermite"],
+    )
+
+
+def _landing_fit(events: list[EventRun], q: EventKind) -> OrderFit | None:
+    fitted = [ev for ev in events if getattr(ev, f"in_{q}_fit")]
+    return fit_order([ev.h for ev in fitted], [getattr(ev, f"landing_error_{q}") for ev in fitted])
+
+
+def _identity_residual(
+    setup: ProjectileSetup, method: MethodName, runs: list[RunResult], scale: float
+) -> float | None:
+    """max over stable runs of max_n ||(v_n - v(t_n)) + k (r_n - r(t_n))||_inf / (N eps V)."""
+    worst: float | None = None
+    for r in runs:
+        if r.stability != "stable" or r.diverged:
+            continue
+        sol = integrate(setup, method, r.h, r.n_steps)
+        d = sol.y - np.column_stack(analytical.state(setup, sol.t))
+        res = float(np.abs(d[:, 2:] + setup.k * d[:, :2]).max() / (r.n_steps * EPS * scale))
+        worst = res if worst is None else max(worst, res)
+    return worst
 
 
 def run_study(
@@ -312,7 +465,8 @@ def run_study(
     horizon: float | None = None,
 ) -> StudyResult:
     """Integrate with every (method, dt) pair over [0, T_exact] and compare with the
-    exact solution at every node. ``horizon`` is T_exact, if the caller already has it."""
+    exact solution at every node; then locate the landing in a matching event run.
+    ``horizon`` is T_exact, if the caller already has it."""
     if setup.k <= 0:
         raise ValueError("The integrator study requires nonzero drag (k > 0)")
     if horizon is None:
@@ -322,26 +476,17 @@ def run_study(
     pos_scale = float(np.max(np.hypot(x_ref, y_ref)))
     vel_scale = float(np.max(np.hypot(vx_ref, vy_ref)))
 
+    problem = _problem(setup, horizon, pos_scale, vel_scale)
+    identity_scale = vel_scale + setup.k * pos_scale + setup.gravity * horizon  # V
+    steppers: dict[str, Stepper] = {m: _stepper(setup, m) for m in methods}
     studies: list[MethodStudy] = []
-    for method in methods:
-        pairs = [
-            _run(setup, method, dt, horizon, pos_scale, vel_scale)
-            for dt in sorted(dt_values, reverse=True)
-        ]
-        runs = [r for r, _ in pairs]
-
-        pos_fit = fit_order(
-            [r.h for r in runs if r.in_position_fit],
-            [r.max_position_error or 0.0 for r in runs if r.in_position_fit],
-        )
-        vel_fit = fit_order(
-            [r.h for r in runs if r.in_velocity_fit],
-            [r.max_velocity_error or 0.0 for r in runs if r.in_velocity_fit],
-        )
-
+    for method, conv in zip(methods, run_convergence(problem, steppers, dt_values), strict=True):
+        runs = [_run_result(method, setup.k, r) for r in conv.runs]
+        events = [_event_run(setup, method, r.n_steps, horizon) for r in runs]
         trajectory = None
-        for r, sol in pairs:  # coarsest first
+        for r in runs:  # coarsest first
             if r.stability == "stable" and not r.diverged:
+                sol = integrate(setup, method, r.h, r.n_steps)
                 idx = _downsample(len(sol.t), max_plot_points)
                 trajectory = (sol.y[idx, 0], sol.y[idx, 1], r.h)
                 break
@@ -351,11 +496,19 @@ def run_study(
                 method=method,
                 theory=THEORY[method],
                 runs=runs,
-                position_local_orders=_local_orders(runs, "max_position_error"),
-                velocity_local_orders=_local_orders(runs, "max_velocity_error"),
-                position_fit=pos_fit,
-                velocity_fit=vel_fit,
+                position_local_orders=conv.local_orders["position"],
+                velocity_local_orders=conv.local_orders["velocity"],
+                position_fit=conv.fits["position"],
+                velocity_fit=conv.fits["velocity"],
                 trajectory=trajectory,
+                event_runs=events,
+                landing_fit_linear=_landing_fit(events, "linear"),
+                landing_fit_hermite=_landing_fit(events, "hermite"),
+                identity_residual=(
+                    _identity_residual(setup, method, runs, identity_scale)
+                    if method in RK_METHODS
+                    else None
+                ),
             )
         )
 

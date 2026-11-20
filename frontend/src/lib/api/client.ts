@@ -25,6 +25,8 @@ export type IntegratorStudyRequest = Schemas["IntegratorStudyRequest"];
 export type IntegratorStudyResponse = Schemas["IntegratorStudyResponse"];
 export type MethodStudyResult = Schemas["MethodStudyResult"];
 export type IntegratorMethod = MethodStudyResult["method"];
+export type OscillatorIntegratorRequest = Schemas["OscillatorIntegratorRequest"];
+export type OscillatorIntegratorResponse = Schemas["OscillatorIntegratorResponse"];
 export type SolowParameters = Schemas["SolowParameters"];
 export type SavingsPolicy = Schemas["SavingsPolicy"];
 export type SolowRequest = Schemas["SolowRequest"];
@@ -122,6 +124,15 @@ export function runQuadraticAngleSweep(
 
 export function runIntegratorStudy(body: IntegratorStudyRequest): Promise<IntegratorStudyResponse> {
   return request("/physics/projectile/integrators", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function runOscillatorIntegrators(
+  body: OscillatorIntegratorRequest,
+): Promise<OscillatorIntegratorResponse> {
+  return request("/physics/oscillator/integrators", {
     method: "POST",
     body: JSON.stringify(body),
   });

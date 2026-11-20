@@ -29,9 +29,31 @@ const run = (h: number, err: number, inFit: boolean) => ({
   exclusion_reason: inFit ? null : "not asymptotic: h/T = 0.1 > 1/20",
 });
 
+const CHECKS = [
+  {
+    id: "energy_balance",
+    label: "Energy balance",
+    value: 1.3e-12,
+    threshold: 1e-9,
+    passed: true,
+    kind: "numerical_diagnostic",
+    note: "Energy balance note",
+  },
+  {
+    id: "cost",
+    label: "Cost",
+    value: 70,
+    threshold: null,
+    passed: null,
+    kind: "informational",
+    note: "Cost note",
+  },
+];
+
 const RESPONSE = {
   model: { id: "physics.projectile.integrators", version: "1.0.0", name: "Study", description: "" },
   parameters: {},
+  checks: CHECKS,
   dt_values: [0.2, 0.1, 0.05, 0.025],
   methods: ["euler"],
   units: {},
@@ -139,6 +161,20 @@ describe("IntegratorLab", () => {
     expect(within(region("Results")).queryByRole("img")).not.toBeInTheDocument();
     expect(within(region("Visualisation")).queryByTestId("order-euler")).not.toBeInTheDocument();
     expect(within(region("Assumptions")).getByText("Fixed horizon.")).toBeInTheDocument();
+  });
+
+  it("shows the shared ChecksTable under Validation and keeps the order table", async () => {
+    mockFetch(200, RESPONSE);
+    render(<IntegratorLab />);
+    await userEvent.click(screen.getByRole("button", { name: "Run study" }));
+    await screen.findByTestId("order-euler");
+    const validation = within(screen.getByRole("region", { name: "Validation" }));
+    expect(validation.getByTestId("check-energy_balance")).toHaveTextContent("Pass");
+    expect(validation.getByTestId("check-cost")).toHaveTextContent("Info");
+    // The author's decision: the fitted-order table is kept too.
+    expect(
+      within(screen.getByRole("region", { name: "Results" })).getByTestId("order-euler"),
+    ).toHaveTextContent("1.009");
   });
 
   it("marks the study as out of date when the time steps change", async () => {

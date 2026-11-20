@@ -27,7 +27,10 @@ evidence goes. It is a living document: every new model adds a section.
 
 ---
 
-## `physics.projectile` v1.0.0: projectile motion with linear drag
+## `physics.projectile` v1.1.0: projectile motion with linear drag
+
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
 
 ### Model
 
@@ -135,6 +138,41 @@ How to read this table:
 To reproduce, run `cd backend && uv run pytest tests/physics -v`. Any single run's figures
 also appear in its API response under `comparison`.
 
+### Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+
+Four `numerical_diagnostic` checks, each a dimensionless error against the exact solution:
+`flight_time_error` (|T_num − T|/T), `range_error` (|R_num − R|/max(R, H), since R = 0 for a
+vertical launch), `max_height_error` (|H_num − H|/H) and `energy_balance` (max |KE + PE + W −
+E₀|/E₀ over the step nodes). Threshold, the same for all four:
+`PROJECTILE_ERROR_F × (rtol + atol / max(R, H)) + PROJECTILE_ERROR_FLOOR` with **F = 500** and
+**floor = 1e-10** (`model.py`). A threshold above 1 (an allowance above 100%) gives
+`passed = null` and an "uninformative" note. These are **measured** thresholds, not proved bounds.
+
+Measured 2026-11-19 on linux-x86_64 (Intel Xeon @ 2.10 GHz), Python 3.12, NumPy 2.5.4, SciPy
+1.18.1, 12 432 runs: methods RK45/DOP853/Radau × 8 (rtol, atol) pairs from (1e-13, 1e-14) to
+(1e-3, 0.1) × (a) the corners of the input space (m ∈ {1e-6, 1e6} kg, v₀ ∈ {1e-3, 1e4} m/s,
+k ∈ {0, 1e4} s⁻¹, g ∈ {0.01, 1000}, h ∈ {0, 1e5} m, θ ∈ {0.001°, 90°}); (b) m = 1 kg, v₀ ∈
+{0.01, 1, 20, 300, 1e4}, b ∈ {0, 0.1, 10} kg/s, h ∈ {0, 10, 1e3, 1e5} m, θ ∈ {0, 15, 45, 75,
+89.99, 90}°; (c) m ∈ {1e-6, 1e6} kg, v₀ ∈ {0.01, 1, 20, 300}, k ∈ {0, 0.1, 10} s⁻¹, h ∈ {0, 10,
+1e3}, θ ∈ {15, 45, 90}°; (d) the API defaults and five ordinary variants. Runs refused by the
+stiffness guard are excluded. Worst F needed for a 10× margin: 295 (flight time and range,
+DOP853, v₀ = 1e4 m/s, b = 0.1, rtol = 1e-6, atol = 0.1); energy 220; max height 26. Scale
+max(R, H) was chosen over v₀, which needed F ≈ 4e4 on the corners (tiny trajectories at atol =
+1e-14). With F = 500 and floor 1e-10, 10 679 runs give a verdict, none fails, and the smallest
+threshold/value is 17×. F × rtol alone covered every run. The floor 1e-10 is a chosen value,
+not derived: below rtol ≈ 2e-13 (schema minimum 1e-13) it is larger than F × rtol and sets
+most of the threshold, so at the tightest tolerances a regression 2-3× worse than measured
+would still pass (slice 3 review; a derived floor, e.g. N·ε of the energy sums, is not done). Tests: `backend/tests/physics/test_projectile_checks.py` (corner grid, ordinary
+runs, no verdict above 100%, wrong drag sign everywhere fails the energy balance, wrong drag
+sign in the solver fails the three exact comparisons).
+
+The landing and apex events and SciPy's status handling now live once, in
+`physics/projectile/landing.py`, used by both the linear and quadratic solvers (plan D12). The
+move was bit-identical: every golden digest was unchanged before the version bump, and 1530
+runs (both solvers, 3 methods, 3 tolerance pairs, θ incl. 0°, h₀ > 0, five drag values) gave
+identical arrays. Tests: `backend/tests/physics/test_landing.py` (the t = 0 guard, horizontal
+launch apex, both solvers against the exact vacuum flight and `analytical.flight_time`).
+
 ### Known limitations
 
 - **Linear drag only.** Real balls experience drag closer to `F ∝ v²`, which has no
@@ -156,7 +194,10 @@ also appear in its API response under `comparison`.
 
 ---
 
-## `physics.projectile.integrators` v1.0.0: fixed-step integrator convergence study
+## `physics.projectile.integrators` v1.1.0: fixed-step integrator convergence study, with event location
+
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
 
 ### Purpose
 
@@ -164,7 +205,8 @@ The linear-drag projectile has an exact solution, so the error of any integrator
 it can be measured exactly. This study implements three fixed-step methods **from scratch**
 (no SciPy integrators) and measures how their errors shrink as the time step `h` is reduced.
 
-Engine code: `backend/src/simforge/numerics/fixed_step.py` and `convergence.py` (generic) and
+Engine code: `backend/src/simforge/numerics/fixed_step.py`, `convergence.py`, `workbench.py`
+(the shared convergence driver, since v1.1.0) and `events.py` (generic), and
 `backend/src/simforge/physics/projectile/integrator_study.py` (problem-specific).
 
 ### Equations
@@ -214,8 +256,9 @@ computation refused to find a root there, which is how the mistake was caught.
 - **Fixed horizon.** Every run integrates over `[0, T]`, where `T` is the exact flight time,
   using `N = ⌈T/dt⌉` equal steps of `h = T/N ≤ dt` (up to a relative 1e-12 that absorbs
   rounding noise in `T/dt`). Convergence is fitted against `h`, not
-  the requested `dt`. Landing is *not* detected: locating it between nodes would add an
-  interpolation error (typically O(h²)) that could mask RK4's fourth order.
+  the requested `dt`. The order runs do not detect landing, so no interpolation error
+  (typically O(h²)) can mask RK4's fourth order; the landing time is measured separately by
+  the event runs (see "Event location" below).
 - **Max position error** = `max_n |r_n − r(t_n)|` (m), and **max velocity error** =
   `max_n |v_n − v(t_n)|` (m/s), over all nodes. Errors at `t = T` are also reported.
 - **Reference.** The existing exact solution, evaluated in float64 with relative error about
@@ -320,25 +363,140 @@ How to read this table:
 To reproduce: `cd backend && uv run pytest tests/physics/test_projectile_integrators.py -v`,
 or run the study from the UI (Physics Lab → Integrators).
 
+### Event location (v1.1.0, roadmap 2.4 slice 4; plan D11, D13, R6)
+
+**What is computed.** For each order run of N steps there is an event run with
+`h_e = T/(N + ½)`, so the exact landing falls at s = ½ of step N + 1. The run stops at the
+first downward crossing of y = 0 (`y_i > 0 ≥ y_{i+1}`, `events.first_crossing`). It takes
+N + 2 steps and, if needed, N more, so at most 2N + 2. The landing is then located on
+`[t_i, t_{i+1}]` by linear (secant) and cubic Hermite interpolation (values y, slopes vy).
+The landing error is `|t̂ − T|`, against `analytical.flight_time` (brentq on the closed-form
+y(t); validated in `test_projectile_analytical.py`).
+
+**Theory (R6; a standard result, tested here, not proved in this repo).** The landing error
+is O(h^min(p, q)): p is the method's order and q = 2 (linear) or 4 (Hermite). The
+interpolation error alone (the interpolant on the exact nodal values) has leading terms
+`s(1 − s) h² g″/(2|g′|)` (linear) and `s²(1 − s)² h⁴ |g⁗|/(24|g′|)` in magnitude (Hermite).
+Here g = y, and `y⁗ = −k³ A < 0` (A = (vy₀ + g/k) e^{−kT} > 0), so y lies below its cubic
+and **the Hermite landing is late** (t̃ − T > 0). y is concave, so the chord lands early.
+Both signs and magnitudes match the response's `interpolation_error_*` within 1e-3 relative
+at s = ½ for N ≥ 22 (test).
+
+**Fit rule for the landing order** (per method and interpolant, against `h_e`; at least 3
+points). The run must have crossed. It must be stable, with `kh_e ≤ 0.2` and `h_e ≤ T/20`
+(the order runs' rule). It must not be **pre-asymptotic**: it is excluded when
+`|R(−kh)^N e^{kNh} − 1| > 0.1` (N = n_steps, h the event step, so N h = T − h/2 is the span
+R^N covers and a correct method is not penalised for the half step). Why: `kh ≤ 0.2` is not
+enough when kT is large. At b = 10 kg/s, m = 1 kg (kT ≈ 15) Euler's decaying mode is off by
+about e^{−kT·kh/2}, its landing-error local orders measured 0.48 → 0.93, and without this rule
+the fits gave 0.838, 0.779 and 0.772 (45°, 75°, 90°): false fails. The position fit is not
+affected because its maximum error sits early, at t ≈ 1/k. The rule mirrors the oscillator's
+10% amplitude rule (D9). With it, those three requests give no Euler verdict (passed = null,
+too few points) and no check fails. Its error must be above the **round-off floor**
+`100 (i + 1) ε T`, since the located time carries rounding from i + 1 steps on a time scale T.
+On the default request this removes the three finest RK4/Hermite runs (errors 9e-12, 6e-13
+and 4e-14 s against floors of 1.7e-11 to 6.6e-11 s). Finally, the run must not
+**cancel**: it is excluded when `|e| < 0.5 (|e_interp| + |e − e_interp|)`, where e = t̂ − T and
+`e_interp` is the interpolation error alone. Why: RK4's own landing error and Hermite's are
+both O(h⁴) and can have opposite signs. At (15°, b = 0.3) and (5°, b = 1) their ratio was
+−1.03 and −0.92. Without the rule, 12-point fits there gave 3.67-4.12, which are false fails.
+With ratio 0.5 the surviving |e| is at least half the sum of its parts, so the O(h⁵)
+remainder is amplified at most 2× **relative to the no-cancellation case** (where the total error
+is the integrator's alone), not in absolute terms. With too few points left the check gives no verdict
+(passed = null, with a note counting the round-off, cancellation and no-crossing exclusions).
+
+**Checks in every response** (`checks`): `order_<m>` (|position order − p| ≤ 0.1) and
+`fit_points_<m>`; `event_order_<m>_<q>` (|landing order − min(p, q)| ≤ 0.1) and
+`event_fit_points_<m>_<q>`; `velocity_position_identity_{euler,rk4}`, an **exact identity**
+up to rounding. Every Runge-Kutta method preserves `v + k r + g t ŷ`, so δv = −k δr at
+every node. The value is `max ||δv + k δr||_∞ / (N ε V)` over stable runs, with
+`V = max|v| + k max|r| + g T`, and the threshold is `C = 10`. C was measured, not derived:
+the worst case was 0.83 over 6 angles × 5 drags × 2 heights × 20 steps (test writer), and
+0.827 over 48 accepted parameter sets on the default steps (this slice: angles {0.5, 5, 15,
+45, 75, 90}°, b ∈ {1e-3, 0.1, 1, 10, 100}, h₀ ∈ {0, 100} m; 12 sets refused by the step
+cap). 10 is the 1-2-5 value at least 10× the worst case. A planted non-RK stepper
+(semi-implicit Euler) fails it.
+
+**What a fit with no verdict cannot detect.** When the landing-order fit gives no verdict
+(`passed = null`, because too few runs survive the exclusions), the study cannot see a stepper
+fault whose landing error is of the same order as Hermite's and of opposite sign: the two
+cancel, which is exactly the situation the cancellation rule excludes. The fixed-node
+`order_<m>` check (position error over all nodes, no interpolation) would still see such a
+fault.
+
+**Measured on the default request** (v₀ = 20 m/s, 45°, h₀ = 0, b = 1, m = 1, the 8 default
+steps; 2026-11-19, same machine as below). Landing-time orders, linear / Hermite (points):
+Euler 0.997 (6) / 0.998 (6) (the coarsest eligible run, N = 22, is pre-asymptotic); RK4 2.000 (7) / 4.039 (4); Verlet 2.000 (7) / 2.000 (7). Every
+check passed. Tests: `backend/tests/physics/test_projectile_event_location.py` (orders, mid-step
+placement, R6 leading terms and signs, both traps, no-crossing exclusion, the identity, a
+planted wrong Hermite slope giving order ≈ 2).
+
 ### Known limitations
 
 - **One problem only.** Convergence is demonstrated on a single, linear ODE system (plus the
   scalar test equation). Nonlinear problems, such as quadratic drag, can behave differently.
-- **Fixed horizon, not landing.** The study does not measure errors in the landing time or
-  range for fixed-step methods. Those would need event location, whose interpolation error
-  would itself need analysis.
+- **Landing time only, not range.** The event runs measure the landing-time error; the range
+  error at the located landing is not reported.
 - **Velocity orders for Euler/RK4 are not independent**, because of the linear invariant.
 - **The thresholds are heuristics.** `kh ≤ 0.2`, `h ≤ T/20` and the ×100 round-off margin are
   conventional choices, stated in advance. Different reasonable thresholds would include
   different points.
 - **Performance.** The integrators are plain Python loops (about 17 µs per RK4 step). Requests
-  are therefore capped at 50,000 steps per run and 150,000 per study.
+  are therefore capped at 50,000 steps per run and 150,000 per study. Since v1.1.0 each run
+  also has an event run (about N + 2 steps) and the Euler and RK4 runs are integrated once
+  more for the identity check. Measured worst case at the caps (2026-11-19, x86_64 Intel
+  Xeon 2.10 GHz, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; best/worst of 3): RK4 with
+  3 × 50,000 steps took 6.7-7.4 s; Euler + RK4 with 50,000 + 25,000 steps took 4.9-5.0 s; all
+  three methods with 2 × 25,000 steps took 4.1-4.2 s. The time before v1.1.0 was not
+  re-measured.
 - **Not a proof.** The fits are empirical evidence consistent with theory on the cases tested.
   They are not a proof of order and say nothing about other problems.
 
+### numerics/ (roadmap 2.4, slice 1; used by the oscillator and projectile integrator studies)
+
+Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
+`backend/tests/numerics/test_symplectic.py`, `test_events.py`, `test_workbench.py`.
+
+- **Steppers** (`fixed_step.py`): `symplectic_euler` (kick then drift) and `velocity_verlet`,
+  for an acceleration a(t, q) that does not depend on velocity.
+- **Proved, and checked exactly** (exact `fractions` iteration, 40 steps, θ = 1/5 and 3/2):
+  on q'' = −ω²q the modified energy H̃ (R3, R4) stays exactly constant, and Euler's and RK4's
+  E_{n+1}/E_n equals R1 and R2 exactly. `harmonic_energy_factor` and `modified_energy`
+  match these to 4-8 ε.
+- **Proved bound, tested in floats**: R5 (|E_n − E₀|/E₀ ≤ θ/(1 − θ/2) or
+  (θ²/4)/(1 − θ²/4) for θ < 2) holds on 40 random cases (θ ∈ (0, 1.9), 2000 steps) with
+  the rounding allowance C_ENERGY_BOUND·N·ε. R7 is tested: trace 2 − θ², det 1, and
+  phase 2 asin(θ/2). Verlet diverges at θ = 2.01 and stays bounded at 1.99.
+- **Rounding allowances, measured** (2026-11-19, x86_64, Python 3.12.3). Over 10⁵ steps the
+  float H̃ drifts by at most 0.781·(n + 1)·ε (worst case), so C_MODIFIED_ENERGY = 10. On the
+  R5 grid no float run exceeded the bound (max|ΔE|/E₀ − R5 < 0 in every case), though the
+  worst came within 0.14% of R5 (Verlet) and 1.25% (symplectic Euler): close, not tight to
+  rounding. The allowance was set from the rounding that enters ΔE, max|H̃_n − H̃₀|/(E₀(n +
+  1)ε), worst 4.02, so C_ENERGY_BOUND = 50. **Caveat (slice 1 review):** through R5's proof that
+  drift is divided by (1 − θ/2) (symplectic Euler) or β = 1 − θ²/4 (Verlet), up to about 20×
+  and 10× at θ = 1.9, so 50 is not 10× the worst need near θ = 2; the test passes because R5's
+  slack there dwarfs N·ε. C_MODIFIED_ENERGY is a 1-2-5 value 10× its measured worst case.
+- **Event location** (`events.py`, tested): on e^t − 2 at s = ½, linear and cubic Hermite
+  location give fitted orders 2 ± 0.02 and 4 ± 0.02 (R6). At the finest h they match the
+  leading terms h²/8 and h⁴/384 within 1%. Hermite is exact to 8 ε on a cubic and on
+  vacuum-parabola nodes, against a landing time computed in 50-digit `decimal`.
+- **Driver** (`workbench.py`, tested): on a synthetic problem whose error is c·T·h^p by
+  construction, it recovers p within 1e-4 and applies the exclusion order (diverged, the
+  model's rule, the round-off floor). An error group may weight its components before the
+  norm (slice 2: the oscillator's scaled phase-space error). A two-component group's norm is
+  `np.hypot` (slice 4), which cannot overflow or underflow in the squares and kept the
+  projectile study's v1.0.0 golden digest bit-identical when it moved onto the driver. The
+  oscillator's scaled group uses the same norm, and its golden digest also stayed unchanged;
+  last-bit differences on other inputs are possible and were not bumped as a version change
+  (not tested beyond the golden cases). `energy_envelope` keeps each bin's minimum and maximum,
+  checked by brute force.
+
 ---
 
-## `physics.projectile.angle_sweep` v1.0.0: range against launch angle
+## `physics.projectile.angle_sweep` v1.1.0: range against launch angle
+
+**Version 1.1.0 (roadmap 2.4)** adds per-run checks, so a stored v1.0.0 record's replay is
+refused (409, version changed), as for any version change; the record itself stays readable.
 
 ### What it computes
 For fixed speed, height, mass, drag and gravity, the exact linear-drag range `R(θ)` is computed
@@ -376,6 +534,22 @@ about `√ε` in relative terms. Tests check the range to `1e-12` relative and t
 ### Observed (2026-10-15)
 With `v₀ = 20 m/s`, `h = 0` and `m = 1 kg`, the best angle was 44.73°, 42.48°, 35.46°,
 30.08° and 20.07° for `b = 0.01, 0.1, 0.5, 1, 3 kg/s`.
+
+### Per-run checks (v1.1.0, roadmap 2.4 slice 3)
+
+- `interior_peaks` (numerical diagnostic): grid points, not the first or last, whose range
+  is strictly above both neighbours'; threshold 1 (one peak is what the refinement assumes).
+  Measured: at most 1 on every sweep of the grid below.
+- `drag_never_lengthens_range` (**proved inequality**, R8, kind `exact_identity`): the largest
+  (R − V)/V over grid angles and the refined best angle (V = vacuum range from the closed form
+  vx₀(vy₀ + √(vy₀² + 2gh))/g, where V > 0) and (R* − V*)/V* for the best ranges. Proved ≤ 0
+  for linear drag; the allowance `R8_ALLOWANCE_C × ε` with **C = 50** covers rounding only.
+  Measured 2026-11-19 (same machine as the projectile checks) on 432 sweeps: m = 1 kg, v₀ ∈
+  {0.01, 1, 20, 300, 1e4} m/s, b ∈ {0, 1e-12, 1e-6, 0.1, 10, 1e4} kg/s, h ∈ {0, 10, 1e3, 1e5}
+  m, plus the input corners, each at 10, 91 and 361 angles: worst value 2.16 ε (b = 0, where R
+  and V are the same quantity computed two ways), so 10× needs 21.6 and C = 50.
+  Tests: `backend/tests/physics/test_projectile_checks.py` (every angle with ground and cliff
+  launches; a forward "drag" fails R8).
 
 ### Limitations
 - Linear drag only. Quadratic drag has its own sweep model, `physics.projectile.quadratic_angle_sweep` (roadmap 2.2, below); the two sweeps are not compared beyond their shared vacuum limit.
@@ -719,7 +893,6 @@ default and the golden run) the floor changes nothing.
   no such field and send none, so the default 400 applies. A run saved through the API with another `n_samples`
   reopens with 400, which is a different question (different input hash); replay and
   recompute use the stored value.
-- About 40 lines of event logic are duplicated from the linear solver until roadmap 2.4.
 - The hodograph-method literature was not checked.
 
 ---
@@ -1163,6 +1336,98 @@ items below are **tested** (Vitest and Playwright, 2026-11-17 journal); none is 
   the damping), so errors relative to X look smaller than errors relative to the motion.
 - The decay envelope is a correct bound but uninformative near critical damping; the page
   draws it only when the backend sends one (only for underdamped runs: none undamped, critically damped or overdamped).
+
+## `physics.oscillator.integrators` v1.0.0: oscillator methods study (roadmap 2.4, slice 2)
+
+Euler, RK4, symplectic Euler (kick then drift) and velocity Verlet on x'' = −ω²x (undamped,
+undriven), `POST /api/v1/physics/oscillator/integrators`. Code:
+`backend/src/simforge/physics/oscillator/integrator_{study,schemas,model}.py`, built on the
+slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
+
+### What it computes
+- **Orders** (measured): each method at each dt over **one period** T = 2π/ω, N = ⌈T/dt⌉,
+  h = T/N. The fitted error is the scaled phase-space error
+  e(h) = max_n √((x_n − x(t_n))² + ((v_n − v(t_n))/ω)²)/X over **all** nodes (decision of
+  2026-11-19, plan D9); max|x − x_exact| (m) and max|v − v_exact| (m/s) are reported beside
+  it. Fit rule D9: excluded if diverged, θ = ωh > 0.2, closed-form amplitude change
+  |ρᴺ − 1| > 0.1, or e(h) below 100·N·ε (X cancels).
+- **Energy** (one long run per method at `energy_dt` over `periods`): (E_n − E₀)/E₀ with
+  E ∝ x² + (v/ω)², as a min/max envelope in ≤ 200 bins; E_N/E₀; for the symplectic methods
+  max|H̃_n − H̃₀|/|H̃₀| (R3, R4) and the bound R5.
+
+### Proved, tested, observed
+- **Proved** (plan R1-R5, checked exactly in slice 1): E_N/E₀ = (1 + θ²)ᴺ (Euler) and
+  (1 − θ⁶/72 + θ⁸/576)ᴺ (RK4) exactly; H̃ exactly constant (symplectic); |ΔE|/E₀ ≤ R5 for
+  θ < 2. Per-run checks: `energy_identity_<m>` (exact identity, threshold C·N·ε) and
+  `modified_energy_<m>` (exact identity, threshold C·N·ε·κ(θ), κ = 1/(1 − θ/2) for symplectic
+  Euler and 1/(1 − θ²/4) for Verlet: H̃ ≥ E/κ, so rounding relative to |H̃₀| is magnified by
+  up to κ; no verdict when C·N·ε·κ > 1), `energy_bound_<m>` (proved bound + C·N·ε; no verdict for θ ≥ 2),
+  `order_<m>` (measured, within 0.1 of theory), `fit_points_<m>` (info). A diverged run (a
+  state component past 1e100) gives no verdict on its energy rows; so does an energy that
+  falls below the normal float range (E_N < tiny/ε m²), and the H̃ row at θ ≥ 2 (H̃ is not
+  positive definite there, so |H̃₀| is no scale).
+- **Tested** (`backend/tests/physics/test_oscillator_integrators.py`,
+  `tests/api/test_oscillator_integrators_api.py`): the coarsest run's errors against each
+  method's exact discrete solution in closed form (1e-8 relative); the fit rule against its
+  closed-form criteria; E_N/E₀ against R1/R2 in 50-digit `decimal`; H̃ and R5 on the default
+  request and a corner grid (ω = 1e-3 and 1e4 rad/s; x₀ only, v₀ only, both; 1 and 1000
+  periods); Euler's divergence step bracketed by ρⁿ; no R5 verdict at θ ≥ 2; a planted
+  mutant (Verlet's second half-kick at the old position) fails the H̃ check; 422s for
+  non-finite values, x₀ = v₀ = 0, duplicates, bounds and both step caps (naming N).
+- **The superconvergence trap** (why the error is measured over all nodes). At t = T alone,
+  symplectic Euler's error is O(h²) for every start: its step map is conjugate to Verlet's
+  by an O(h) half-kick, and that O(h) part cancels when the exact flow returns to its start
+  after a full period. An endpoint fit would report order 2 for a first-order method.
+  **Tested** from the closed-form discrete map alone
+  (`test_symplectic_euler_endpoint_error_is_superconvergent`: endpoint slope 2 ± 0.05, slope of
+  the max over nodes 1 ± 0.05). A per-component max is also misleading: with x₀ = 0 the
+  position error alone is O(h²), and with v₀ = 0 the velocity error alone is (observed: fitted
+  2.001 in both cases). Kick-drift positions obey the second-order Störmer recurrence,
+  so the O(h) error enters only through the start value q₁ (off by −θ²x₀/2), and likewise
+  for v (off by an amount proportional to v₀). The scaled phase-space error combines both,
+  so it is first order whenever x₀ or v₀ is nonzero.
+- **Observed** (2026-11-19, fitted to e(h)): default request Euler 1.013, RK4 4.000,
+  symplectic Euler 1.014, Verlet 2.000; over the default starts and the corner grid (ω = 5,
+  1e-3, 1e4; three starts): Euler 1.013, RK4 4.000, symplectic Euler 0.996-1.014, Verlet
+  2.000-2.001.
+
+### Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
+- `ENERGY_IDENTITY_C` = **500**: worst |(E_N/E₀)/Fᴺ − 1|/(N·ε) as the model computes it
+  (Fᴺ in logs), over θ from 1e-3 to 1e8 (1601 log-spaced values and 181 in [1.5, 6]; ω ∈
+  {1e-3, 5, 1e4}; 1-5 periods) and the corner grid: **21.3** (RK4, θ = 56, N = 3; cancellation
+  between RK4's stage terms at large θ). The corner grid alone: 0.275. The test's own
+  `C_ENERGY_IDENTITY` = 2 (worst 0.154 against the 50-digit reference on the corner grid).
+- `MODIFIED_ENERGY_C` = **20**: worst max|H̃_n − H̃₀|/(|H̃₀|·N·ε·κ(θ)) over 24 182 runs
+  (θ: 60 log-spaced values in [1e-3, 1.9], 200 values 2 − 10⁻¹…2 − 10⁻⁹, 200 random in
+  (1.9, 2); ω ∈ {1e-3, 1, 1e4}; random starts; 1/10/113 periods; plus the review repro):
+  **1.014** (Verlet, θ = π/2, N = 4). **Review fix (2026-11-19):** the first version used
+  C·N·ε without κ, from a grid whose worst was 3.46 (θ = 1.999), and it failed valid runs
+  near θ = 2: symplectic Euler at k = m = 1, `energy_dt` = 2, 113 periods (θ = 1.99999983)
+  gave 1.2e-10 to 1.3e-9 against 3.9e-12, and a scan found 4.35 at θ = 1.9947. The same C is
+  the R5 row's rounding allowance: the worst excess of max|ΔE|/E₀ over R5 on the earlier grid
+  is **0.0114**·N·ε (Verlet, θ ≈ 0.003, where R5 itself is ≈ 2e-6).
+
+### Caps and timings (same machine)
+- `MAX_STEPS_PER_RUN` = 50 000, `MAX_TOTAL_STEPS` = 150 000 (the plan's starting values,
+  kept): worst measured study at the caps **2.16 s** (RK4 alone, three runs of ~50 000 steps;
+  worst of 3), 1.38-1.54 s for four methods at the total cap, 0.61 s for the default request;
+  all below the plan's 5 s.
+- Input limits: the oscillator's field bounds; ω₀ from 1e-3 to 1e4 rad/s; dt and `energy_dt`
+  in (0, 1e4] s; 2-12 distinct dt values; 1-4 distinct methods; 1-1000 periods; x₀ = v₀ = 0
+  refused; **amplitude X ≥ 1e-50 m** (a diverged state reaches E ≈ 1e206 m², so E/E₀ stays
+  ≤ 1e306, finite).
+
+### Limitations
+- Timings and rounding constants are from one machine. The constants come from grids, not
+  proofs.
+- Near θ = 2, H̃ is ill-conditioned for both symplectic methods (κ → ∞; symplectic Euler is
+  the one that failed the first threshold, since its κ = 1/(1 − θ/2) is about twice
+  Verlet's there). The check scales with κ and gives no verdict once C·N·ε·κ > 1, so close to
+  θ = 2 it can only detect large violations.
+- Replay tolerances (`routes/oscillator.py`) near θ = 2: probed only by a 1-ulp change of x₀
+  (a proxy for another machine's last-bit differences, not a proof). The largest change of
+  `max_relative_energy_error` was 2.1e-5 of its tolerance (θ = 1.99999983, four starts, both
+  methods), so the margins held there.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

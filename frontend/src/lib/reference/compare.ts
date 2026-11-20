@@ -90,6 +90,15 @@ export function inputFields(r: ModelResponse): Fields {
   if (isModelResponse(r, "physics.projectile.integrators")) {
     return flatten({ parameters: r.parameters, dt_values: r.dt_values, methods: r.methods });
   }
+  if (isModelResponse(r, "physics.oscillator.integrators")) {
+    return flatten({
+      parameters: r.parameters,
+      dt_values: r.dt_values,
+      methods: r.methods,
+      energy_dt: r.energy_dt,
+      periods: r.periods,
+    });
+  }
   if (isModelResponse(r, "economy.solow")) {
     return flatten({ parameters: r.parameters, policy: r.policy, horizon_years: r.horizon_years });
   }
@@ -179,6 +188,23 @@ export function summaryFields(r: ModelResponse): Fields {
       ]),
     );
     return flatten({ horizon: r.horizon, methods });
+  }
+  if (isModelResponse(r, "physics.oscillator.integrators")) {
+    // As _study_summary in backend/.../routes/oscillator.py.
+    const energy = Object.fromEntries(r.energy.map((e) => [e.method, e]));
+    return flatten({
+      methods: Object.fromEntries(
+        r.results.map((m) => [
+          m.method,
+          {
+            order: m.fit ? m.fit.order : null,
+            fit_points: m.fit ? m.fit.n_points : 0,
+            final_energy_ratio: energy[m.method]?.final_energy_ratio,
+            max_relative_energy_error: energy[m.method]?.max_relative_energy_error,
+          },
+        ]),
+      ),
+    });
   }
   if (isModelResponse(r, "economy.solow")) {
     return {

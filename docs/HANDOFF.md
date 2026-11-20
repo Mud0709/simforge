@@ -1,4 +1,4 @@
-Last updated: slice 5 commit 2026-11-19
+Last updated: 2.4 close-out 2026-11-19
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,23 +9,24 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Review and merge the 2.3 PR (oscillators; the autopilot never merges): read `docs/briefs/2.3.md` and Part 20 of the learning guide first. Then the next tick moves 🔜 to 2.4 and writes its plan. Approve the learning-log draft when you can.
+Review and merge the 2.4 PR, [Mud0709/simforge#27](https://github.com/Mud0709/simforge/pull/27) (draft; Claude never merges). Try the demo in `docs/briefs/2.4.md` (`/physics/oscillator` → "Compare integrators on the oscillator" → "Run study"; not run in a browser by this session). After the merge, the next tick writes the learning-log draft, then plans 2.5 (generic sweeps).
 
 ## Open decisions
-- **Learning-log draft for PR #20 and #23:** read it, edit or approve (remove the DRAFT tag). Not blocking.
-- **Scheduled task branch (your clicks):** `update_trigger` cannot change a task's repo or branch (it edits only name, schedule, enabled, model, prompt). Stored: repo `Mud0709/simforge`, push-outcome branch `claude/serene-feynman` (wrong), model Sonnet 5.5, disabled, one-line prompt. Set the branch to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming; the tick itself reads the working branch from HANDOFF on `origin/main`.
-- **Next.js 16.4.1 security notice:** the first `npm run build` stops with SecurityFatalError, a retry passes; decide on upgrading. Not blocking.
-- Ruleset on `main`: "Require status checks" has no checks selected (add `Backend (ruff, mypy, pytest)`, `Frontend (eslint, prettier, tsc, vitest, build)`, `API contract in sync`, `End-to-end (Playwright)`). Branch clean-up (your clicks): `backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`. Not blocking.
-- Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them). 2.4: keep the exact-vs-numerical table beside the new checks (recommended: yes; `docs/plans/ROADMAP_2_4_NOTES.md`).
-- Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers for every model (add `strict=True`?). Sweep rate limit (matters only if public); replay "differs" for step counts; oscillator energy check normalisation; five clean-ups from the 2.1 review (PR #13).
+- **Learning-log drafts for PR #20, #23 and #26:** read it, edit or approve (remove the DRAFT tag). Not blocking.
+- **Next.js 16.4.1 security notice:** the first `next build` in `scripts/check.sh` now stops on it every run, because the backend runs past the notice's 5-minute retry window; a retry passes. Upgrading Next.js is a dependency change: your call (recommended: upgrade in its own PR). Not blocking.
+- **Scheduled task branch (your clicks):** stored push-outcome branch `claude/serene-feynman` (wrong); set it to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming. The task is disabled.
+- **Further time-stepping models on the workbench:** damped/driven oscillator and quadratic-drag fixed-step studies are not in 2.4; Phase 2's done-when now names Phase 4's long-run integrator comparison (orbits) for further models (recommended: schedule the oscillator ones with 2.5 or Phase 4). Not blocking.
+- Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them).
+- Ruleset on `main`: "Require status checks" has no checks selected; branch clean-up (`backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`). Your clicks; not blocking.
+- Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers (add `strict=True`?); sweep rate limit; replay "differs" for step counts; five clean-ups from the 2.1 review (PR #13); the 2.4 worth-doing list in `docs/journal/2026-11-19-1207-2-4-plan-and-build.md`.
 
-## Last task: 2.3 slice 5, docs close-out (autopilot tick, 2026-11-19)
-- **Committed and pushed; draft PR opened (not merged):** Part 20, ARCHITECTURE decision 20, README, ROADMAP 2.3 ✅, SCIENTIFIC_VALIDATION oscillator section done, step brief `docs/briefs/2.3.md`.
-- **Verified:** full `scripts/check.sh --e2e` green on its third run (2872 passed; first runs hit the known Next.js build notice and a sandbox Playwright browser path). Whole-step Opus review: 1 must-fix (half-power points) and 4 overstated claims, all fixed; no second review. CI: not run until the PR exists.
-- **Expected:** the start hook prints "Roadmap 🔜: not found" until the merge.
-- **Not verified:** the brief's demo was not run in a browser by this tick.
+## Last task: roadmap 2.4 planned and built (chat session, 2026-11-19)
+- **Pushed; draft PR #27 open (not merged):** plan (self-grilled, 3 reviews), slices 1-5, docs (Part 21, brief, ARCHITECTURE 21, SV, README, ROADMAP ✅).
+- **Verified:** every slice's Acceptance; full pytest 3295 passed; `check.sh --e2e` all green except the first `next build` (Next.js notice; retry passed), Playwright 37 passed. Reviews: 1 must-fix in slice 2, fixed; whole-step review no must-fix.
+- **CI:** not checked yet. **Not verified:** the brief's demo in a browser.
+- **Work limit:** 12 commits since bcf6518 (reached); it resets at the merge.
 
 ## Learning handoff
-- **What it does:** each agent's model and effort are written in its own file, and hooks stop an agent doing what its role forbids.
-- **Key concept:** a rule in prose is a request; a rule in a hook is a fact. The tests found a real bug (`sed -i` slipped through).
-- **Trade-off:** more CLAUDE.md text costs tokens in every session, so each rule lives in one place and the rest point to it.
+- **What it does:** one driver in `numerics/` runs any fixed-step study; the oscillator and the projectile plug in their exact solutions and checks.
+- **Key concept:** a symplectic method keeps a slightly different energy H̃ exactly constant, so the true energy wobbles but never drifts. Measure order over every step, not one period: symplectic Euler looks second order at t = T because its first-order error cancels there.
+- **Trade-off:** each check's threshold is measured (1-2-5, ≥ 10× the worst), so it is evidence, not proof; near θ = 2 the rounding is magnified by H̃'s conditioning, and the check scales for it.

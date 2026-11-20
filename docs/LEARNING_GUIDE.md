@@ -11,7 +11,8 @@ Parts 13-17 cover the working tools, the review lessons, replay, the experiment 
 comparison and export. Part 18 covers quadratic drag, the first Physics Lab model with no
 exact 2-D answer, and how it is checked anyway. Part 19 covers the angle sweep for quadratic
 drag: finding a best angle when every point is a full simulation. Part 20 covers the
-oscillators (simple, damped and driven), whose exact solution checks the numerical one. Every line number points at the code as it is
+oscillators (simple, damped and driven), whose exact solution checks the numerical one. Part 21 covers the
+methods workbench: symplectic steppers, the shadow energy and event location. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -58,6 +59,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
 13. **Oscillators:** Part 20. It needs Part 3 (an exact answer to compare with), 1.7 (floating
    point, for the three traps in 20.5) and 6.7 (an invariant as a check). 20.1 is IB level;
    20.5-20.8 are Beyond IB and can be skimmed on a first pass.
+14. **The methods workbench:** Part 21. It needs Parts 4-5 (orders, the `Stepper`) and 20 (the
+    oscillator). 21.1 is IB-friendly; 21.2-21.8 are Beyond IB. The exercises include writing
+    position Verlet yourself.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -83,6 +87,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 18 — Quadratic drag: checking a model with no exact answer](#part-18--quadratic-drag-checking-a-model-with-no-exact-answer)
 - [Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down](#part-19--angle-sweeps-for-both-drag-laws-finding-a-maximum-you-cannot-write-down)
 - [Part 20 — Oscillators: springs, damping and resonance](#part-20--oscillators-springs-damping-and-resonance)
+- [Part 21 — The methods workbench: symplectic steppers, shadow energy and event location](#part-21--the-methods-workbench-symplectic-steppers-shadow-energy-and-event-location)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Four name clashes to know before reading code
@@ -199,7 +204,7 @@ points in a direction. **`ŷ`** ("y-hat") is the unit vector pointing straight u
 example, the numerical position and the exact position, giving an error in metres.
 
 **In SimForge.** `ProjectileSetup.vx0` and `.vy0` (`analytical.py:78-84`) compute exactly
-the two lines above. The error measurement uses `np.hypot` (`integrator_study.py:260-261`).
+the two lines above. The error measurement uses `np.hypot` (`numerics/workbench.py:81`).
 
 **Check yourself.** A ball is launched at 20 m/s and 30°. What are `vx0` and `vy0`?
 
@@ -251,8 +256,8 @@ current time and state and returns the rate of change. A starting value such as
 `y(0) = 1` is the **initial condition**.
 
 **In SimForge.** The projectile is a *system* of four first-order ODEs, one for each of
-`x, y, vx, vy`. The function `rhs` (`integrator_study.py:131-137`) is literally `f`.
-The type alias `RHS = Callable[[float, FloatArray], FloatArray]` (`fixed_step.py:32`) means
+`x, y, vx, vy`. The function `rhs` (`integrator_study.py:150-156`) is literally `f`.
+The type alias `RHS = Callable[[float, FloatArray], FloatArray]` (`fixed_step.py:36`) means
 "a function that takes a time and a state array and returns an array of rates".
 
 **Check yourself.** Write down a differential equation for "a cup of tea cools at a rate
@@ -335,7 +340,7 @@ truncation error *shrinks* as the step `h` gets smaller, while round-off error t
 
 **In SimForge.** Cancellation is why `analytical.py` uses `psi` and `phi` instead of the
 textbook formula (Part 3.5), and round-off is why the convergence fit ignores very small
-errors (Part 6.4). `EPS` is defined at `integrator_study.py:82`.
+errors (Part 6.4). `EPS` is defined at `integrator_study.py:94`.
 
 **Check yourself.** Why can't you get an accurate answer to `1.000000001 − 1.000000000` on
 a calculator that only shows 8 significant figures?
@@ -478,7 +483,7 @@ Know `s` now and you know `ds/dt` now, which is all a step-by-step method needs.
 
 Here it is in the code:
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:131-137 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:150-156 -->
 ```python
 def rhs(setup: ProjectileSetup) -> RHS:
     k, g = setup.k, setup.gravity
@@ -491,11 +496,11 @@ def rhs(setup: ProjectileSetup) -> RHS:
 
 | Line | What it does | Why |
 |---|---|---|
-| 131 | Defines `rhs`, which takes the physical setup and **returns a function** (its return type is `RHS`). | This is a *function factory*. The integrators need a function with the fixed shape `f(t, s)`, but `f` also needs `k` and `g`. Building `f` inside `rhs` lets it "remember" them. |
-| 132 | Reads `k = b/m` and `g` from the setup once. | Avoids recomputing `b/m` in every one of the thousands of calls to `f`. |
-| 134 | Defines the inner function `f(_t, s)`. The underscore in `_t` signals "this argument is deliberately unused". | The rates don't depend on the clock time itself, only on the state. Such a system is called **autonomous**. The argument still exists because the generic integrators always pass `t`. |
-| 135 | Returns the four rates. Index meanings: `s[0] = x`, `s[1] = y`, `s[2] = vx`, `s[3] = vy`. So the array is `(vx, vy, −k vx, −g − k vy)`, exactly the equations in 2.2. | This line **is the physics**. Change it and you change the model. Delete `-k * s[2]`, for example, and horizontal drag disappears. |
-| 137 | Returns `f` itself (not a number). | `f` is a **closure**: a function bundled with the variables (`k`, `g`) it captured from line 132. |
+| 150 | Defines `rhs`, which takes the physical setup and **returns a function** (its return type is `RHS`). | This is a *function factory*. The integrators need a function with the fixed shape `f(t, s)`, but `f` also needs `k` and `g`. Building `f` inside `rhs` lets it "remember" them. |
+| 151 | Reads `k = b/m` and `g` from the setup once. | Avoids recomputing `b/m` in every one of the thousands of calls to `f`. |
+| 153 | Defines the inner function `f(_t, s)`. The underscore in `_t` signals "this argument is deliberately unused". | The rates don't depend on the clock time itself, only on the state. Such a system is called **autonomous**. The argument still exists because the generic integrators always pass `t`. |
+| 154 | Returns the four rates. Index meanings: `s[0] = x`, `s[1] = y`, `s[2] = vx`, `s[3] = vy`. So the array is `(vx, vy, −k vx, −g − k vy)`, exactly the equations in 2.2. | This line **is the physics**. Change it and you change the model. Delete `-k * s[2]`, for example, and horizontal drag disappears. |
+| 156 | Returns `f` itself (not a number). | `f` is a **closure**: a function bundled with the variables (`k`, `g`) it captured from line 151. |
 
 **Check yourself.** If the state is `s = (0, 0, 14.142, 14.142)` and `k = 1`,
 `g = 9.80665`, what does `f(0, s)` return? Write out all four numbers.
@@ -1076,12 +1081,13 @@ excellent stability (Part 6.5). Don't describe it as symplectic or energy-preser
 
 Open `backend/src/simforge/numerics/fixed_step.py` beside this section.
 
-### 5.1 Types and constants: `fixed_step.py:23-39`
+### 5.1 Types and constants: `fixed_step.py:26-43`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:23-39 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:26-43 -->
 ```python
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -1101,20 +1107,20 @@ DIVERGENCE_THRESHOLD = 1e100
 
 | Line | Meaning |
 |---|---|
-| 23 | Lets type hints refer to types defined later in the file, and keeps them cheap at runtime. Boilerplate you'll see in every file. |
-| 25-29 | Imports. `Callable` describes "a function with this shape"; `NDArray` describes NumPy arrays. |
-| 31 | `FloatArray` is a nickname for "a NumPy array of 64-bit floats". |
-| 32 | `RHS`: a function taking `(t: float, state: array)` and returning an array of rates. That's `f` from Part 1.4. |
-| 33 | `Stepper`: a function taking `(f, t, state, h)` and returning the **next state**. `euler_step` and `rk4_step` both have exactly this shape, which is what makes them interchangeable. |
-| 39 | If any number in the state exceeds `10¹⁰⁰`, the run counts as *diverged* (blown up). Even the most extreme inputs the API allows give positions of only around `10⁷ m` (a `10⁴ m/s` launch with very weak drag). Stopping at `10¹⁰⁰` leaves a huge margin below the float64 maximum, about `1.8 × 10³⁰⁸`, where numbers become `inf`. |
+| 26 | Lets type hints refer to types defined later in the file, and keeps them cheap at runtime. Boilerplate you'll see in every file. |
+| 28-33 | Imports (`math` for the closed forms further down). `Callable` describes "a function with this shape"; `NDArray` describes NumPy arrays. |
+| 35 | `FloatArray` is a nickname for "a NumPy array of 64-bit floats". |
+| 36 | `RHS`: a function taking `(t: float, state: array)` and returning an array of rates. That's `f` from Part 1.4. |
+| 37 | `Stepper`: a function taking `(f, t, state, h)` and returning the **next state**. `euler_step` and `rk4_step` both have exactly this shape, which is what makes them interchangeable. |
+| 43 | If any number in the state exceeds `10¹⁰⁰`, the run counts as *diverged* (blown up). Even the most extreme inputs the API allows give positions of only around `10⁷ m` (a `10⁴ m/s` launch with very weak drag). Stopping at `10¹⁰⁰` leaves a huge margin below the float64 maximum, about `1.8 × 10³⁰⁸`, where numbers become `inf`. |
 
 Type hints like `-> FloatArray` **don't change what Python does**. They're checked by
 `mypy --strict` in CI and help catch mistakes, such as passing a single number where an
 array is expected.
 
-### 5.2 `euler_step`: `fixed_step.py:42-43`
+### 5.2 `euler_step`: `fixed_step.py:46-47`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:42-43 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:46-47 -->
 ```python
 def euler_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
     return y + h * f(t, y)
@@ -1133,9 +1139,9 @@ of one whole second, whatever `h` is. Smaller `h` means more steps, so the run w
 simulate *more* time instead of the same time more accurately, and the error would stop
 shrinking as `h` shrinks. That's exactly the behaviour the convergence tests check for.
 
-### 5.3 `rk4_step`: `fixed_step.py:46-51`
+### 5.3 `rk4_step`: `fixed_step.py:50-55`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:46-51 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:50-55 -->
 ```python
 def rk4_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
     k1 = f(t, y)
@@ -1147,13 +1153,13 @@ def rk4_step(f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
 
 | Line | What it computes | Why it's needed |
 |---|---|---|
-| 47 | `k1`: slope at the start | Same information Euler uses |
-| 48 | `k2`: slope at the midpoint `t + h/2`, at the trial state `y + (h/2)·k1` | Corrects for the slope changing during the step |
-| 49 | `k3`: slope at the midpoint again, now using the better slope `k2` to get there | Refines the midpoint estimate |
-| 50 | `k4`: slope at the end `t + h`, reached using `k3` | Information about the end of the step |
-| 51 | Weighted average `(k1 + 2k2 + 2k3 + k4)/6`, times `h`, added to `y` | The weights make the step match the Taylor series to 4th order (4.6) |
+| 51 | `k1`: slope at the start | Same information Euler uses |
+| 52 | `k2`: slope at the midpoint `t + h/2`, at the trial state `y + (h/2)·k1` | Corrects for the slope changing during the step |
+| 53 | `k3`: slope at the midpoint again, now using the better slope `k2` to get there | Refines the midpoint estimate |
+| 54 | `k4`: slope at the end `t + h`, reached using `k3` | Information about the end of the step |
+| 55 | Weighted average `(k1 + 2k2 + 2k3 + k4)/6`, times `h`, added to `y` | The weights make the step match the Taylor series to 4th order (4.6) |
 
-**What if line 49 used `k1` instead of `k2`?** That typo gives a method that still
+**What if line 53 used `k1` instead of `k2`?** That typo gives a method that still
 converges, but at **second** order instead of fourth. Measured in Part 7.4.
 
 **Cost:** four calls to `f` per step, against Euler's one. RK4 is still far cheaper for a
@@ -1161,9 +1167,9 @@ given accuracy. In the default case, RK4 with 87 steps (348 evaluations of `f`) 
 maximum position error of `3.3 × 10⁻⁸ m`. Euler with 1,383 steps (1,383 evaluations) is
 still off by `8.0 × 10⁻³ m`, which is 8 mm.
 
-### 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:54-85`
+### 5.4 `FixedStepSolution` and `integrate_fixed`: `fixed_step.py:58-89`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:54-85 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:58-89 -->
 ```python
 @dataclass(frozen=True, slots=True)
 class FixedStepSolution:
@@ -1204,21 +1210,21 @@ This is the **driver**. It doesn't know any numerical method itself; you pass on
 
 | Line | Meaning | Why |
 |---|---|---|
-| 54-58 | A small immutable record of the result: node times, states (one row per node) and a `diverged` flag. | Bundles the output so callers can't confuse which array is which. |
-| 62 | Inputs: `step` (the method), `f` (the physics), `y0` (initial state), `t0` (start time), `h` (step), `n_steps` (how many). | Passing the method in as an argument is the **strategy pattern**: one loop, many interchangeable methods. |
-| 70-71 | Rejects `h ≤ 0` or zero steps. `not h > 0` (rather than `h <= 0`) also rejects `NaN`, because every comparison with `NaN` is false. | Fail loudly on nonsense input. |
-| 72 | Pre-allocates a table with `n_steps + 1` rows (the start plus one row per step) and one column per state component (4 here). | Faster than growing a list, and the shape is known in advance. |
-| 73 | Row 0 is the initial state. | |
-| 76 | `np.errstate(...)` temporarily silences NumPy's overflow warnings, inside the `with` block only. | An unstable run *will* overflow. Line 79 handles that explicitly, rather than emitting warnings (which this project's test settings turn into failures). |
-| 77-78 | The loop. Each pass computes the next state from the current row. Note `t0 + n * h`. | **Why not `t += h`?** Adding `0.1` ten times in float64 gives `0.9999999999999999`, while `10 * 0.1` gives exactly `1.0`. Multiplying avoids accumulating rounding error in the clock. |
-| 79-81 | If any value is `inf`/`NaN` or bigger than `10¹⁰⁰`, mark the run as diverged and **stop**. | Unstable methods grow geometrically. Stopping early keeps every stored number finite, which the API needs because JSON can't represent `inf`. |
-| 82-83 | Store the new row and count it. | `n_done` records how far we got, even if we stopped early. |
-| 84 | Builds the node times `t0, t0+h, t0+2h, …` in one go. | Same multiply-don't-add reason. |
-| 85 | Returns only the rows actually computed (`y[: n_done + 1]` means "rows 0 to n_done"). | A diverged run returns a shorter table. |
+| 58-62 | A small immutable record of the result: node times, states (one row per node) and a `diverged` flag. | Bundles the output so callers can't confuse which array is which. |
+| 66 | Inputs: `step` (the method), `f` (the physics), `y0` (initial state), `t0` (start time), `h` (step), `n_steps` (how many). | Passing the method in as an argument is the **strategy pattern**: one loop, many interchangeable methods. |
+| 74-75 | Rejects `h ≤ 0` or zero steps. `not h > 0` (rather than `h <= 0`) also rejects `NaN`, because every comparison with `NaN` is false. | Fail loudly on nonsense input. |
+| 76 | Pre-allocates a table with `n_steps + 1` rows (the start plus one row per step) and one column per state component (4 here). | Faster than growing a list, and the shape is known in advance. |
+| 77 | Row 0 is the initial state. | |
+| 80 | `np.errstate(...)` temporarily silences NumPy's overflow warnings, inside the `with` block only. | An unstable run *will* overflow. Line 83 handles that explicitly, rather than emitting warnings (which this project's test settings turn into failures). |
+| 81-82 | The loop. Each pass computes the next state from the current row. Note `t0 + n * h`. | **Why not `t += h`?** Adding `0.1` ten times in float64 gives `0.9999999999999999`, while `10 * 0.1` gives exactly `1.0`. Multiplying avoids accumulating rounding error in the clock. |
+| 83-85 | If any value is `inf`/`NaN` or bigger than `10¹⁰⁰`, mark the run as diverged and **stop**. | Unstable methods grow geometrically. Stopping early keeps every stored number finite, which the API needs because JSON can't represent `inf`. |
+| 86-87 | Store the new row and count it. | `n_done` records how far we got, even if we stopped early. |
+| 88 | Builds the node times `t0, t0+h, t0+2h, …` in one go. | Same multiply-don't-add reason. |
+| 89 | Returns only the rows actually computed (`y[: n_done + 1]` means "rows 0 to n_done"). | A diverged run returns a shorter table. |
 
-### 5.5 Stability functions: `fixed_step.py:94-100`
+### 5.5 Stability functions: `fixed_step.py:98-104`
 
-<!-- src: backend/src/simforge/numerics/fixed_step.py:94-100 -->
+<!-- src: backend/src/simforge/numerics/fixed_step.py:98-104 -->
 ```python
 def euler_stability(z: float) -> float:
     return 1.0 + z
@@ -1233,9 +1239,9 @@ These are the factors `R(z)` by which one step multiplies `y` for the test equat
 with `λ = −1` and `h = 0.5`, `rk4_stability(-0.5)` returns `0.606771`, which is exactly
 the `y₁` we computed by hand in 4.5.
 
-### 5.6 The Verlet stepper: `integrator_study.py:140-157`
+### 5.6 The Verlet stepper: `integrator_study.py:159-176`
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:140-157 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:159-176 -->
 ```python
 def verlet_step_factory(setup: ProjectileSetup) -> Stepper:
     """Velocity Verlet with the drag term solved implicitly (exact for linear drag)."""
@@ -1259,31 +1265,39 @@ def verlet_step_factory(setup: ProjectileSetup) -> Stepper:
 
 | Line | Meaning | Link to 4.7 |
 |---|---|---|
-| 140 | A factory that returns a `Stepper`, so Verlet plugs into the same `integrate_fixed` loop as Euler and RK4. | |
-| 142 | Captures `k` and `g`. | |
-| 144 | Same signature as `euler_step`, but `_f` and `_t` are **ignored**: this stepper has the physics built in, because its formula came from solving the linear-drag equations by hand. | Specific to linear drag |
-| 145 | Unpacks the state into named variables, for readability. Here `y` is the **height**. | |
-| 146 | Start-of-step accelerations `a_n = (−k·vx, −g − k·vy)`. | `a_n` |
-| 147 | `1 + kh/2`, the denominator from solving the implicit equation. | the rearranged equation |
-| 150-151 | `x + h·vx + ½h²·ax`: the "suvat" position step. | position update |
-| 152 | `vx·(1 − kh/2)/(1 + kh/2)` | horizontal velocity formula |
-| 153 | `[vy·(1 − kh/2) − g·h]/(1 + kh/2)` | vertical velocity formula |
+| 159 | A factory that returns a `Stepper`, so Verlet plugs into the same `integrate_fixed` loop as Euler and RK4. | |
+| 161 | Captures `k` and `g`. | |
+| 163 | Same signature as `euler_step`, but `_f` and `_t` are **ignored**: this stepper has the physics built in, because its formula came from solving the linear-drag equations by hand. | Specific to linear drag |
+| 164 | Unpacks the state into named variables, for readability. Here `y` is the **height**. | |
+| 165 | Start-of-step accelerations `a_n = (−k·vx, −g − k·vy)`. | `a_n` |
+| 166 | `1 + kh/2`, the denominator from solving the implicit equation. | the rearranged equation |
+| 169-170 | `x + h·vx + ½h²·ax`: the "suvat" position step. | position update |
+| 171 | `vx·(1 − kh/2)/(1 + kh/2)` | horizontal velocity formula |
+| 172 | `[vy·(1 − kh/2) − g·h]/(1 + kh/2)` | vertical velocity formula |
 
-### 5.7 Choosing the method and the number of steps: `integrator_study.py:160-181`
+### 5.7 Choosing the method and the number of steps: `integrator_study.py:179-208`
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:160-181 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:179-208 -->
 ```python
 def initial_state(setup: ProjectileSetup) -> FloatArray:
     return np.array([0.0, setup.launch_height, setup.vx0, setup.vy0])
 
 
+def _stepper(setup: ProjectileSetup, method: MethodName) -> Stepper:
+    # Looked up in this module's namespace at call time, so a test can plant a mutant.
+    if method == "euler":
+        return euler_step
+    if method == "rk4":
+        return rk4_step
+    return verlet_step_factory(setup)
+
+
 def integrate(
     setup: ProjectileSetup, method: MethodName, h: float, n_steps: int
 ) -> FixedStepSolution:
-    stepper: Stepper = {"euler": euler_step, "rk4": rk4_step}.get(method) or verlet_step_factory(
-        setup
+    return integrate_fixed(
+        _stepper(setup, method), rhs(setup), initial_state(setup), 0.0, h, n_steps
     )
-    return integrate_fixed(stepper, rhs(setup), initial_state(setup), 0.0, h, n_steps)
 
 
 # --- The study ---------------------------------------------------------------------------
@@ -1299,10 +1313,10 @@ def steps_for(horizon: float, dt: float) -> int:
 
 | Line | Meaning |
 |---|---|
-| 160-161 | The starting state `(0, h₀, vx0, vy0)`: launched from `x = 0` at height `h₀`. |
-| 167-169 | Picks the stepper. `{...}.get(method)` looks up `"euler"` or `"rk4"` in a dictionary and returns `None` for anything else. `A or B` then evaluates to `B` only when `A` is `None`, so `verlet_step_factory` runs only when Verlet is requested. |
-| 170 | Runs the generic driver from 5.4 with the projectile's `f` and initial state, starting at `t = 0`. |
-| 176-181 | **`steps_for`.** The user asks for a step `dt`, but `T/dt` is rarely a whole number. So the code takes `N = ⌈T/dt⌉` steps (round **up**) and uses the slightly smaller `h = T/N`. Every run then ends *exactly* at `T`. |
+| 179-180 | The starting state `(0, h₀, vx0, vy0)`: launched from `x = 0` at height `h₀`. |
+| 183-189 | **`_stepper`** picks the stepper by name. Euler and RK4 are the shared functions from 5.4; anything else is Verlet, built by `verlet_step_factory`. The names `euler_step` and `rk4_step` are looked up when the function runs, so a test can swap in a deliberately wrong stepper (a "planted mutant") and check that the study notices. |
+| 192-197 | Runs the generic driver from 5.4 with the projectile's `f` and initial state, starting at `t = 0`. |
+| 203-208 | **`steps_for`.** The user asks for a step `dt`, but `T/dt` is rarely a whole number. So the code takes `N = ⌈T/dt⌉` steps (round **up**) and uses the slightly smaller `h = T/N`. Every run then ends *exactly* at `T`. |
 
 **Worked example of `steps_for`.** For the default case, `T = 2.160642 s` and you request
 `dt = 0.025 s`:
@@ -1316,56 +1330,49 @@ That's why the study's step sizes aren't exact halves of each other: 0.09821, 0.
 For example, `0.27 / 0.03` gives `9.000000000000002` in float64. A plain `ceil` would take
 **10** steps instead of 9. Shaving off a part in `10¹²` absorbs that noise.
 
-### 5.8 One run, measured: `_run`, `integrator_study.py:241-294`
+### 5.8 One run, measured: the shared driver `numerics/workbench.py`
 
-This is where a single (method, step size) pair is integrated, measured and classified.
-The key lines:
+Since roadmap 2.4 the projectile study no longer measures runs itself. It describes its
+problem to the shared **workbench** driver (`_problem`, `integrator_study.py:295-315`): the
+right-hand side, the start state, the horizon `T`, the exact solution, two error groups
+(position = components x, y; velocity = vx, vy, each with its scale) and its own exclusion
+rule. The oscillator study (Part 9) uses the same driver. The key lines of one run:
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:249-273 -->
+<!-- src: backend/src/simforge/numerics/workbench.py:68-87 -->
 ```python
-    n = steps_for(horizon, dt)
-    h = horizon / n
-    kh = setup.k * h
-    sol = integrate(setup, method, h, n)
-    stability = classify_stability(method, kh)
-    pos_floor = ROUNDOFF_SAFETY * n * EPS * pos_scale
-    vel_floor = ROUNDOFF_SAFETY * n * EPS * vel_scale
-
-    errors: list[float | None] = [None, None, None, None]
+    n = max(1, math.ceil(problem.horizon / dt * (1.0 - 1e-12)))
+    h = problem.horizon / n
+    sol = integrate_fixed(step, problem.rhs, problem.y0, problem.t0, h, n)
+    names = [g.name for g in problem.groups]
+    floors = {g.name: roundoff_safety * n * EPS * g.scale for g in problem.groups}
+    max_err: dict[str, float | None] = dict.fromkeys(names)
+    final_err: dict[str, float | None] = dict.fromkeys(names)
     if not sol.diverged:
-        x, y, vx, vy = analytical.state(setup, sol.t)
-        pos_err = np.hypot(sol.y[:, 0] - x, sol.y[:, 1] - y)
-        vel_err = np.hypot(sol.y[:, 2] - vx, sol.y[:, 3] - vy)
-        errors = [
-            float(pos_err.max()),
-            float(vel_err.max()),
-            float(pos_err[-1]),
-            float(vel_err[-1]),
-        ]
+        diff = sol.y - problem.exact(sol.t)
+        for g in problem.groups:
+            d = diff[:, list(g.components)]
+            d = d if g.weights is None else d * np.asarray(g.weights)
+            # hypot for two components: no overflow/underflow in the squares
+            err = np.hypot(d[:, 0], d[:, 1]) if d.shape[1] == 2 else np.linalg.norm(d, axis=1)
+            max_err[g.name], final_err[g.name] = float(err.max()), float(err[-1])
 
-    reason = _exclusion_reason(stability, sol.diverged, kh, h / horizon)
-    in_pos = reason is None and errors[0] is not None and errors[0] > pos_floor
-    in_vel = reason is None and errors[1] is not None and errors[1] > vel_floor
-    if reason is None and not (in_pos or in_vel):
+    reason = "diverged" if sol.diverged else problem.exclusion(method, h, n)
+    above = {k: (e := max_err[k]) is not None and e > floors[k] for k in names}
+    if reason is None and not any(above.values()):
         reason = "error below round-off floor"
 ```
 
 | Line(s) | Meaning |
 |---|---|
-| 249-251 | Number of steps, effective step size, and `kh`, the step measured in relaxation times. `kh` decides stability (6.5). |
-| 252 | Runs the method. |
-| 253 | Classifies the run from **theory**: is `\|R(−kh)\|` below, at or above 1? |
-| 254-255 | The **round-off floor**: errors below `100 × N × ε × scale` can't be trusted as truncation error (6.4). The scales are the largest `\|position\|` and `\|velocity\|` of the exact solution. |
-| 257 | Placeholders: a diverged run has no errors to report. JSON can't send `inf`, so these stay `None`. |
-| 259 | The **exact solution at the very same times** as the numerical nodes. This is the ruler. |
-| 260 | Position error at every node: the distance between the numerical and exact positions. `sol.y[:, 0]` means "column 0 (x) of every row". |
-| 261 | Velocity error at every node, the same way. |
-| 262-267 | Keeps four summary numbers: the **maximum** error over all nodes, for position and velocity, and the error at the **final** node, for both. |
-| 269 | Asks `_exclusion_reason` (lines 227-238) whether the run is diverged, unstable or not in the asymptotic regime. `None` means "no objection". |
-| 270-271 | A run enters the position fit only if there's no objection **and** its error is above the round-off floor. Same for velocity. |
-| 272-273 | If it passed every other test but both errors fell below the floor, record that reason. |
+| 68-70 | Number of steps, effective step size, and the run itself (the same `steps_for` rule as 5.7). |
+| 72 | The **round-off floor** per group: errors below `100 × N × ε × scale` can't be trusted as truncation error (6.4). The scales are the largest `\|position\|` and `\|velocity\|` of the exact solution. |
+| 73-74 | Placeholders: a diverged run has no errors to report. JSON can't send `inf`, so these stay `None`. |
+| 76 | The **exact solution at the very same times** as the numerical nodes, subtracted node by node. This is the ruler. |
+| 77-82 | For each group, the error at every node is the length of the difference vector (`np.hypot` for two components, which never overflows when squaring), then the **maximum** over all nodes and the error at the **final** node are kept. |
+| 84 | Asks the model's rule (for the projectile, `_exclusion_reason`, lines 281-292) whether the run is diverged, unstable or not in the asymptotic regime. `None` means "no objection". |
+| 85-87 | A run enters a group's fit only if there's no objection **and** that group's error is above the round-off floor; if neither error is, that becomes the reason. |
 
-The rule in `_exclusion_reason` (lines 227-238), in plain words. A run is rejected if it:
+The rule in `_exclusion_reason`, in plain words. A run is rejected if it:
 1. **diverged**; or
 2. is **not linearly stable**; or
 3. has **`kh > 0.2`** (step too large relative to the drag time); or
@@ -1373,11 +1380,11 @@ The rule in `_exclusion_reason` (lines 227-238), in plain words. A run is reject
 
 Rules 3 and 4 keep only runs in the **asymptotic regime**, where the leading error term
 `C·hᵖ` dominates the smaller terms. They were fixed *before* looking at results
-(constants at lines 79-81).
+(the constants `MAX_KH_FOR_FIT` and `MAX_H_OVER_T_FOR_FIT` near the top of the file).
 
-### 5.9 The whole study: `run_study`, `integrator_study.py:306-368` (key lines)
+### 5.9 The whole study: `run_study`, `integrator_study.py:459` onwards (key lines)
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:316-340 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:470-492 -->
 ```python
     if setup.k <= 0:
         raise ValueError("The integrator study requires nonzero drag (k > 0)")
@@ -1388,32 +1395,32 @@ Rules 3 and 4 keep only runs in the **asymptotic regime**, where the leading err
     pos_scale = float(np.max(np.hypot(x_ref, y_ref)))
     vel_scale = float(np.max(np.hypot(vx_ref, vy_ref)))
 
+    problem = _problem(setup, horizon, pos_scale, vel_scale)
+    identity_scale = vel_scale + setup.k * pos_scale + setup.gravity * horizon  # V
+    steppers: dict[str, Stepper] = {m: _stepper(setup, m) for m in methods}
     studies: list[MethodStudy] = []
-    for method in methods:
-        pairs = [
-            _run(setup, method, dt, horizon, pos_scale, vel_scale)
-            for dt in sorted(dt_values, reverse=True)
-        ]
-        runs = [r for r, _ in pairs]
-
-        pos_fit = fit_order(
-            [r.h for r in runs if r.in_position_fit],
-            [r.max_position_error or 0.0 for r in runs if r.in_position_fit],
-        )
-        vel_fit = fit_order(
-            [r.h for r in runs if r.in_velocity_fit],
-            [r.max_velocity_error or 0.0 for r in runs if r.in_velocity_fit],
-        )
+    for method, conv in zip(methods, run_convergence(problem, steppers, dt_values), strict=True):
+        runs = [_run_result(method, setup.k, r) for r in conv.runs]
+        events = [_event_run(setup, method, r.n_steps, horizon) for r in runs]
+        trajectory = None
+        for r in runs:  # coarsest first
+            if r.stability == "stable" and not r.diverged:
+                sol = integrate(setup, method, r.h, r.n_steps)
+                idx = _downsample(len(sol.t), max_plot_points)
+                trajectory = (sol.y[idx, 0], sol.y[idx, 1], r.h)
+                break
 ```
 
 | Line(s) | Meaning |
 |---|---|
-| 316-317 | Refuses vacuum (`k = 0`). With no drag, the exact solution is a parabola, which RK4 and Verlet reproduce *exactly*, so there's no error to measure (Part 7.5). |
-| 318-319 | **Horizon `T`**: every run integrates over `[0, T]`, the exact flight time (computed here unless the caller, which already needed it for the step limits, passes it in). Landing isn't detected numerically, because locating it between grid points would add a separate interpolation error. |
-| 320-323 | Samples the exact solution at 1,001 times to find the largest position (`12.51 m`) and speed (`20 m/s`) in the default case. These scales feed the round-off floor. |
-| 326-330 | For each method, runs every requested `dt`, **coarsest first**. A *list comprehension* `[expr for item in list]` builds a list in one line. |
-| 331 | Keeps just the `RunResult`s. |
-| 333-340 | Fits the order using only runs that passed the rule. `fit_order` returns `None` if fewer than 3 qualify. |
+| 470-471 | Refuses vacuum (`k = 0`). With no drag, the exact solution is a parabola, which RK4 and Verlet reproduce *exactly*, so there's no error to measure (Part 7.5). |
+| 472-473 | **Horizon `T`**: every order run integrates over `[0, T]`, the exact flight time (computed here unless the caller, which already needed it for the step limits, passes it in). |
+| 474-477 | Samples the exact solution at 1,001 times to find the largest position (`12.51 m`) and speed (`20 m/s`) in the default case. These scales feed the round-off floor. |
+| 479-481 | Builds the problem for the driver, the scale `V` for the velocity-position identity check, and one stepper per method. |
+| 483 | `run_convergence` runs every requested `dt` for each method, **coarsest first**, and fits the orders using only runs that passed the rule (`fit_order` returns `None` if fewer than 3 qualify). |
+| 484 | Turns each generic run back into the projectile's `RunResult` (adding `kh` and the stability class). |
+| 485 | One **event run** per order run, which locates the landing between steps (slice 4 of roadmap 2.4; `SCIENTIFIC_VALIDATION.md` has the results). |
+| 486-492 | Re-runs the coarsest stable run to plot its trajectory. |
 
 ### 5.10 Estimating the order: `numerics/convergence.py`
 
@@ -1578,7 +1585,7 @@ is stable at the chosen `h` (6.5).
 
 When `N` steps each add a rounding error of about `ε × (size of the numbers)`, the
 accumulated round-off is *at most* roughly `N · ε · scale`. The code multiplies by a
-safety factor of 100 (`integrator_study.py:81, 254`):
+safety factor of 100 (`integrator_study.py:93`, applied in `numerics/workbench.py:72`):
 ```
 floor = 100 × N × ε × scale
 ```
@@ -1614,8 +1621,8 @@ which is always between 0 and 1. The method keeps errors from growing only if
 |1 − kh| ≤ 1   ⇔   −1 ≤ 1 − kh ≤ 1   ⇔   0 ≤ kh ≤ 2
 ```
 So **Euler is stable only for `kh ≤ 2`**, i.e. `h ≤ 2/k`. In general, `R(z)` with
-`z = −kh` is the method's **stability function** (`fixed_step.py:94-100`,
-`integrator_study.py:96-97`).
+`z = −kh` is the method's **stability function** (`fixed_step.py:98-104`,
+`integrator_study.py:115-116`).
 
 **Amplification factors from the code** (`amplification_factor(method, kh)`):
 
@@ -1637,7 +1644,7 @@ So **Euler is stable only for `kh ≤ 2`**, i.e. `h ≤ 2/k`. In general, `R(z)`
 - **RK4** is different. On the negative real axis its `R` dips to a minimum of about
   `0.2704` (near `kh ≈ 1.596`) and then climbs back up through **`+1`** at
   `kh ≈ 2.7853`. Beyond that, errors grow **without** flipping sign. The code finds this
-  boundary by solving `R(z) − 1 = 0` numerically (`integrator_study.py:85-93`) instead of
+  boundary by solving `R(z) − 1 = 0` numerically (`integrator_study.py:104-112`) instead of
   typing it in. An early draft assumed the boundary was at `R = −1`, as for Euler. The
   root-finder found no root there and crashed, which exposed the wrong assumption.
 - **Verlet (implicit drag)**: the top of the fraction, `|1 − kh/2|`, is always smaller
@@ -1653,9 +1660,9 @@ word you'll see in the code's docstring at `integrator_study.py:14`.)
 `k = 1 s⁻¹`: Euler needs `h ≤ 2 s`, which is far above the steps used. With
 `b = 50 kg/s` and `m = 1 kg`, `k = 50 s⁻¹`, and Euler needs `h ≤ 0.04 s`.
 
-**In the code** (`integrator_study.py:116-125`):
+**In the code** (`integrator_study.py:135-144`):
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:116-125 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_study.py:135-144 -->
 ```python
 def amplification_factor(method: MethodName, kh: float) -> float:
     """R(-kh): factor by which one step multiplies a velocity perturbation."""
@@ -1671,10 +1678,10 @@ def classify_stability(method: MethodName, kh: float) -> StabilityClass:
 
 | Line | Meaning |
 |---|---|
-| 116-118 | Looks up the method's stability function in a dictionary (line 113) and evaluates it at `z = −kh`. |
-| 122 | Takes `\|R\|`. Only the size decides growth. |
-| 123-124 | Exactly `\|R\| = 1` is **marginal**: the error neither grows nor shrinks. `math.isclose` is used because floating-point arithmetic rarely hits exactly 1. |
-| 125 | Below 1 is stable, above 1 is unstable. |
+| 135-137 | Looks up the method's stability function in a dictionary (line 132) and evaluates it at `z = −kh`. |
+| 141 | Takes `\|R\|`. Only the size decides growth. |
+| 142-143 | Exactly `\|R\| = 1` is **marginal**: the error neither grows nor shrinks. `math.isclose` is used because floating-point arithmetic rarely hits exactly 1. |
+| 144 | Below 1 is stable, above 1 is unstable. |
 
 ### 6.6 Stable is not the same as accurate
 
@@ -1889,7 +1896,7 @@ don't notice.
   measured this with the standalone script from 7.4 (`h = 0.1 s`, 28 steps, vacuum):
   correct RK4, Bug A and Bug B **all** had maximum position errors of about `1 × 10⁻¹⁴ m`.
   Euler, being first order, was off by `1.37 m`. So a vacuum test can't tell a correct
-  RK4 from a broken one. That's why the study refuses `b = 0` (`integrator_study.py:315-316`,
+  RK4 from a broken one. That's why the study refuses `b = 0` (`integrator_study.py:470-471`,
   and with a clear message at `integrator_schemas.py:40-46`).
 - **Double-counted evidence.** Because of the invariant (6.7), Euler's and RK4's velocity
   orders repeat their position orders. Only Verlet's velocity order is independent
@@ -2014,9 +2021,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:69-99`
+### [2] Sending it: `frontend/src/lib/api/client.ts:71-101`
 
-<!-- src: frontend/src/lib/api/client.ts:78-93 -->
+<!-- src: frontend/src/lib/api/client.ts:80-95 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -2067,9 +2074,9 @@ The browser only ever talks to the Next.js server (port 3000). Any request start
 `/api/` is forwarded to FastAPI (port 8000). The browser therefore never needs the
 backend's address, and there are no cross-origin (CORS) problems.
 
-### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:245-249`
+### [4] The endpoint: `backend/src/simforge/api/routes/physics.py:246-250`
 
-<!-- src: backend/src/simforge/api/routes/physics.py:248-252 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:250-254 -->
 ```python
 @router.post("/projectile/integrators")
 async def integrator_study(
@@ -2163,9 +2170,9 @@ Then the study's own rules (`integrator_schemas.py:25-51`):
   "msg": "Value error, the integrator study requires drag_coefficient > 0: in vacuum the exact solution is a parabola, ..."}]}
 ```
 
-### [6] Orchestration: `integrator_model.run`, `integrator_model.py:143-203`
+### [6] Orchestration: `integrator_model.run`, `integrator_model.py:257-323`
 
-<!-- src: backend/src/simforge/physics/projectile/integrator_model.py:143-161 -->
+<!-- src: backend/src/simforge/physics/projectile/integrator_model.py:257-275 -->
 ```python
 def run(request: IntegratorStudyRequest) -> StudyComputation:
     start = time.perf_counter()
@@ -2190,11 +2197,11 @@ def run(request: IntegratorStudyRequest) -> StudyComputation:
 
 | Line(s) | Meaning |
 |---|---|
-| 144 | Starts a stopwatch (reported as `elapsed_ms`). |
-| 145 | `to_setup` converts the validated API object into the engine's plain `ProjectileSetup`, including **degrees → radians**. The engine never sees Pydantic or HTTP. |
-| 146-153 | Computes how many steps each requested `dt` needs. If any run needs more than 50,000 steps (`MAX_STEPS_PER_RUN`, line 89), refuse with an explanation. Python loops take about 17 µs per RK4 step, so this prevents a request that would run for minutes. |
-| 154-159 | The same idea for the total across all runs and methods (limit 150,000). |
-| 161 | Calls the engine (Parts 5.8-5.9), passing the flight time it already computed so the engine does not find the same root again. |
+| 258 | Starts a stopwatch (reported as `elapsed_ms`). |
+| 259 | `to_setup` converts the validated API object into the engine's plain `ProjectileSetup`, including **degrees → radians**. The engine never sees Pydantic or HTTP. |
+| 260-267 | Computes how many steps each requested `dt` needs. If any run needs more than 50,000 steps (`MAX_STEPS_PER_RUN`, line 89), refuse with an explanation. Python loops take about 17 µs per RK4 step, so this prevents a request that would run for minutes. |
+| 268-273 | The same idea for the total across all runs and methods (limit 150,000). |
+| 275 | Calls the engine (Parts 5.8-5.9), passing the flight time it already computed so the engine does not find the same root again. |
 
 **Real refusal** for `dt_values = [0.1, 1e-6]`: HTTP 422,
 `"dt = 1e-06 s needs 2160643 steps over T = 2.161 s; the limit is 50000 per run. Use larger steps."`
@@ -2353,7 +2360,7 @@ floor uses `N` rather than `√N`.
 </details>
 
 ### Exercise 4: derive the specialised velocity update yourself
-- **Objective:** be able to rebuild `integrator_study.py:152-153` from first principles.
+- **Objective:** be able to rebuild `integrator_study.py:171-172` from first principles.
 - **Task:** close the guide. Starting only from `v_{n+1} = v_n + (h/2)(a_n + a_{n+1})`
   and `a = −g ŷ − k v`, derive the code's formulas for `vx_{n+1}` and `vy_{n+1}`. Then explain
   in two sentences why the same approach fails for quadratic drag, `a = −g ŷ − c|v|v`.
@@ -2420,7 +2427,7 @@ with `h⁵/5`.
 - **Objective:** learn which tests guard which part of the code, and how to change the
   engine safely.
 - **Task:** in your local copy, change the last line of `rk4_step`
-  (`numerics/fixed_step.py:51`) to the "equal weights" bug from 7.4. *Predict* which tests
+  (`numerics/fixed_step.py:55`) to the "equal weights" bug from 7.4. *Predict* which tests
   will fail before running
   `cd backend && uv run pytest tests/numerics tests/physics/test_projectile_integrators.py -q`.
   Compare your prediction with the result. Then, from the repository root, **restore the file**
@@ -2515,7 +2522,7 @@ flatter, faster flight wins.
 
 ### 11.3 The method: a coarse grid, then refine **[Beyond IB]**
 
-<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:99-117 -->
+<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:109-127 -->
 ```python
 def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
     """Range at each angle, plus the refined best angle over [0, 90] degrees."""
@@ -2598,9 +2605,9 @@ explain the physics.)
 
 `run_angle_sweep` (`model.py:258-262`) builds the grid with
 `np.linspace(0.0, 90.0, n_angles)` and calls `sweep`. The request schema
-(`backend/src/simforge/physics/projectile/schemas.py:170-180`) allows `n_angles` from 10 to 361.
+(`backend/src/simforge/physics/projectile/schemas.py:171-181`) allows `n_angles` from 10 to 361.
 
-<!-- src: backend/src/simforge/api/routes/physics.py:297-306 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:300-309 -->
 ```python
 ANGLE_SWEEP = ModelEntry(
     info=projectile.ANGLE_SWEEP_INFO,
@@ -3023,7 +3030,7 @@ That is exactly what `POST /experiments/{id}/outputs` does. The log never stored
 (ARCHITECTURE decision 5: a projectile run has thousands of numbers, its inputs a dozen), so
 the curves of a stored run exist only after computing it again:
 
-<!-- src: backend/src/simforge/api/outputs.py:84-96 -->
+<!-- src: backend/src/simforge/api/outputs.py:86-98 -->
 ```python
 async def recompute_outputs(
     record: ExperimentRecord, body: RecomputeRequest, repo: ExperimentRepository
@@ -3161,7 +3168,7 @@ For each summary value, with reference value `a` and new value `b`, the table sh
 - the **change** `b − a`, in the value's own units;
 - the **relative change** `(b − a) / |a|`, as a percentage.
 
-<!-- src: frontend/src/lib/reference/compare.ts:252-270 -->
+<!-- src: frontend/src/lib/reference/compare.ts:278-296 -->
 ```ts
 export function summaryDiff(reference: ModelResponse, current: ModelResponse): SummaryRow[] {
   const [a, b] = [summaryFields(reference), summaryFields(current)];
@@ -3901,7 +3908,7 @@ above. Three more pieces complete the picture.
 **The right-hand side** (`quadratic_numerical.py`), the five rates for the state
 `[x, y, vx, vy, W]`:
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:92-98 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:90-96 -->
 ```python
     def rhs(_t: float, s: FloatArray) -> FloatArray:
         vx, vy = float(s[2]), float(s[3])
@@ -3914,33 +3921,37 @@ above. Three more pieces complete the picture.
 
 | Line | Meaning |
 |---|---|
-| 95 | The drag acceleration `−κ|v|v`, from the separate function `drag_acceleration`. It is looked up when called, so a test can swap in the wrong law (18.11). |
-| 97 | `dW/dt = c|v|³`, computed from the velocity directly and **not** from line 95's force (18.7): a wrong force would not make `W` agree with it. |
-| 98 | `dx/dt = vx`, `dy/dt = vy`, the two accelerations (gravity added to the vertical one) and the power. |
+| 93 | The drag acceleration `−κ|v|v`, from the separate function `drag_acceleration`. It is looked up when called, so a test can swap in the wrong law (18.11). |
+| 95 | `dW/dt = c|v|³`, computed from the velocity directly and **not** from line 93's force (18.7): a wrong force would not make `W` agree with it. |
+| 96 | `dx/dt = vx`, `dy/dt = vy`, the two accelerations (gravity added to the vertical one) and the power. |
 
-**The landing and apex events**, copied on purpose from the linear solver (18.12):
+**The landing and apex events**, one copy shared with the linear solver since roadmap 2.4
+(`landing.py`; both solvers hand their right-hand side to `landing.solve_to_landing`, which
+runs SciPy with these two events and checks that the ground was reached):
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_numerical.py:100-111 -->
+<!-- src: backend/src/simforge/physics/projectile/landing.py:54-67 -->
 ```python
-    def hits_ground(t: float, s: FloatArray) -> float:
-        # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
-        # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
-        # Treating the launch instant as "above ground" leaves only the real landing.
-        return float(s[1]) if t > 0.0 else 1.0
+def hits_ground(t: float, s: FloatArray) -> float:
+    # Launched from the ground, y = 0 exactly at t = 0. If the first step overshoots the
+    # landing, SciPy would read 0 -> negative as a crossing and report landing at t = 0.
+    # Treating the launch instant as "above ground" leaves only the real landing.
+    return float(s[1]) if t > 0.0 else 1.0
 
-    def reaches_apex(_t: float, s: FloatArray) -> float:
-        return float(s[3])
 
-    hits_ground.terminal = True  # type: ignore[attr-defined]
-    hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
-    reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
+def reaches_apex(_t: float, s: FloatArray) -> float:
+    return float(s[3])
+
+
+hits_ground.terminal = True  # type: ignore[attr-defined]
+hits_ground.direction = -1.0  # type: ignore[attr-defined]  # only while descending
+reaches_apex.direction = -1.0  # type: ignore[attr-defined]  # vy crosses zero going down
 ```
 
 | Line | Meaning |
 |---|---|
-| 100-104 | The landing is where `y` crosses 0. Launched from the ground, `y = 0` exactly at `t = 0`; if the first step overshot the landing, the solver would read "0, then negative" as a landing at `t = 0`. Reporting `1.0` at the launch instant leaves only the real landing (a test launches at 0.001° to 1° and checks the landing time). |
-| 106-107 | The apex is where `vy` crosses 0. |
-| 109-111 | `terminal = True` stops the integration at the landing; `direction = −1` counts only crossings while descending. |
+| 54-58 | The landing is where `y` crosses 0. Launched from the ground, `y = 0` exactly at `t = 0`; if the first step overshot the landing, the solver would read "0, then negative" as a landing at `t = 0`. Reporting `1.0` at the launch instant leaves only the real landing (a test launches at 0.1° with v₀ = 1 m/s, a flight shorter than the first step, and checks the landing time). |
+| 61-62 | The apex is where `vy` crosses 0. |
+| 65-67 | `terminal = True` stops the integration at the landing; `direction = −1` counts only crossings while descending. |
 
 ### 18.14 What the evidence does and does not show
 The five checks, together: exact vertical flights (18.4-18.5), the vacuum limit (18.6),
@@ -4347,7 +4358,7 @@ refuse every one of them. A quadratic sweep also needs inputs the linear one doe
 a new model, `physics.projectile.quadratic_angle_sweep` v1.0.0, with its own endpoint
 (`POST /api/v1/physics/projectile/quadratic-drag/angle-sweep`) and registry entry:
 
-<!-- src: backend/src/simforge/api/routes/physics.py:708-718 -->
+<!-- src: backend/src/simforge/api/routes/physics.py:711-721 -->
 ```python
 QUADRATIC_ANGLE_SWEEP = ModelEntry(
     info=qas.MODEL_INFO,
@@ -4682,6 +4693,281 @@ in `frontend/src/lib/oscillator/fields.ts`.
   of the checks in 20.8 would see it first, and why?
 - **E20.7** (stretch) Pick `b` so that `ζ` is just above `1/√2` and read the resonance chart.
   Where is the peak, and what does 20.3 say about it?
+
+---
+
+## Part 21 — The methods workbench: symplectic steppers, shadow energy and event location
+
+**Code:** `backend/src/simforge/numerics/` (roadmap 2.4): `fixed_step.py` (the steppers and the
+harmonic closed forms), `events.py` (locating a crossing), `workbench.py` (the model-free driver);
+the oscillator study `physics/oscillator/integrator_study.py`; the shared landing helper
+`physics/projectile/landing.py`; the page `/physics/oscillator/integrators`. **Read after:** Part 4
+(Euler, RK4 and orders), 5 (the `Stepper` shape) and 20 (the oscillator). Plan and formulas
+R1-R8: `docs/plans/ROADMAP_2_4_PLAN.md`.
+
+Part 4 asked "how fast does the error shrink as `h` shrinks?" This part asks a second question:
+**what does a method do to the energy over thousands of swings?** And a third: when a run must
+stop at an event (the landing), how well can we place it between two steps?
+
+**Labels** used throughout: **proved** (a derivation, checked exactly in rational arithmetic),
+**tested** (a test against an independent reference) and **observed** (measured here, no proof).
+**IB level:** 21.1 and 21.2 are IB-friendly ideas (energy, phase space); the matrix algebra and
+21.5-21.8 are **Beyond IB**.
+
+### 21.1 Intuition: why Euler gains energy and a good method does not **[IB-friendly]**
+Use the test oscillator `q̈ = −ω²q` and measure time in steps: `θ = ωh` is "the angle the
+oscillation turns through in one step" (radians). Scale the velocity, `u = v/ω`, and the energy is
+`E ∝ q² + u²`: the exact motion walks round a **circle** in the `(q, u)` plane and never leaves it.
+
+- **Forward Euler** moves along the tangent each step, which always lands a little *outside* the
+  circle: `E` is multiplied by exactly `1 + θ²` every step (R1, **proved**). After `N` steps
+  `(1 + θ²)ᴺ`: the swing grows without bound, for every `θ > 0`.
+- **Symplectic Euler** updates `v` first and then moves `q` with the *new* `v`. It still does not
+  stay on the circle, but it stays on a **slightly tilted ellipse** forever (21.3). The energy
+  wobbles up and down by a bounded amount and never trends.
+- **Velocity Verlet** does the same with a different ellipse and a smaller wobble (`θ²` instead
+  of `θ`).
+- **RK4** loses a tiny amount each step (`1 − θ⁶/72 + …`, R2, **proved**): no growth, but a slow
+  decay, which is a different failure from drift upward.
+
+**Energy drift** is exactly that trend. A method with a bounded wobble and no trend is what you
+want for planets over millions of orbits, which is why 2.4 puts these methods beside Euler and RK4.
+
+### 21.2 The two symplectic steppers, line by line **[Beyond IB, SimForge]**
+Both are written for a second-order system `q̈ = a(t, q)` with state `y = (q, v)`: for a state of
+length `2d`, `q = y[:d]` and `v = y[d:]`. They return a `Stepper`, so Part 5's `integrate_fixed`
+loop runs them unchanged. They ignore `f` (the generic right-hand side) and use only the
+acceleration. **The acceleration must not depend on velocity**: with a drag force the method is
+no longer symplectic (the code states this in both docstrings).
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:115-126 -->
+```python
+def symplectic_euler(accel: Accel) -> Stepper:
+    """Symplectic Euler, kick then drift: v1 = v + h a(t, q); q1 = q + h v1 (order 1).
+
+    ``accel`` must not depend on velocity: the method is symplectic only for a(t, q).
+    """
+
+    def step(_f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
+        d = y.size // 2
+        v1 = y[d:] + h * accel(t, y[:d])
+        return np.concatenate([y[:d] + h * v1, v1])
+
+    return step
+```
+Line by line. `symplectic_euler(accel)` is a **factory**: it takes the physics and returns the
+`step` function (a closure that remembers `accel`). `d = y.size // 2` is the number of position
+components. `v1 = y[d:] + h * accel(t, y[:d])` is the **kick**: change the velocity using the force
+at the *old* position `q`. The next line is the **drift**: move the position with the *new* velocity
+`v1` (`y[:d] + h * v1`), then glue `[q1, v1]` back into one state. The only difference from forward
+Euler is that the drift uses `v1`, not `v`. That one change is what makes it symplectic.
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:129-143 -->
+```python
+def velocity_verlet(accel: Accel) -> Stepper:
+    """Velocity Verlet (order 2): a0 = a(t, q); q1 = q + h v + h^2/2 a0;
+    v1 = v + h/2 (a0 + a(t + h, q1)).
+
+    ``accel`` must not depend on velocity: the method is symplectic only for a(t, q).
+    """
+
+    def step(_f: RHS, t: float, y: FloatArray, h: float) -> FloatArray:
+        d = y.size // 2
+        q, v = y[:d], y[d:]
+        a0 = accel(t, q)
+        q1 = q + h * v + (h * h / 2) * a0
+        return np.concatenate([q1, v + (h / 2) * (a0 + accel(t + h, q1))])
+
+    return step
+```
+Same shape, three ideas. `a0 = accel(t, q)` is the force at the start. `q1 = q + h v + (h²/2) a0` is
+the second-order Taylor step for position (distance = `vt + ½at²`, the IB kinematics formula with
+`t = h`). The new velocity uses the **average** of the old and new acceleration, `(a0 + a1)/2`:
+evaluating `accel(t + h, q1)` at the *new* position is why a second force evaluation is needed.
+Averaging the old and new force is the trapezium rule, and that symmetry is why the order is 2.
+
+**Checkpoint 21.2.** Why can `velocity_verlet` not take a drag force `−bv`? (Hint: what would
+`accel(t + h, q1)` need to know that `q1` does not contain?)
+
+### 21.3 The shadow energy and why there is no drift **[Beyond IB]**
+On the test oscillator one step is a 2×2 matrix acting on `(q, u)`. Symplectic Euler gives
+
+`q₁ = q + θu₁`, `u₁ = u − θq`, so `M = [[1 − θ², θ], [−θ, 1]]`, determinant `(1 − θ²) + θ² = 1`.
+
+Velocity Verlet gives `M = [[c, θ], [−θβ, c]]` with `c = 1 − θ²/2` and `β = 1 − θ²/4`, again
+determinant 1 (`c² + θ²β = 1`). A matrix with determinant 1 preserves *some* quadratic form
+`Q`, i.e. `Mᵀ Q M = Q`. Solving for `Q` gives the **modified (shadow) energy**:
+
+| Method | Conserved exactly by the step map (R3, R4) |
+|---|---|
+| Symplectic Euler (kick, drift) | `H̃ = q² + u² − θ q u` (a tilted ellipse) |
+| Velocity Verlet | `H̃ = (1 − θ²/4) q² + u²` (an ellipse with squeezed axes) |
+
+**Proved** (by hand in the plan, and **tested** in exact `fractions` arithmetic over 40 steps at
+`θ = 1/5` and `3/2`: `H̃` stays exactly constant). In code:
+
+<!-- src: backend/src/simforge/numerics/fixed_step.py:175-179 -->
+```python
+    if method == "symplectic_euler":
+        return q * q + v * v / omega**2 - h * q * v
+    if method == "velocity_verlet":
+        theta = omega * h
+        return (1.0 - theta * theta / 4.0) * q * q + v * v / omega**2
+```
+(`h q v` equals `θ q u`, since `u = v/ω` and `θ = ωh`.) The picture: the numerical method does
+not follow the true oscillator badly; it follows a *slightly different oscillator exactly*, and the
+true energy `E = q² + u²` is that shadow's energy plus a small piece that depends on where you are
+on the ellipse. So `E` wobbles, and cannot drift.
+
+**Proved bound (R5, `θ < 2`).** Write `E = H̃ + θ q u` (symplectic Euler) and use `|qu| ≤ E/2`;
+this gives `|Eₙ − E₀|/E₀ ≤ θ/(1 − θ/2)` for **every** `n`. For Verlet `Eₙ = H̃ + (θ²/4)qₙ²`, giving
+`(θ²/4)/(1 − θ²/4)`. The bound does not contain `n`: there is no secular drift. **Tested in
+floats** on 40 random cases (2000 steps) with an added rounding allowance `C·N·ε` (floats are not
+exact arithmetic). At `θ ≥ 2` both methods are unstable (the step matrix has trace `2 − θ²`,
+R7) and the page gives no verdict. **Observed:** the worst float run came within 0.14% (Verlet)
+and 1.25% (symplectic Euler) of R5, so the bound is nearly reached, not loose.
+
+### 21.4 The superconvergence trap: how not to measure an order **[Beyond IB, observed and tested]**
+To check "symplectic Euler is first order" you fit the error against `h` (Part 4). The tempting
+measurement is the error at the end, `t = T`, after one period. **That gives order 2 for a
+first-order method.** Symplectic Euler is Verlet in disguise: they differ by an `O(h)` half-kick of
+the velocity, and when the exact flow returns to its start after a full period that `O(h)` part
+cancels. The method looks better than it is, at exactly one time.
+
+The fix, in SimForge, is to fit the **maximum error over all step nodes**, the scaled phase-space
+error `√(Δq² + (Δv/ω)²)/X` (the study's definition, plan D9). **Tested**
+(`test_symplectic_euler_endpoint_error_is_superconvergent`) from the exact discrete map: endpoint
+slope `2 ± 0.05`, slope of the max over nodes `1 ± 0.05`. **Observed** fits: symplectic Euler
+1.014, Verlet 2.000, Euler 1.013, RK4 4.000 on the default request. A per-component maximum is also
+misleading (with `x₀ = 0` the position error alone is `O(h²)`); combining both components is what
+exposes the first-order part. Lesson: **a convergence order is a claim about a measurement
+definition**, and a measurement that hides the error at some times is not evidence.
+
+### 21.5 Conditioning near `θ = 2`: a threshold must scale with what it measures **[Beyond IB]**
+The per-run check `modified_energy_<m>` asks whether `H̃` is constant to within rounding. Rounding
+is measured against `|H̃₀|`, but `H̃ ≥ E/κ`, where `κ = 1/(1 − θ/2)` (symplectic Euler) or
+`1/(1 − θ²/4)` (Verlet). Near `θ = 2` the ellipse is almost a line, `H̃` is tiny compared with `E`,
+and a rounding error of fixed size is *magnified by up to κ* when divided by `H̃₀`. The first
+threshold `C·N·ε` ignored this and **failed valid runs** (symplectic Euler at `θ = 1.99999983`:
+1.2e-10 to 1.3e-9 against a threshold of 3.9e-12). The fix: threshold `C·N·ε·κ(θ)` with `C = 20`
+(**observed** worst 1.014 over 24 182 runs), and *no verdict* once `C·N·ε·κ > 1` (a check that
+could not fail says nothing). Lesson: when a check divides by a quantity that can approach
+zero, the tolerance must scale with that quantity (Part 15's "declare tolerances" in action).
+
+### 21.6 Event location: placing the landing between two steps **[Beyond IB]**
+A fixed-step run knows `g(t)` (for the projectile, the height `y`) only at the nodes. When `g`
+changes sign between `tᵢ` and `tᵢ₊₁` the landing is somewhere inside; two ways to place it:
+
+<!-- src: backend/src/simforge/numerics/events.py:53-64 -->
+```python
+    if kind == "linear":
+        return t0 + h * g0 / (g0 - g1)
+
+    def hermite(t: float) -> float:
+        s = (t - t0) / h
+        r = 1.0 - s
+        return (
+            (1 + 2 * s) * r * r * g0
+            + s * r * r * h * dg0
+            + s * s * (3 - 2 * s) * g1
+            - s * s * r * h * dg1
+        )
+```
+**Linear** draws the chord (a straight line through the two heights) and solves for zero: one line
+of algebra. **Cubic Hermite** also uses the *slopes* `dg0`, `dg1` (for the projectile, the vertical
+velocity, which the run already has) and fits a cubic through both; the root is then found by
+`brentq` (a bracketing root finder). The four weights are the standard Hermite basis polynomials.
+With the crossing at fraction `s` of a step, the errors are (R6, a standard result **tested** here,
+not proved in this repository):
+
+`linear: s(1 − s) h² g″/(2|g′|)`, `Hermite: s²(1 − s)² h⁴ g⁗/(24|g′|)`
+
+so the interpolation error is `O(h²)` or `O(h⁴)`. Three consequences, each a lesson learned while
+building 2.4:
+
+1. **Place the event mid-step.** If `h = T/N` the landing sits exactly on a node and the
+   interpolation error is zero by construction. The study uses `h = T/(N + ½)`, so `s = ½`.
+2. **The total error is `O(h^min(p, q))`**, `p` the method's order and `q = 2` or `4`. Euler with
+   Hermite is order 1 (the integrator, not the interpolant, limits it); RK4 with linear is
+   order 2; RK4 with Hermite should be order 4.
+3. **RK4 and Hermite can cancel.** RK4's own landing error and Hermite's are both `O(h⁴)` and can
+   have opposite signs (ratios −1.03 and −0.92 at two requests). Then their sum is much smaller than
+   either, so what is left is dominated by the `O(h⁵)` remainder. Fits there gave 3.67-4.12
+   where the theory says 4 (tolerance ± 0.1): false failures. The study excludes a run when `|e| < 0.5(|e_interp| + |e − e_interp|)`:
+   if the total is under half the sum of its parts, the `O(h⁵)` remainder could be dominating it.
+   With the rule, the remainder is amplified at most 2× relative to the no-cancellation case.
+
+**Pre-asymptotic runs.** A fit estimates the order as `h → 0`, so every point must already be in
+that regime. For strong drag and a long flight (`kT ≈ 15`), Euler's decaying mode is off by about
+`e^{−kT·kh/2}` and its landing-error local orders go 0.48 → 0.93: still approaching 1. Fitting
+them gave false fails (0.838, 0.779, 0.772). A run is excluded when `|R(−kh)ᴺ e^{kNh} − 1| > 0.1`
+(`R` the stability function, Part 4): a closed-form test, a priori, not tuned to the data.
+**Observed** on the default request: landing orders linear/Hermite for RK4 2.000 / 4.039,
+Verlet 2.000 / 2.000, Euler 0.997 / 0.998 (6 points).
+
+### 21.7 One landing helper for two adaptive solvers **[SimForge, bit-identical refactor]**
+The linear and quadratic drag solvers both integrate until `y = 0` while descending and both find
+the apex. That logic was written twice; it now lives once:
+
+<!-- src: backend/src/simforge/physics/projectile/landing.py:80-93 -->
+```python
+    sol = solve_ivp(
+        rhs,
+        (0.0, t_max),
+        y0,
+        method=method,
+        rtol=rtol,
+        atol=atol,
+        events=[hits_ground, reaches_apex],
+        dense_output=True,
+    )
+    if sol.status == -1:
+        raise SolverError(f"{method} failed: {sol.message}")
+    if sol.status != 1 or len(sol.t_events[0]) == 0:
+        raise SolverError(f"{method} did not reach the ground before t_max = {t_max:.6g} s")
+```
+Each solver passes its own `rhs`; the events, the SciPy call and the status handling are shared. The
+rule for a refactor like this: **the outputs must not change**. It was **tested** by golden
+digests unchanged before the version bump, and by old and new `integrate()` agreeing on 1530
+cases. (The fixed-step event location of 21.6 is a different thing: the adaptive solver's event is
+found by SciPy; the fixed-step study has no solver doing it for you.)
+
+### 21.8 The workbench driver **[SimForge]**
+`workbench.py` knows no physics: a `Problem` supplies the right-hand side, the exact answer at the
+node times and the **error groups** (which components, in which norm, with which round-off scale).
+`run_convergence` runs every method at every `dt`, takes the maximum error over all nodes, drops
+runs by the pre-declared exclusion order (diverged, the model's rule, round-off floor), and fits.
+It is used by two models, the oscillator and the projectile, not by every time-stepping model.
+A two-component error group uses `np.hypot` (no overflow or underflow in the squares); on the
+projectile study that left the golden digest bit-identical, though last-bit differences on other
+inputs are possible. **Tested** on a synthetic problem with error `c·T·h^p` by construction: the
+fit recovers `p` within 1e-4.
+
+### 21.9 Checkpoint **[answer in your own words]**
+1. In one sentence, why does symplectic Euler's energy wobble but not drift?
+2. Why would an endpoint-only fit report order 2 for symplectic Euler?
+3. Why does Euler's `1 + θ²` mean the swing grows for *every* step size, not only large ones?
+4. Why must the event be placed mid-step in a convergence study?
+5. Which of these is **proved**, **tested** or **observed**: `H̃` is constant; the R5 bound holds on
+   random floats; symplectic Euler's fitted order is 1.014?
+
+### 21.10 Exercises (no solutions given)
+- **E21.1** On the page, run `θ = 0.25` (the default energy step) and read the symplectic Euler
+  envelope. Predict its height from R5 and compare. Then double `energy_dt` and say what should
+  happen to the height before you look.
+- **E21.2** By hand, apply symplectic Euler's matrix `M` to `(q, u) = (1, 0)` for one step at
+  `θ = 1`. Check that `q² + u² − θqu` is unchanged and `q² + u²` is not.
+- **E21.3** Verify that Verlet's `M` has determinant 1 and that `H̃ = (1 − θ²/4)q² + u²` is
+  preserved by one step. What happens to `H̃`'s sign at `θ = 2`, and why does that break the check?
+- **E21.4** Explain why `h = T/N` would make the Hermite landing error vanish, and what you would
+  see in a fit if you used it.
+- **E21.5** Write **position Verlet** (drift `h/2`, kick `h`, drift `h/2`) as a stepper with the
+  same signature as `velocity_verlet`. Find its conserved quantity on `q̈ = −ω²q` the way 21.3 did
+  (write `M`, solve `Mᵀ Q M = Q`), then test it in `fractions` arithmetic. Is it the same `H̃`?
+- **E21.6** Pick `b` and `k` so that Euler's landing fit is pre-asymptotic, and find the rule's
+  quantity `|R(−kh)ᴺ e^{kNh} − 1|` for the finest run.
+- **E21.7** (stretch) Why does the number of steps `N` in the check threshold `C·N·ε` matter for
+  a run of 1000 periods but not for one period? What is the physical origin of that growth?
 
 ---
 

@@ -20,7 +20,7 @@ test("run a projectile simulation and find it in the experiment log", async ({ p
   // the run (the regions exist, with placeholders, before it).
   const region = (name: string) => page.getByRole("region", { name });
   const validation = region("Validation");
-  const rangeRow = validation.getByRole("row", { name: /Range/ });
+  const rangeRow = validation.getByRole("row", { name: /^Range \(m\)/ });
   const expectedRange = (10 ** 2 * Math.sin((60 * Math.PI) / 180)) / 9.80665; // 8.83100...
   await expect(rangeRow).toContainText(expectedRange.toPrecision(8));
 

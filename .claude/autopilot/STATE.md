@@ -10,7 +10,7 @@ scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewk
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
   and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: 9748111
+work limit from: bcf6518
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -44,17 +44,19 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 ## Step costs (one line per merged roadmap step; unknown parts written "unknown")
 - 2.2 (PR #14): 7-day usage 0.44 → 0.74 (about 0.30 of a week) over 6 ticks: planning plus 5
   slices, builder and reviewer per slice (high, then medium); measured from usage readings.
+- 2.3 (PR #26): 10 journalled autopilot ticks 2026-11-09 to 2026-11-19 for slices 2-5 plus
+  chat sessions for planning, slice 1 and the slice 2 review (not counted); subagents by agent,
+  rungs and usage unknown (no usage readings in fresh sessions).
 
 ## Current unit
-Roadmap 2.3: slice 1 done in 4882fc4. Slice 2 built and reviewed 2026-11-10. Its review items
-2-7 and the review's must-fix decisions were settled on 2026-11-10 in a chat session at the
-author's request (branch `claude/scientific-review-process-sync-3t3aku`, a PR into the working
-branch): do not redo them; if that PR is not merged yet, wait for it (it touches
-`physics/oscillator/` and `physics/projectile/quadratic_*`). Slice 3's Acceptance block written and reviewed 2026-11-15 (plan, no must-fix). Slice 3 built and reviewed 2026-11-16 (reviewer: no must-fix).
-Security review done 2026-11-16 (no must-fix). Slice 4 Acceptance block written and reviewed 2026-11-17 (no must-fix). Slice 4 built 2026-11-17 (Acceptance passed; no separate review, non-risky). Slice 5 Acceptance block written and reviewed 2026-11-18 (2 must-fix applied). Slice 5 built, checked (full e2e green) and reviewed 2026-11-19; 2.3 PR opened, waits for the author's merge. Next after merge: 2.4 plan tick.
+Roadmap 2.4: planned (self-grilled at the author's request, 3 reviews) and built in one chat
+session on 2026-11-19, slices 1-5, each risky slice reviewed, whole-step review done, full
+check run (Next.js build notice: retry passed). Draft PR opened for the author's review.
+The work limit (12 commits since bcf6518) is reached with the close-out commit; the next
+tick waits for the merge (skill step 2.5), then resets the limit at the merge.
 
 ## Remainder of the current unit
-None: 2.3 finished, PR awaiting merge.
+None: 2.4 finished; its PR waits for the author's merge (never merged by Claude).
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
