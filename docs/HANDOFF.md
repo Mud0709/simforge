@@ -9,9 +9,10 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-2.4 is merged (PR #27, 2026-11-20); its learning-log draft is written. Next: the 2.5 plan tick. Try the demo in `docs/briefs/2.4.md` (`/physics/oscillator` → "Compare integrators on the oscillator" → "Run study"; not run in a browser by this session). After the merge, the next tick writes the learning-log draft, then plans 2.5 (generic sweeps).
+Track A module A2 (momentum and collisions) is planned (`docs/plans/TRACK_A_A2_PLAN.md`, three reviews applied) and its coding guide is written (`docs/FOUNDATIONS_CODING_GUIDE.md`, chapters 0-12); committed and pushed to the working branch (3f20c95), no PR (plan and docs only). Confirm the four A2 questions below; then Claude starts S0 (stubs and the first test on a new A2 branch) and you do sitting 0 on your laptop.
 
 ## Open decisions
+- **A2 confirmations (blocks: A2 S0):** (1) division of labour: you write 13 core functions in five sittings, Claude writes tests first and everything else; (2) A2 before 2.5: Track B pauses while A2 is the working branch, parked by default three weeks after S0 unless extended once; (3) SL and HL in one PR; (4) re-check the plan's "Syllabus re-check" A.2 lines against your Physics guide copy.
 - **Learning-log drafts for PR #20, #23, #26 and #27:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Next.js 16.4.1 security notice:** the first `next build` in `scripts/check.sh` now stops on it every run, because the backend runs past the notice's 5-minute retry window; a retry passes. Upgrading Next.js is a dependency change: your call (recommended: upgrade in its own PR). Not blocking.
 - **Scheduled task branch (your clicks):** stored push-outcome branch `claude/serene-feynman` (wrong); set it to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming. The task is disabled.
