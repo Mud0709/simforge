@@ -486,3 +486,25 @@ is in `CLAUDE.md`).
 - 381-393: Risks
 - 394-413: Out of scope / Not done
 - 414-422: Genuine stops found
+
+## `docs/plans/TRACK_A_A2_PLAN.md` (411 lines)
+- 15-26: Slice status
+- 27-41: Scope
+- 42-80: Before deciding
+- 81-93: Syllabus re-check (what this plan relies on)
+- 94-198: Decisions
+- 199-221: The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
+- 222-233: Seams (where tests attach; what each catches and misses)
+- 234-379: Slices
+  - 240-259: S1: setup and sitting 1, momentum and energy
+  - 260-277: S2: sitting 2, the 1-D collision
+  - 278-291: S3: sitting 3, impulse, average force, explosions
+  - 292-316: S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
+  - 317-335: S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
+  - 336-350: S6: sitting 4 (HL), 2-D momentum
+  - 351-364: S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
+  - 365-379: S8: physics guide part, docs and close-out (Claude, routine: `builder`)
+- 380-393: Risks
+- 394-399: Out of scope / Not done
+- 400-405: Needs the author's confirmation
+- 406-411: Genuine stops found
