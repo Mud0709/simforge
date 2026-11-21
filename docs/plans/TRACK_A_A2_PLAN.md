@@ -15,8 +15,9 @@ a, b, c of the autopilot skill, step 3) in a planning-only session.
 ## Slice status
 | Slice | Who writes the code | Status |
 |---|---|---|
-| S1 Setup and sitting 1: momentum and energy | Claude: skeleton, tests, guide ch. 0-5, 9 · **Author: 5 functions** | ⏳ |
-| S2 Sitting 2: the 1-D collision | Claude: tests, guide ch. 6-8, 10 · **Author: 1 function + guards** | ⏳ |
+| S0 Sitting 0: set-up on the author's laptop, first green test | Claude: skeleton, stubs, tests, guide ch. 0-5 · **Author: install, clone, `momentum` (worked example), first commit and push** | ⏳ |
+| S1 Sitting 1: energy and totals | Claude: tests, guide ch. 9 · **Author: 4 functions** | ⏳ |
+| S2 Sitting 2: the 1-D collision | Claude: tests, guide ch. 6-8, 10 · **Author: 1 function + guards; `kinetic_energy` made exact if needed** | ⏳ |
 | S3 Sitting 3: impulse, force and explosions | Claude: tests, guide ch. 11 · **Author: 4 functions** | ⏳ |
 | S4 The 1-D model and its API | Claude (risky) | ⏳ |
 | S5 The SL page, `/foundations` index and animation | Claude (routine) | ⏳ |
@@ -72,7 +73,7 @@ B step and is not reordered, merged or dropped (see D14 for the time limit).
    loss formula; `J = m1(v1 − u1) = −m2(v2 − u2)`; boost invariance of the loss and of the
    outcome. Hand-worked examples (checked in the same run): equal masses, e = 1, (2, 0) →
    (0, 2); m = (1, 3), e = 1, (4, 0) → (−2, 2); m = (2, 3), e = 0, (5, 0) → (2, 2); explosion
-   m = (1, 3) from rest, v1 = −3 → v2 = 1, 6 J released; 2-D, equal masses, u1 = (4, 0),
+   m = (1, 3) from rest, v1 = −3 → v2 = 1, 6 J released (= ½·1·3² + ½·3·1²); 2-D, equal masses, u1 = (4, 0),
    u2 = 0, v1 = (2, 2) → v2 = (2, −2), kinetic energy 8 J before and after, at 90° (by hand).
    The force-pulse area: the trapezoid rule on a half-sine with n intervals gives exactly
    `J·(h/2)cot(h/2)`, h = π/n (proved: the sum Σ sin kh = cot(h/2)), so the per-run area check
@@ -118,7 +119,24 @@ that owns it; after, edit that slice.
     Acceptance block). If a test looks wrong, the author says so; Claude fixes it with a reason.
   - **Review**: the core is scientific core, so each author slice gets 1 fresh `reviewer`;
     findings are explained at IB level and the author makes the fixes (the same ladder).
+    Findings and their fixes are recorded in the guide's ledger (one line per finding) and in
+    that session's journal entry.
   - **Autopilot**: author slices cannot run on the autopilot; A2 is built in chat sessions.
+- **D1b. The author's workflow (the author's answer, 2026-11-21: own laptop, VS Code).**
+  The author codes in a local clone in VS Code (Codespaces only as a fallback, one note in
+  ch. 1). Per author sitting:
+  1. Claude commits the sitting's stubs, tests and chapter to the A2 branch and pushes; this
+     is the **test commit** (its hash goes in the journal and the sitting's Acceptance).
+  2. The author pulls (VS Code Source Control), edits and saves `core.py` only, runs
+     `uv run pytest <file> -q` in the integrated terminal until green, then commits their own
+     code (Source Control: stage, message, commit) and pushes to the branch Claude named. The
+     repository's `commit-msg` hook normalises the trailers.
+  3. Claude fetches, checks the test files are untouched
+     (`git diff <test commit> -- <the sitting's test files>` prints nothing), runs the
+     Acceptance commands, starts the reviewer and continues.
+  Who commits what: the author commits only `core.py` changes of their sitting; Claude
+  commits everything else. Environment and tooling errors (install, uv, git, hooks, VS Code)
+  Claude fixes at once, outside the authorship ledger, which records only physics-core lines.
 - **D2. Where the code lives.** (a) `physics/collisions/`; (b) **`backend/src/simforge/
   physics/foundations/collisions/`**: `core.py` (author, stdlib only), `schemas.py`,
   `model.py` (Claude); route module `api/routes/foundations.py`. (a) would take the name Phase
@@ -150,8 +168,12 @@ that owns it; after, edit that slice.
 - **D8. Explosions.** (a) input the energy released, split by a square root; (b) **input
   the common initial velocity u (default 0, from rest) and fragment 1's final velocity v1;
   output v2 by momentum conservation and the energy released**. (b) is the IB exam shape and
-  needs only momentum; (a) needs a square root, so no exact rational tests. Released energy
-  < 0 is refused (not an explosion).
+  needs only momentum; (a) needs a square root, so no exact rational tests. Fragment 1 is the
+  left one, so **v1 ≤ u is required** (otherwise the fragments would pass through each other;
+  refused with a 422). The released energy is **always ≥ 0 (proved)**: with total momentum
+  (m1 + m2)u, `KE_after − KE_before = ½m1(v1 − u)² + ½m2(v2 − u)² = ½μ(v1 − v2)²`, a sum of
+  squares. So it is computed in that closed form (no cancellation) and compared with the
+  kinetic-energy difference as a check; there is no "negative energy" refusal.
 - **D9. 2-D HL case.** (a) smooth discs with a contact angle and e along the normal; (b)
   **given u1, u2 and v1 (vectors), find v2 from momentum in each component; report the
   kinetic-energy change and classify it** (lost: inelastic; unchanged within the rounding
@@ -172,7 +194,9 @@ that owns it; after, edit that slice.
   and is small. It is not a shared component and pre-empts nothing in 2.6.
 - **D12. Syllabus vs extension in the UI.** Badges: "IB syllabus (A.2)" on momentum,
   impulse, average force, collision types, explosions, the 2-D components (HL); "Extension"
-  on e and the e-formulas, the kinetic-energy-loss formula, the pulse shape, the frame
+  on e and the e-formulas (the "elastic" preset notes that its outcome comes from the
+  e-formula with e = 1, an extension; the guide does not require solving it), the
+  kinetic-energy-loss formula, the pulse shape, the frame
   (boost) check; "Model identity, not a claim about real collisions" on the Validation
   region (the IB_FOUNDATIONS rule).
 - **D13. Learning material.** (a) a Foundations part in `LEARNING_GUIDE.md` only (the
@@ -181,43 +205,67 @@ that owns it; after, edit that slice.
   material; recorded in IB_FOUNDATIONS at S8) plus a short physics Part 22 in
   `LEARNING_GUIDE.md` at the close**. Chapters are written one slice ahead (below).
 - **D14. Interleaving and time limit.** A2 sits between 2.4 and 2.5 at the author's choice.
-  Because author sittings set the pace, **if A2 is not merged within about three weeks of S1
-  (or the author pauses it), the author decides whether to park the A2 branch so 2.5
-  proceeds**: Track B is never delayed indefinitely (preservation rule 3). Needs the author's
-  confirmation (with the working-branch rule: A2 becomes the working branch while it runs).
+  A2 becomes the working branch while it runs, so **Track B (2.5) pauses meanwhile** (one
+  chat per branch). Because author sittings set the pace, **the default is to park the A2
+  branch three weeks after S0 if it is not merged, and 2.5 proceeds; the author may extend
+  once** (or pause A2 earlier). Track B is never delayed indefinitely (preservation rule 3).
+  Needs the author's confirmation.
 - **D15. Input limits** (Claude, S4; labelled "chosen limits, not physics"): m in
   [0.01, 1000] kg, velocity components in [−100, 100] m/s, e in [0, 1], Δt in
   [1e-4, 10] s; non-finite rejected at the boundary. Mass ratios ≤ 1e5 keep the rounding
-  allowance small; the allowance constant is measured in S4 and justified in a comment.
+  allowance small. **Outputs are bounded** (Newtonian, classroom scale): every final velocity
+  component must satisfy |v| ≤ 1000 m/s, else a 422 naming it. For the 1-D collision this
+  never triggers: |v| ≤ 3·max(|u1|, |u2|) ≤ 300 m/s (proved: the coefficients of u1 and u2
+  in each e-formula have absolute values summing to at most (m1 + 3m2)/(m1 + m2) ≤ 3, and
+  symmetrically); explosions and 2-D inputs can exceed it (v2 = ((m1 + m2)u − m1v1)/m2 grows
+  with m1/m2), so the cap is tested there.
 - **D16. Per-run checks** (Claude, `model.py`, computed with `math.fsum`, independently of
   the core's arithmetic): momentum conserved; centre-of-mass velocity unchanged; restitution
   reproduced (1-D collision); loss by difference agrees with the closed form; impulses equal
   and opposite; pulse area equals `J·(h/2)cot(h/2)` (exact expected value); kinetic energy not
-  increased (collision) or released ≥ 0 (explosion). Kind: exact identity, with a stated
-  rounding allowance (`C·ε·scale`, C measured).
+  increased (collision); explosion: released energy by the closed form (≥ 0, proved, D8)
+  agrees with the kinetic-energy difference. Kind: exact identity, with a rounding allowance
+  `C·ε·scale`, where **scale** is defined per check: momentum `Σ|m·u| + Σ|m·v|`;
+  restitution an absolute `ε·max|v|`; kinetic-energy loss or release the total kinetic
+  energy before (after, for an explosion from rest); centre of mass `max|v|`. **C comes from
+  an operation count** (each rounded product or sum adds at most ε relative; C = 2 × the
+  number of rounded operations on the path, stated in a comment) and is then confirmed by
+  measurement on the S4 grid (observed). Zero-valued expectations (e.g. total momentum of an
+  explosion from rest) are tested exactly in Fraction only.
 
 ## The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
 IB level, intuition first, short. Every chapter ends with a check of understanding; exercises
 have no solutions; the hint ladder sits under each exercise. Excerpts tagged
 `<!-- src: path:a-b -->` only for Claude-written code (the author's code changes while
-learning; it is excerpted at S8).
+learning; it is excerpted at S8). Each chapter is written before the sitting that needs it.
 
 | Ch. | Content | Written in | Used in |
 |---|---|---|---|
-| 0 | How to use this guide: sittings, the fading steps, the hint ladder, the stuck rule, the authorship ledger (a table at the end) | S1 | all |
-| 1 | Running Python and pytest here: a terminal, `cd backend`, `uv run python`, `uv run pytest <file> -q`, dots/F/E, `uv run ruff format`, `uv run ruff check`, `uv run mypy` | S1 | S1 |
-| 2 | Variables and numbers: names, `=`, int and float, `+ - * / **`, units in names and comments | S1 | S1 |
-| 3 | Functions: `def`, parameters, type hints (`m: float`, `-> float`, why mypy needs them), docstrings | S1 | S1 |
-| 4 | `return` (and why `print` is not `return`) | S1 | S1 |
-| 5 | Reading a failing test: `assert`, expected vs actual, traceback read from the bottom, red → green | S1 | S1 |
-| 6 | `if` and `raise ValueError(...)` for invalid input; `pytest.raises` | S2 | S2 |
+| 0 | How to use this guide: sittings, the fading steps, the hint ladder, the stuck rule, the workflow (D1b), the authorship ledger and review log (a table at the end) | S0 | all |
+| 1 | Set-up on your laptop: install VS Code, git and uv (uv installs Python); clone the repository; open the folder; the integrated terminal; `cd backend`, `uv sync`; `uv run pytest <file> -q`, dots/F/E; `uv run ruff format`, `uv run ruff check`, `uv run mypy`; Source Control: pull, stage, message, commit, push to the named branch; Codespaces as a fallback (one note) | S0 | S0 on |
+| 2 | Variables and numbers: names, `=`, int and float, `+ - * / **`, units in names and comments | S0 | S0 |
+| 3 | Functions: `def`, parameters, type hints (`m: float`, `-> float`, why mypy needs them), docstrings | S0 | S0 |
+| 4 | `return` (and why `print` is not `return`) | S0 | S0 |
+| 5 | Reading a failing test: `assert`, expected vs actual, traceback read from the bottom, red → green | S0 | S0 |
+| 6 | `if` and `raise ValueError("...")` for invalid input; `pytest.raises(ValueError, match=...)` | S2 | S2 |
 | 7 | Tuples: returning two values, unpacking `v1, v2 = ...`, type `tuple[float, float]` | S2 | S2, S6 |
-| 8 | Floats vs exact fractions: `0.1 + 0.2`, `Fraction`, ε, why tests use `rel_approx` and why the same function runs on both | S2 | S2-S6 |
-| 9 | Momentum and kinetic energy: `momentum`, `kinetic_energy`, `total_momentum`, `total_kinetic_energy`, `centre_of_mass_velocity` | S1 | S1 |
+| 8 | Floats vs exact fractions: `0.1 + 0.2`, `Fraction`, ε, why float tests use `rel_approx`, why the same function runs on both, and **why `0.5 * m * v**2` breaks exactness (0.5 is a float, so a Fraction becomes a float) while `m * v**2 / 2` keeps it** | S2 | S2-S6 |
+| 9 | Momentum and kinetic energy: `momentum` (S0), then `kinetic_energy`, `total_momentum`, `total_kinetic_energy`, `centre_of_mass_velocity` | S0 (momentum), S1 | S0, S1 |
 | 10 | The 1-D collision: `collide_1d` (perfectly inelastic first, then with e, the extension), its guards | S2 | S2 |
-| 11 | Impulse, average force, explosions: `impulse`, `average_force`, `explosion_velocity`, `energy_released` | S3 | S3 |
+| 11 | Impulse, average force, explosions: `impulse`, `average_force`, `explosion_velocity`, `energy_released` (the sum-of-squares form and why it is never negative) | S3 | S3 |
 | 12 | Vectors as tuples (HL): components, `momentum_2d`, `kinetic_energy_2d`, `other_velocity_2d` | S6 | S6 |
 | 13 | What Claude built around your code: one request from the page to `core.py` and back (Claude's code, excerpted) | S8 | — |
+
+**Core signatures** (fixed by Claude's stubs in S0; two-body functions take plain arguments,
+no lists, so no loops are needed): `momentum(m: float, v: float) -> float`;
+`kinetic_energy(m: float, v: float) -> float`; `total_momentum(m1: float, v1: float,
+m2: float, v2: float) -> float`; `total_kinetic_energy(m1, v1, m2, v2) -> float`;
+`centre_of_mass_velocity(m1, v1, m2, v2) -> float`; `collide_1d(m1, m2, u1, u2, e) ->
+tuple[float, float]`; `impulse(m, u, v) -> float` (on that body, `m·(v − u)`);
+`average_force(j, dt) -> float`; `explosion_velocity(m1, m2, u, v1) -> float`;
+`energy_released(m1, m2, u, v1, v2) -> float`; `momentum_2d(m, v: tuple[float, float]) ->
+tuple[float, float]`; `kinetic_energy_2d(m, v) -> float`; `other_velocity_2d(m1, m2, u1, u2,
+v1) -> tuple[float, float]` (all parameters `float` unless shown).
 
 ## Seams (where tests attach; what each catches and misses)
 1. **Core** (`core.py`, author): exact `Fraction` identities and hand-worked examples, float
@@ -226,93 +274,122 @@ learning; it is excerpted at S8).
 2. **Model** (`model.py`, Claude): per-run checks pass on a corner grid; a planted mutant
    (u1 and u2 swapped in v2's formula) fails a check; pulse area; frames. *Catches* assembly
    and threshold errors.
-3. **API and registry**: 422s per kind (non-finite, bounds, u1 ≤ u2, negative released
-   energy, unknown kind), golden case appended, replay, contract.
+3. **API and registry**: 422s per kind (non-finite, bounds, u1 ≤ u2, v1 > u for an
+   explosion, an output above the D15 cap, unknown kind), one golden case per kind, replay,
+   contract.
 4. **Frontend**: Vitest and Playwright; badges, page, index, animation controls. *Misses*
    science (seams 1-2).
 
 ## Slices
 Common commands (from `backend/`): `uv run ruff check . && uv run ruff format --check .`,
-`uv run mypy`. "Tests unchanged" means `git diff --stat HEAD -- backend/tests` prints nothing.
-Author slices: Claude's preparation (tests red, chapters) is committed first; the author's
-sitting follows; then a fresh `reviewer` on the core diff; the author applies fixes.
+`uv run mypy`. **"Tests unchanged"** (author sittings) means
+`git diff <test commit> -- <the sitting's test files>` prints nothing, where the test commit
+is Claude's commit that added them (D1b), not HEAD. Author sittings follow D1b; then a fresh
+`reviewer` on the `core.py` diff; the author applies fixes; findings go to the ledger and
+the journal. Test conventions for every core test file: guard tests use
+`pytest.raises(ValueError, match=...)`; parametrized cases have readable `ids`; where
+exactness is tested, the test first asserts `isinstance(result, Fraction)` with the message
+"use / 2, not 0.5: a float constant turns the exact Fraction into a float (guide ch. 8)";
+zero-valued expectations are tested in Fraction only.
 
-### S1: setup and sitting 1, momentum and energy
-**Claude (`test-writer-risky`, then a `builder` for docs):** packages
-`physics/foundations/__init__.py` and `collisions/__init__.py`; `core.py` with the S1-S3
-function stubs (signatures, type hints, docstrings, `raise NotImplementedError`), so later
-signatures are fixed now; `backend/tests/physics/foundations/__init__.py`; tests; guide ch.
-0-5 and 9. **Author:** `momentum` (worked example), `kinetic_energy` (fill in),
-`total_momentum`, `total_kinetic_energy` (hints), `centre_of_mass_velocity` (alone).
+### S0: sitting 0, set-up and the first green test
+**Claude (`test-writer-risky` for tests, `builder` for the skeleton and docs):** packages
+`physics/foundations/__init__.py` and `collisions/__init__.py`; `core.py` with every stub of
+S0-S3 (the signatures above, docstrings with units, `raise NotImplementedError`);
+`backend/tests/physics/foundations/__init__.py`; `test_core_momentum.py`; guide ch. 0-5 and
+ch. 9's `momentum` part; the A2 branch named in the journal. **Author** (about 1-2 hours,
+mostly set-up): install and clone (ch. 1), run the test red, type `momentum` from the worked
+example (one line), run it green, commit and push.
 **Acceptance.**
-- **Test files (new):** `backend/tests/physics/foundations/test_core_momentum.py` (integer and
-  half-integer hand examples, Fraction exact cases, signs for negative velocities, units
-  stated in docstrings).
+- **Test files (new):** `backend/tests/physics/foundations/test_core_momentum.py` (integer
+  and half-integer hand examples in floats with `rel_approx`, a negative velocity; no
+  Fraction yet).
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations/test_core_momentum.py -q`
-  (red after Claude's commit, green after the author's); the common commands; `git diff
-  --stat <Claude's S1 commit> -- backend/tests` (prints nothing after the sitting).
-- **Checks:** (1) The tests fail on the stubs and pass on the author's code? (2) The five
-  functions are the author's (ledger lists any Claude-typed line), ruff, format and strict mypy
-  pass? (3) No test file changed during the sitting? (4) The reviewer's findings are recorded
-  and each must-fix is fixed by the author? (5) Guide ch. 0-5 and 9 exist and
+  (red at the test commit, green at the author's); common commands; the tests-unchanged diff.
+- **Checks:** (1) The author's push arrives on the named branch with the author's identity
+  and the hook's trailers? (2) The test was red at the test commit and is green at the
+  author's? (3) Tests unchanged, ruff, format, mypy pass? (4) Guide ch. 0-5 exist and
   `python3 scripts/doc_index.py --check` passes?
+
+### S1: sitting 1, energy and totals
+**Claude (`test-writer-risky`, docs `builder`):** `test_core_energy.py`; guide ch. 9.
+**Author:** `kinetic_energy` (fill in), `total_momentum`, `total_kinetic_energy` (hints),
+`centre_of_mass_velocity` (alone).
+**Acceptance.**
+- **Test files (new):** `backend/tests/physics/foundations/test_core_energy.py` (hand
+  examples in floats with `rel_approx`, tolerance justified in a comment; signs; no Fraction,
+  which starts in S2 after ch. 8).
+- **Commands:** `cd backend && uv run pytest tests/physics/foundations -q`; common commands;
+  the tests-unchanged diff.
+- **Checks:** (1) The tests fail on the stubs and pass on the author's code? (2) The four
+  functions are the author's (the ledger lists any Claude-typed line), ruff, format and mypy
+  pass? (3) Tests unchanged? (4) Reviewer findings recorded and every must-fix fixed by the
+  author?
 
 ### S2: sitting 2, the 1-D collision
 **Claude (`test-writer-risky`, docs `builder`):** tests; guide ch. 6-8, 10. **Author:**
-`collide_1d(m1, m2, u1, u2, e) -> tuple[float, float]`: first the e = 0 case from momentum
-alone (syllabus), then the general e formula (extension), then guards (`ValueError` for
-m ≤ 0, e outside [0, 1], u1 ≤ u2).
+`collide_1d`: first the e = 0 case from momentum alone (syllabus), then the general e
+formula (extension), then guards (`ValueError` for m ≤ 0, e outside [0, 1], u1 ≤ u2). If
+the S1 `kinetic_energy` used `0.5`, the Fraction tests here fail with the ch. 8 message and
+the author changes it to `/ 2` (expected, part of the lesson).
 **Acceptance.**
 - **Test files (new):** `backend/tests/physics/foundations/test_core_collision_1d.py`: the
   three hand examples; Fraction cases (a fixed grid of masses, velocities and
   e ∈ {0, 1/4, 1/2, 1}) for momentum, `v2 − v1 = −e(u2 − u1)`, the loss formula and the
-  boost; floats with `rel_approx` (tolerance justified in a comment); `pytest.raises` for each
-  guard.
+  boost, plus `kinetic_energy` and the totals on Fractions (the `isinstance` assertion);
+  floats with `rel_approx` (tolerance justified); `pytest.raises(..., match=...)` per guard.
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations -q`; common commands;
-  the tests-unchanged diff against Claude's S2 commit.
+  the tests-unchanged diff.
 - **Checks:** (1) Every identity holds exactly in Fraction, with no tolerance? (2) e = 1 with
   equal masses swaps the velocities and e = 0 gives a common velocity? (3) Each invalid input
   raises `ValueError` with a message naming the input? (4) Tests unchanged, ruff, mypy pass,
   ledger updated? (5) Reviewer must-fixes fixed by the author?
 
 ### S3: sitting 3, impulse, average force, explosions
-**Claude:** tests; guide ch. 11. **Author:** `impulse(m, u, v)`, `average_force(j, dt)`
-(guard dt > 0), `explosion_velocity(m1, m2, u, v1)` (v2 by momentum), `energy_released(m1,
-m2, u, v1, v2)`.
+**Claude (`test-writer-risky`, docs `builder`):** tests; guide ch. 11. **Author:**
+`impulse`, `average_force` (guard dt > 0), `explosion_velocity` (v2 by momentum; guard
+v1 ≤ u), `energy_released` (the sum-of-squares form `½m1(v1 − u)² + ½m2(v2 − u)²`).
 **Acceptance.**
-- **Test files (new):** `backend/tests/physics/foundations/test_core_impulse.py`: J equal
-  and opposite on the S2 examples (Fraction), `F = J/Δt`, the explosion example (v2 = 1, 6 J),
-  zero total momentum from rest, released energy 0 when v1 = u, guards.
+- **Test files (new):** `backend/tests/physics/foundations/test_core_impulse.py`: on the
+  m = (1, 3), e = 1, (4, 0) → (−2, 2) example, **`impulse(1, 4, −2) == −6` and
+  `impulse(3, 0, 2) == 6` exactly** (a signed value, which catches `m·(u − v)`); impulses
+  equal and opposite on the S2 grid (Fraction); `F = J/Δt`; the explosion example
+  (v2 = 1, 6 J); zero total momentum from rest (Fraction); released energy 0 when v1 = u;
+  released energy equals the kinetic-energy difference exactly in Fraction; guards.
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations -q`; common commands;
-  tests-unchanged diff.
-- **Checks:** (1) All three core test files pass? (2) Impulses are exactly equal and opposite
-  in Fraction? (3) The explosion conserves momentum exactly and reports 6 J on the example?
-  (4) Tests unchanged, ruff, mypy, ledger, reviewer must-fixes done?
+  the tests-unchanged diff.
+- **Checks:** (1) All four core test files pass? (2) The signed impulses are −6 and +6
+  exactly? (3) The explosion conserves momentum exactly and reports 6 J, and the
+  sum-of-squares form equals the energy difference in Fraction? (4) Tests unchanged, ruff,
+  mypy, ledger, reviewer must-fixes done?
 
 ### S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
 `schemas.py` (kinds `collision_1d`, `explosion_1d`; D15 limits; non-finite rejected; u1 > u2
-by a validator), `model.py` (`MODEL_INFO`, `UNITS`, `ASSUMPTIONS`, D16 checks, pulse curve
-D10, frames D11; calls the author's core), `api/routes/foundations.py` with its `ModelEntry`,
-`api/registry.py`, `api/outputs.py` union, golden case appended, `make api-types`, SV section
-`physics.foundations.collisions` v1.0.0 (identities proved, tests listed, the rounding
-constant measured and labelled observed).
+and v1 ≤ u by validators), `model.py` (`MODEL_INFO`, `UNITS`, `ASSUMPTIONS`, D16 checks,
+the D15 output cap, pulse curve D10, frames D11; calls the author's core),
+`api/routes/foundations.py` with its `ModelEntry`, `api/registry.py`, `api/outputs.py`
+union, one golden case per kind appended and pinned with
+`cd backend && uv run python -m tests.api.pin_golden_runs`, `make api-types`, SV section
+`physics.foundations.collisions` v1.0.0 (identities and the D8, D15 bounds proved, tests
+listed, C from the operation count and its measurement labelled observed).
 **Acceptance.**
 - **Test files:** new `backend/tests/physics/foundations/test_collisions_model.py` (corner
   grid: mass ratio 1e5 both ways, e = 0 and 1, velocities at ±100, explosion from rest and
   moving; the planted mutant fails a check; pulse area equals the exact trapezoid value
-  within a few ε; frames continuous at t = 0 with slopes u before, v after); new
-  `backend/tests/api/test_foundations_collisions_api.py` (a 422 for NaN, ±Infinity, each bound,
-  u1 ≤ u2, negative released energy, an unknown `kind`); appended case in
+  within a few ε; frames continuous at t = 0 with slopes u before, v after; the 1-D collision
+  never exceeds 3·max|u|); new `backend/tests/api/test_foundations_collisions_api.py` (a 422
+  for NaN, ±Infinity, each bound, u1 ≤ u2, v1 > u, an explosion output above 1000 m/s, an
+  unknown `kind`); appended cases (`collision_1d`, `explosion_1d`) in
   `backend/tests/api/test_registry.py`; `backend/tests/api/golden_runs.json`.
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations
   tests/api/test_foundations_collisions_api.py tests/api/test_registry.py
   tests/api/test_golden_digests.py -q`; `scripts/run_logged.sh a2-s4 'cd backend && uv run
-  pytest -q'`; common commands; `make api-types`, then `git diff --stat frontend/src/lib/api`.
+  pytest -q'`; common commands; `git diff --numstat -- backend/tests/api/golden_runs.json`
+  (deletions column 0); `make api-types`, then `git diff --stat frontend/src/lib/api`.
 - **Checks:** (1) Every check passes on the corner grid and the mutant fails one? (2) Each
-  refusal is a 422 naming the input, and none reaches the core? (3) Existing golden digests
-  unchanged, the new case appended? (4) Full pytest, ruff, mypy pass and the regenerated
-  contract is committed? (5) `core.py` unchanged by this slice (`git diff --stat` of it is
-  empty)?
+  refusal is a 422 naming the input, and none reaches the core? (3) `golden_runs.json` only
+  gains lines and existing digests are unchanged? (4) Full pytest, ruff, mypy pass and the
+  regenerated contract is committed? (5) `core.py` unchanged by this slice?
 
 ### S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
 `frontend/src/app/foundations/page.tsx`, `frontend/src/app/physics/foundations/collisions/
@@ -334,13 +411,15 @@ average rectangle, the SVG animation strip, D12 badges; nav link, home card, 1.6
   reopens and passes the stored-fields case? (5) `check.sh --e2e` passes?
 
 ### S6: sitting 4 (HL), 2-D momentum
-**Claude:** stubs and tests; guide ch. 12. **Author:** `momentum_2d(m, v)`,
+**Claude (`test-writer-risky`, docs `builder`):** stubs and tests; guide ch. 12.
+**Author:** `momentum_2d(m, v)`,
 `kinetic_energy_2d(m, v)`, `other_velocity_2d(m1, m2, u1, u2, v1)` (vectors as
 `tuple[float, float]`).
 **Acceptance.**
 - **Test files (new):** `backend/tests/physics/foundations/test_core_2d.py`: the 90° equal-mass
-  example; Fraction cases for momentum in each component; a 1-D case (y = 0) agreeing with
-  S3's `explosion_velocity`; a rotation check (rotating every vector by a right angle,
+  example; Fraction cases for momentum in each component; a 1-D explosion case (y = 0 and
+  **u1 = u2 = (u, 0)**, so the inputs mean the same thing) agreeing with S3's
+  `explosion_velocity`; a rotation check (rotating every vector by a right angle,
   (x, y) → (−y, x), rotates v2 the same way, exactly).
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations -q`; common commands;
   tests-unchanged diff.
@@ -350,7 +429,9 @@ average rectangle, the SVG animation strip, D12 badges; nav link, home card, 1.6
 
 ### S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
 Kind `collision_2d` in the schema; checks (momentum per component, energy classification
-with the measured allowance); the vector diagram; an HL badge; golden case appended; SV.
+with the D16 allowance); the D15 output cap; the vector diagram; an HL badge; a
+`collision_2d` golden case appended and pinned with
+`cd backend && uv run python -m tests.api.pin_golden_runs`; SV.
 **Acceptance.**
 - **Test files:** updated `test_collisions_model.py` and `test_foundations_collisions_api.py`
   (2-D grid, KE-gained flagged not hidden, 422s); appended registry case; updated
@@ -358,7 +439,8 @@ with the measured allowance); the vector diagram; an HL badge; golden case appen
 - **Commands:** the S4 backend commands; `make api-types`; the S5 frontend commands;
   `scripts/run_logged.sh a2-s7 'scripts/check.sh --e2e'`.
 - **Checks:** (1) A gained-energy input is flagged "needs a stored energy source", and the
-  90° example is classified elastic? (2) Golden digests of earlier cases unchanged? (3) The
+  90° example is classified elastic? (2) `golden_runs.json` only gains lines
+  (`git diff --numstat` deletions 0) and earlier digests are unchanged? (3) The
   HL view shows p1 + p2 before and after with the same resultant? (4) `check.sh --e2e` passes
   and `core.py` is unchanged by this slice?
 
@@ -372,13 +454,14 @@ plan's status. Then the whole-step `reviewer`.
 **Acceptance.**
 - **Commands:** `python3 scripts/doc_index.py`, `python3 scripts/doc_index.py --check`,
   `python3 scripts/check_excerpts.py`, `scripts/run_logged.sh a2-close 'scripts/check.sh --e2e'`.
-- **Checks:** (1) `check.sh --e2e` passes in full? (2) Every excerpt matches the code? (3) The
-  ROADMAP Track B rows and order are byte-identical to before A2 (`git diff` of lines 1-137
-  is empty) and A2 is ✅? (4) The brief labels every claim proved, tested or observed, and
+- **Checks:** (1) `check.sh --e2e` passes in full? (2) Every excerpt matches the code? (3)
+  `git diff <base> -- ROADMAP.md` (base: the commit before S0) shows hunks only after the
+  "## Track A: IB Foundations (ADDITIVE)" heading, so no Track B row or order changed, and
+  A2 is ✅? (4) The brief labels every claim proved, tested or observed, and
   the ledger is complete?
 
 ## Risks
-- **Pace.** Author sittings may run long; D14's time limit protects Track B. Claude never
+- **Pace.** Author sittings may run long; D14's parking default protects Track B. Claude never
   speeds up by writing core code unrecorded.
 - **Frustration on early red tests.** Mitigated by the fading steps and the hint ladder;
   ruff format removes style friction; mypy errors explained in ch. 3.
@@ -386,8 +469,10 @@ plan's status. Then the whole-step `reviewer`.
   code: Fraction tests are order-independent; float tests use justified relative tolerances.
 - **Cancellation near e = 1:** the loss is shown from the closed form, the difference only
   as a check (Before deciding 1a).
-- **Rounding allowance** for float checks is measured in S4, not guessed; until then it is
-  unverified.
+- **Rounding allowance:** C comes from an operation count and is confirmed by measurement
+  in S4; until then it is unverified.
+- **Local set-up** (the author's laptop): install or PATH problems; Claude fixes them at once
+  (D1b), with Codespaces as the fallback.
 - **Scope creep into Phase 4 or 2.6:** D9 and D11 keep disc geometry and generic animation out.
 - **Syllabus mapping** not re-checked against the guide in this session (see above).
 
@@ -398,10 +483,15 @@ or sequential collisions; friction during contact; variable mass (rockets); `Ek 
 one, per IB_FOUNDATIONS); a shared animation component (2.6).
 
 ## Needs the author's confirmation
-1. D1, the division of labour (13 functions, about 4 sittings of 1-2 hours).
-2. D14: A2 before 2.5 as the working branch, with the three-week time limit.
-3. D6: SL and HL in one PR.
-4. The A.2 syllabus lines (above), from your copy of the guide.
+1. **Division of labour (D1, D1b):** you write the 13 core functions (about 80 lines) in five
+   sittings (S0 set-up, S1-S3, S6) on your laptop in VS Code and commit them yourself; Claude
+   writes the tests first and everything else, and records any core line it types.
+2. **A2 before 2.5 (D14):** A2 becomes the working branch, so Track B (2.5) pauses while it
+   runs; by default the A2 branch is parked three weeks after S0 if it is not merged, and 2.5
+   proceeds; you may extend that once.
+3. **SL and HL in one PR (D6).**
+4. **The A.2 syllabus lines** listed under "Syllabus re-check", re-checked against your copy of
+   the Physics guide (first assessment 2025).
 
 ## Genuine stops found
 None. Checked: no new dependency; no Track B item changed, reordered or dropped (2.5 stays

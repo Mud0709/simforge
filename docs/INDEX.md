@@ -487,24 +487,25 @@ is in `CLAUDE.md`).
 - 394-413: Out of scope / Not done
 - 414-422: Genuine stops found
 
-## `docs/plans/TRACK_A_A2_PLAN.md` (411 lines)
-- 15-26: Slice status
-- 27-41: Scope
-- 42-80: Before deciding
-- 81-93: Syllabus re-check (what this plan relies on)
-- 94-198: Decisions
-- 199-221: The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
-- 222-233: Seams (where tests attach; what each catches and misses)
-- 234-379: Slices
-  - 240-259: S1: setup and sitting 1, momentum and energy
-  - 260-277: S2: sitting 2, the 1-D collision
-  - 278-291: S3: sitting 3, impulse, average force, explosions
-  - 292-316: S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
-  - 317-335: S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
-  - 336-350: S6: sitting 4 (HL), 2-D momentum
-  - 351-364: S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
-  - 365-379: S8: physics guide part, docs and close-out (Claude, routine: `builder`)
-- 380-393: Risks
-- 394-399: Out of scope / Not done
-- 400-405: Needs the author's confirmation
-- 406-411: Genuine stops found
+## `docs/plans/TRACK_A_A2_PLAN.md` (501 lines)
+- 15-27: Slice status
+- 28-42: Scope
+- 43-81: Before deciding
+- 82-94: Syllabus re-check (what this plan relies on)
+- 95-235: Decisions
+- 236-269: The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
+- 270-282: Seams (where tests attach; what each catches and misses)
+- 283-462: Slices
+  - 295-313: S0: sitting 0, set-up and the first green test
+  - 314-328: S1: sitting 1, energy and totals
+  - 329-347: S2: sitting 2, the 1-D collision
+  - 348-365: S3: sitting 3, impulse, average force, explosions
+  - 366-393: S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
+  - 394-412: S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
+  - 413-429: S6: sitting 4 (HL), 2-D momentum
+  - 430-446: S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
+  - 447-462: S8: physics guide part, docs and close-out (Claude, routine: `builder`)
+- 463-478: Risks
+- 479-484: Out of scope / Not done
+- 485-495: Needs the author's confirmation
+- 496-501: Genuine stops found
