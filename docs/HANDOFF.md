@@ -1,4 +1,4 @@
-Last updated: 2.4 close-out 2026-11-19
+Last updated: a26f984 2026-11-21 (A2 sitting 0 ready)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
