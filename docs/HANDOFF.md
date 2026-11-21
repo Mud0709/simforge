@@ -1,4 +1,4 @@
-Last updated: a26f984 2026-11-21 (A2 sitting 0 ready)
+Last updated: 528077d 2026-11-21 (A2 sitting 0 moves to a local session)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,7 +9,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-**Your sitting 0 (A2):** on your laptop, follow `docs/FOUNDATIONS_CODING_GUIDE.md` chapters 0-5, then chapter 9's `momentum`. Branch: `claude/laughing-brahmagupta-50jkiy` (use it wherever the guide says "the branch Claude names"). Test commit: `a6e9f5f` (stubs in `backend/src/simforge/physics/foundations/collisions/core.py`, test `backend/tests/physics/foundations/test_core_momentum.py`: 6 red until you write `momentum`). Commit and push your one line; then Claude checks it and prepares sitting 1. Expected meanwhile: the full backend suite shows these 6 failures.
+**Your sitting 0 (A2):** in a local Claude session on your laptop (it reads `docs/LOCAL_PAIRING.md` first); on your laptop, follow `docs/FOUNDATIONS_CODING_GUIDE.md` chapters 0-5, then chapter 9's `momentum`. Branch: `claude/laughing-brahmagupta-50jkiy` (use it wherever the guide says "the branch Claude names"). Test commit: `a6e9f5f` (stubs in `backend/src/simforge/physics/foundations/collisions/core.py`, test `backend/tests/physics/foundations/test_core_momentum.py`: 6 red until you write `momentum`). Commit and push your one line; then Claude checks it and prepares sitting 1. Expected meanwhile: the full backend suite shows these 6 failures.
 
 ## Open decisions
 - **A2 confirmed (2026-11-21):** all four answered yes in chat (division of labour; A2 before 2.5, parked by default three weeks after S0, extendable once; SL+HL in one PR; syllabus lines). If you have not yet compared the plan's "Syllabus re-check" lines with your Physics guide copy, do it before sitting 2.
