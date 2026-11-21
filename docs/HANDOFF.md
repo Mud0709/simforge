@@ -9,10 +9,10 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-Track A module A2 (momentum and collisions) is planned (`docs/plans/TRACK_A_A2_PLAN.md`, three reviews applied) and its coding guide is written (`docs/FOUNDATIONS_CODING_GUIDE.md`, chapters 0-12); committed and pushed to the working branch (3f20c95), no PR (plan and docs only). Confirm the four A2 questions below; then Claude starts S0 (stubs and the first test on a new A2 branch) and you do sitting 0 on your laptop.
+**Your sitting 0 (A2):** on your laptop, follow `docs/FOUNDATIONS_CODING_GUIDE.md` chapters 0-5, then chapter 9's `momentum`. Branch: `claude/laughing-brahmagupta-50jkiy` (use it wherever the guide says "the branch Claude names"). Test commit: `a6e9f5f` (stubs in `backend/src/simforge/physics/foundations/collisions/core.py`, test `backend/tests/physics/foundations/test_core_momentum.py`: 6 red until you write `momentum`). Commit and push your one line; then Claude checks it and prepares sitting 1. Expected meanwhile: the full backend suite shows these 6 failures.
 
 ## Open decisions
-- **A2 confirmations (blocks: A2 S0):** (1) division of labour: you write 13 core functions in five sittings, Claude writes tests first and everything else; (2) A2 before 2.5: Track B pauses while A2 is the working branch, parked by default three weeks after S0 unless extended once; (3) SL and HL in one PR; (4) re-check the plan's "Syllabus re-check" A.2 lines against your Physics guide copy.
+- **A2 confirmed (2026-11-21):** all four answered yes in chat (division of labour; A2 before 2.5, parked by default three weeks after S0, extendable once; SL+HL in one PR; syllabus lines). If you have not yet compared the plan's "Syllabus re-check" lines with your Physics guide copy, do it before sitting 2.
 - **Learning-log drafts for PR #20, #23, #26 and #27:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Next.js 16.4.1 security notice:** the first `next build` in `scripts/check.sh` now stops on it every run, because the backend runs past the notice's 5-minute retry window; a retry passes. Upgrading Next.js is a dependency change: your call (recommended: upgrade in its own PR). Not blocking.
 - **Scheduled task branch (your clicks):** stored push-outcome branch `claude/serene-feynman` (wrong); set it to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming. The task is disabled.
