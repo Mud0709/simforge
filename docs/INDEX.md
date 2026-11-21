@@ -198,6 +198,85 @@ is in `CLAUDE.md`).
   - 665-674: A suggested learning plan
 - 675-700: Appendix — Symbol table
 
+## `docs/FOUNDATIONS_CODING_GUIDE.md` (892 lines)
+- 14-72: Chapter 0: How to use this guide
+  - 16-20: The deal
+  - 21-33: Sittings
+  - 34-43: The fading steps
+  - 44-52: The hint ladder
+  - 53-59: The stuck rule
+  - 60-72: Your workflow (every sitting)
+- 73-197: Chapter 1: Set-up on your laptop
+  - 82-87: 1.1 What you are installing (and why)
+  - 88-113: 1.2 Install
+  - 114-121: 1.3 Clone the repository
+  - 122-133: 1.4 The integrated terminal
+  - 134-141: 1.5 Get Claude's test commit
+  - 142-158: 1.6 Run a test
+  - 159-172: 1.7 Formatting and type checks
+  - 173-186: 1.8 Source Control: save and share your work
+  - 187-190: 1.9 Fallback: Codespaces
+  - 191-197: Check yourself
+- 198-240: Chapter 2: Variables and numbers
+  - 214-229: Numbers
+  - 230-233: Units live in names and comments
+  - 234-240: Check yourself
+- 241-304: Chapter 3: Functions
+  - 247-274: Step 1: a worked example (a different function)
+  - 275-279: Why type hints?
+  - 280-294: Step 2: fill in the blanks
+  - 295-297: Step 3: your real function
+  - 298-304: Check yourself
+- 305-337: Chapter 4: `return` (and why `print` is not `return`)
+  - 331-337: Check yourself
+- 338-398: Chapter 5: Reading a failing test
+  - 344-350: A test is just a function with `assert`
+  - 351-378: A realistic failure
+  - 379-383: Errors and stubs
+  - 384-391: Red to green
+  - 392-398: Check yourself
+- 399-456: Chapter 6: `if` and `raise ValueError` (sitting 2)
+  - 405-424: Step 1: a worked example (a different function)
+  - 425-435: How tests check a refusal
+  - 436-445: Step 2: fill in the blanks
+  - 446-449: Step 3: your real function
+  - 450-456: Check yourself
+- 457-491: Chapter 7: Tuples: returning two values (sitting 2, 4)
+  - 485-491: Check yourself
+- 492-574: Chapter 8: Floats vs exact fractions (sitting 2 onward)
+  - 497-504: 8.1 `0.1 + 0.2`
+  - 505-513: 8.2 Machine epsilon (ε)
+  - 514-520: 8.3 Tolerances: `rel_approx`
+  - 521-534: 8.4 `Fraction`: exact arithmetic
+  - 535-539: 8.5 One function, two kinds of number
+  - 540-567: 8.6 The trap: `0.5 * x` vs `x / 2`
+  - 568-574: Check yourself
+- 575-659: Chapter 9: Momentum and kinetic energy (sitting 0, 1)
+  - 577-586: Physics A.2 in two minutes
+  - 587-615: 9.1 Sitting 0: `momentum`
+  - 616-650: 9.2 Sitting 1: energy and totals
+  - 651-659: Check yourself
+- 660-730: Chapter 10: The 1-D collision (sitting 2)
+  - 662-683: Physics
+  - 684-698: Steps 1 and 2: the worked examples are earlier
+  - 699-722: Step 3: your real function
+  - 723-730: Check yourself
+- 731-809: Chapter 11: Impulse, average force and explosions (sitting 3)
+  - 733-742: Physics
+  - 743-753: Step 1: the worked example (a different function)
+  - 754-762: Step 2: fill in the blanks
+  - 763-786: Step 3: your real functions
+  - 787-801: Why the released energy is never negative
+  - 802-809: Check yourself
+- 810-869: Chapter 12: Vectors as tuples (HL; sitting 4)
+  - 816-828: Step 1: a worked example (a different function)
+  - 829-834: Step 2: fill in the blanks
+  - 835-862: Step 3: your real functions
+  - 863-869: Check yourself
+- 870-875: Chapter 13: What Claude built around your code
+- 876-884: Authorship ledger
+- 885-892: Review log
+
 ## `docs/IB_FOUNDATIONS.md` (536 lines)
 - 11-18: Purpose
 - 19-34: Preservation rule (non-negotiable)
@@ -487,25 +566,25 @@ is in `CLAUDE.md`).
 - 394-413: Out of scope / Not done
 - 414-422: Genuine stops found
 
-## `docs/plans/TRACK_A_A2_PLAN.md` (501 lines)
+## `docs/plans/TRACK_A_A2_PLAN.md` (503 lines)
 - 15-27: Slice status
 - 28-42: Scope
 - 43-81: Before deciding
 - 82-94: Syllabus re-check (what this plan relies on)
-- 95-235: Decisions
-- 236-269: The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
-- 270-282: Seams (where tests attach; what each catches and misses)
-- 283-462: Slices
-  - 295-313: S0: sitting 0, set-up and the first green test
-  - 314-328: S1: sitting 1, energy and totals
-  - 329-347: S2: sitting 2, the 1-D collision
-  - 348-365: S3: sitting 3, impulse, average force, explosions
-  - 366-393: S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
-  - 394-412: S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
-  - 413-429: S6: sitting 4 (HL), 2-D momentum
-  - 430-446: S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
-  - 447-462: S8: physics guide part, docs and close-out (Claude, routine: `builder`)
-- 463-478: Risks
-- 479-484: Out of scope / Not done
-- 485-495: Needs the author's confirmation
-- 496-501: Genuine stops found
+- 95-237: Decisions
+- 238-271: The coding guide (`docs/FOUNDATIONS_CODING_GUIDE.md`): structure for the docs builder
+- 272-284: Seams (where tests attach; what each catches and misses)
+- 285-464: Slices
+  - 297-315: S0: sitting 0, set-up and the first green test
+  - 316-330: S1: sitting 1, energy and totals
+  - 331-349: S2: sitting 2, the 1-D collision
+  - 350-367: S3: sitting 3, impulse, average force, explosions
+  - 368-395: S4: the 1-D model and its API (Claude, risky: `test-writer-risky`, `builder-risky`, `reviewer`, `/security-review`)
+  - 396-414: S5: the SL page, `/foundations` index and animation (Claude, routine: `test-writer`, `builder`)
+  - 415-431: S6: sitting 4 (HL), 2-D momentum
+  - 432-448: S7: the HL 2-D case, API and view (Claude, risky API: `test-writer-risky`, `builder-risky`, `reviewer`)
+  - 449-464: S8: physics guide part, docs and close-out (Claude, routine: `builder`)
+- 465-480: Risks
+- 481-486: Out of scope / Not done
+- 487-497: Needs the author's confirmation
+- 498-503: Genuine stops found

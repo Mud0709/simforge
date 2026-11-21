@@ -130,7 +130,9 @@ that owns it; after, edit that slice.
   2. The author pulls (VS Code Source Control), edits and saves `core.py` only, runs
      `uv run pytest <file> -q` in the integrated terminal until green, then commits their own
      code (Source Control: stage, message, commit) and pushes to the branch Claude named. The
-     repository's `commit-msg` hook normalises the trailers.
+     laptop clone has no repository hook enabled (`core.hooksPath` is set only in Claude
+     sessions), so the author's commits carry **no** Claude co-author trailer: that code is
+     the author's, and the missing trailer is part of the authorship record.
   3. Claude fetches, checks the test files are untouched
      (`git diff <test commit> -- <the sitting's test files>` prints nothing), runs the
      Acceptance commands, starts the reviewer and continues.
@@ -307,7 +309,7 @@ example (one line), run it green, commit and push.
 - **Commands:** `cd backend && uv run pytest tests/physics/foundations/test_core_momentum.py -q`
   (red at the test commit, green at the author's); common commands; the tests-unchanged diff.
 - **Checks:** (1) The author's push arrives on the named branch with the author's identity
-  and the hook's trailers? (2) The test was red at the test commit and is green at the
+  (`Mud0709`, the GitHub noreply email) and no Claude co-author trailer? (2) The test was red at the test commit and is green at the
   author's? (3) Tests unchanged, ruff, format, mypy pass? (4) Guide ch. 0-5 exist and
   `python3 scripts/doc_index.py --check` passes?
 
