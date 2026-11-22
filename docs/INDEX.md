@@ -45,7 +45,7 @@ is in `CLAUDE.md`).
 - 525-540: Adding a new model (the intended pattern)
 - 541-544: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1882 lines)
+## `SCIENTIFIC_VALIDATION.md` (1956 lines)
 - 6-29: Principles
 - 30-196: `physics.projectile` v1.1.0: projectile motion with linear drag
   - 35-46: Model
@@ -109,33 +109,40 @@ is in `CLAUDE.md`).
   - 1405-1420: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
   - 1421-1430: Caps and timings (same machine)
   - 1431-1442: Limitations
-- 1443-1581: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1449-1470: Model
-  - 1471-1506: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1507-1514: Numerical-analysis issue handled: cancellation in λ
-  - 1515-1536: Empirical evidence (held on the grid; not theorems)
-  - 1537-1552: What is tested
-  - 1553-1562: Per-run checks shown in the app
-  - 1563-1567: Observed (2026-10-15, default inputs)
-  - 1568-1581: Limitations
-- 1582-1663: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1584-1590: What it computes, and what it does not
-  - 1591-1606: Definitions
-  - 1607-1618: Numerical-analysis issues handled
-  - 1619-1633: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1634-1640: Per-run checks shown in the app
-  - 1641-1645: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1646-1663: Limitations
-- 1664-1757: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1693-1737: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1738-1749: Tests
-  - 1750-1757: Known limitations
-- 1758-1882: Comparison and export (roadmap 1.6)
-  - 1767-1801: Recomputed series: the digest says whether they are exact
-  - 1802-1830: CSV: what is written is the number that was computed
-  - 1831-1838: JSON export
-  - 1839-1872: The comparison: differences, not verdicts
-  - 1873-1882: Limitations
+- 1443-1516: `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slice 3 of 6; model only, no API yet)
+  - 1450-1459: What it computes
+  - 1460-1475: Proved (on paper, in the module docstring; the tests check the code obeys them)
+  - 1476-1480: Estimate, not a bound
+  - 1481-1491: Tested (`backend/tests/physics/test_resonance_sweep.py`; 118 tests)
+  - 1492-1509: Observed (2026-11-22, one machine, x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; DOP853, ε_s = 1e-6)
+  - 1510-1516: Limitations (slice 3)
+- 1517-1655: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1523-1544: Model
+  - 1545-1580: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1581-1588: Numerical-analysis issue handled: cancellation in λ
+  - 1589-1610: Empirical evidence (held on the grid; not theorems)
+  - 1611-1626: What is tested
+  - 1627-1636: Per-run checks shown in the app
+  - 1637-1641: Observed (2026-10-15, default inputs)
+  - 1642-1655: Limitations
+- 1656-1737: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1658-1664: What it computes, and what it does not
+  - 1665-1680: Definitions
+  - 1681-1692: Numerical-analysis issues handled
+  - 1693-1707: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1708-1714: Per-run checks shown in the app
+  - 1715-1719: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1720-1737: Limitations
+- 1738-1831: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1767-1811: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1812-1823: Tests
+  - 1824-1831: Known limitations
+- 1832-1956: Comparison and export (roadmap 1.6)
+  - 1841-1875: Recomputed series: the digest says whether they are exact
+  - 1876-1904: CSV: what is written is the number that was computed
+  - 1905-1912: JSON export
+  - 1913-1946: The comparison: differences, not verdicts
+  - 1947-1956: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide

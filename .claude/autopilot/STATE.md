@@ -53,7 +53,7 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 
 ## Current unit
 Roadmap 2.5 (Generic sweeps): plan written and reviewed (3 reviewers, must-fix applied) 2026-11-22.
-Build tick 2026-11-22 19:00 UTC: slices 1-2 built and committed (risky: reviews pending, review-and-fix tick). Next: slices 3-6 in order. Track A2 is the author's: hands off.
+Build tick 2026-11-22 19:00 UTC: slices 1-3 built and committed (risky: reviews pending, review-and-fix tick; slice 3 builder used a different rounding allowance r_A than plan D10, reviewer to check, plan text needs an edit). Next: slices 4-6 in order. Track A2 is the author's: hands off.
 
 ## Remainder of the current unit
 None: 2.4 finished and merged (PR #27).

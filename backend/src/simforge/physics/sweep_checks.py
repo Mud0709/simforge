@@ -10,8 +10,8 @@ from __future__ import annotations
 from simforge.core.schemas import ValidationCheck
 
 
-def _angles(angles: list[float]) -> str:
-    return ", ".join(f"{a:.10g}°" for a in angles)
+def _angles(angles: list[float], unit: str = "°") -> str:
+    return ", ".join(f"{a:.10g}{unit}" for a in angles)
 
 
 def runs_text(n: int) -> str:
@@ -19,9 +19,11 @@ def runs_text(n: int) -> str:
     return f"{n} run" if n == 1 else f"{n} runs"
 
 
-def aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
+def aggregate(entries: list[tuple[float, ValidationCheck]], unit: str = "°") -> ValidationCheck:
     """One 2.1 check over every run; value and threshold from the run with the largest value /
-    threshold (thresholds differ between angles).
+    threshold (thresholds differ between angles). Each entry is (swept value, check); ``unit``
+    is appended to the swept value in the note ("°" for the angle sweeps, " rad/s" for the
+    resonance sweep).
 
     Verdict: failed if any run failed; otherwise no verdict (None) if any run's threshold was
     uninformative (its check could not fail, so the run gave ``passed`` None); otherwise
@@ -31,7 +33,7 @@ def aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
         angle, worst = max(entries, key=lambda e: e[1].value)
         note = (
             f"{worst.note} Across the sweep: the largest value of {runs_text(len(entries))}, "
-            f"at {angle:.10g}°."
+            f"at {angle:.10g}{unit}."
         )
         return worst.model_copy(update={"note": note})
     angle, worst = max(graded, key=lambda e: e[1].value / e[1].threshold)  # type: ignore[operator]
@@ -39,12 +41,14 @@ def aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
     n_ungraded = sum(c.passed is None for _, c in graded)
     note = (
         f"{worst.note} Across the sweep: {runs_text(len(graded))}, {n_failed} failed; the "
-        f"largest value / threshold is at {angle:.10g}°."
+        f"largest value / threshold is at {angle:.10g}{unit}."
     )
     if n_ungraded:
         note += f" No verdict in {runs_text(n_ungraded)} (uninformative threshold)."
     unavailable = [a for a, c in entries if c.threshold is None]
     if unavailable:
-        note += f" Not available in {runs_text(len(unavailable))} (at {_angles(unavailable)})."
+        note += (
+            f" Not available in {runs_text(len(unavailable))} (at {_angles(unavailable, unit)})."
+        )
     passed: bool | None = False if n_failed else (None if n_ungraded else True)
     return worst.model_copy(update={"passed": passed, "note": note})

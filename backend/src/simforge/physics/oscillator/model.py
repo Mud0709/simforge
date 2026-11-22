@@ -598,6 +598,21 @@ def run(
     Raises ModelDomainError for a stiff run with an explicit method (before any solve) and
     for a solve that needs more than ``max_rhs_evaluations`` right-hand-side calls (stopped
     at the budget)."""
+    return run_with_solution(
+        inputs, duration, solver, n_samples=n_samples, max_rhs_evaluations=max_rhs_evaluations
+    )[0]
+
+
+def run_with_solution(
+    inputs: OscillatorInputs,
+    duration: float,
+    solver: SolverSettings,
+    *,
+    n_samples: int = 400,
+    max_rhs_evaluations: int = MAX_RUN_RHS_EVALUATIONS,
+) -> tuple[OscillatorComputation, OscillatorSolution]:
+    """:func:`run` and the solve it made (its dense output), for models built on runs (the
+    resonance sweep samples it, roadmap 2.5 D7). Same guards and errors as :func:`run`."""
     start = time.perf_counter()
     p = inputs
     d = analytical.derived(p)
@@ -664,7 +679,7 @@ def run(
         rtol=sol.rtol,
         atol=sol.atol,
     )
-    return OscillatorComputation(
+    computation = OscillatorComputation(
         inputs=p,
         derived=d,
         scale=x_scale,
@@ -683,3 +698,4 @@ def run(
         resonance=_resonance(p, steady),
         elapsed_ms=(time.perf_counter() - start) * 1e3,
     )
+    return computation, sol
