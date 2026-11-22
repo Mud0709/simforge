@@ -52,8 +52,8 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   reviewed, whole-step review); usage, subagents by agent and rungs unknown (no usage readings).
 
 ## Current unit
-Roadmap 2.5 (Generic sweeps): 🔜 set 2026-11-22; plan tick running (planner, then 3 reviewers
-because the plan touches the scientific core). Track A2 is the author's: hands off.
+Roadmap 2.5 (Generic sweeps): plan written and reviewed (3 reviewers, must-fix applied) 2026-11-22.
+Next: build tick, all 6 slices in order. Track A2 is the author's: hands off.
 
 ## Remainder of the current unit
 None: 2.4 finished and merged (PR #27).

@@ -566,22 +566,22 @@ is in `CLAUDE.md`).
 - 394-413: Out of scope / Not done
 - 414-422: Genuine stops found
 
-## `docs/plans/ROADMAP_2_5_PLAN.md` (381 lines)
-- 7-22: Scope
-- 23-67: Before deciding
-- 68-181: Decisions
-- 182-194: Reference formulas (to be derived on paper in slice 3 and checked by the reviewers)
-- 195-205: Seams (where tests attach; what each catches and misses)
-- 206-341: Slices (test-first with `tdd`)
-  - 215-230: Slice 1: the sweep driver (risky: numerics; `test-writer-risky`, `builder-risky`, 1 `reviewer`)
-  - 231-258: Slice 2: both angle sweeps on the driver (risky: refactor of validated models; `builder-risky`, 1 `reviewer`)
-  - 259-284: Slice 3: the resonance sweep model (risky: scientific core, tolerances; `test-writer-risky`, `builder-risky`, 1 `reviewer`)
-  - 285-310: Slice 4: API, limits and budget (risky: inputs and limits; `builder-risky`, `/security-review`)
-  - 311-327: Slice 5: frontend (routine: `test-writer`, `builder`)
-  - 328-341: Slice 6: docs, guide, brief and close-out (routine: `builder`)
-- 342-357: Risks
-- 358-371: Out of scope / Not done
-- 372-381: Genuine stops found
+## `docs/plans/ROADMAP_2_5_PLAN.md` (415 lines)
+- 8-23: Scope
+- 24-68: Before deciding
+- 69-195: Decisions
+- 196-208: Reference formulas (to be derived on paper in slice 3 and checked by the reviewers)
+- 209-219: Seams (where tests attach; what each catches and misses)
+- 220-362: Slices (test-first with `tdd`)
+  - 229-244: Slice 1: the sweep driver (risky: numerics; `test-writer-risky`, `builder-risky`, 1 `reviewer`)
+  - 245-272: Slice 2: both angle sweeps on the driver (risky: refactor of validated models; `builder-risky`, 1 `reviewer`)
+  - 273-305: Slice 3: the resonance sweep model (risky: scientific core, tolerances; `test-writer-risky`, `builder-risky`, 1 `reviewer`)
+  - 306-331: Slice 4: API, limits and budget (risky: inputs and limits; `builder-risky`, `/security-review`)
+  - 332-348: Slice 5: frontend (routine: `test-writer`, `builder`)
+  - 349-362: Slice 6: docs, guide, brief and close-out (routine: `builder`)
+- 363-378: Risks
+- 379-405: Out of scope / Not done
+- 406-415: Genuine stops found
 
 ## `docs/plans/TRACK_A_A2_PLAN.md` (503 lines)
 - 15-27: Slice status

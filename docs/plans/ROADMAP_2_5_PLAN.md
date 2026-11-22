@@ -1,6 +1,7 @@
 # Roadmap 2.5 plan: Generic sweeps
 
-Status: **plan, not yet reviewed** (2026-11-22). It touches the scientific core (a new model,
+Status: **plan, reviewed** (2026-11-22; 3 reviewers, must-fix findings on C2/C4, phase
+wrapping and the corner grid's cycles applied; worth-doing items under "Not done"). It touches the scientific core (a new model,
 its references and tolerances, a refactor of two validated sweeps), so it gets 3 `reviewer`s
 in a planning-only tick (`CLAUDE.md`, "Reviews"; angles a, b, c of the autopilot skill step 3).
 
@@ -117,7 +118,13 @@ after it, edit that slice.
   `settle_tolerance` ε_s (default 1e-6, bounds [1e-12, 1e-2]; the wait is an experimental
   choice the page explains), `solver` with **DOP853 or RK45 only**. Every run starts from
   rest (x₀ = v₀ = 0), the standard way a resonance curve is measured. **Underdamped only**
-  (ζ < 1, so R5's envelope exists); 2.3's Q ≤ 1e4 holds. Radau is excluded: an underdamped run
+  (ζ < 1, so R5's envelope exists). **The binding Q limit is the cycles cap, not 2.3's
+  Q ≤ 1e4:** with γ = ζω₀ = ω₀/2Q, a point at ω ≤ ω₀ needs about
+  Q·ln(2R/(ε_s A))/π cycles (R/A ≈ 1 from rest; see D7), so `MAX_CYCLES = 500`
+  (`model.py:161`) admits Q ≲ 500π/ln(2R/(ε_s A)): about 110 at the default ε_s = 1e-6, 55 at
+  1e-12 and 300 at 1e-2. The schema therefore refuses Q > 300 (no sweep above it fits at any
+  allowed ε_s), and the exact pre-solve cycles check (D7) refuses the rest, naming Q, ε_s and
+  the worst ω. Radau is excluded: an underdamped run
   is not stiff (2.3's stiffness number guards stiff runs), and Radau's ~3x cost per evaluation
   would set the budget. Alternatives: allow Radau (lower budget for all), user x₀, v₀ (Not done).
 - **D7. Each point.** For each ω: the settle time t_s is the smallest whole number of drive
@@ -130,7 +137,10 @@ after it, edit that slice.
   `MAX_CYCLES` and refused naming the worst ω, as 2.2 checks the 2.1 rules first.
 - **D8. Extraction.** Lock-in (R3) on M = 64 samples per drive period over the N_W window,
   taken from the dense output (`OscillatorSolution.sample`): c, s, A_sim = hypot(c, s),
-  δ_sim = atan2(s, c) ∈ [0, π]. The same extraction on the exact x(t) at the same times gives
+  δ_sim from atan2(s, c), which returns (−π, π]: near δ ≈ π (small ζ, ω ≫ ω₀) and δ ≈ 0
+  (ω → 0) rounding or e_x can put s slightly below 0, so δ_sim is reported shifted into
+  [−π/2, 3π/2) (continuous through π) and **every phase comparison uses the difference wrapped
+  into (−π, π]**, never the raw difference. The same extraction on the exact x(t) at the same times gives
   A_ext (extraction and transient only). M and N_W are named constants justified in a comment
   (R3 holds for any M ≥ 3; 64 keeps the trapezoid sum of the dense-output interpolant well
   resolved; measured in slice 3).
@@ -145,10 +155,14 @@ after it, edit that slice.
   **C1** |A_sim − A| ≤ B1 = 2·e_x + ε_s·A + r_A, with e_x the max |x_num − x_exact| over the
   window samples (measured against the exact solution) and r_A a rounding allowance c·M·N_W·ε·A
   (c justified by measurement); a proved inequality given e_x (R3, R5, triangle inequality),
-  not a tuned threshold. **C2** |δ_sim − δ| ≤ B1/A (same argument, angle of a perturbed
-  vector, valid while B1 < A/2; `passed = null` otherwise). **C3** extraction alone:
-  |A_ext − A| ≤ ε_s·A + r_A. **C4** power balance |sin δ_sim − bωA_sim/F₀| ≤ B1/A·(1 + bω/F₀·A)
-  (independent of the closed form; bound derived in slice 3 and stated in SV). **C5** the
+  not a tuned threshold. **C2** |wrap(δ_sim − δ)| ≤ arcsin(B1/A): the vector (c, s) is
+  (A cos δ, A sin δ) moved by at most B1 (R5), and a vector of length A moved by B1 < A turns
+  by at most arcsin(B1/A); proved given e_x, valid while B1 < A, `passed = null` otherwise.
+  **C3** extraction alone: |A_ext − A| ≤ ε_s·A + r_A. **C4** power balance
+  |sin δ_sim − bωA_sim/F₀| ≤ arcsin(B1/A) + bωB1/F₀: since sin δ = bωA/F₀ exactly (R4),
+  the left side is at most |sin δ_sim − sin δ| + bω|A_sim − A|/F₀ ≤ |wrap(δ_sim − δ)| +
+  bωB1/F₀; proved given e_x under the same validity condition as C2 (`passed = null` when
+  B1 ≥ A). **C5** the
   refined peak: |ω_peak − ω_r| ≤ max(u, xatol), an estimate, labelled observed; `passed =
   null` when u or ω_r is `null`. Above 100% of a bound gives `passed = false`.
 - **D11. Budget.** `MAX_RESONANCE_SWEEP_RHS_EVALUATIONS`, a server constant charged after each
@@ -265,9 +279,16 @@ module docstring; SV section started (references, bounds, observed extraction er
 - **Test files (new):** `backend/tests/physics/test_resonance_sweep.py` (R3 on synthetic
   sinusoids for M ∈ {3, 4, 64} and arbitrary phase; R5 on a sinusoid plus a known decaying
   term; settle time is the smallest whole period count satisfying R5; R1 and R2 at the default
-  and on a corner grid (ζ ∈ {0.01, 0.1, 0.5, 0.9}, ω from 0.05ω₀ to 20ω₀ within the cycles cap);
-  R4 at every point; two mutants: factor 1/NM instead of 2/NM, sine projection with the wrong
-  sign; a stiff or overdamped input refused before any solve). Unchanged and passing:
+  and on a corner grid inside the cycles cap at ε_s = 1e-6 (cycles ≈ max(1, ω/ω₀)·2.4/ζ +
+  2·max(1, ω₀/ω), from D6-D7 with R/A ≈ 1; the test computes each point's cycles and asserts
+  ≤ 500 before running): ζ = 0.9 and 0.5 with ω from 0.05ω₀ to 20ω₀ (≤ 100 cycles), ζ = 0.1
+  with 0.05ω₀ to 10ω₀ (≤ 250), ζ = 0.01 with 0.05ω₀ to 1.5ω₀ (≤ 360); a point just over the
+  cap (ζ = 0.1 at 25ω₀) refused before any solve; R4 at every point; named phase tests
+  `test_phase_wraps_near_pi` (ζ = 0.01 at 1.5ω₀ and ζ = 0.1 at 10ω₀, δ within ~0.03 rad of π)
+  and `test_phase_at_low_frequency` (ζ = 0.01 at 0.05ω₀, δ ≈ 1e-3 rad), both passing C2 with
+  the wrapped difference and failing it with the raw one on a planted s < 0; two mutants:
+  factor 1/NM instead of 2/NM, sine projection with the wrong sign; a stiff or overdamped
+  input refused before any solve). Unchanged and passing:
   `backend/tests/physics/test_oscillator_model.py`, `backend/tests/api/test_oscillator_api.py`.
 - **Commands:** first `scripts/run_logged.sh s3-golden 'cd backend && uv run pytest
   tests/api/test_golden_digests.py tests/physics/test_oscillator_model.py -q'` after
@@ -290,7 +311,7 @@ machine, versions and the slowest refusal.
 **Acceptance.**
 - **Test files (new):** `backend/tests/api/test_resonance_sweep_api.py` (default run, saved and
   replayed identical, stored inputs rebuild the request), `backend/tests/api/test_resonance_sweep_limits.py`
-  (422 for NaN, ±Infinity, b = 0, F₀ = 0, ζ ≥ 1, min ≥ max, n out of range, Radau, a grid over
+  (422 for NaN, ±Infinity, b = 0, F₀ = 0, ζ ≥ 1, Q > 300, min ≥ max, n out of range, Radau, a grid over
   `MAX_CYCLES` naming the worst ω, and the budget naming the evaluations; each message says what
   to change; the slowest admitted and refused requests within the measured time); appended case
   in `backend/tests/api/test_registry.py`; `backend/tests/api/golden_runs.json`.
@@ -351,8 +372,8 @@ D14; `docs/HANDOFF.md`; this plan's status.
   measures e_x at the window samples themselves, so the bound stays honest.
 - **R5 near critical damping**: R grows like 1/ω_d (`analytical.py:632-634`); only ln R enters
   t_s, but cycles may hit `MAX_CYCLES` for ζ close to 1; refused before any solve.
-- **C4's bound** is derived in slice 3; if it cannot be made rigorous it is labelled a measured
-  threshold (1-2-5 rule, ≥ 10x the worst) in SV, not presented as proved.
+- **C2 and C4 lose their verdict when B1 ≥ A** (`passed = null`), e.g. very loose tolerances
+  far from resonance; that is reported, not hidden.
 - **Unverified:** R3-R5 numerically; every constant, cap and timing (measured in slices).
 
 ## Out of scope / Not done
@@ -368,6 +389,19 @@ D14; `docs/HANDOFF.md`; this plan's status.
 - Fixed-step studies of the damped or driven oscillator (open decision in `docs/HANDOFF.md`,
   2.4's Not done).
 - Animation (2.6).
+- Review items (2026-11-22, worth doing or overthinking, not applied), one line each:
+  - Rounding term r_A: label C1 and C3 "proved given e_x plus a measured rounding allowance".
+  - Scale D9's `xatol` to the noise level u instead of 1e-7·ω₀.
+  - C4: state the caveat on how independent of the closed form it really is.
+  - Slice 3: name the synthetic signal used for R3/R5 explicitly.
+  - Slice 3 check 3: give a numeric limit for "approached as R1 says".
+  - Acceptance commands: fix the issues noted at the reviewed plan's lines 248, 255, 295, 306,
+    315-326 and 331.
+  - D2: reword "assigned" (the 2.2/2.3 plans recorded these for 2.5; the roadmap row does not).
+  - Record D1/D5 ("`numerics/` and `physics/` sharing exempt from the two-labs rule") as an
+    open decision in `docs/HANDOFF.md`.
+  - C5: `passed = null` when ω_r lies outside the swept range.
+  - Slice 1 check 2: justify the 1e-12 tolerance on K.
 
 ## Genuine stops found
 None, with one flag. Checked: no new dependency (`backend/pyproject.toml:12-13`); no roadmap
