@@ -1,4 +1,4 @@
-Last updated: 6f0b7f4 2026-11-22 (2.5 plan tick)
+Last updated: 46e6920 2026-11-22 (2.5 build tick)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,7 +9,7 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-**2.5 (Generic sweeps) is planned and reviewed** (`docs/plans/ROADMAP_2_5_PLAN.md`, 6 slices; 3 reviews, must-fix applied). Next autopilot tick: build tick for all slices. Nothing is built; PR not opened; CI not run (no PR). Your A2 sitting runs alongside (`docs/LOCAL_PAIRING.md`); fetch before you push.
+**2.5 (Generic sweeps) is fully built, not yet reviewed** (6 slices, commits on the working branch; brief `docs/briefs/2.5.md`, guide Part 22). Next autopilot tick: review-and-fix (reviewers, fixes, full `scripts/check.sh --e2e`, PR). Done locally and pushed to the working branch; no PR; CI not run (no PR). Full check not yet passed as one run (a timing test failed once under load, passed alone). Your A2 sitting runs alongside; fetch before you push.
 Known red: `backend/tests/physics/foundations/test_core_momentum.py`, 6 failures until you write `momentum` (yours; the 2.5 PR opens only once they pass). Set to `Known red: none` when done.
 
 ## Open decisions
@@ -22,8 +22,8 @@ Known red: `backend/tests/physics/foundations/test_core_momentum.py`, 6 failures
 - Ruleset on `main`: "Require status checks" has no checks selected; branch clean-up (`backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`). Your clicks; not blocking.
 - Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers (add `strict=True`?); sweep rate limit; replay "differs" for step counts; five clean-ups from the 2.1 review (PR #13); the 2.4 worth-doing list in `docs/journal/2026-11-19-1207-2-4-plan-and-build.md`.
 
-## Last task: 2.5 plan tick (autopilot, 2026-11-22)
-- **Committed and pushed to the working branch (no PR):** 🔜 moved to 2.5; 2.4 step cost; plan with 3 reviews (journal `docs/journal/2026-11-22-1110-2-5-plan.md`). Must-fix: phase bound arcsin, phase wrapping, corner-grid cycle cap (Q limit about 300). **Not verified:** the plan's cycle-cap estimates (slice 3 measures).
+## Last task: 2.5 build tick (autopilot, 2026-11-22)
+- **Pushed to the working branch (no PR):** slices 1-6 (journal `docs/journal/2026-11-22-2041-2-5-build.md`). Unverified until review: slice 3's rounding allowance (differs from plan D10), slice 4's cross-machine replay rules (never run on a second machine), SweepPanel not generalised (D13 deviation).
 
 ## Learning handoff
 - **What it does:** one driver in `numerics/` runs any fixed-step study; the oscillator and the projectile plug in their exact solutions and checks.

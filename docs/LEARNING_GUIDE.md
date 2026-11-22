@@ -12,7 +12,9 @@ comparison and export. Part 18 covers quadratic drag, the first Physics Lab mode
 exact 2-D answer, and how it is checked anyway. Part 19 covers the angle sweep for quadratic
 drag: finding a best angle when every point is a full simulation. Part 20 covers the
 oscillators (simple, damped and driven), whose exact solution checks the numerical one. Part 21 covers the
-methods workbench: symplectic steppers, the shadow energy and event location. Every line number points at the code as it is
+methods workbench: symplectic steppers, the shadow energy and event location. Part 22 covers the
+simulated resonance curve: the lock-in, the settle time, the power balance and the shared sweep
+driver. Every line number points at the code as it is
 on the branch that contains this version of the guide, and a script checks every quoted
 code excerpt against the real files. Every number in the worked examples was computed by
 running the code or a short script; none is from memory.
@@ -62,6 +64,9 @@ Don't read straight through in one sitting. Each stage depends on the one before
 14. **The methods workbench:** Part 21. It needs Parts 4-5 (orders, the `Stepper`) and 20 (the
     oscillator). 21.1 is IB-friendly; 21.2-21.8 are Beyond IB. The exercises include writing
     position Verlet yourself.
+15. **The resonance sweep:** Part 22. It needs Part 20 (resonance, `A(ω)`, `δ`), Part 19 (grids, Brent,
+    the estimate `u`) and 1.7 (floating point). 22.1, 22.2 and 22.5 are IB-friendly; 22.3 and
+    22.6-22.9 are Beyond IB.
 
 If something feels hard, that's a signal to go back one stage, not to push forward.
 
@@ -88,6 +93,7 @@ If something feels hard, that's a signal to go back one stage, not to push forwa
 - [Part 19 — Angle sweeps for both drag laws: finding a maximum you cannot write down](#part-19--angle-sweeps-for-both-drag-laws-finding-a-maximum-you-cannot-write-down)
 - [Part 20 — Oscillators: springs, damping and resonance](#part-20--oscillators-springs-damping-and-resonance)
 - [Part 21 — The methods workbench: symplectic steppers, shadow energy and event location](#part-21--the-methods-workbench-symplectic-steppers-shadow-energy-and-event-location)
+- [Part 22 — Measuring a resonance curve: lock-in, settle time, power balance and the sweep driver](#part-22--measuring-a-resonance-curve-lock-in-settle-time-power-balance-and-the-sweep-driver)
 - [Appendix — Symbol table](#appendix--symbol-table)
 
 ### ⚠️ Four name clashes to know before reading code
@@ -4982,6 +4988,276 @@ fit recovers `p` within 1e-4.
 
 ---
 
+## Part 22 — Measuring a resonance curve: lock-in, settle time, power balance and the sweep driver
+
+**Code:** `backend/src/simforge/physics/oscillator/resonance_sweep.py` (roadmap 2.5) on the 2.3
+oscillator; the model-free driver `numerics/sweep.py`; the panel "Simulated resonance curve" on
+`/physics/oscillator`. **Read after:** Part 20 (resonance, `A(ω)`, `δ`, Q) and Part 19 (grids, Brent,
+the accuracy estimate `u`). Plan and formulas R1-R5: `docs/plans/ROADMAP_2_5_PLAN.md`.
+
+Part 20 gave the resonance curve as a **formula**. This part asks: *can the simulator reproduce it
+the way a lab would, by driving the spring at one frequency at a time and measuring?* The answer
+needs three ideas (wait for the transient to die, read amplitude and phase from a window of
+samples, check the reading with an energy argument) and one piece of engineering (a driver shared
+by three sweeps).
+
+**Labels** used throughout: **proved** (derived on paper; the tests check the code obeys it),
+**tested** (a test against an independent reference) and **observed** (measured here, no proof).
+**IB level:** 22.1, 22.2 and 22.5 are IB-friendly ideas (steady state, energy per period); 22.3 and
+22.6-22.9 are **Beyond IB**.
+
+### 22.1 Intuition: how a resonance curve is measured **[IB-friendly]**
+Push a child on a swing at a fixed rhythm. At first the motion is messy (it remembers how you
+started it), then it settles into a steady swing at *your* rhythm. The size of that steady swing is
+the amplitude `A` at that drive frequency `ω`. Repeat for many rhythms and plot `A` against `ω`:
+that is a resonance curve.
+
+SimForge does exactly this, in software. For each `ω` on a grid it starts the spring **from rest**
+(`x₀ = v₀ = 0`), waits, then measures. Two questions follow, and each has a precise answer:
+1. **How long is "wait"?** (22.2: the settle time.)
+2. **How do you read an amplitude and a phase from a wobbling signal?** (22.3: the lock-in.)
+
+The dashed curve on the page is the formula from Part 20; the dots are the solver's measurements.
+Because both exist, every dot is checked against the formula (22.6).
+
+### 22.2 Waiting out the transient: the settle time **[IB-friendly idea, Beyond IB maths]**
+From rest, the motion is the steady swing plus a **transient** that decays like `e^(−γt)`
+(`γ = b/2m`, Part 20). The 2.3 model proves an envelope `R e^(−γt)` for it. After `n` whole drive
+periods (`T = 2π/ω`) the transient has shrunk to at most `R e^(−γ n T)`.
+
+The sweep asks for the transient's effect on the measured amplitude to stay below a fraction
+`ε_s` of `A` (the field `settle_tolerance`, default `1e-6`). Reading a window starting at `t_s`
+moves `A` by at most `2R e^(−γ t_s)` (22.3, R5), so the rule is: **the smallest whole number `n` of
+periods with `2R e^(−γnT) ≤ ε_s·A`**. Solving for `n`:
+
+`n* = ln(2R / (ε_s A)) / (γT)`, then round **up**.
+
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:169-180 -->
+```python
+def settle_periods(p: OscillatorInputs, eps_s: float) -> int:
+    """The smallest whole n >= 0 with 2 R e^{-gamma n T} <= eps_s A (R5, D7); underdamped,
+    driven inputs from rest."""
+    steady = analytical.steady_state(p)
+    envelope = analytical.transient_envelope(p, 0.0)
+    if steady is None or envelope is None:
+        raise ValueError("the settle time needs a driven, underdamped oscillator")
+    gamma = p.damping_coefficient / (2 * p.mass)
+    period = TWO_PI / p.drive_angular_frequency
+    radius = float(envelope)
+    n_star = math.log(2 * radius / (eps_s * steady.amplitude)) / (gamma * period)
+    return max(0, math.ceil(n_star))
+```
+
+**Worked example** (default: `m = 1 kg`, `k = 25 N/m`, `b = 1 kg/s`, `F₀ = 1 N`, so `ω₀ = 5 rad/s`,
+`γ = 0.5 /s`, `ζ = 0.1`, `Q = 5`; drive at `ω = ω₀`; scratch script). `A = F₀/(bω₀) = 0.2 m`,
+`R ≈ 0.201 m`, `T = 2π/5 = 1.2566 s`. Then `n* = ln(2 × 0.201 / (10⁻⁶ × 0.2)) / (0.5 × 1.2566)
+= ln(2.01 × 10⁶)/0.6283 = 14.51/0.6283 = 23.1`, so **`n = 24` periods** (`t_s ≈ 30.2 s`). The
+code returns 24. At `ε_s = 10⁻²` it returns 9 and at `10⁻¹²` it returns 46: **each extra factor
+`10` of tightness costs `ln 10/(γT) ≈ 3.7` more periods**. Waiting is cheap to ask for in the
+tolerance and expensive in the run time.
+
+**Why the run time matters.** In seconds the wait is about `ln(…)/γ`, nearly the same at every
+`ω`; but a drive period gets shorter as `ω` rises, so the number of *cycles* grows. In the default
+sweep the run at `ω = 15 rad/s` needs 72 cycles, the one at `ω = 5` needs 26 (scratch script).
+2.3 refuses a run above 500 cycles, so a lightly damped spring (large `Q`) cannot be swept: the
+transient decays over about `Q/π` cycles per factor `e`. The sweep checks every grid point's
+cycles **before any solve** and says which `ω` is the worst (22.8).
+
+### 22.3 The lock-in: reading amplitude and phase from samples **[Beyond IB]**
+A signal `x(t) = A cos(ωt − δ)` hides two numbers, `A` and `δ`. Expand: `x = A cos δ · cos ωt +
+A sin δ · sin ωt`. So if we can pull out the two coefficients `c = A cos δ` and `s = A sin δ`,
+then `A = √(c² + s²)` and `δ = atan2(s, c)`.
+
+**The trick (a lock-in amplifier, done in software).** Multiply `x` by `cos ωt` and average over
+whole periods. `cos²` averages to `½` and `cos·sin` averages to `0`, so
+`c = 2 · mean(x · cos ωt)` and `s = 2 · mean(x · sin ωt)`.
+
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:155-159 -->
+```python
+def lock_in(t: FloatArray, x: FloatArray, omega: float) -> tuple[float, float]:
+    """(c, s) = (2/NM) sum x_j (cos w t_j, sin w t_j): (A cos delta, A sin delta) exactly for
+    x = A cos(w t - delta) sampled over whole periods (R3)."""
+    phase = omega * t
+    return 2.0 * float(np.mean(x * np.cos(phase))), 2.0 * float(np.mean(x * np.sin(phase)))
+```
+
+**R3 (proved).** Use `M = 64` evenly spaced samples per period over `N_W = 2` whole periods
+(`window_times`). Then `x cos ωt = (A/2)[cos δ + cos(2ωt − δ)]`: the first term is constant and the
+second term's samples add up to zero (they are a full set of equally spaced points of a cosine of
+the *double* frequency, and `M` does not divide 2). So `c = A cos δ` **exactly, with no method
+error**, for any `M ≥ 3`. The derivation is in the module docstring. **Tested:** on synthetic
+sinusoids with `M ∈ {3, 4, 64}` and eight phases, against the known `A` and `δ`.
+
+**Worked example** (scratch script): `x = 0.2 cos(5t − 0.7)` sampled with `window_times(5, 3.0)`
+gives `c = 0.152968…`, `s = 0.128843…`, `A = 0.19999999999999998`, `δ = 0.6999999999999992`.
+The last digits are floating-point rounding (Part 1.7), not method error.
+
+**R5 (proved): what an error in the signal does.** If every sample is off by at most `e`, then
+`(c, s)` moves by at most `2e`, and so does `A`. Two things are off in a real sweep: the solver's
+trajectory error `e_x` and the leftover transient. R5 is why they simply *add*.
+
+**Why the samples come from the dense output.** The lock-in needs samples at exact `t_j`, which
+the adaptive solver did not step on. SciPy's dense output (`OscillatorSolution.sample`) is an
+interpolant through the solver's steps; the choice of 64 samples per period is a design choice (R3 holds for any `M ≥ 3`).
+
+### 22.4 The phase trap: `δ` near `π` and the wrap **[Beyond IB]**
+`atan2` returns an angle in `(−π, π]`. The true lag `δ` is in `[0, π]`. For a heavily
+over-driven spring `δ` is close to `π` (at `ω = 15 rad/s` the formula gives `3.0667`), and rounding
+can push `s` to a tiny negative value: then `atan2` jumps to `−π + …` while the true `δ` is `π − …`.
+A naive `|δ_sim − δ|` would then read `≈ 2π` for a perfect answer. Two conventions fix it:
+
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:190-193 -->
+```python
+def wrap_phase(angle: float) -> float:
+    """angle wrapped into (-pi, pi] (rad); exact (IEEE remainder)."""
+    r = math.remainder(angle, TWO_PI)
+    return r + TWO_PI if r <= -math.pi else r
+```
+
+1. `phase_lag` shifts the reported angle into `[−π/2, 3π/2)`, continuous through `π`.
+2. **Every comparison of two phases uses the difference wrapped into `(−π, π]`**, never the raw
+   difference (`phase_error`). **Tested:** a planted `s < 0` near `π` passes wrapped and fails raw;
+   it is the kind of test written to catch exactly this bug.
+
+### 22.5 The power balance: an independent check on the phase **[IB-friendly]**
+Where does the drive's energy go? In steady state the spring's energy is the same at the start
+and end of each period, so **the work the drive does per period equals the heat the damper
+removes** (Part 20's energy budget). Writing both averages over a period (R4, proved):
+
+`⟨F₀ cos ωt · ẋ⟩ = ½ F₀ ω A sin δ` and `⟨b ẋ²⟩ = ½ b ω² A²`.
+
+Equal, so **`sin δ = b ω A / F₀`**. This is a statement about the *measured* `A` and `δ` that does
+not use the formula for `A(ω)` at all, which is why it is a good check: it catches an error that the
+formula comparison could share. Numbers (scratch script, default spring): at `ω = ω₀ = 5`, `A = 0.2 m`
+and `δ = π/2`, so `sin δ = 1` and `bωA/F₀ = 1 × 5 × 0.2/1 = 1`. At `ω = 3 rad/s`, `A = 0.06143 m`,
+`δ = 0.18535 rad`: `sin δ = 0.18429` and `bωA/F₀ = 3 × 0.06143 = 0.18429`.
+
+On the page this is the `power_balance` check (C4). It compares the lock-in's `sin δ_sim` with
+`bωA_sim/F₀`, and the limit has two parts (the phase's own uncertainty and the amplitude's,
+22.6).
+
+### 22.6 Bounds that depend on a measurement **[Beyond IB]**
+Each point reports `e_x`, the largest `|x_num − x_exact|` over the window (measured against the exact
+solution). Define `B1 = 2e_x + ε_s·A + r_A`: twice the trajectory error (R5), the leftover
+transient (R5) and a rounding allowance `r_A`. Then:
+- **C1** `|A_sim − A| ≤ B1`. **C3** the same extraction on the *exact* `x(t)`: `|A_ext − A| ≤ ε_s·A + r_A`.
+- **C2** the phase: `(c, s)` is `(A cos δ, A sin δ)` moved by at most `B1`; a vector of length `A`
+  moved by `B1 < A` turns by at most `arcsin(B1/A)`. No verdict when `B1 ≥ A`.
+- **C4** the power balance, with limit `arcsin(B1/A) + bωB1/F₀`.
+
+**Proved *given* e_x, not a priori.** `e_x` is measured against the exact solution, so these checks
+say "the lock-in and the transient behave as the maths says, given how wrong the solver was". They
+are **not** a bound on the solver's error. That honest limit is in `SCIENTIFIC_VALIDATION.md`.
+
+**Where the plan and the build differ.** The plan's rounding allowance was `c·M·N_W·ε·A`. During
+the build it became `r_A = 16(max(ω₀, ω)·t_end + Q + 20)·ε·max|x_num|`: the phase `ωt` is rounded
+to a relative `ε`, so the error grows with the *length of the run*, which the plan's form missed.
+Its size is a **measured margin** (over 432 points the float lock-in of the exact motion
+differed from a long-double one by at most `0.0063·r_A`), not a proof.
+
+**Observed** (SV, default sweep, tolerance `10⁻¹⁰`): the worst point used 0.198 of C1's bound and
+0.218 of C2's; `|A_sim − A|/A` stayed under `2 × 10⁻⁷`, dominated by the leftover transient (allowed
+up to `ε_s = 10⁻⁶`). `A_sim` and `A_ext` agree to a few `10⁻⁹` of `A`, so the solver adds little at
+these tolerances.
+
+### 22.7 The peak, and the estimate `u` **[Beyond IB, observed]**
+The best grid point and its two neighbours bracket the peak. `refine_maximum` (22.9) runs Brent's
+bounded method on that interval, each evaluation one more full run. The result is a refined `ω_peak`
+and amplitude.
+
+How wrong is `ω_peak`? Near a maximum the curve is a downward parabola of curvature `K` (estimated
+from the grid's second difference, as in Part 19), so an amplitude uncertainty `ε_A` becomes
+`u = 2√(ε_A/K)` in `ω`. Here `ε_A` is `B1` at the peak. This is an **estimate, not a bound**: it
+assumes a parabola. Part 19 explains the flat top that makes a peak's position far less certain than its height.
+
+For `ζ < 1/√2` the exact answer exists (R2, Part 20): `ω_r = √(ω₀² − 2γ²)` and
+`A_max = f/(2γω_d)`. Default spring: `ω_r = 4.9497 rad/s`, `A_max = 0.2010 m` (scratch script). **C5**
+compares `|ω_peak − ω_r|` with `max(u, xatol)`; it is labelled *observed* and has no verdict when
+`u` or `ω_r` does not exist (`ζ ≥ 1/√2`, or the maximum is at the grid's edge). The page shows
+`ω_r` and `A_max` as absent, never `0`, in those cases. **Observed** (SV, value/limit): `9.0 × 10⁻⁴` on the default grid,
+`6.3 × 10⁻⁵` at `ζ = 0.1` and `3.7 × 10⁻⁶` at `ζ = 0.01` (tolerance `10⁻⁹`); no verdict on the `ζ = 0.9`
+and `ζ = 0.5` grids.
+
+**Grid step against `γ`.** If neighbouring grid frequencies are further apart than the resonance
+is wide (about `γ`), the grid can flatten or miss the peak. The response reports `Δω/γ`; the page
+shows the number (it prints no warning text).
+
+### 22.8 The cost: cycles and the work budget **[SimForge, observed]**
+A sweep is ~21 runs plus ~10 Brent runs, each a full solve. Three limits keep it from running for
+minutes; each is a 422 that says what to change.
+- **Q ≤ 300** (schema, exact in rational arithmetic): above it no sweep fits the 500-cycle limit at
+  any allowed `ε_s`. Below it, the pre-solve cycles check refuses the grid points that are too long.
+- **DOP853 or RK45 only** (an underdamped run is not stiff, and Radau costs about three times as
+  much per call).
+- **201 frequencies at most**, because each run costs a few milliseconds besides its solver work.
+- **A budget of 1,000,000 right-hand-side evaluations**, charged after each run (so a refusal can
+  overshoot by one run). **Observed**, on one machine (SV): the slowest refusal took 12.3 s, under
+  half the 30 s proxy limit that was kept as the margin for a machine twice as slow; the default
+  sweep with DOP853 used between 92,750 and 717,062 evaluations at the tolerance pairs tried.
+
+A count of evaluations is reproducible on one machine, a timeout is not: that is why the budget is a
+count (the same argument as 2.2 and 2.3, Parts 19 and 20).
+
+### 22.9 One driver for three sweeps **[SimForge]**
+Before 2.5, the linear and quadratic angle sweeps each carried a copy of "find the best grid point,
+refine it, keep the grid point if it wins". The resonance sweep needed it a third time. Roadmap 2.5
+moved it into `numerics/sweep.py`, which knows no physics: the model supplies the grid, the
+objective, units and messages.
+
+<!-- src: backend/src/simforge/numerics/sweep.py:24-34 -->
+```python
+    n = len(grid)
+    i = max(range(n), key=lambda j: values[j])
+    result = minimize_scalar(
+        lambda x: -objective(float(x)),
+        bounds=(grid[max(i - 1, 0)], grid[min(i + 1, n - 1)]),
+        method="bounded",
+        options={"xatol": xatol},
+    )
+    if values[i] > -float(result.fun):  # the optimum sits on a grid point (to rounding)
+        return grid[i], values[i], i
+    return float(result.x), -float(result.fun), i
+```
+
+The driver also holds `curvature` (the second-difference `K`), `interior_peaks` (a count of local
+maxima) and `WorkBudget`. The two angle sweeps moved onto it **bit-identically**: their golden
+digests and every existing test are unchanged (**tested**), so no version bump. The rule from the
+repository's standards applies: a shared abstraction only when real models need it, and here three
+do. On the page the resonance sweep has its own panel: the angle sweeps' `SweepPanel` was not
+generalised (a deviation from plan D13).
+
+### 22.10 Checkpoint **[answer in your own words]**
+1. In one sentence, why does the sweep start every run from rest instead of from the steady state?
+2. Why must the lock-in window be a whole number of periods? (Use the `cos(2ωt − δ)` term.)
+3. What does a larger `ε_s` buy, and what does it cost in the measured amplitude?
+4. Why does the power-balance check not need the formula for `A(ω)`?
+5. Which is **proved**, **tested** or **observed**: `c = A cos δ` for a sinusoid; `|A_sim − A| ≤ B1`
+   given `e_x`; `|ω_peak − ω_r| ≤ max(u, xatol)`; the 12.3 s slowest refusal?
+6. Why is the wrapped difference, not the raw one, used when two phases are compared?
+
+### 22.11 Exercises (no solutions given)
+- **E22.1** By hand, find the settle count `n` for `ω = 3 rad/s` at `ε_s = 10⁻⁶` (use `A = 0.0614 m`,
+  `R ≈ 0.0617 m`, `γ = 0.5`). Run the page and compare with the settle time it reports.
+- **E22.2** For the default spring and `ε_s = 10⁻⁶`, estimate the cycles of the run at `ω = 15 rad/s`
+  from `n*`. Then double `Q` by halving `b` and predict, before running, whether the sweep still
+  fits the 500-cycle limit.
+- **E22.3** Sample `x = A cos(ωt − δ)` over `1.5` periods and over `1.25` periods with `M = 64`
+  and compute `c` and `s`. For which windows is the lock-in still exact, and why? (Think about
+  the double frequency.)
+- **E22.4** Show that `sin δ = bωA/F₀` follows from Part 20's `tan δ = 2γω/(ω₀² − ω²)` and
+  `A(ω)`. Why is it still worth checking numerically when it can be derived from the formula?
+- **E22.5** On the page, set `b` so that `ζ = 0.8` and sweep. What does `ω_r` show, and why? What
+  does C5 report?
+- **E22.6** Choose `n_frequencies = 3`. Predict what `Δω/γ` does to the grid's view of the peak, then
+  run it and read the row "Grid step ÷ damping rate γ".
+- **E22.7** Write a synthetic objective `f(x) = −(x − 1.234)²` on the grid `0, 0.5, …, 3`
+  and call `refine_maximum` with `xatol = 10⁻⁶`. Where does the grid point win and where does
+  the refinement?
+- **E22.8** (stretch) Plan D10's rounding allowance did not grow with the run length. Describe an
+  experiment that would show the difference between it and the built `r_A`.
+
+---
+
 ## Appendix — Symbol table
 
 | Symbol | Meaning | Units | Code name |
@@ -5042,11 +5318,27 @@ fit recovers `p` within 1e-4.
 | `ω_d`, `T_d` (Part 20) | damped angular frequency `√(ω₀² − γ²)` and period `2π/ω_d` | rad/s, s | `damped_angular_frequency`, `damped_period` |
 | `δ` (Part 20) | steady-state phase lag behind the drive, 0 to π. Not a small step `δ` | rad | `phase_lag` |
 | `X` (Part 20) | proved bound on \|x\| for the run; scales the solver's tolerances | m | `scale` |
+| `ε_s` (Part 22) | settle tolerance: the leftover transient allowed, as a fraction of `A` (default `1e-6`) | — | `settle_tolerance`, `eps_s` |
+| `t_s`, `n` (Part 22) | settle time (a whole number `n` of drive periods) | s, — | `settle_time`, `settle_periods` |
+| `c`, `s` (Part 22) | lock-in components `A cos δ` and `A sin δ`. Not the drag constant `c` (Part 18) or Solow's `s` | m | `lock_in` |
+| `M`, `N_W` (Part 22) | samples per drive period (64) and whole periods in the lock-in window (2). Not a mass | — | `SAMPLES_PER_PERIOD`, `WINDOW_PERIODS` |
+| `e_x` (Part 22) | measured trajectory error `max\|x_num − x_exact\|` over the window | m | `trajectory_error` |
+| `B1`, `r_A` (Part 22) | amplitude bound `2e_x + ε_s A + r_A` (proved given `e_x`) and the rounding allowance | m | `amplitude_bound`, `rounding_allowance` |
 | `u` (Part 19) | estimated accuracy of the best angle, `2√(ε_R/K)` (an estimate, not a bound). Not Part 3's `u = k·t`! | degrees | `best_angle_uncertainty_deg` |
 
 ---
 
 ## Changes from the previous version of this guide
+
+**This version (roadmap 2.5, generic sweeps):**
+- **Added Part 22:** how a resonance curve is measured (from rest, wait, read); the settle time and
+  why cycles, not seconds, set the cost; the lock-in and R3 (exact on a sinusoid over whole
+  periods); the phase wrap near `π`; the power balance `sin δ = bωA/F₀`; the bounds C1-C4 (proved
+  *given* the measured `e_x`) and C5 and `u` (observed); the rounding allowance's deviation from
+  the plan; the cycles cap and the work budget; the shared sweep driver; three checked excerpts
+  from `resonance_sweep.py`, one from `sweep.py`, checkpoint and exercises E22.1-E22.8.
+- **Added** Part 22 to the header, the reading order (stage 15), the contents and the symbol table
+  (`ε_s`, `t_s`, `c`, `s`, `M`, `N_W`, `e_x`, `B1`, `r_A`).
 
 **This version (roadmap 2.3, oscillators):**
 - **Added Part 20:** simple harmonic motion, damping and its three regimes, driving, resonance

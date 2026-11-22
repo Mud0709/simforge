@@ -1440,12 +1440,29 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
   `max_relative_energy_error` was 2.1e-5 of its tolerance (θ = 1.99999983, four starts, both
   methods), so the margins held there.
 
-## `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slices 3-4 of 6; model and API, no page yet)
+## `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5; model, API and page)
 
 Code: `backend/src/simforge/physics/oscillator/resonance_sweep.py` (R3-R5 derived in its
 docstring), on `model.run_with_solution` (the 2.3 run, returning its solve; the
 `physics.oscillator` golden digest unchanged) and the 2.5 driver `numerics/sweep.py`.
-Decisions D6-D10 and formulas R1-R5: `docs/plans/ROADMAP_2_5_PLAN.md`.
+Decisions D6-D10 and formulas R1-R5: `docs/plans/ROADMAP_2_5_PLAN.md`. Learning guide: Part 22.
+Endpoint `POST /api/v1/physics/oscillator/resonance-sweep`; page: the "Simulated resonance
+curve" panel on `/physics/oscillator` (`ResonanceSweepPanel.tsx`, slice 5).
+
+**Label key for this section.** *Proved*: derived on paper (R1-R5 and the bounds C1-C4 given
+the measured e_x), with the tests checking that the code obeys the derivation. *Tested*: a test
+against an independent reference. *Observed*: measured on one machine, no proof (C5, u, the
+rounding measurement, the budget and the timings).
+
+**Two deviations from the plan, recorded here.** (1) **r_A (slice 3).** Plan D10 gave the
+rounding allowance as c·M·N_W·ε·A. The built form is r_A = `ROUNDING_FACTOR` (16) ·
+(max(ω₀, ω)·t_end + Q + 20)·ε·max|x_num|: it grows with the phase ω·t_end (the plan's did
+not) and uses max|x_num| rather than A. Its justification is the term-by-term comment at
+`ROUNDING_FACTOR`; its size is checked by the measurement below, not proved. (2) **The frontend
+(slice 5, plan D13).** D13 planned to generalise `SweepPanel`/`SweepAdapter` from angles to any
+swept variable. That was not done: `AngleSweepPanel.tsx` is unchanged in slice 5, and the
+resonance panel is a separate component (`ResonanceSweepPanel.tsx`) with its own form and run
+button. The two angle panels' behaviour is unchanged (only their test file gained assertions).
 
 ### What it computes
 At each of `n_frequencies` evenly spaced drive frequencies ω, one 2.3 run from rest, DOP853 or
@@ -1540,6 +1557,21 @@ per-run cap of 4e5 the worst arrangement is four runs of just under B/3, about 4
   the budget); 1001 points of the cheapest runs took 9.0 s and 11.6 s, 201 points 2.2-3.0 s.
   201 keeps that overhead near 0.6 s.
 
+### The page (slice 5; `ResonanceSweepPanel.tsx`, tests `ResonanceSweepPanel.test.tsx`, `OscillatorLab.test.tsx`, `e2e/resonance-sweep.spec.ts`, `e2e/stored-fields.spec.ts`)
+**Tested (component tests with a mocked fetch: 52 passed across `ResonanceSweepPanel.test.tsx`,
+`AngleSweepPanel.test.tsx` and `OscillatorLab.test.tsx`, run 2026-11-22; the page computes no
+physics):** the form carries the contract's defaults and sends what was typed;
+only DOP853 and RK45 are offered; the button reads "Sweeping…" while the server works; a 422 is
+shown with its reason and no result; the chart has the dashed exact curve (formula), the
+simulated points (numerical, naming the solver), the refined peak and, when ω_r exists, the exact
+peak; the peak shows "± u (estimate)" only when u exists and the reason otherwise; ω_r and A_max
+show as absent (never 0) when ζ ≥ 1/√2; the shared ChecksTable, assumptions, CSV download and run
+record appear; a saved sweep is found in the log, reopens and appears in the stored-fields case.
+No cross-model overlay (decision 17). The Playwright specs (`resonance-sweep.spec.ts`,
+`stored-fields.spec.ts`) drive the real server; they are run by `scripts/check.sh --e2e`, not in
+the run recorded here. **Not shown by these tests:** how the page looks at unusual inputs; there
+is no pixel check.
+
 ### Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
 Same machine: bit-identical (tested). Across machines (D12, not tested on a second machine):
 peak ω within max(1e-7ω₀, u); peak A within 4B1 (each machine within its own B1 of the curve's
@@ -1549,10 +1581,22 @@ worst C1 ratio within 1 (both lie in [0, 1] where C1 passes).
 
 ### Limitations (slice 4)
 - The budget and the cap were measured on one machine; a 2x slower one is the assumed margin.
+- One budget-refusal timing test (`test_resonance_sweep_limits.py::
+  test_the_work_budget_refuses_naming_the_evaluations_in_time`) failed once under full-suite load
+  and passed alone and on one re-run (reported in the autopilot state): treat it as
+  flaky-suspect until reviewed.
 - The cross-machine replay rules are derived, with a stated margin on B1, and not exercised on
   a second machine.
 - B1 is proved only given the measured e_x, which compares against the exact solution; it is
   not a bound on the solver's error.
+- **Not proved, only observed:** C5 and u (an estimate from the grid's curvature, 2.2's
+  argument); the size of r_A (a measured margin: 0.0063·r_A over 432 points); every timing and
+  evaluation count; the cap values (Q ≤ 300, 201 frequencies, 1e6 evaluations) as safe margins.
+- **Not covered:** frequencies where the grid step exceeds γ (the response reports Δω/γ and
+  the peak may be flattened or missed; stated, not tested for its effect on C5); ζ ≥ 1 and
+  Radau (refused); a non-zero start (every run starts from rest).
+- The 2.5 plan's `grid_step_over_gamma` note (a message when Δω > γ) is the page's row
+  "Grid step ÷ damping rate γ (formula)"; the page shows the number and no warning text.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

@@ -52,11 +52,12 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
   reviewed, whole-step review); usage, subagents by agent and rungs unknown (no usage readings).
 
 ## Current unit
-Roadmap 2.5 (Generic sweeps): plan written and reviewed (3 reviewers, must-fix applied) 2026-11-22.
-Build tick 2026-11-22 19:00 UTC: slices 1-5 built and committed (risky: reviews pending, review-and-fix tick; slice 3 builder used a different rounding allowance r_A than plan D10, reviewer to check, plan text needs an edit). Slice 4 replay rules (cross-machine margins) are derived, never run on a second machine: reviewer must check. Slice 5 did not generalise SweepPanel (D13 deviation, reviewer to judge); a budget-refusal timing test (test_resonance_sweep_limits.py::test_the_work_budget_refuses_naming_the_evaluations_in_time) failed once under full-suite load, passed alone and on one re-run: flaky-suspect, reviewer to check. Next: slice 6 (docs, brief). Track A2 is the author's: hands off.
+Roadmap 2.5 (Generic sweeps): build tick done 2026-11-22 (all 6 slices committed; journal docs/journal/*-2-5-build.md).
+Next: review-and-fix tick: one reviewer per risky slice (1-4; /security-review for slice 4), whole-step review (also guide chapter and brief), fixes, full scripts/check.sh --e2e, PR (only when Known red is none). Review pending: slices 1-4.
+Points for the reviewers: slice 3 r_A differs from D10; slice 4 cross-machine replay rules derived only; slice 5 did not generalise SweepPanel (D13); flaky-suspect timing test test_resonance_sweep_limits.py::test_the_work_budget_refuses_naming_the_evaluations_in_time; stale comment in AngleSweepPanel.test.tsx. Track A2 is the author's: hands off.
 
 ## Remainder of the current unit
-None: 2.4 finished and merged (PR #27).
+Review-and-fix tick for 2.5 (above).
 
 ## Waiting for you
 Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
