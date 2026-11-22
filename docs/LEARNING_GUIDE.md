@@ -2522,38 +2522,51 @@ flatter, faster flight wins.
 
 ### 11.3 The method: a coarse grid, then refine **[Beyond IB]**
 
-<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:109-127 -->
+<!-- src: backend/src/simforge/physics/projectile/angle_sweep.py:109-117 -->
 ```python
 def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
     """Range at each angle, plus the refined best angle over [0, 90] degrees."""
     if len(angles_deg) < 3:
         raise ValueError("need at least 3 angles to bracket a maximum")
     points = [evaluate(setup, a) for a in angles_deg]
-
-    # Refine around the best grid point, using its neighbours as the bracket.
-    i = max(range(len(points)), key=lambda j: points[j].range)
-    lo = angles_deg[max(i - 1, 0)]
-    hi = angles_deg[min(i + 1, len(points) - 1)]
-    result = minimize_scalar(
-        lambda a: -evaluate(setup, float(a)).range,
-        bounds=(lo, hi),
-        method="bounded",
-        options={"xatol": ANGLE_XATOL},
+    # Brent on the best grid point's neighbour interval; the grid point wins if it is higher.
+    best_angle, best_range, _ = refine_maximum(
+        lambda a: evaluate(setup, a).range, angles_deg, [p.range for p in points], ANGLE_XATOL
     )
-    best_angle, best_range = float(result.x), -float(result.fun)
-    if points[i].range > best_range:  # the optimum sits exactly on a grid point (or an edge)
-        best_angle, best_range = points[i].angle_deg, points[i].range
 ```
 
 | Line(s) | Meaning |
 |---|---|
-| 101-102 | You need at least three points to trap a maximum between two neighbours. |
-| 103 | Analytical range, flight time and peak height at every grid angle. |
-| 106 | `i` is the index of the best grid point. |
-| 107-108 | Its two neighbours form the **bracket** `[lo, hi]`, the interval the search is restricted to. At the edges of the grid, the bracket stops at the edge. |
-| 109-114 | `minimize_scalar` finds a *minimum*, so we minimise `−R`. `method="bounded"` is **Brent's method** on an interval. It mixes golden-section steps (safe, slow) with fitting a parabola through three points and jumping to its top (fast, and very good near a smooth peak). `xatol` is the tolerance on the angle. |
-| 115 | Read off the refined angle and range (undoing the minus sign). |
-| 116-117 | Safety net: if the search ends up worse than the grid point (for example when the best point is at an edge of the grid), keep the grid point. |
+| 111-112 | You need at least three points to trap a maximum between two neighbours. |
+| 113 | Analytical range, flight time and peak height at every grid angle. |
+| 115-117 | Hand the curve (a function giving `R` at any angle), the grid and its ranges to the shared sweep driver, below. |
+
+The refinement lives in `numerics/sweep.py` (roadmap 2.5), so every sweep in SimForge uses the
+same code: this one, the quadratic-drag sweep (Part 19) and later ones. It knows nothing about
+projectiles: it only sees numbers.
+
+<!-- src: backend/src/simforge/numerics/sweep.py:24-34 -->
+```python
+    n = len(grid)
+    i = max(range(n), key=lambda j: values[j])
+    result = minimize_scalar(
+        lambda x: -objective(float(x)),
+        bounds=(grid[max(i - 1, 0)], grid[min(i + 1, n - 1)]),
+        method="bounded",
+        options={"xatol": xatol},
+    )
+    if values[i] > -float(result.fun):  # the optimum sits on a grid point (to rounding)
+        return grid[i], values[i], i
+    return float(result.x), -float(result.fun), i
+```
+
+| Line(s) | Meaning |
+|---|---|
+| 25 | `i` is the index of the best grid point. |
+| 28 | Its two neighbours form the **bracket**, the interval the search is restricted to. At the edges of the grid, the bracket stops at the edge. |
+| 26-31 | `minimize_scalar` finds a *minimum*, so we minimise `−R`. `method="bounded"` is **Brent's method** on an interval. It mixes golden-section steps (safe, slow) with fitting a parabola through three points and jumping to its top (fast, and very good near a smooth peak). `xatol` is the tolerance on the angle. |
+| 32-33 | Safety net: if the search ends up worse than the grid point (for example when the best point is at an edge of the grid), keep the grid point. |
+| 34 | Otherwise the refined angle and range (undoing the minus sign), and `i`, which the quadratic sweep needs for its accuracy estimate (19.6). |
 
 **What the refinement adds** (`b = 1 kg/s`, 1° grid): the best grid point is 30°, with
 `13.892899 m`. The refined optimum is `30.0774°`, with `13.892945 m`. The grid alone is
@@ -4179,32 +4192,27 @@ run passed, and it shows the run closest to its limit and names its angle, so a 
 angle cannot hide in an average.
 
 ### 19.5 Refining the best angle with Brent **[Beyond IB]**
-This is the method of Part 11.3, unchanged: take the best grid point, use its two neighbours
-as a bracket, and let SciPy's bounded **Brent** search (golden-section steps mixed with
-parabola fits) find the top of the curve inside it.
+This is the method of Part 11.3, and literally the same code: both sweeps call the shared
+driver's `refine_maximum` (`numerics/sweep.py`, shown in 11.3). Take the best grid point, use
+its two neighbours as a bracket, and let SciPy's bounded **Brent** search (golden-section
+steps mixed with parabola fits) find the top of the curve inside it; if a grid point beats the
+refinement, keep the grid point.
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:285-295 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:288-293 -->
 ```python
-    i = max(range(n_angles), key=lambda j: points[j].range)
-    refined = minimize_scalar(
-        minus_range,
-        bounds=(grid[max(i - 1, 0)], grid[min(i + 1, n_angles - 1)]),
-        method="bounded",
-        options={"xatol": ANGLE_XATOL},
-    )
-    best = (float(refined.x), -float(refined.fun))
-    if points[i].range > best[1]:  # the optimum sits on a grid point (to rounding)
-        best = (points[i].angle_deg, points[i].range)
-    uncertainty, note = _uncertainty(points, i, best, solver)
+    def range_at(angle: float) -> float:
+        return 0.0 if _no_flight(setup, angle) else solve(angle).numerical.range
+
+    ranges = [p.range for p in points]
+    best_angle, best_range, i = refine_maximum(range_at, grid, ranges, ANGLE_XATOL)
+    uncertainty, note = _uncertainty(points, i, (best_angle, best_range), solver)
 ```
 
 | Line | Meaning |
 |---|---|
-| 285 | `i`, the index of the best grid point. |
-| 286-291 | Brent on the bracket of `i`'s neighbours (stopping at the edge of the grid). `minus_range` runs one full 2.1 simulation at the angle Brent asks for and returns `−R`, because `minimize_scalar` finds minima. |
-| 292 | The refined angle and range (undoing the minus sign). |
-| 293-294 | The safety net of Part 11: if a grid point beats the refinement, keep the grid point. |
-| 295 | The accuracy estimate `u`, with a note saying what it is (19.6). |
+| 288-289 | The curve the driver searches: `range_at` runs one full 2.1 simulation at the angle Brent asks for (0° from the ground is "no flight", range exactly 0, with no solve). |
+| 291-292 | The grid's ranges, then the driver: the refined best angle and range, and `i`, the index of the best grid point. |
+| 293 | The accuracy estimate `u`, with a note saying what it is (19.6). |
 
 Two things are new compared with the linear sweep. First, each of Brent's guesses is a whole
 simulation, so the refinement costs about 6 to 19 extra runs. Second, Brent finds a **local**
@@ -4232,7 +4240,7 @@ the top of the *true* curve.
 
 SimForge turns this into an estimate `u` for every sweep:
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:216-225 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:223-232 -->
 ```python
     d2 = points[i + 1].range - 2 * points[i].range + points[i - 1].range
     if not d2 < 0:
@@ -4248,11 +4256,11 @@ SimForge turns this into an estimate `u` for every sweep:
 
 | Line | Meaning |
 |---|---|
-| 216 | The **second difference** `d₂ = R(θᵢ₊₁) − 2R(θᵢ) + R(θᵢ₋₁)`: the grid's version of a second derivative times `Δ²`. Negative at a maximum. |
-| 217-221 | If the grid curve is not bent down here, there is no `K`, and no estimate: `null`, with the reason. (At an edge of the grid the estimate is also `null`, earlier in the function.) |
-| 222-223 | `K ≈ −d₂/Δ²`, with the grid step `Δ` in radians. |
-| 224 | `ε_R = 10·(rtol·R + atol)`: the project's usual *scale* for a solver's error (the same factor 10 as the replay rules). It is a convention, **not** a proved bound on the error. |
-| 225 | `u = 2√(ε_R/K)`, converted to degrees. |
+| 223 | The **second difference** `d₂ = R(θᵢ₊₁) − 2R(θᵢ) + R(θᵢ₋₁)`: the grid's version of a second derivative times `Δ²`. Negative at a maximum. |
+| 224-228 | If the grid curve is not bent down here, there is no `K`, and no estimate: `null`, with the reason. (At an edge of the grid the estimate is also `null`, earlier in the function.) |
+| 229-230 | `K ≈ −d₂/Δ²`, with the grid step `Δ` in radians. |
+| 231 | `ε_R = 10·(rtol·R + atol)`: the project's usual *scale* for a solver's error (the same factor 10 as the replay rules). It is a convention, **not** a proved bound on the error. |
+| 232 | `u = 2√(ε_R/K)`, converted to degrees. |
 
 **A worked number** (the defaults, DOP853, computed by the code). The best grid point is 43°:
 `R(42°) = 31.38386 m`, `R(43°) = 31.39986 m`, `R(44°) = 31.38228 m`, so `d₂ = −0.03358 m` and,
@@ -4286,14 +4294,16 @@ waiting after **30 s**.
 So every sweep has a **budget**: at most 300 000 right-hand-side evaluations in total, checked
 after each run.
 
-<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:254-270 -->
+<!-- src: backend/src/simforge/physics/projectile/quadratic_angle_sweep.py:259-277 -->
 ```python
+    budget = WorkBudget(max_rhs_evaluations)
+
     def solve(angle_deg: float) -> QuadraticComputation:
-        nonlocal total
         computation = quadratic_model.run(_at(setup, angle_deg), solver, n_samples=N_SAMPLES)
         runs.append(SweepRun(angle_deg, computation))
-        total += computation.numerical.n_rhs_evaluations
-        if total > max_rhs_evaluations:
+        try:
+            budget.charge(computation.numerical.n_rhs_evaluations)
+        except WorkBudgetExceededError as exc:
             if len(points) < n_angles:  # this run is grid point number len(points) + 1
                 progress = f"after {len(points) + 1} of {n_angles} angles"
             else:
@@ -4301,18 +4311,19 @@ after each run.
                 progress = f"after all {n_angles} angles and {n_refine} refinement runs"
             raise ModelDomainError(
                 f"The sweep needed more than {max_rhs_evaluations:,} right-hand-side "
-                f"evaluations ({total:,} {progress}); use fewer angles, a looser tolerance, "
+                f"evaluations ({exc.total:,} {progress}); use fewer angles, a looser tolerance, "
                 "or DOP853 where the drag-time bound allows."
-            )
+            ) from exc
         return computation
 ```
 
 | Line | Meaning |
 |---|---|
-| 256 | One full 2.1 run at this angle (`_at` builds the launch at the new angle, as the 2.1 route does). `N_SAMPLES = 10`: the trajectory is thrown away, so it is resampled as cheaply as allowed. |
-| 257-258 | Remember the run (its checks are aggregated later) and add its evaluations to the total. |
-| 259-264 | Over budget: say how far the sweep got (a grid angle, or the refinement). |
-| 265-269 | Refuse with a 422 that says what to change. |
+| 259 | The budget, from the shared sweep driver (`numerics/sweep.py`): a running total that raises once it goes over the limit. |
+| 262 | One full 2.1 run at this angle (`_at` builds the launch at the new angle, as the 2.1 route does). `N_SAMPLES = 10`: the trajectory is thrown away, so it is resampled as cheaply as allowed. |
+| 263-265 | Remember the run (its checks are aggregated later) and charge its evaluations to the budget. |
+| 266-271 | Over budget: say how far the sweep got (a grid angle, or the refinement). The driver knows nothing about angles, so the sweep writes its own message. |
+| 272-276 | Refuse with a 422 that says what to change. |
 
 **Why evaluations and not seconds?** A time limit depends on how busy the machine is, so the
 same request could succeed now and fail in a minute; a replay of a stored run could fail where

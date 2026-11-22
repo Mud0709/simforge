@@ -490,7 +490,8 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
   last-bit differences on other inputs are possible and were not bumped as a version change
   (not tested beyond the golden cases). `energy_envelope` keeps each bin's minimum and maximum,
   checked by brute force.
-- **Sweep driver** (`sweep.py`, roadmap 2.5 slice 1, plan D3; not yet used by any model;
+- **Sweep driver** (`sweep.py`, roadmap 2.5 slice 1, plan D3; used since slice 2 by both
+  angle sweeps, whose golden digests and tests are unchanged;
   `backend/tests/numerics/test_sweep.py`). **Tested** on closed-form parabolas with an
   off-grid maximum x*: `refine_maximum` returns x* within `xatol` (a property of scipy's
   bounded Brent, whose stopping rule guarantees it for |x| ≤ 1; we rely on scipy for this, it
@@ -1120,8 +1121,6 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
   bounded.
 - **UI:** "Maximum range" has no "(numerical)" tag in the shared sweep panel (on either page);
   the sweep's notes appear twice under Validation. A sweep shows "Sweeping…" with no progress.
-- About 25 lines of grid-and-Brent logic are duplicated from `angle_sweep.py` until roadmap
-  2.5 (generic sweeps).
 
 ---
 

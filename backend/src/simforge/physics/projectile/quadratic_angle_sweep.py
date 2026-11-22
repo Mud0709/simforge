@@ -57,15 +57,22 @@ import time
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import minimize_scalar
 
 from simforge.core.errors import ModelDomainError
 from simforge.core.schemas import ModelInfo, ValidationCheck
+from simforge.numerics.sweep import (
+    WorkBudget,
+    WorkBudgetExceededError,
+    interior_peaks,
+    refine_maximum,
+)
 from simforge.physics.projectile import quadratic_model
 from simforge.physics.projectile.model import EXPLICIT_STIFFNESS_LIMIT
 from simforge.physics.projectile.quadratic_model import QuadraticComputation
 from simforge.physics.projectile.quadratic_numerical import QuadraticSetup
 from simforge.physics.projectile.schemas import SolverSettings
+from simforge.physics.sweep_checks import aggregate as _aggregate
+from simforge.physics.sweep_checks import runs_text as _runs
 
 # Brent's absolute tolerance on the angle, in degrees (plan D5, the linear sweep's value).
 ANGLE_XATOL = 1e-7
@@ -249,14 +256,14 @@ def sweep(
     _guard(setup, solver.method, grid)
     points: list[SweepPoint] = []
     runs: list[SweepRun] = []
-    total = 0
+    budget = WorkBudget(max_rhs_evaluations)
 
     def solve(angle_deg: float) -> QuadraticComputation:
-        nonlocal total
         computation = quadratic_model.run(_at(setup, angle_deg), solver, n_samples=N_SAMPLES)
         runs.append(SweepRun(angle_deg, computation))
-        total += computation.numerical.n_rhs_evaluations
-        if total > max_rhs_evaluations:
+        try:
+            budget.charge(computation.numerical.n_rhs_evaluations)
+        except WorkBudgetExceededError as exc:
             if len(points) < n_angles:  # this run is grid point number len(points) + 1
                 progress = f"after {len(points) + 1} of {n_angles} angles"
             else:
@@ -264,9 +271,9 @@ def sweep(
                 progress = f"after all {n_angles} angles and {n_refine} refinement runs"
             raise ModelDomainError(
                 f"The sweep needed more than {max_rhs_evaluations:,} right-hand-side "
-                f"evaluations ({total:,} {progress}); use fewer angles, a looser tolerance, "
+                f"evaluations ({exc.total:,} {progress}); use fewer angles, a looser tolerance, "
                 "or DOP853 where the drag-time bound allows."
-            )
+            ) from exc
         return computation
 
     for angle in grid:
@@ -278,32 +285,21 @@ def sweep(
             SweepPoint(angle, result.range, result.flight_time, result.max_height, flew=True)
         )
 
-    def minus_range(angle: float) -> float:
-        a = float(angle)
-        return -0.0 if _no_flight(setup, a) else -solve(a).numerical.range
+    def range_at(angle: float) -> float:
+        return 0.0 if _no_flight(setup, angle) else solve(angle).numerical.range
 
-    i = max(range(n_angles), key=lambda j: points[j].range)
-    refined = minimize_scalar(
-        minus_range,
-        bounds=(grid[max(i - 1, 0)], grid[min(i + 1, n_angles - 1)]),
-        method="bounded",
-        options={"xatol": ANGLE_XATOL},
-    )
-    best = (float(refined.x), -float(refined.fun))
-    if points[i].range > best[1]:  # the optimum sits on a grid point (to rounding)
-        best = (points[i].angle_deg, points[i].range)
-    uncertainty, note = _uncertainty(points, i, best, solver)
     ranges = [p.range for p in points]
-    peaks = sum(1 for j in range(1, n_angles - 1) if ranges[j - 1] < ranges[j] > ranges[j + 1])
+    best_angle, best_range, i = refine_maximum(range_at, grid, ranges, ANGLE_XATOL)
+    uncertainty, note = _uncertainty(points, i, (best_angle, best_range), solver)
     return QuadraticSweep(
         points=points,
         runs=runs,
-        best_angle_deg=best[0],
-        best_range=best[1],
+        best_angle_deg=best_angle,
+        best_range=best_range,
         best_angle_uncertainty_deg=uncertainty,
         best_angle_note=note,
-        interior_peaks=peaks,
-        n_rhs_evaluations=total,
+        interior_peaks=interior_peaks(ranges),
+        n_rhs_evaluations=budget.total,
     )
 
 
@@ -319,45 +315,6 @@ class QuadraticAngleSweepComputation:
     terminal_speed: float | None  # m/s, exact; None in vacuum
     checks: list[ValidationCheck]
     elapsed_ms: float
-
-
-def _angles(angles: list[float]) -> str:
-    return ", ".join(f"{a:.10g}°" for a in angles)
-
-
-def _runs(n: int) -> str:
-    return f"{n} run" if n == 1 else f"{n} runs"
-
-
-def _aggregate(entries: list[tuple[float, ValidationCheck]]) -> ValidationCheck:
-    """One 2.1 check over every run; value and threshold from the run with the largest value /
-    threshold (thresholds differ between angles).
-
-    Verdict: failed if any run failed; otherwise no verdict (None) if any run's threshold was
-    uninformative (its check could not fail, so the run gave ``passed`` None); otherwise
-    passed. A run that could not be graded never counts as passed, nor as failed."""
-    graded = [(a, c) for a, c in entries if c.threshold is not None]
-    if not graded:  # informational in every run: report the largest value
-        angle, worst = max(entries, key=lambda e: e[1].value)
-        note = (
-            f"{worst.note} Across the sweep: the largest value of {_runs(len(entries))}, "
-            f"at {angle:.10g}°."
-        )
-        return worst.model_copy(update={"note": note})
-    angle, worst = max(graded, key=lambda e: e[1].value / e[1].threshold)  # type: ignore[operator]
-    n_failed = sum(c.passed is False for _, c in graded)
-    n_ungraded = sum(c.passed is None for _, c in graded)
-    note = (
-        f"{worst.note} Across the sweep: {_runs(len(graded))}, {n_failed} failed; the "
-        f"largest value / threshold is at {angle:.10g}°."
-    )
-    if n_ungraded:
-        note += f" No verdict in {_runs(n_ungraded)} (uninformative threshold)."
-    unavailable = [a for a, c in entries if c.threshold is None]
-    if unavailable:
-        note += f" Not available in {_runs(len(unavailable))} (at {_angles(unavailable)})."
-    passed: bool | None = False if n_failed else (None if n_ungraded else True)
-    return worst.model_copy(update={"passed": passed, "note": note})
 
 
 def _checks(result: QuadraticSweep, budget: int) -> list[ValidationCheck]:

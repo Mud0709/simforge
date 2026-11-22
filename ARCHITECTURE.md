@@ -29,6 +29,8 @@ simforge/
 │   │   │   │                            driver, stability functions, harmonic closed forms
 │   │   │   ├── events.py              locating an event between nodes (linear, cubic Hermite)
 │   │   │   ├── workbench.py           model-free convergence driver and energy envelope
+│   │   │   ├── sweep.py               1-D sweep driver: Brent refinement of a grid maximum,
+│   │   │   │                            curvature, peak count, work budget (2.5)
 │   │   │   └── convergence.py         order fitting and local orders
 │   │   ├── economy/solow/           Solow growth model: simulation.py (pure engine),
 │   │   │                              schemas.py, model.py (assumptions, units, per-run checks)
@@ -50,6 +52,7 @@ simforge/
 │   │   │   │                            aggregated checks (roadmap 2.2)
 │   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules (both
 │   │   │                                quadratic models)
+│   │   ├── physics/sweep_checks.py  one check aggregated over a sweep's runs (2.5)
 │   │   ├── physics/oscillator/      Harmonic oscillator (roadmap 2.3; route in api/routes/oscillator.py, page /physics/oscillator):
 │   │   │   ├── analytical.py          exact solution in every regime, scale X, resonance curve
 │   │   │   ├── numerical.py           scaled ODE solve (xi, eta and both works), maxima events
@@ -432,9 +435,11 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
   `quadratic_model.run` per angle, so every point is bit-identical to a single 2.1 run on the
   same machine and gets the same guard, events and checks; no 2.1 code changed. The 2.1
   checks are aggregated per check id over every run (passed only if all passed; the run
-  closest to its limit is reported with its angle). The ~25 lines of grid-and-Brent logic are
-  repeated from `angle_sweep.py` rather than shared, until generic sweeps (roadmap 2.5) give a
-  shared layer more than two users.
+  closest to its limit is reported with its angle). The grid-and-Brent logic was first
+  repeated from `angle_sweep.py`; since roadmap 2.5 (slice 2) both sweeps call the shared
+  driver `numerics/sweep.py` (`refine_maximum`, `interior_peaks`, `WorkBudget`), bit-identical
+  with no version bump, and the per-run check aggregation lives in `physics/sweep_checks.py`
+  (plan `docs/plans/ROADMAP_2_5_PLAN.md`, D3-D5).
 - **A work budget in right-hand-side evaluations.** A sweep is ~100 numerical solves, so it is
   capped at 3e5 evaluations in total (a server constant, not a request field), checked after
   each run, and refused with a 422 that says what to change. A count is reproducible on one
