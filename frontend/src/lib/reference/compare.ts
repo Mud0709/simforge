@@ -99,6 +99,14 @@ export function inputFields(r: ModelResponse): Fields {
       periods: r.periods,
     });
   }
+  if (isModelResponse(r, "physics.oscillator.resonance_sweep")) {
+    // The frequency grid is linspace(omega_min, omega_max, n_frequencies).
+    return flatten({
+      parameters: r.parameters,
+      solver: r.solver,
+      n_frequencies: r.angular_frequencies.length,
+    });
+  }
   if (isModelResponse(r, "economy.solow")) {
     return flatten({ parameters: r.parameters, policy: r.policy, horizon_years: r.horizon_years });
   }
@@ -204,6 +212,21 @@ export function summaryFields(r: ModelResponse): Fields {
           },
         ]),
       ),
+    });
+  }
+  if (isModelResponse(r, "physics.oscillator.resonance_sweep")) {
+    // As _sweep_summary in backend/.../routes/oscillator.py: the refined peak and the worst C1
+    // ratio; the curves, the other checks and the notes are shown, not stored.
+    const p = r.peak;
+    const c1 = r.checks.find((c) => c.id === "lock_in_amplitude");
+    return flatten({
+      peak: {
+        angular_frequency: p.angular_frequency,
+        amplitude: p.amplitude,
+        amplitude_bound: p.amplitude_bound,
+        uncertainty: p.uncertainty,
+      },
+      worst_amplitude_error_ratio: c1 && c1.threshold ? c1.value / c1.threshold : null,
     });
   }
   if (isModelResponse(r, "economy.solow")) {

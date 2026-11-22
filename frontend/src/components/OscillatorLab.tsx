@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 
 import {
   ApiError,
+  type LoggedRun,
   type OscillatorResponse,
   type SolverSettings,
   simulateOscillator,
@@ -23,6 +24,7 @@ import {
   OscillatorValidation,
 } from "./OscillatorResults";
 import { ReferenceRunPanel } from "./ReferenceRunPanel";
+import { ResonanceSweepPanel, type StoredSweepInputs } from "./ResonanceSweepPanel";
 import { STALE_INPUTS_NOTE, Workspace, runStatus } from "./Workspace";
 import { useReferenceRun } from "./useReferenceRun";
 import { useReopenedRun } from "./useReopenedRun";
@@ -38,6 +40,8 @@ const PHYSICAL_DEFAULTS = Object.fromEntries(
   OSCILLATOR_PARAMETER_FIELDS.map((f) => [f.name, String(f.default)]),
 );
 const PAGE_MODELS = ["physics.oscillator"] as const;
+// A saved sweep reopens into its own panel, not into the simulation form.
+const SWEEP_MODEL = "physics.oscillator.resonance_sweep";
 
 export function OscillatorLab() {
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
@@ -51,7 +55,13 @@ export function OscillatorLab() {
   const currentKey = JSON.stringify([values, method]);
   const referenceRun = useReferenceRun();
 
-  const reopened = useReopenedRun(PAGE_MODELS, (run) => {
+  const [reopenedSweep, setReopenedSweep] = useState<LoggedRun | null>(null);
+
+  const reopened = useReopenedRun([...PAGE_MODELS, SWEEP_MODEL], (run) => {
+    if (run.model_id === SWEEP_MODEL) {
+      setReopenedSweep(run);
+      return;
+    }
     const inputs = run.inputs as {
       parameters: Record<string, number>;
       solver: { method: SolverSettings["method"]; rtol: number; atol: number };
@@ -164,33 +174,41 @@ export function OscillatorLab() {
   );
 
   return (
-    <Workspace
-      parameters={form}
-      status={runStatus(status, result)}
-      staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
-      reference={
-        (result || referenceRun.reference) && (
-          <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
-        )
-      }
-      visualisation={
-        result && <OscillatorCharts result={result} reference={referenceRun.response} />
-      }
-      results={result && <OscillatorSummary result={result} />}
-      assumptions={result && <OscillatorAssumptions result={result} />}
-      validation={result && <OscillatorValidation result={result} />}
-      placeholders={{
-        visualisation:
-          "Set the parameters (or pick a preset) and run the simulation. The displacement, the " +
-          "energy budget and, for a driven run, the resonance curve appear here.",
-        results:
-          "The natural frequency, damping and regime (formulas), the steady state of a driven " +
-          "run, and the final state from the numerical solution.",
-        assumptions: "The model's assumptions are listed with every run.",
-        validation:
-          "Each run is checked against the exact solution and the energy balance, and the " +
-          "numerical cost is reported.",
-      }}
-    />
+    <>
+      <Workspace
+        parameters={form}
+        status={runStatus(status, result)}
+        staleNote={result && resultKey !== currentKey ? STALE_INPUTS_NOTE : null}
+        reference={
+          (result || referenceRun.reference) && (
+            <ReferenceRunPanel run={referenceRun} current={result} modelIds={PAGE_MODELS} />
+          )
+        }
+        visualisation={
+          result && <OscillatorCharts result={result} reference={referenceRun.response} />
+        }
+        results={result && <OscillatorSummary result={result} />}
+        assumptions={result && <OscillatorAssumptions result={result} />}
+        validation={result && <OscillatorValidation result={result} />}
+        placeholders={{
+          visualisation:
+            "Set the parameters (or pick a preset) and run the simulation. The displacement, the " +
+            "energy budget and, for a driven run, the resonance curve appear here.",
+          results:
+            "The natural frequency, damping and regime (formulas), the steady state of a driven " +
+            "run, and the final state from the numerical solution.",
+          assumptions: "The model's assumptions are listed with every run.",
+          validation:
+            "Each run is checked against the exact solution and the energy balance, and the " +
+            "numerical cost is reported.",
+        }}
+      />
+      <ResonanceSweepPanel
+        key={reopenedSweep?.run_id ?? "new"}
+        reopened={
+          reopenedSweep ? (reopenedSweep.inputs as unknown as StoredSweepInputs) : undefined
+        }
+      />
+    </>
   );
 }

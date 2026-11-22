@@ -2021,9 +2021,9 @@ It splits on commas and spaces, then rejects non-numbers, non-positive values, v
 (`steps.ts:7-13` reads `openapi.json`), so the frontend and backend can't disagree about
 what's allowed.
 
-### [2] Sending it: `frontend/src/lib/api/client.ts:71-101`
+### [2] Sending it: `frontend/src/lib/api/client.ts:74-104`
 
-<!-- src: frontend/src/lib/api/client.ts:80-95 -->
+<!-- src: frontend/src/lib/api/client.ts:83-98 -->
 ```ts
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -3181,7 +3181,7 @@ For each summary value, with reference value `a` and new value `b`, the table sh
 - the **change** `b − a`, in the value's own units;
 - the **relative change** `(b − a) / |a|`, as a percentage.
 
-<!-- src: frontend/src/lib/reference/compare.ts:278-296 -->
+<!-- src: frontend/src/lib/reference/compare.ts:301-319 -->
 ```ts
 export function summaryDiff(reference: ModelResponse, current: ModelResponse): SummaryRow[] {
   const [a, b] = [summaryFields(reference), summaryFields(current)];

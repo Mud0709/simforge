@@ -365,7 +365,7 @@ is in `CLAUDE.md`).
 - 1930-2259: Part 8 — Tracing one request through the whole application
   - 1948-1973: The layers, and the rule that keeps them separate
   - 1974-2023: [1] The form submit handler: `frontend/src/components/IntegratorLab.tsx:79-102`
-  - 2024-2059: [2] Sending it: `frontend/src/lib/api/client.ts:71-101`
+  - 2024-2059: [2] Sending it: `frontend/src/lib/api/client.ts:74-104`
   - 2060-2076: [3] The proxy: `frontend/next.config.ts:6-13`
   - 2077-2147: [4] The endpoint: `backend/src/simforge/api/routes/physics.py:246-250`
   - 2148-2172: [5] Validation: `integrator_schemas.py:25-51` and `core/schemas.py`

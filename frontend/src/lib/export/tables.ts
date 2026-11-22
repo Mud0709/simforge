@@ -13,6 +13,7 @@ import type {
   ProjectileResponse,
   QuadraticAngleSweepResponse,
   QuadraticDragResponse,
+  ResonanceSweepResponse,
   SolowResponse,
 } from "@/lib/api/client";
 import type { Cell, Column, Table } from "./csv";
@@ -119,6 +120,35 @@ export function oscillatorTables(r: OscillatorResponse): Table[] {
     });
   }
   return tables;
+}
+
+/** The simulated points, and the exact curve on its own fine grid (the chart's dashed line). */
+export function resonanceSweepTables(r: ResonanceSweepResponse): Table[] {
+  const u = r.units;
+  return [
+    {
+      name: "resonance",
+      label: "simulated resonance curve",
+      columns: [
+        col("angular_frequency", r.angular_frequencies, u, "angular_frequency"),
+        col("amplitude", r.amplitudes, u, "amplitude"),
+        col("exact_amplitude", r.exact_amplitudes, u, "amplitude"),
+        col("amplitude_bound", r.amplitude_bounds, u, "amplitude_bound"),
+        col("phase_lag", r.phase_lags, u, "phase_lag"),
+        col("exact_phase_lag", r.exact_phase_lags, u, "phase_lag"),
+        col("settle_time", r.settle_times, u, "settle_time"),
+      ],
+    },
+    {
+      name: "exact_curve",
+      label: "exact resonance curve",
+      columns: [
+        col("angular_frequency", r.resonance.angular_frequency, u, "angular_frequency"),
+        col("amplitude", r.resonance.amplitude, u, "amplitude"),
+        col("phase_lag", r.resonance.phase_lag, u, "phase_lag"),
+      ],
+    },
+  ];
 }
 
 export function angleSweepTables(r: AngleSweepResponse): Table[] {
@@ -284,6 +314,7 @@ export type ExportableResponse =
   | QuadraticAngleSweepResponse
   | IntegratorStudyResponse
   | OscillatorIntegratorResponse
+  | ResonanceSweepResponse
   | SolowResponse
   | ProfileResponse;
 
@@ -304,6 +335,8 @@ export function exportTables(response: ExportableResponse): Table[] {
       return integratorTables(response as IntegratorStudyResponse);
     case "physics.oscillator.integrators":
       return oscillatorIntegratorTables(response as OscillatorIntegratorResponse);
+    case "physics.oscillator.resonance_sweep":
+      return resonanceSweepTables(response as ResonanceSweepResponse);
     case "economy.solow":
       return solowTables(response as SolowResponse);
     case "quant.dataset_profile":

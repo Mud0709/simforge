@@ -8,6 +8,7 @@ import type {
   ProjectileResponse,
   QuadraticAngleSweepResponse,
   QuadraticDragResponse,
+  ResonanceSweepResponse,
   SolowResponse,
 } from "./client";
 
@@ -20,6 +21,7 @@ export interface ResponseOf {
   "physics.projectile.quadratic_angle_sweep": QuadraticAngleSweepResponse;
   "physics.oscillator": OscillatorResponse;
   "physics.oscillator.integrators": OscillatorIntegratorResponse;
+  "physics.oscillator.resonance_sweep": ResonanceSweepResponse;
   "economy.solow": SolowResponse;
   "quant.dataset_profile": ProfileResponse;
 }

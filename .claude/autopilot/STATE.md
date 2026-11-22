@@ -53,7 +53,7 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 
 ## Current unit
 Roadmap 2.5 (Generic sweeps): plan written and reviewed (3 reviewers, must-fix applied) 2026-11-22.
-Build tick 2026-11-22 19:00 UTC: slices 1-4 built and committed (risky: reviews pending, review-and-fix tick; slice 3 builder used a different rounding allowance r_A than plan D10, reviewer to check, plan text needs an edit). Slice 4 replay rules (cross-machine margins) are derived, never run on a second machine: reviewer must check. Next: slices 5-6 in order. Track A2 is the author's: hands off.
+Build tick 2026-11-22 19:00 UTC: slices 1-5 built and committed (risky: reviews pending, review-and-fix tick; slice 3 builder used a different rounding allowance r_A than plan D10, reviewer to check, plan text needs an edit). Slice 4 replay rules (cross-machine margins) are derived, never run on a second machine: reviewer must check. Slice 5 did not generalise SweepPanel (D13 deviation, reviewer to judge); a budget-refusal timing test (test_resonance_sweep_limits.py::test_the_work_budget_refuses_naming_the_evaluations_in_time) failed once under full-suite load, passed alone and on one re-run: flaky-suspect, reviewer to check. Next: slice 6 (docs, brief). Track A2 is the author's: hands off.
 
 ## Remainder of the current unit
 None: 2.4 finished and merged (PR #27).
