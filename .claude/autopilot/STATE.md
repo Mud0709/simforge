@@ -10,7 +10,7 @@ scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewk
   session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; three times a day at
   02:59, 10:59 and 18:59 UTC, `59 2,10,18 * * *`, since 2026-11-22; was twice a day from 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: bcf6518
+work limit from: be06b6f
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -48,18 +48,12 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 - 2.3 (PR #26): 10 journalled autopilot ticks 2026-11-09 to 2026-11-19 for slices 2-5 plus
   chat sessions for planning, slice 1 and the slice 2 review (not counted); subagents by agent,
   rungs and usage unknown (no usage readings in fresh sessions).
+- 2.4 (PR #27): planned and built in one chat session 2026-11-19 (slices 1-5, risky slices
+  reviewed, whole-step review); usage, subagents by agent and rungs unknown (no usage readings).
 
 ## Current unit
-Roadmap 2.4: planned (self-grilled at the author's request, 3 reviews) and built in one chat
-session on 2026-11-19, slices 1-5, each risky slice reviewed, whole-step review done, full
-check run (Next.js build notice: retry passed). Draft PR opened for the author's review.
-The work limit (12 commits since bcf6518) is reached with the close-out commit; the next
-tick waits for the merge (skill step 2.5), then resets the limit at the merge.
-
-Back on the main line (the author, 2026-11-22): 2.4's PR #27 is merged. Next: Track B 2.5
-(Generic sweeps): move 🔜 to 2.5, add the 2.4 step-cost line, reset the work limit at the
-merge, then the 2.5 plan tick. Track A2 is the author's own local work: hands off (skill step
-4, "Known-red tests").
+Roadmap 2.5 (Generic sweeps): 🔜 set 2026-11-22; plan tick running (planner, then 3 reviewers
+because the plan touches the scientific core). Track A2 is the author's: hands off.
 
 ## Remainder of the current unit
 None: 2.4 finished and merged (PR #27).
