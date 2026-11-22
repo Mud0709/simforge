@@ -1,4 +1,4 @@
-Last updated: 528077d 2026-11-21 (A2 sitting 0 moves to a local session)
+Last updated: 717c2c3 2026-11-22 (autopilot back on, Track B 2.5; new tick shape)
 Working branch: claude/laughing-brahmagupta-50jkiy
 <!-- Overwrite after each meaningful task (skill simforge-status). Keep these headings: the
 start hook prints "Next action" and "Open decisions"; the fresh-session autopilot reads
@@ -9,23 +9,23 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-**Your sitting 0 (A2):** in a local Claude session on your laptop (it reads `docs/LOCAL_PAIRING.md` first); on your laptop, follow `docs/FOUNDATIONS_CODING_GUIDE.md` chapters 0-5, then chapter 9's `momentum`. Branch: `claude/laughing-brahmagupta-50jkiy` (use it wherever the guide says "the branch Claude names"). Test commit: `a6e9f5f` (stubs in `backend/src/simforge/physics/foundations/collisions/core.py`, test `backend/tests/physics/foundations/test_core_momentum.py`: 6 red until you write `momentum`). Commit and push your one line; then Claude checks it and prepares sitting 1. Expected meanwhile: the full backend suite shows these 6 failures.
+**Autopilot is back on, on Track B (2026-11-22):** three ticks a day (02:59, 10:59, 18:59 UTC). Its first tick moves 🔜 to 2.5 (Generic sweeps), adds the 2.4 step-cost line and plans 2.5; then a build tick, then a review-and-fix tick. **Your A2 sitting 0** is unchanged and runs alongside, in your local session (`docs/LOCAL_PAIRING.md`, `docs/FOUNDATIONS_CODING_GUIDE.md` chapters 0-5, chapter 9's `momentum`; test commit `a6e9f5f`). Fetch before you push: the autopilot pushes to the same branch.
+Known red: `backend/tests/physics/foundations/test_core_momentum.py`, 6 failures until you write `momentum` (yours; the autopilot never touches `physics/foundations/collisions/`, and opens the 2.5 PR only once they pass). Set this line to `Known red: none` when done.
 
 ## Open decisions
+- **Scheduled task branch (your clicks), still open:** the task's stored push-outcome branch is `claude/serene-feynman` (wrong); `update_trigger` cannot change it. Set it to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines). Ticks still switch to the branch from this file, so this is not blocking, but fix it soon.
 - **A2 confirmed (2026-11-21):** all four answered yes in chat (division of labour; A2 before 2.5, parked by default three weeks after S0, extendable once; SL+HL in one PR; syllabus lines). If you have not yet compared the plan's "Syllabus re-check" lines with your Physics guide copy, do it before sitting 2.
 - **Learning-log drafts for PR #20, #23, #26 and #27:** read it, edit or approve (remove the DRAFT tag). Not blocking.
 - **Next.js 16.4.1 security notice:** the first `next build` in `scripts/check.sh` now stops on it every run, because the backend runs past the notice's 5-minute retry window; a retry passes. Upgrading Next.js is a dependency change: your call (recommended: upgrade in its own PR). Not blocking.
-- **Scheduled task branch (your clicks):** stored push-outcome branch `claude/serene-feynman` (wrong); set it to `claude/laughing-brahmagupta-50jkiy` in the task's settings (claude.ai, Routines) before resuming. The task is disabled.
 - **Further time-stepping models on the workbench:** damped/driven oscillator and quadratic-drag fixed-step studies are not in 2.4; Phase 2's done-when now names Phase 4's long-run integrator comparison (orbits) for further models (recommended: schedule the oscillator ones with 2.5 or Phase 4). Not blocking.
 - Roadmap: "best angle against drag strength" and "drag-law comparison" are in the capability map but no Phase 2 step (recommend: schedule them).
 - Ruleset on `main`: "Require status checks" has no checks selected; branch clean-up (`backup/main-before-rewrite`, `backup/branch-before-rewrite`, `claude/epic-sagan-30vpv3`). Your clicks; not blocking.
 - Not blocking, your call: `StrictModel` accepts `true` and `"2"` as numbers (add `strict=True`?); sweep rate limit; replay "differs" for step counts; five clean-ups from the 2.1 review (PR #13); the 2.4 worth-doing list in `docs/journal/2026-11-19-1207-2-4-plan-and-build.md`.
 
-## Last task: roadmap 2.4 planned and built (chat session, 2026-11-19)
-- **Pushed; draft PR #27 open (not merged):** plan (self-grilled, 3 reviews), slices 1-5, docs (Part 21, brief, ARCHITECTURE 21, SV, README, ROADMAP ✅).
-- **Verified:** every slice's Acceptance; full pytest 3295 passed; `check.sh --e2e` all green except the first `next build` (Next.js notice; retry passed), Playwright 37 passed. Reviews: 1 must-fix in slice 2, fixed; whole-step review no must-fix.
-- **CI:** not checked yet. **Not verified:** the brief's demo in a browser.
-- **Work limit:** 12 commits since bcf6518 (reached); it resets at the merge.
+## Last task: autopilot back on, new tick shape (chat session, 2026-11-22)
+- **Done locally, then committed and pushed to the working branch (no PR, a procedure edit):** ticks now do one kind of work for all slices: plan, build (no reviews, no debugging; a failing slice is deferred), then review-and-fix (debugging, every slice review plus the whole-step review together, fixes, full check, PR). Three working runs a day. `builder` and `test-writer` (Sonnet 5.5) now run at high effort; Opus agents stay medium, Haiku helpers high.
+- **Your answers recorded:** A2's red tests are known-red and hands-off (skill step 4); a slice failing in a build tick is deferred to the review-and-fix tick.
+- **Task:** enabled, `59 2,10,18 * * *`. **CI:** not run (no PR). **Not verified:** a real tick under the new shape.
 
 ## Learning handoff
 - **What it does:** one driver in `numerics/` runs any fixed-step study; the oscillator and the projectile plug in their exact solutions and checks.

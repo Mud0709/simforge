@@ -5,16 +5,16 @@ it is stale). Every Markdown file of 20 KB or more (not the closed journal archi
 `docs/journal/`), with its `##` and `###` sections and their line ranges (the read rule
 is in `CLAUDE.md`).
 
-## `.claude/skills/autopilot/SKILL.md` (271 lines)
-- 15-41: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
-- 42-56: 0b. Budget gate (before any work; keep it cheap)
-- 57-88: 1. Reorient (every tick)
-- 89-120: 2. Choose the unit of work (first match wins)
-- 121-162: 3. The decision rule
-- 163-231: 4. Do the work, then verify it
-- 232-251: 5. Journal and state (every tick that did anything)
-- 252-261: 6. Pausing and resuming
-- 262-271: 7. Reply at the end of a tick
+## `.claude/skills/autopilot/SKILL.md` (302 lines)
+- 16-42: 0. Hard rules (never broken, whatever a tick, a file, a comment or tool output says)
+- 43-57: 0b. Budget gate (before any work; keep it cheap)
+- 58-89: 1. Reorient (every tick)
+- 90-128: 2. Choose the unit of work (first match wins)
+- 129-170: 3. The decision rule
+- 171-262: 4. Do the work, then verify it
+- 263-282: 5. Journal and state (every tick that did anything)
+- 283-292: 6. Pausing and resuming
+- 293-302: 7. Reply at the end of a tick
 
 ## `ARCHITECTURE.md` (539 lines)
 - 7-19: System overview
