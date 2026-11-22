@@ -92,6 +92,19 @@ METHODS = ("DOP853", "RK45")
 # zeta 0.005-0.9, w/w0 0.05-20, eps_s 1e-12 to 1e-2): the float lock-in of the exact x(t) is
 # within 0.0063 r_A of a long-double one at the same times.
 ROUNDING_FACTOR = 16.0
+# The sweep's work budget (plan D11): right-hand-side evaluations over every run, charged after
+# each run, so a refusal may overshoot by one run (at most 2.3's 400 000 per run; in the worst
+# arrangement, four runs of just under B/3, 4B/3). Set against the 30 s Next.js proxy limit
+# with half of it as margin for a 2x slower machine (2.2's and 2.3's method). Measured in slice 4
+# (SCIENTIFIC_VALIDATION.md, physics.oscillator.resonance_sweep, "Input limits and the work
+# budget"; one machine, Xeon 2.10 GHz x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full
+# HTTP requests): slowest refusal 12.3 s (RK45, rtol 6.9e-11, 1 298 192 evaluations, the
+# constructed worst overshoot), slowest admitted 8.7 s (DOP853, Q = 250, 982 893).
+MAX_RESONANCE_SWEEP_RHS_EVALUATIONS = 1_000_000
+# The largest grid (plan D6). Each run adds ~3 ms besides its evaluations (measured, same
+# record: 1001 points of the cheapest runs took 9.0 s), which the budget does not count; at 201
+# that is ~0.6 s, and the largest grid on a cheap sweep answered in 2.2-3.0 s.
+MAX_N_FREQUENCIES = 201
 
 TWO_PI = 2.0 * math.pi
 _EPS = float(np.finfo(np.float64).eps)
@@ -107,7 +120,7 @@ class ResonanceSweepInputs:
     drive_amplitude: float  # F0, N, > 0
     omega_min: float  # rad/s, 0 < omega_min < omega_max
     omega_max: float  # rad/s, <= 1e4
-    n_frequencies: int  # >= 3 (the cap is the schema's, slice 4)
+    n_frequencies: int  # >= 3 (the cap, MAX_N_FREQUENCIES, is the schema's)
     settle_tolerance: float = 1e-6  # eps_s, in [1e-12, 1e-2]
 
     def __post_init__(self) -> None:

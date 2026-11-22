@@ -167,6 +167,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/physics/oscillator/resonance-sweep": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Oscillator Resonance Sweep */
+    post: operations["oscillator_resonance_sweep_api_v1_physics_oscillator_resonance_sweep_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/physics/oscillator/simulate": {
     parameters: {
       query?: never;
@@ -2198,7 +2215,8 @@ export interface components {
         | components["schemas"]["QuadraticDragResponse"]
         | components["schemas"]["QuadraticAngleSweepResponse"]
         | components["schemas"]["OscillatorResponse"]
-        | components["schemas"]["OscillatorIntegratorResponse"];
+        | components["schemas"]["OscillatorIntegratorResponse"]
+        | components["schemas"]["ResonanceSweepResponse"];
     };
     /**
      * ReferenceLine
@@ -2259,6 +2277,171 @@ export interface components {
        * @enum {string}
        */
       verdict: "identical" | "within_tolerance" | "differs";
+    };
+    /**
+     * ResonanceSweepParameters
+     * @description Physical inputs and the frequency range, SI units. Every run starts from rest.
+     *     Defaults (plan D11): w0 = 5 rad/s, zeta = 0.1 (Q = 5), 0.5 to 15 rad/s.
+     */
+    ResonanceSweepParameters: {
+      /**
+       * Damping Coefficient
+       * @description Damping coefficient b in kg/s (> 0: without damping there is no steady state to settle to). Must leave the oscillator underdamped (b < 2 sqrt(mk)).
+       * @default 1
+       */
+      damping_coefficient?: number;
+      /**
+       * Drive Amplitude
+       * @description Amplitude F0 of the drive F0 cos(w t), in N.
+       * @default 1
+       */
+      drive_amplitude?: number;
+      /**
+       * Mass
+       * @description Mass m in kg.
+       * @default 1
+       */
+      mass?: number;
+      /**
+       * Omega Max
+       * @description Highest drive angular frequency, rad/s.
+       * @default 15
+       */
+      omega_max?: number;
+      /**
+       * Omega Min
+       * @description Lowest drive angular frequency, rad/s.
+       * @default 0.5
+       */
+      omega_min?: number;
+      /**
+       * Settle Tolerance
+       * @description eps_s, dimensionless: each run waits until the transient is below eps_s times the steady amplitude A before it is measured.
+       * @default 0.000001
+       */
+      settle_tolerance?: number;
+      /**
+       * Spring Constant
+       * @description Spring constant k in N/m.
+       * @default 25
+       */
+      spring_constant?: number;
+    };
+    /** ResonanceSweepPeak */
+    ResonanceSweepPeak: {
+      /**
+       * Amplitude
+       * @description m, numerical: the lock-in amplitude there
+       */
+      amplitude: number;
+      /**
+       * Amplitude Bound
+       * @description B1 of the run at the refined peak, m (proved)
+       */
+      amplitude_bound: number;
+      /**
+       * Angular Frequency
+       * @description rad/s, numerical: the best grid point refined by a bounded Brent search
+       */
+      angular_frequency: number;
+      /**
+       * Exact Amplitude
+       * @description A_max = (F0/m) / (2 gamma wd), m (exact); null when zeta >= 1/sqrt(2)
+       */
+      exact_amplitude: number | null;
+      /**
+       * Exact Angular Frequency
+       * @description w_r = sqrt(w0^2 - 2 gamma^2), rad/s (exact); null when zeta >= 1/sqrt(2)
+       */
+      exact_angular_frequency: number | null;
+      /**
+       * Uncertainty
+       * @description u = 2 sqrt(B1/K), rad/s: an estimate, not a bound; null at an edge or where the grid curve is not bent downwards (reason in uncertainty_note)
+       */
+      uncertainty: number | null;
+      /** Uncertainty Note */
+      uncertainty_note: string;
+    };
+    /** ResonanceSweepRequest */
+    ResonanceSweepRequest: {
+      /**
+       * N Frequencies
+       * @description Number of evenly spaced drive frequencies from omega_min to omega_max.
+       * @default 21
+       */
+      n_frequencies?: number;
+      parameters?: components["schemas"]["ResonanceSweepParameters"];
+      /**
+       * Save Experiment
+       * @description Record inputs and summary metrics in the experiment log.
+       * @default true
+       */
+      save_experiment?: boolean;
+      /** @description DOP853 or RK45 (Radau is refused: an underdamped run is not stiff). atol is a fraction of the run's scale X, as in the oscillator model. */
+      solver?: components["schemas"]["SolverSettings"];
+    };
+    /** ResonanceSweepResponse */
+    ResonanceSweepResponse: {
+      /**
+       * Amplitude Bounds
+       * @description B1 = 2 e_x + eps_s A + r_A, m: |A_sim - A| <= B1, proved given the measured trajectory error e_x
+       */
+      amplitude_bounds: number[];
+      /**
+       * Amplitudes
+       * @description m, numerical: lock-in of each run
+       */
+      amplitudes: number[];
+      /**
+       * Angular Frequencies
+       * @description rad/s, the evenly spaced grid
+       */
+      angular_frequencies: number[];
+      /** Assumptions */
+      assumptions: components["schemas"]["Assumption"][];
+      /** Checks */
+      checks: components["schemas"]["ValidationCheck"][];
+      /**
+       * Exact Amplitudes
+       * @description m, exact: A(w) (formula)
+       */
+      exact_amplitudes: number[];
+      /**
+       * Exact Phase Lags
+       * @description rad, exact: delta(w) in [0, pi]
+       */
+      exact_phase_lags: number[];
+      /**
+       * Grid Step Over Gamma
+       * @description Grid step / gamma, dimensionless: above 1 the grid may flatten or miss the peak
+       */
+      grid_step_over_gamma: number;
+      metadata: components["schemas"]["RunMetadata"];
+      model: components["schemas"]["ModelInfo"];
+      /**
+       * N Rhs Evaluations
+       * @description Right-hand-side evaluations over every run
+       */
+      n_rhs_evaluations: number;
+      parameters: components["schemas"]["ResonanceSweepParameters"];
+      peak: components["schemas"]["ResonanceSweepPeak"];
+      /**
+       * Phase Lags
+       * @description rad, numerical, in [-pi/2, 3pi/2)
+       */
+      phase_lags: number[];
+      /** @description The exact curve (formula) on a fine grid, for the dashed line */
+      resonance: components["schemas"]["OscillatorResonance"];
+      /**
+       * Settle Times
+       * @description s, a whole number of drive periods
+       */
+      settle_times: number[];
+      solver: components["schemas"]["SolverSettings"];
+      /** Units */
+      units: {
+        [key: string]: string;
+      };
     };
     /**
      * RunExport
@@ -2926,6 +3109,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OscillatorIntegratorResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  oscillator_resonance_sweep_api_v1_physics_oscillator_resonance_sweep_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResonanceSweepRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResonanceSweepResponse"];
         };
       };
       /** @description Validation Error */

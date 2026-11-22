@@ -97,6 +97,16 @@ CASES: list[tuple[str, str, dict[str, Any], bytes | None]] = [
         },
         None,
     ),
+    (
+        "physics.oscillator.resonance_sweep",
+        "/api/v1/physics/oscillator/resonance-sweep",
+        {
+            "parameters": {"damping_coefficient": 2.0, "omega_min": 1.0, "omega_max": 10.0},
+            "solver": {"method": "RK45"},
+            "n_frequencies": 5,
+        },
+        None,
+    ),
 ]
 
 

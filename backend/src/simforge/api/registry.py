@@ -8,7 +8,11 @@ from __future__ import annotations
 from typing import Any
 
 from simforge.api.routes.economy import SOLOW
-from simforge.api.routes.oscillator import OSCILLATOR, OSCILLATOR_INTEGRATORS
+from simforge.api.routes.oscillator import (
+    OSCILLATOR,
+    OSCILLATOR_INTEGRATORS,
+    RESONANCE_SWEEP,
+)
 from simforge.api.routes.physics import (
     ANGLE_SWEEP,
     INTEGRATOR_STUDY,
@@ -29,6 +33,7 @@ ENTRIES: tuple[ModelEntry[Any, Any, Any], ...] = (
     QUADRATIC_ANGLE_SWEEP,
     OSCILLATOR,
     OSCILLATOR_INTEGRATORS,
+    RESONANCE_SWEEP,
 )
 
 _BY_ID = {entry.info.id: entry for entry in ENTRIES}

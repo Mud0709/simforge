@@ -447,5 +447,42 @@
     }
    }
   }
+ },
+ {
+  "environment": {
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+   "numpy_version": "2.5.4",
+   "platform": "linux-x86_64",
+   "scipy_version": "1.18.1"
+  },
+  "inputs": {
+   "n_frequencies": 5,
+   "parameters": {
+    "damping_coefficient": 2.0,
+    "drive_amplitude": 1.0,
+    "mass": 1.0,
+    "omega_max": 10.0,
+    "omega_min": 1.0,
+    "settle_tolerance": 1e-06,
+    "spring_constant": 25.0
+   },
+   "solver": {
+    "atol": 1e-10,
+    "method": "RK45",
+    "rtol": 1e-10
+   }
+  },
+  "model_id": "physics.oscillator.resonance_sweep",
+  "model_version": "1.0.0",
+  "output_digest": "5585ad3694441e933081fd3fd04f0db3f8ae82c5f5ccc4e78e436bae720593bc",
+  "summary": {
+   "peak": {
+    "amplitude": 0.10206207273503985,
+    "amplitude_bound": 1.0213353378520208e-07,
+    "angular_frequency": 4.795830632941476,
+    "uncertainty": 0.005256764538174686
+   },
+   "worst_amplitude_error_ratio": 0.13418508091780237
+  }
  }
 ]

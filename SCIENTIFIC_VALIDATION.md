@@ -1440,7 +1440,7 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
   `max_relative_energy_error` was 2.1e-5 of its tolerance (θ = 1.99999983, four starts, both
   methods), so the margins held there.
 
-## `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slice 3 of 6; model only, no API yet)
+## `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slices 3-4 of 6; model and API, no page yet)
 
 Code: `backend/src/simforge/physics/oscillator/resonance_sweep.py` (R3-R5 derived in its
 docstring), on `model.run_with_solution` (the 2.3 run, returning its solve; the
@@ -1507,10 +1507,50 @@ detuning in `fractions`).
   (≤ 2ε ωt_end A, inside r_A's 16 ωt_end ε term).
 - Run times: 0.8-6.8 s per sweep (ζ = 0.01 slowest: 786 261 evaluations).
 
-### Limitations (slice 3)
-- No API, schema, budget constant or golden run yet (slice 4 measures the budget and the
-  `n_frequencies` cap; the tests pass an explicit budget). The exact formula curve for the
-  dashed line (D12) is not in the computation yet.
+### Input limits and the work budget (slice 4; `resonance_sweep_schemas.py`, `routes/oscillator.py`)
+`POST /api/v1/physics/oscillator/resonance-sweep`. Every refusal is a 422 saying what to change.
+**Schema** (before any solve): finite SI inputs; b > 0, F₀ > 0; 0 < ω_min < ω_max ≤ 1e4 rad/s;
+ε_s in [1e-12, 1e-2]; 3 ≤ `n_frequencies` ≤ 201; 2.3's ω₀, γ and ω ≤ 100ω₀ rules; **Q ≤ 300**
+(exact, in rationals; D6: above it no sweep fits the 500-cycle limit at any allowed ε_s); no
+initial state, duration, series or budget field. **Model, before any solve:** Radau (naming
+DOP853 and RK45), ζ ≥ 1, and a grid point over 500 cycles (naming the worst ω). **After each
+run:** the budget, naming the evaluations and "fewer frequencies". Tested in
+`tests/api/test_resonance_sweep_limits.py` (each refusal worked by hand, with a fixture failing
+any solve before a pre-solve refusal) and `tests/api/test_resonance_sweep_api.py` (contract,
+R1/R2 written out, saved run replays "identical", stored inputs rebuild the request).
+
+**Budget measurement (observed, 2026-11-22; one machine: Intel Xeon @ 2.10 GHz, 4 cores,
+linux-x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full HTTP requests through the test
+client, scratch scripts not kept).** 36 sweeps at 1e6 (DOP853 and RK45 × tightest, default
+and loosest pairs × ζ = 0.0075 below ω₀, Q = 250 at ε_s = 1e-2, ζ = 0.1 up to 13ω₀, ω₀ = 1e4
+at ε_s = 1e-12, the defaults, 201 points), then 38 more searching for the worst overshoot.
+The budget is charged after each run, so a refusal can overshoot by one run; with 2.3's
+per-run cap of 4e5 the worst arrangement is four runs of just under B/3, about 4B/3.
+- **Slowest refusal: 12.3 s** (RK45, rtol 6.9e-11, ζ = 0.0075, ω 0.97-0.99 rad/s: 1 298 192
+  evaluations, the constructed near-worst overshoot); before that search, 11.2 s (RK45
+  tightest pair, ζ = 0.1 up to 13 rad/s). Under 15 s, half the 30 s proxy limit, so a machine
+  2x slower still answers. Cost per evaluation in a full request: DOP853 ~8 µs, RK45 ~9 µs.
+- **Slowest admitted: 8.7 s** (DOP853 loosest pair, Q = 250 at ε_s = 1e-2: 982 893).
+- **What 1e6 admits:** the defaults with DOP853 at every pair (92 750 to 717 062) and RK45 at the
+  default and loosest pairs (698 780, 116 324); the sweeps above at the loosest DOP853 pair.
+  Refused: the four heavy configurations with DOP853 at the tightest and default pairs, and
+  with RK45 except ζ = 0.1 and ω₀ = 1e4 at the loosest pair (at RK45's tightest pair three of
+  them by 2.3's per-run cap of 4e5 first).
+- **`n_frequencies` cap 201:** each run costs ~3 ms besides its evaluations (not counted by
+  the budget); 1001 points of the cheapest runs took 9.0 s and 11.6 s, 201 points 2.2-3.0 s.
+  201 keeps that overhead near 0.6 s.
+
+### Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
+Same machine: bit-identical (tested). Across machines (D12, not tested on a second machine):
+peak ω within max(1e-7ω₀, u); peak A within 4B1 (each machine within its own B1 of the curve's
+maximum, C1; another machine's B1 taken as at most 3B1, a margin); B1 within a factor 3; u
+within the factor √3(1 + 4u²/h²) (first order in the second difference: an estimate); the
+worst C1 ratio within 1 (both lie in [0, 1] where C1 passes).
+
+### Limitations (slice 4)
+- The budget and the cap were measured on one machine; a 2x slower one is the assumed margin.
+- The cross-machine replay rules are derived, with a stated margin on B1, and not exercised on
+  a second machine.
 - B1 is proved only given the measured e_x, which compares against the exact solution; it is
   not a bound on the solver's error.
 

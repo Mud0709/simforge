@@ -3043,7 +3043,7 @@ That is exactly what `POST /experiments/{id}/outputs` does. The log never stored
 (ARCHITECTURE decision 5: a projectile run has thousands of numbers, its inputs a dozen), so
 the curves of a stored run exist only after computing it again:
 
-<!-- src: backend/src/simforge/api/outputs.py:86-98 -->
+<!-- src: backend/src/simforge/api/outputs.py:92-104 -->
 ```python
 async def recompute_outputs(
     record: ExperimentRecord, body: RecomputeRequest, repo: ExperimentRepository

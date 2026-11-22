@@ -45,7 +45,7 @@ is in `CLAUDE.md`).
 - 525-540: Adding a new model (the intended pattern)
 - 541-544: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (1956 lines)
+## `SCIENTIFIC_VALIDATION.md` (1996 lines)
 - 6-29: Principles
 - 30-196: `physics.projectile` v1.1.0: projectile motion with linear drag
   - 35-46: Model
@@ -109,40 +109,42 @@ is in `CLAUDE.md`).
   - 1405-1420: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
   - 1421-1430: Caps and timings (same machine)
   - 1431-1442: Limitations
-- 1443-1516: `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slice 3 of 6; model only, no API yet)
+- 1443-1556: `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5, slices 3-4 of 6; model and API, no page yet)
   - 1450-1459: What it computes
   - 1460-1475: Proved (on paper, in the module docstring; the tests check the code obeys them)
   - 1476-1480: Estimate, not a bound
   - 1481-1491: Tested (`backend/tests/physics/test_resonance_sweep.py`; 118 tests)
   - 1492-1509: Observed (2026-11-22, one machine, x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; DOP853, ε_s = 1e-6)
-  - 1510-1516: Limitations (slice 3)
-- 1517-1655: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1523-1544: Model
-  - 1545-1580: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1581-1588: Numerical-analysis issue handled: cancellation in λ
-  - 1589-1610: Empirical evidence (held on the grid; not theorems)
-  - 1611-1626: What is tested
-  - 1627-1636: Per-run checks shown in the app
-  - 1637-1641: Observed (2026-10-15, default inputs)
-  - 1642-1655: Limitations
-- 1656-1737: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1658-1664: What it computes, and what it does not
-  - 1665-1680: Definitions
-  - 1681-1692: Numerical-analysis issues handled
-  - 1693-1707: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1708-1714: Per-run checks shown in the app
-  - 1715-1719: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1720-1737: Limitations
-- 1738-1831: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1767-1811: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1812-1823: Tests
-  - 1824-1831: Known limitations
-- 1832-1956: Comparison and export (roadmap 1.6)
-  - 1841-1875: Recomputed series: the digest says whether they are exact
-  - 1876-1904: CSV: what is written is the number that was computed
-  - 1905-1912: JSON export
-  - 1913-1946: The comparison: differences, not verdicts
-  - 1947-1956: Limitations
+  - 1510-1542: Input limits and the work budget (slice 4; `resonance_sweep_schemas.py`, `routes/oscillator.py`)
+  - 1543-1549: Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
+  - 1550-1556: Limitations (slice 4)
+- 1557-1695: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1563-1584: Model
+  - 1585-1620: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1621-1628: Numerical-analysis issue handled: cancellation in λ
+  - 1629-1650: Empirical evidence (held on the grid; not theorems)
+  - 1651-1666: What is tested
+  - 1667-1676: Per-run checks shown in the app
+  - 1677-1681: Observed (2026-10-15, default inputs)
+  - 1682-1695: Limitations
+- 1696-1777: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1698-1704: What it computes, and what it does not
+  - 1705-1720: Definitions
+  - 1721-1732: Numerical-analysis issues handled
+  - 1733-1747: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1748-1754: Per-run checks shown in the app
+  - 1755-1759: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1760-1777: Limitations
+- 1778-1871: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1807-1851: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1852-1863: Tests
+  - 1864-1871: Known limitations
+- 1872-1996: Comparison and export (roadmap 1.6)
+  - 1881-1915: Recomputed series: the digest says whether they are exact
+  - 1916-1944: CSV: what is written is the number that was computed
+  - 1945-1952: JSON export
+  - 1953-1986: The comparison: differences, not verdicts
+  - 1987-1996: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
