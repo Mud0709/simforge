@@ -282,6 +282,10 @@ FAST_DRIVE = {
 TIGHT = {"rtol": 1e-13, "atol": 1e-14}  # the tightest pair allowed
 
 
+# no_cover: wall-clock test; coverage tracing roughly doubles pure-Python time (measured
+# 2026-11-23: 8.9 s without, 17.7 s with --cov for the budget refusal), so the time limit is
+# checked on untraced code, as the server runs it. The limit itself is unchanged.
+@pytest.mark.no_cover
 def test_a_run_over_the_budget_is_refused_quickly_and_says_what_to_change(
     client: TestClient,
 ) -> None:
@@ -455,6 +459,10 @@ def _check_request(
         tally["failed_checks"].append((failed, params, solver))
 
 
+# no_cover: wall-clock test; coverage tracing roughly doubles pure-Python time (measured
+# 2026-11-23: 8.9 s without, 17.7 s with --cov for the budget refusal), so the time limit is
+# checked on untraced code, as the server runs it. The limit itself is unchanged.
+@pytest.mark.no_cover
 def test_corners_of_the_allowed_space_never_crash_and_finish_in_time(client: TestClient) -> None:
     # 1. Unit corners (mass, w0, damping, drive, duration) just inside every rule: the
     #    shortest runs at the default pair, the longest at the loosest pair, with DOP853

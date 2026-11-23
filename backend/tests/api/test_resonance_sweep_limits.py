@@ -234,6 +234,10 @@ def test_the_same_grid_narrowed_is_admitted(client: TestClient) -> None:
     assert r.status_code == 200, r.text
 
 
+# no_cover: wall-clock test; coverage tracing roughly doubles pure-Python time (measured
+# 2026-11-23: 8.9 s without, 17.7 s with --cov for the budget refusal), so the time limit is
+# checked on untraced code, as the server runs it. The limit itself is unchanged.
+@pytest.mark.no_cover
 def test_the_work_budget_refuses_naming_the_evaluations_in_time(client: TestClient) -> None:
     # The heaviest kind of sweep the inputs allow, per point under 2.3's per-run limit:
     # m = k = 1 (w0 = 1 rad/s), zeta = 0.0075 (b = 0.015 kg/s, Q = 66.7 <= 300), w from 0.5 to
@@ -263,6 +267,10 @@ def test_the_work_budget_refuses_naming_the_evaluations_in_time(client: TestClie
     assert seconds < SECONDS_PER_REQUEST, seconds
 
 
+# no_cover: wall-clock test; coverage tracing roughly doubles pure-Python time (measured
+# 2026-11-23: 8.9 s without, 17.7 s with --cov for the budget refusal), so the time limit is
+# checked on untraced code, as the server runs it. The limit itself is unchanged.
+@pytest.mark.no_cover
 def test_the_default_sweep_is_admitted_in_time(client: TestClient) -> None:
     # D11: the defaults are chosen to fit the budget; one request well inside the 15 s rule.
     start = time.perf_counter()
@@ -273,6 +281,10 @@ def test_the_default_sweep_is_admitted_in_time(client: TestClient) -> None:
     assert seconds < SECONDS_PER_REQUEST, seconds
 
 
+# no_cover: wall-clock test; coverage tracing roughly doubles pure-Python time (measured
+# 2026-11-23: 8.9 s without, 17.7 s with --cov for the budget refusal), so the time limit is
+# checked on untraced code, as the server runs it. The limit itself is unchanged.
+@pytest.mark.no_cover
 def test_the_largest_grid_is_accepted_by_the_schema_and_answers_in_time(
     client: TestClient,
 ) -> None:
