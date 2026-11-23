@@ -29,6 +29,8 @@ simforge/
 │   │   │   │                            driver, stability functions, harmonic closed forms
 │   │   │   ├── events.py              locating an event between nodes (linear, cubic Hermite)
 │   │   │   ├── workbench.py           model-free convergence driver and energy envelope
+│   │   │   ├── sweep.py               1-D sweep driver: Brent refinement of a grid maximum,
+│   │   │   │                            curvature, peak count, work budget (2.5)
 │   │   │   └── convergence.py         order fitting and local orders
 │   │   ├── economy/solow/           Solow growth model: simulation.py (pure engine),
 │   │   │                              schemas.py, model.py (assumptions, units, per-run checks)
@@ -50,6 +52,7 @@ simforge/
 │   │   │   │                            aggregated checks (roadmap 2.2)
 │   │   │   └── quadratic_schemas.py   quadratic-drag API contract and input rules (both
 │   │   │                                quadratic models)
+│   │   ├── physics/sweep_checks.py  one check aggregated over a sweep's runs (2.5)
 │   │   ├── physics/oscillator/      Harmonic oscillator (roadmap 2.3; route in api/routes/oscillator.py, page /physics/oscillator):
 │   │   │   ├── analytical.py          exact solution in every regime, scale X, resonance curve
 │   │   │   ├── numerical.py           scaled ODE solve (xi, eta and both works), maxima events
@@ -432,9 +435,11 @@ appended to `api/routes/physics.py`; the plan and its amendments are in
   `quadratic_model.run` per angle, so every point is bit-identical to a single 2.1 run on the
   same machine and gets the same guard, events and checks; no 2.1 code changed. The 2.1
   checks are aggregated per check id over every run (passed only if all passed; the run
-  closest to its limit is reported with its angle). The ~25 lines of grid-and-Brent logic are
-  repeated from `angle_sweep.py` rather than shared, until generic sweeps (roadmap 2.5) give a
-  shared layer more than two users.
+  closest to its limit is reported with its angle). The grid-and-Brent logic was first
+  repeated from `angle_sweep.py`; since roadmap 2.5 (slice 2) both sweeps call the shared
+  driver `numerics/sweep.py` (`refine_maximum`, `interior_peaks`, `WorkBudget`), bit-identical
+  with no version bump, and the per-run check aggregation lives in `physics/sweep_checks.py`
+  (plan `docs/plans/ROADMAP_2_5_PLAN.md`, D3-D5).
 - **A work budget in right-hand-side evaluations.** A sweep is ~100 numerical solves, so it is
   capped at 3e5 evaluations in total (a server constant, not a request field), checked after
   each run, and refused with a 422 that says what to change. A count is reproducible on one
@@ -493,6 +498,34 @@ Plan and decisions D1-D17: `docs/plans/ROADMAP_2_4_PLAN.md`.
   Euler's endpoint error is superconvergent), and long-run behaviour is judged by the modified
   energy, with thresholds scaled by its conditioning near `theta = 2`.
 
+### 22. A resonance sweep is a new model built from 2.3 runs, on a shared sweep driver (roadmap 2.5)
+Plan and decisions D1-D14: `docs/plans/ROADMAP_2_5_PLAN.md`; model
+`physics.oscillator.resonance_sweep` v1.0.0 in `physics/oscillator/resonance_sweep.py`.
+
+- **One driver, three users.** `numerics/sweep.py` (`refine_maximum`, `curvature`,
+  `interior_peaks`, `WorkBudget`) knows no physics, units or messages; the linear and quadratic
+  angle sweeps and the resonance sweep call it, the first two bit-identical with no version bump
+  (their golden digests and tests unchanged). Each model turns `WorkBudgetExceededError` into
+  its own message. Per-run check aggregation lives in `physics/sweep_checks.py` (two physics
+  users, decision 19), not in `core/`.
+- **Each point is a 2.3 run, not a new solver.** `model.run_with_solution` returns the 2.3
+  computation and its `OscillatorSolution`; `run` wraps it (the `physics.oscillator` golden
+  digest is unchanged). The sweep waits a whole number of drive periods until the proved
+  transient envelope is below `settle_tolerance`, then reads amplitude and phase with a lock-in
+  over two whole periods from the dense output.
+- **The checks are bounds given a measurement.** C1-C4 are proved inequalities given the
+  measured trajectory error e_x against the exact solution (so they are not a priori bounds on
+  the solver); C5 (the peak against the exact ω_r, with the estimate u) is labelled observed.
+  The rounding allowance r_A is a derived form checked by measurement (a deviation from the plan's
+  D10 form; `SCIENTIFIC_VALIDATION.md`).
+- **The cost limit is measured, not assumed.** A work budget of 1e6 right-hand-side evaluations
+  (charged after each run, so a refusal can overshoot by one run), Q <= 300, 201 frequencies and
+  DOP853 or RK45 only were set against the 30 s proxy limit with half of it as margin
+  (decisions 19 and 20's method).
+- **The page's panel is separate.** `ResonanceSweepPanel.tsx` has its own form and run button on
+  `/physics/oscillator`; `AngleSweepPanel`'s `SweepPanel` was not generalised to any swept
+  variable (a D13 deviation). No cross-model overlay (decision 17).
+
 ## API endpoints
 
 | Method | Path | Purpose |
@@ -506,6 +539,7 @@ Plan and decisions D1-D17: `docs/plans/ROADMAP_2_4_PLAN.md`.
 | POST | `/api/v1/physics/projectile/quadratic-drag/simulate` | Quadratic drag: adaptive SciPy solution with the exact vertical flight, vacuum comparison, diagnostics and per-run checks |
 | POST | `/api/v1/physics/oscillator/simulate` | Simple, damped or driven harmonic oscillator: adaptive SciPy solution beside the exact one, derived quantities, steady state and resonance curve (`null` where undefined), and per-run checks |
 | POST | `/api/v1/physics/projectile/quadratic-drag/angle-sweep` | Range against launch angle with quadratic drag (one 2.1 run per angle), the refined best angle with an accuracy estimate, the exact drag-free curve and optimum, and checks over every run |
+| POST | `/api/v1/physics/oscillator/resonance-sweep` | Simulated resonance curve: one 2.3 run from rest per drive frequency, lock-in amplitude and phase beside the exact curve, the refined peak with an accuracy estimate and the exact ω_r, and checks over every run |
 | GET | `/api/v1/economy/solow/info` | Model metadata |
 | POST | `/api/v1/economy/solow/simulate` | Solow baseline and savings-policy scenario, with per-run checks |
 | GET | `/api/v1/quant/datasets/samples` | Bundled synthetic datasets |

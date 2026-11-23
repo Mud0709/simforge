@@ -137,6 +137,41 @@ const CASES: [string, string, Record<string, unknown>][] = [
       n_samples: 61,
     },
   ],
+  [
+    // Roadmap 2.5: the simulated resonance curve. Underdamped (zeta = 0.83/(2 sqrt(1.3 x 31.7))
+    // = 0.065): the peak, its uncertainty u and the exact w_r are all present. The summary is
+    // the refined peak and the worst C1 ratio (peak.* and worst_amplitude_error_ratio).
+    "physics.oscillator.resonance_sweep",
+    "/physics/oscillator/resonance-sweep",
+    {
+      parameters: {
+        mass: 1.3,
+        spring_constant: 31.7,
+        damping_coefficient: 0.83,
+        drive_amplitude: 1.9,
+        omega_min: 2.3,
+        omega_max: 8.1,
+        settle_tolerance: 0.00001,
+      },
+      solver: { method: "RK45", rtol: 1e-9, atol: 1e-9 },
+      n_frequencies: 9,
+    },
+  ],
+  [
+    // zeta = 8/(2 x 5) = 0.8 >= 1/sqrt(2): A(w) falls from w = 0, so the best grid point is the
+    // lowest frequency (an edge) and the stored peak has uncertainty null.
+    "physics.oscillator.resonance_sweep (no interior peak: null uncertainty)",
+    "/physics/oscillator/resonance-sweep",
+    {
+      parameters: {
+        damping_coefficient: 8,
+        drive_amplitude: 1.9,
+        omega_min: 1.3,
+        omega_max: 11,
+      },
+      n_frequencies: 7,
+    },
+  ],
 ];
 
 for (const [name, path, body] of CASES) {

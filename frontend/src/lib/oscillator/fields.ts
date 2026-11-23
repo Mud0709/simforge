@@ -57,3 +57,24 @@ export const PRESETS: Record<"Simple" | "Damped" | "Driven", Record<string, stri
     initial_velocity: "0",
   },
 };
+
+/**
+ * The resonance sweep panel's own fields (roadmap 2.5). The labels all start with "Sweep",
+ * "Lowest" or "Highest" so that the page's simulation form, whose labels start with "Mass",
+ * "Spring constant" and so on, and this panel can share one page.
+ */
+export const RESONANCE_SWEEP_FIELDS = [
+  spec("ResonanceSweepParameters", "mass", "Sweep mass", "kg"),
+  spec("ResonanceSweepParameters", "spring_constant", "Sweep spring constant", "N/m"),
+  spec("ResonanceSweepParameters", "damping_coefficient", "Sweep damping coefficient", "kg/s"),
+  spec("ResonanceSweepParameters", "drive_amplitude", "Sweep drive amplitude", "N"),
+  spec("ResonanceSweepParameters", "omega_min", "Lowest drive frequency", "rad/s"),
+  spec("ResonanceSweepParameters", "omega_max", "Highest drive frequency", "rad/s"),
+  spec("ResonanceSweepRequest", "n_frequencies", "Number of frequencies", ""),
+  spec("ResonanceSweepParameters", "settle_tolerance", "Settle tolerance", ""),
+  spec("SolverSettings", "rtol", "Sweep relative tolerance", ""),
+  spec("SolverSettings", "atol", "Sweep absolute tolerance", ""),
+] as const satisfies readonly NumericFieldSpec[];
+
+/** The server refuses Radau here: an underdamped run is not stiff. */
+export const RESONANCE_SWEEP_METHODS = ["DOP853", "RK45"] as const;

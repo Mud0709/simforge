@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict
 from typing import Any
 
@@ -12,9 +13,15 @@ from simforge.api.runs import ModelEntry, Tolerance, execute
 from simforge.core import formatting as fmt
 from simforge.core.schemas import RunMetadata
 from simforge.physics.oscillator import integrator_model, model
+from simforge.physics.oscillator import resonance_sweep as rs
 from simforge.physics.oscillator.integrator_schemas import (
     OscillatorIntegratorRequest,
     OscillatorIntegratorResponse,
+)
+from simforge.physics.oscillator.resonance_sweep_schemas import (
+    ResonanceSweepPeak,
+    ResonanceSweepRequest,
+    ResonanceSweepResponse,
 )
 from simforge.physics.oscillator.schemas import (
     OscillatorDerived,
@@ -259,3 +266,153 @@ async def oscillator_integrator_study(
     request: OscillatorIntegratorRequest, repo: Repository
 ) -> OscillatorIntegratorResponse:
     return await execute(OSCILLATOR_INTEGRATORS, request, repo, save=request.save_experiment)
+
+
+# --- Simulated resonance curve (roadmap 2.5, slice 4; plan D6, D11, D12) -------------------
+
+
+def _sweep_run(request: ResonanceSweepRequest) -> rs.ResonanceSweepComputation:
+    inputs = request.parameters.to_inputs(request.n_frequencies)
+    return rs.run(
+        inputs, request.solver, max_rhs_evaluations=rs.MAX_RESONANCE_SWEEP_RHS_EVALUATIONS
+    )
+
+
+def _sweep_response(
+    request: ResonanceSweepRequest, c: rs.ResonanceSweepComputation, metadata: RunMetadata
+) -> ResonanceSweepResponse:
+    # The dashed exact curve is 2.3's, of the run at omega_max: it spans 0 to max(3 w0, 1.2 w).
+    curve = c.points[len(c.angular_frequencies) - 1].computation.resonance
+    assert curve is not None  # driven and damped
+    return ResonanceSweepResponse(
+        model=rs.MODEL_INFO,
+        parameters=request.parameters,
+        solver=request.solver,
+        units=rs.UNITS,
+        assumptions=rs.ASSUMPTIONS,
+        angular_frequencies=c.angular_frequencies,
+        amplitudes=c.amplitudes,
+        phase_lags=c.phase_lags,
+        exact_amplitudes=c.exact_amplitudes,
+        exact_phase_lags=c.exact_phase_lags,
+        settle_times=c.settle_times,
+        amplitude_bounds=c.amplitude_bounds,
+        resonance=OscillatorResonance(**asdict(curve)),
+        peak=ResonanceSweepPeak(**asdict(c.peak)),
+        grid_step_over_gamma=c.grid_step_over_gamma,
+        n_rhs_evaluations=c.n_rhs_evaluations,
+        checks=c.checks,
+        metadata=metadata,
+    )
+
+
+def _sweep_summary(c: rs.ResonanceSweepComputation) -> dict[str, Any]:
+    # Plan D12: the refined peak and the worst C1 ratio; u and B1 at the peak set the peak's
+    # replay rules, so they are stored with it.
+    c1 = next(check for check in c.checks if check.id == "lock_in_amplitude")
+    assert c1.threshold is not None  # B1 > 0 at every point
+    p = c.peak
+    return {
+        "peak": {
+            "angular_frequency": p.angular_frequency,
+            "amplitude": p.amplitude,
+            "amplitude_bound": p.amplitude_bound,
+            "uncertainty": p.uncertainty,
+        },
+        "worst_amplitude_error_ratio": c1.value / c1.threshold,
+    }
+
+
+# How much B1 at the peak may change on another machine (its e_x is a measured solver error):
+# a margin, not a measurement; the replay rules below all use it.
+_B1_FACTOR = 3.0
+
+
+def _sweep_tolerances(inputs: dict[str, Any], summary: dict[str, Any]) -> dict[str, Tolerance]:
+    q = inputs["parameters"]
+    w0 = math.sqrt(q["spring_constant"] / q["mass"])
+    xatol = rs.PEAK_XATOL_FACTOR * w0
+    step = (q["omega_max"] - q["omega_min"]) / (inputs["n_frequencies"] - 1)
+    b1, u = summary["peak"]["amplitude_bound"], summary["peak"]["uncertainty"]
+    return {
+        "peak.angular_frequency": Tolerance(
+            relative=0.0,
+            absolute=xatol if u is None else max(xatol, u),
+            reason="max(xatol, u) absolute, xatol = 1e-7 w0 (plan D9, D12; 2.2's rule): Brent "
+            "stops within xatol, and u estimates how far the amplitude error B1 can move the "
+            "maximum of a curve that flat; xatol alone when u is null (an edge).",
+        ),
+        "peak.amplitude": Tolerance(
+            relative=0.0,
+            absolute=(1 + _B1_FACTOR) * b1,
+            reason="4 B1 absolute. On each machine the refined amplitude is within its own B1 of "
+            "the exact curve near its maximum (C1, proved given e_x; Brent's maximum is at least "
+            "the value near w_r and at most A_max + B1), so two machines differ by about "
+            "B1 + B1', with B1' (from another machine's measured e_x) taken as at most 3 B1.",
+        ),
+        "peak.amplitude_bound": Tolerance(
+            relative=1 - 1 / _B1_FACTOR,
+            absolute=0.0,
+            reason="B1 = 2 e_x + eps_s A + r_A: eps_s A and r_A agree to a few roundings, but e_x "
+            "is a measured solver error, which rounding on another machine can move through "
+            "one accept/reject decision; allowed to change by a factor of up to 3 (the same "
+            "margin as the peak amplitude's rule).",
+        ),
+        "peak.uncertainty": (
+            Tolerance.exact(
+                "Null when the best grid point is at an edge or the grid curve is not bent "
+                "downwards there: null must stay null (a replay finding the best grid point "
+                "elsewhere is a different computation)."
+            )
+            if u is None
+            else Tolerance(
+                relative=1 - 1 / (math.sqrt(_B1_FACTOR) * (1 + 4 * u**2 / step**2)),
+                absolute=0.0,
+                reason="u = 2 sqrt(B1/K), K = |d2|/h^2 from the grid's second difference d2 "
+                "(|d2| = 4 B1 h^2/u^2). With B1 changing by a factor of up to 3, sqrt(B1) "
+                "changes by up to sqrt 3; each grid amplitude near the peak moves by at most "
+                "about B1 + B1' <= 4 B1, so d2 by 16 B1, i.e. by 4 u^2/h^2 of itself, and u by "
+                "half that to first order (doubled for margin). u may therefore change by a "
+                "factor F = sqrt 3 (1 + 4 u^2/h^2), a relative change of 1 - 1/F. First order "
+                "in d2 and B1 taken equal at the three points: an estimate.",
+            )
+        ),
+        "worst_amplitude_error_ratio": Tolerance(
+            relative=0.0,
+            absolute=1.0,
+            reason="The largest |A_sim - A| / B1 over the grid and refinement runs, in [0, 1] "
+            "on any machine where C1 passes (proved given e_x), so two such machines differ "
+            "by at most 1; a value above 1 is a failed check, shown by the checks.",
+        ),
+    }
+
+
+def _sweep_headline(s: dict[str, Any]) -> str:
+    p = s["peak"]
+    return (
+        f"peak {fmt.sig(p['angular_frequency'])} rad/s, A {fmt.sig(p['amplitude'])} m, "
+        f"C1 worst {s['worst_amplitude_error_ratio']:.2f} of B1"
+    )
+
+
+RESONANCE_SWEEP = ModelEntry(
+    info=rs.MODEL_INFO,
+    request_type=ResonanceSweepRequest,
+    compute=_sweep_run,
+    inputs=lambda req, _: req.model_dump(include={"parameters", "solver", "n_frequencies"}),
+    summary=_sweep_summary,
+    respond=_sweep_response,
+    elapsed_ms=lambda c: c.elapsed_ms,
+    rebuild=lambda inputs, _: ResonanceSweepRequest.model_validate(
+        {**inputs, "save_experiment": False}
+    ),
+    tolerances=_sweep_tolerances,
+    headline=_sweep_headline,
+)
+
+
+@router.post("/oscillator/resonance-sweep")
+async def oscillator_resonance_sweep(
+    request: ResonanceSweepRequest, repo: Repository
+) -> ResonanceSweepResponse:
+    return await execute(RESONANCE_SWEEP, request, repo, save=request.save_experiment)

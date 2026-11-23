@@ -34,8 +34,8 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.optimize import minimize_scalar
 
+from simforge.numerics.sweep import refine_maximum
 from simforge.physics.projectile import analytical
 from simforge.physics.projectile.analytical import ProjectileSetup
 
@@ -111,21 +111,10 @@ def sweep(setup: ProjectileSetup, angles_deg: Sequence[float]) -> AngleSweep:
     if len(angles_deg) < 3:
         raise ValueError("need at least 3 angles to bracket a maximum")
     points = [evaluate(setup, a) for a in angles_deg]
-
-    # Refine around the best grid point, using its neighbours as the bracket.
-    i = max(range(len(points)), key=lambda j: points[j].range)
-    lo = angles_deg[max(i - 1, 0)]
-    hi = angles_deg[min(i + 1, len(points) - 1)]
-    result = minimize_scalar(
-        lambda a: -evaluate(setup, float(a)).range,
-        bounds=(lo, hi),
-        method="bounded",
-        options={"xatol": ANGLE_XATOL},
+    # Brent on the best grid point's neighbour interval; the grid point wins if it is higher.
+    best_angle, best_range, _ = refine_maximum(
+        lambda a: evaluate(setup, a).range, angles_deg, [p.range for p in points], ANGLE_XATOL
     )
-    best_angle, best_range = float(result.x), -float(result.fun)
-    if points[i].range > best_range:  # the optimum sits exactly on a grid point (or an edge)
-        best_angle, best_range = points[i].angle_deg, points[i].range
-
     vac_angle, vac_range = vacuum_optimum(setup)
     return AngleSweep(
         points=points,

@@ -109,13 +109,14 @@ tokens. "If unsure, it is risky" applies to the choice of agent too.
 |---|---|---|
 | `explorer` | `claude-haiku-5-5`, high | read-only lookup; `file:line` findings in 300 words or fewer |
 | `test-runner` | `claude-haiku-5-5`, high | run a given command into a log; return counts, failing names, first errors |
-| `builder`, `test-writer` | `claude-sonnet-5-5`, medium | a routine slice; docs, journal and handoff units; a review fix with a clear cause |
+| `builder`, `test-writer` | `claude-sonnet-5-5`, high | a routine slice; docs, journal and handoff units; a review fix with a clear cause |
 | `builder-risky`, `test-writer-risky` | `claude-opus-5-5`, medium | a risky slice |
 | `planner`, `reviewer` | `claude-opus-5-5`, medium | plans; reviews |
 | main session | `effortLevel` medium; the scheduled autopilot task runs `claude-sonnet-5-5` | choosing units, delegating, verifying, journaling |
 
 Opus is used only by `planner`, `reviewer`, `builder-risky` and `test-writer-risky`
-(`builder-risky` is also the retry ladder's second rung, autopilot skill step 4).
+(`builder-risky` is also the retry ladder's second rung, autopilot skill step 4). Sonnet agents run at
+high effort since the author's rule of 2026-11-22 (were medium).
 
 **Risky** means: the scientific core (models, numerics, references, tolerances), inputs and
 limits, uploads, stored data, or an unclear failure. If unsure, it is risky.
@@ -124,7 +125,7 @@ limits, uploads, stored data, or an unclear failure. If unsure, it is risky.
 - a plan that touches the scientific core gets 3 `reviewer`s in parallel, one angle each, in a
   planning-only tick; any other plan gets 1;
 - every risky slice gets 1 fresh `reviewer` (a `/security-review` for inputs, limits, uploads,
-  stored data);
+  stored data), run in the autopilot's review-and-fix tick, after every slice is built;
 - a non-risky slice gets no separate review: its Acceptance block and `scripts/check.sh` judge it;
 - the whole step gets 1 review before it is marked complete.
 
@@ -137,9 +138,11 @@ denied in `.claude/settings.json`; un-deny one there if needed.
 ## Autopilot
 A scheduled task starts a fresh session per run and follows `.claude/skills/autopilot/SKILL.md`
 (procedure, limits, ladder, stops); its per-run state is `.claude/autopilot/STATE.md` and its
-lessons are `.claude/autopilot/FINDINGS.md`. A tick's unit is a whole roadmap step (a plan tick,
-then a build tick: every slice, a step brief for the author's portfolio, the PR; the author's
-rule of 2026-11-19). "Pause/resume autopilot" anytime: it only
+lessons are `.claude/autopilot/FINDINGS.md`. A roadmap step takes three kinds of tick, each doing one
+thing for all its slices (the author's rule of 2026-11-22): a **plan tick** (every slice
+planned and the plan reviewed), a **build tick** (every slice built to its Acceptance, plus the
+guide chapter and step brief) and a **review-and-fix tick** (the slice and whole-step reviews
+together, their fixes, any debugging, the full check, the PR). Three ticks a day. "Pause/resume autopilot" anytime: it only
 disables or enables the scheduled task (`update_trigger`), with no commit or PR.
 
 ## Standards (non-negotiable)

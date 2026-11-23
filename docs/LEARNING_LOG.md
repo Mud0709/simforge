@@ -14,6 +14,30 @@ maps each to its new hash. GitHub PR pages keep the old hashes.
 
 ---
 
+## Roadmap 2.4: the methods workbench (DRAFT, awaiting the author)
+- **Merged:** PR #27 (2026-11-20), the whole of step 2.4, planned and built in one chat session
+  (5 slices; 64 files changed, about 8 700 lines added).
+- **What it does:** one fixed-step driver in `numerics/` runs any convergence study; the
+  oscillator (new page `/physics/oscillator/integrators`) and the projectile integrator study
+  use it. It adds symplectic Euler and velocity Verlet, long-run energy drift, landing-time
+  (event-location) error, and per-run checks on the three oldest projectile models. Part 21 of
+  the learning guide and `docs/briefs/2.4.md` explain it.
+- **Key concepts:** a symplectic method conserves a slightly different energy H~ exactly, so the
+  true energy wobbles but never drifts; measure order over every step, because at t = T
+  symplectic Euler looks second order (its first-order error cancels over a full period);
+  near theta = 2 rounding is magnified by H~'s conditioning, so the check scales for it.
+- **Decisions and trade-offs:** every plan recommendation taken at the author's request; four
+  decisions taken during the build (max-over-nodes error, conditioning-scaled threshold,
+  `np.hypot` for bit-identical refactors, a pre-asymptotic exclusion for strong drag), each
+  reversible and listed in the journal; refactors proved bit-identical by golden digests before
+  each version bump. CI: a stale ruff cache hid an import-order error; a Ubuntu mirror outage
+  failed Playwright until a re-run.
+- **Revisit:** the brief's demo in a browser; the worth-doing list in
+  `docs/journal/2026-11-19-1207-2-4-plan-and-build.md` (a planted wrong stepper in the
+  event-order fit, a derived projectile threshold floor, a "proved inequality" check kind);
+  the Next.js upgrade; which further models join the workbench.
+- **Next:** 2.5 (generic sweeps) plan tick.
+
 ## Roadmap 2.3: the damped, driven oscillator (DRAFT, awaiting the author)
 - **Merged:** PR #26 (`bcf6518`, 2026-11-19), which carried the rest of step 2.3 (slices 3 to 5: the
   endpoint and corners test, the frontend lab, the docs close-out) and PR #25's hook fixes. Slices 1

@@ -5,8 +5,15 @@ import { vi } from "vitest";
 import type { AngleSweepResponse, ProjectileParameters } from "@/lib/api/client";
 import { AngleSweepPanel } from "./AngleSweepPanel";
 
+// Each chart's traces and layout are recorded by title, so a test can read what would be drawn.
+type Trace = { name?: string; x?: number[]; y?: number[]; mode?: string };
+type Layout = { xaxis?: { title?: { text?: string } }; yaxis?: { title?: { text?: string } } };
+const charts = new Map<string, { data: Trace[]; layout: Layout }>();
 vi.mock("./PlotlyChart", () => ({
-  PlotlyChart: ({ title }: { title: string }) => <div role="img" aria-label={title} />,
+  PlotlyChart: ({ title, data, layout }: { title: string; data: Trace[]; layout: Layout }) => {
+    charts.set(title, { data, layout });
+    return <div role="img" aria-label={title} />;
+  },
 }));
 
 const PARAMS = {
@@ -66,7 +73,10 @@ function mockFetch(status: number, body: unknown) {
   return fn;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  charts.clear();
+});
 
 describe("AngleSweepPanel", () => {
   it("sweeps with the current parameters and shows the best angle", async () => {
@@ -103,5 +113,58 @@ describe("AngleSweepPanel", () => {
     render(<AngleSweepPanel parameters={PARAMS} />);
     await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("less than or equal to 361");
+  });
+
+  // Roadmap 2.5, D13 planned to generalise the shared panel from angles to any swept variable;
+  // that was not done (the resonance sweep has its own panel). These tests go through the public
+  // AngleSweepPanel only (its props and what it shows), so they would also survive such a change.
+  it("draws the analytical range curve and the best angle, over 0 to 90 degrees", async () => {
+    mockFetch(200, RESPONSE);
+    render(<AngleSweepPanel parameters={PARAMS} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
+    await screen.findByTestId("best-angle");
+    const { data, layout } = charts.get("Range against launch angle")!;
+    // No vacuum curve for the linear-drag sweep: only the curve and the best-angle marker.
+    expect(data.map((t) => t.name)).toEqual(["Range (analytical)", "Best angle"]);
+    expect(data[0]!.x).toEqual([0, 45, 90]);
+    expect(data[0]!.y).toEqual([0, 12.5, 0]);
+    expect(data[1]!.x).toEqual([30.0774]);
+    expect(data[1]!.y).toEqual([13.8929]);
+    expect(data[1]!.mode).toBe("markers");
+    expect(layout.xaxis?.title?.text).toBe("Launch angle (°)");
+    expect(layout.yaxis?.title?.text).toBe("Range (m)");
+  });
+
+  it("labels the best angle 'with drag' only when there is drag, and has no angle-count field", async () => {
+    mockFetch(200, RESPONSE);
+    const withDrag = render(<AngleSweepPanel parameters={PARAMS} />);
+    expect(screen.queryByLabelText(/Number of angles/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
+    expect(await screen.findByText("Best angle (with drag)")).toBeInTheDocument();
+    withDrag.unmount();
+
+    mockFetch(200, RESPONSE);
+    render(<AngleSweepPanel parameters={{ ...PARAMS, drag_coefficient: 0 }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
+    expect(await screen.findByText("Best angle")).toBeInTheDocument();
+    expect(screen.queryByText("Best angle (with drag)")).not.toBeInTheDocument();
+  });
+
+  it("says 'Sweeping…' and disables the button while the server works", async () => {
+    let finish!: (r: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>((resolve) => (finish = resolve))),
+    );
+    render(<AngleSweepPanel parameters={PARAMS} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sweep launch angle" }));
+    expect(await screen.findByRole("button", { name: "Sweeping…" })).toBeDisabled();
+    finish(
+      new Response(JSON.stringify(RESPONSE), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    expect(await screen.findByTestId("best-angle")).toBeInTheDocument();
   });
 });

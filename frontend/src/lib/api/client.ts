@@ -13,6 +13,9 @@ export type QuadraticAngleSweepResponse = Schemas["QuadraticAngleSweepResponse"]
 export type OscillatorParameters = Schemas["OscillatorParameters"];
 export type OscillatorRequest = Schemas["OscillatorRequest"];
 export type OscillatorResponse = Schemas["OscillatorResponse"];
+export type ResonanceSweepParameters = Schemas["ResonanceSweepParameters"];
+export type ResonanceSweepRequest = Schemas["ResonanceSweepRequest"];
+export type ResonanceSweepResponse = Schemas["ResonanceSweepResponse"];
 export type LoggedRun = Schemas["LoggedRun"];
 export type ReplayRequest = Schemas["ReplayRequest"];
 export type RunLabels = Schemas["RunLabels"];
@@ -117,6 +120,13 @@ export function runQuadraticAngleSweep(
   body: QuadraticAngleSweepRequest,
 ): Promise<QuadraticAngleSweepResponse> {
   return request("/physics/projectile/quadratic-drag/angle-sweep", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function runResonanceSweep(body: ResonanceSweepRequest): Promise<ResonanceSweepResponse> {
+  return request("/physics/oscillator/resonance-sweep", {
     method: "POST",
     body: JSON.stringify(body),
   });

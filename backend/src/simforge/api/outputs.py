@@ -15,7 +15,11 @@ from pydantic import Discriminator, Field, Tag
 
 from simforge.api.rerun import DatasetSupply, prepare_rerun
 from simforge.api.routes.economy import SOLOW
-from simforge.api.routes.oscillator import OSCILLATOR, OSCILLATOR_INTEGRATORS
+from simforge.api.routes.oscillator import (
+    OSCILLATOR,
+    OSCILLATOR_INTEGRATORS,
+    RESONANCE_SWEEP,
+)
 from simforge.api.routes.physics import (
     ANGLE_SWEEP,
     INTEGRATOR_STUDY,
@@ -29,6 +33,7 @@ from simforge.core.schemas import StrictModel
 from simforge.economy.solow.schemas import SolowResponse
 from simforge.persistence.experiments import ExperimentRecord, ExperimentRepository
 from simforge.physics.oscillator.integrator_schemas import OscillatorIntegratorResponse
+from simforge.physics.oscillator.resonance_sweep_schemas import ResonanceSweepResponse
 from simforge.physics.oscillator.schemas import OscillatorResponse
 from simforge.physics.projectile.integrator_schemas import IntegratorStudyResponse
 from simforge.physics.projectile.quadratic_schemas import (
@@ -48,7 +53,7 @@ def _model_id(value: Any) -> str | None:
 
 
 # The responses share no literal field to discriminate on, and adding one would change every
-# output digest, so the union is told apart by ``model.id`` (one schema checked, not nine).
+# output digest, so the union is told apart by ``model.id`` (one schema checked, not ten).
 ModelResponse = Annotated[
     Annotated[ProjectileResponse, Tag(PROJECTILE.info.id)]
     | Annotated[IntegratorStudyResponse, Tag(INTEGRATOR_STUDY.info.id)]
@@ -58,7 +63,8 @@ ModelResponse = Annotated[
     | Annotated[QuadraticDragResponse, Tag(QUADRATIC_DRAG.info.id)]
     | Annotated[QuadraticAngleSweepResponse, Tag(QUADRATIC_ANGLE_SWEEP.info.id)]
     | Annotated[OscillatorResponse, Tag(OSCILLATOR.info.id)]
-    | Annotated[OscillatorIntegratorResponse, Tag(OSCILLATOR_INTEGRATORS.info.id)],
+    | Annotated[OscillatorIntegratorResponse, Tag(OSCILLATOR_INTEGRATORS.info.id)]
+    | Annotated[ResonanceSweepResponse, Tag(RESONANCE_SWEEP.info.id)],
     Discriminator(_model_id),
 ]
 

@@ -2,7 +2,7 @@
 name: builder
 description: Routine units (Sonnet): a slice that is not risky, a docs, journal or handoff unit, or a review fix with a clear cause.
 model: claude-sonnet-5-5
-effort: medium
+effort: high
 tools: Read, Grep, Glob, Bash, Edit, Write
 maxTurns: 60
 skills:

@@ -8,6 +8,8 @@ const PAGES: Record<string, string> = {
   // Each drag law's sweep starts from its own page's parameters (plan D2).
   "physics.projectile.quadratic_angle_sweep": "/physics/projectile/quadratic-drag",
   "physics.oscillator": "/physics/oscillator",
+  // The sweep has its own inputs, in its own panel on the oscillator page.
+  "physics.oscillator.resonance_sweep": "/physics/oscillator",
   "physics.oscillator.integrators": "/physics/oscillator/integrators",
   "economy.solow": "/economy/solow",
   "quant.dataset_profile": "/quant/datasets",

@@ -306,7 +306,7 @@ def test_grid_point_is_kept_when_it_beats_the_refinement(monkeypatch: pytest.Mon
     ) -> SimpleNamespace:
         return SimpleNamespace(x=bounds[0], fun=fun(bounds[0]))
 
-    monkeypatch.setattr(qas, "minimize_scalar", left_end)
+    monkeypatch.setattr("simforge.numerics.sweep.minimize_scalar", left_end)
     result = qas.sweep(make_setup(), settings(), N_COARSE)
     grid_best = max(result.points, key=lambda p: p.range)
     assert grid_best.angle_deg == 45.0

@@ -102,7 +102,7 @@ drift, event-location error); generic sweeps; animation.
 | 2.2 | **Angle sweeps for both drag laws.** The quadratic-drag sweep `physics.projectile.quadratic_angle_sweep` on `/physics/projectile/quadratic-drag` (every point a 2.1 run; best angle by Brent with an accuracy estimate; checked against the vacuum closed form, a weak-drag first-order result and an independent integration; work budget); the linear sweep unchanged (plan and amendments: `docs/plans/ROADMAP_2_2_PLAN.md`) | ✅ |
 | 2.3 | **Simple, damped and driven oscillators.** Exact solution in every regime checked against a SciPy solve with measured per-run checks, `/api/v1/physics/oscillator/simulate` and the page `/physics/oscillator` (plan: `docs/plans/ROADMAP_2_3_PLAN.md`) | ✅ |
 | 2.4 | **The methods workbench for any time-stepping model.** Symplectic methods, energy drift, event-location error. Built as a generic driver used by two models (the oscillator and the projectile): `POST /api/v1/physics/oscillator/integrators` and the page `/physics/oscillator/integrators`; per-run checks for the three Phase 0 models; landing-time error and a shared landing helper (plan: `docs/plans/ROADMAP_2_4_PLAN.md`) | ✅ |
-| 2.5 | **Generic sweeps.** | ⏳ |
+| 2.5 | **Generic sweeps.** A model-free sweep driver (`numerics/sweep.py`) used by the two angle sweeps and a new simulated resonance curve for the driven oscillator: `POST /api/v1/physics/oscillator/resonance-sweep` and a panel on `/physics/oscillator` (plan: `docs/plans/ROADMAP_2_5_PLAN.md`) | ✅ |
 | 2.6 | **Animation.** | ⏳ |
 
 Done when every item above is built and validated in the shared workspace: quadratic drag

@@ -7,13 +7,16 @@ export function NumberField({
   value,
   error,
   onChange,
+  idPrefix = "",
 }: {
   field: NumericFieldSpec;
   value: string;
   error: string | null;
   onChange: (v: string) => void;
+  /** Keeps ids unique when two forms with a field of the same name share a page. */
+  idPrefix?: string;
 }) {
-  const id = `field-${field.name}`;
+  const id = `field-${idPrefix}${field.name}`;
   return (
     <div className="field">
       <label htmlFor={id}>

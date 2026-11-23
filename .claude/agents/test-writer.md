@@ -2,7 +2,7 @@
 name: test-writer
 description: Writes the tests a routine slice's Acceptance block names (Sonnet); they must fail on the current code.
 model: claude-sonnet-5-5
-effort: medium
+effort: high
 tools: Read, Grep, Glob, Bash, Edit, Write
 maxTurns: 40
 hooks:

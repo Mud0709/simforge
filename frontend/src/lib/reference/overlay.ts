@@ -178,7 +178,8 @@ export function referenceSeries(r: ModelResponse): ChartSeries {
       output_per_worker: paths("output_per_worker_index"),
     };
   }
-  // The dataset profile is compared in a table, not on its charts.
+  // No overlay for the dataset profile (compared in a table) or the resonance sweep (plan D13,
+  // decision 17: its panel sits beside the Workspace, which has no reference run).
   return {};
 }
 

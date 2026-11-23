@@ -6,8 +6,9 @@ description: Autonomous progress on SimForge between the author's reviews. Use w
 # SimForge autopilot
 
 Each **tick** (a scheduled run that starts a **fresh session**) moves SimForge forward by **one
-unit of work**: a whole roadmap step (a plan tick, then a build tick that builds every slice of
-it; the author's rule of 2026-11-19), a CI fix, a review fix or a set of docs. Everything
+unit of work**: one phase of a roadmap step done for all its slices at once (a plan tick, a
+build tick, then a review-and-fix tick; the author's rule of 2026-11-22, replacing 2026-11-19),
+a CI fix, a review fix or a set of docs. Everything
 follows `CLAUDE.md` (standards, model table, risky definition, review rule, read rule, test
 output, commit identity, PR rule); this file is the procedure. Per-run state, the daily cap and
 the schedule are in `.claude/autopilot/STATE.md`.
@@ -107,10 +108,17 @@ A fresh session cannot read live usage, so the gate counts runs in git.
 5. **The 🔜 roadmap step is the unit**, Track B order. Do not start a new step while the
    branch's PR holds an earlier, unmerged step (one capability per PR): end with one line
    ("Autopilot: waiting for the merge of PR #N"), change no files, and act only on red CI or
-   review comments on that PR (units 1-2). Otherwise: with **no reviewed plan** (every slice
-   having its Acceptance block) this is a **plan tick**: the `planner` writes the plan, reviewed
-   as step 3 says, and nothing is built; with a reviewed plan it is a **build tick** (step 4):
-   every remaining slice in order, then the close-out. If the authorised phase has no step
+   review comments on that PR (units 1-2). Otherwise the step's state picks one of three ticks
+   (the author's rule of 2026-11-22; each tick does one kind of work, for all slices):
+   - **no reviewed plan** (every slice having its Acceptance block): a **plan tick**. The
+     `planner` plans every slice, reviewed as step 3 says; nothing is built.
+   - **a reviewed plan with unbuilt slices and no deferred failure**: a **build tick** (step 4):
+     every remaining slice in order, then the guide chapter and step brief. No reviewers, no
+     debugging.
+   - **every slice built, or a slice deferred as failed by a build tick**: a **review-and-fix
+     tick** (step 4): debug the deferred slice; once every slice is built, the slice and
+     whole-step reviews together, their fixes, the full check and the PR. If debugging leaves
+     slices unbuilt, the next tick is a build tick. If the authorised phase has no step
    table yet, the first unit is to split its ROADMAP paragraph into steps, keeping every item
    and its order, with 🔜 on the first.
 
@@ -166,23 +174,35 @@ and your recommendation, set `stop: blocked`, journal it, and pause (step 6).
   subagents by name (`.claude/agents/`; model and effort are pinned there, see `CLAUDE.md`):
   `planner`, `reviewer`, `test-writer` / `builder`, or `test-writer-risky` / `builder-risky`
   for a risky unit. Give each the unit, the relevant files and the hard rules above. **At most
-  4 working subagents per slice** (test writer, builder, reviewer, one retry) **and 24 per
-  tick**. The Haiku helpers `explorer` and `test-runner` do not count toward them but have
-  their own limit: **at most 5 Haiku helper spawns per slice**. A review that would exceed a
-  cap: commit the slice once Acceptance passes, mark it "review pending" in STATE (not in the
-  handoff), and make the review the next tick's unit.
-- **The build tick** (a whole step). Take the plan's slices in order; for each: the test writer
-  (red tests), the builder (Acceptance green), the fresh `reviewer` if the slice is risky
-  (must-fix findings fixed by the unit's builder, Acceptance run again), then one commit with
-  STATE's current unit updated. Slices depend on each other: never in parallel, and slice N+1
-  starts only once slice N is committed. A slice without an Acceptance block first gets one
-  from the `planner`, checked by 1 reviewer on angle (c). A slice that still fails after the
-  ladder is a failure: commit STATE only (`Autopilot-run: state`), stop the loop, end the tick;
-  later slices are not attempted. If the session ends early, the commits so far are safe and the
-  next tick resumes at the next slice. **Close-out**, after the last slice: the full
-  `scripts/check.sh --e2e` once, the learning-guide chapter and the **step brief** (below; both
-  docs units for a `builder`), the whole-step review (1 `reviewer`, must-fix findings fixed),
-  then the PR (never merged). The handoff names the PR and the next step.
+  4 working subagents per slice across the step** (test writer, builder, reviewer, one retry)
+  **and 24 per tick**. The Haiku helpers `explorer` and `test-runner` do not count toward them
+  but have their own limit: **at most 5 Haiku helper spawns per slice per tick**. Reviews that
+  would exceed a cap: commit what passes, mark the rest "review pending" in STATE (not in the
+  handoff), and make them the next tick's unit.
+- **The build tick** (every remaining slice; no reviews, no debugging). Take the plan's slices
+  in order; for each: the test writer (red tests), the builder (Acceptance green), then one
+  commit with STATE's current unit updated and the slice marked "review pending" if it is
+  risky. Slices depend on each other: never in parallel, and slice N+1 starts only once slice N
+  is committed. A slice without an Acceptance block first gets one from the `planner`, checked
+  by 1 reviewer on angle (c). **A slice whose Acceptance fails after its builder is deferred,
+  not debugged** (the author's answer of 2026-11-22): nothing of it is committed, STATE records
+  it as "deferred: failed" with the builder's report and the failing output's first lines
+  (committed as `Autopilot-run: state`, or with the tick's last slice commit), the loop stops
+  and later slices are not attempted. After the last slice, the learning-guide chapter and the
+  **step brief** (below; docs units for a `builder`), committed. If the session ends early, the
+  commits so far are safe and the next tick resumes at the next slice.
+- **The review-and-fix tick.** (1) **Debugging first:** a slice deferred as failed is rebuilt
+  with the `systematic-debugging` skill and the retry ladder (below): the test writer again,
+  the builder, then the ladder's rungs; green: commit it; still failing: a failure (the
+  two-tick rule). If slices remain unbuilt, the tick ends and the next is a build tick.
+  (2) **Once every slice is built, all reviews together:** one fresh `reviewer` per risky slice
+  (a `/security-review` for inputs, limits, uploads, stored data) and the whole-step review
+  (which also checks the guide chapter and the step brief), run in parallel, as they read
+  finished code. (3) **Fixes:** must-fix findings fixed by each slice's builder (one at a time,
+  never parallel), that slice's Acceptance run again; a fix that fails goes up the ladder.
+  (4) The full `scripts/check.sh --e2e` once, then the PR (never merged). The handoff names
+  the PR and the next step. A tick that runs out of caps or time commits what passes and
+  leaves the rest "review pending" in STATE for the next review-and-fix tick.
 - **The step brief** (for the author's college portfolio): `docs/briefs/<step>.md` from
   `docs/briefs/_template.md`, one page in IB terms: what was built; what it shows and how it
   was checked, each claim labelled proved, tested or observed; one reproducible figure (preset
@@ -204,7 +224,8 @@ and your recommendation, set `stop: blocked`, journal it, and pause (step 6).
   builder sets from measurement), and the builder may edit only inside it. Before running
   Acceptance the run checks the block unchanged, every other named file unchanged, and every
   changed line of a helper inside its marked block; any other change is a genuine stop.
-- **Retry ladder, by model** (the author's rule of 2026-11-15, replacing the effort ladder):
+- **Retry ladder, by model** (the author's rule of 2026-11-15, replacing the effort ladder;
+  since 2026-11-22 a build tick runs rung 1 only and the review-and-fix tick runs the rest):
   (1) the unit's builder; if Acceptance fails, (2) **one retry in the main session** (the run
   fixes the failure from the builder's report and the failing output, re-runs Acceptance, and
   journals the rung "main session"); (3) a routine unit then goes **one rung up**, Sonnet to
@@ -224,6 +245,16 @@ and your recommendation, set `stop: blocked`, journal it, and pause (step 6).
   again). Commit only if the checks that ran pass (`verification-before-completion`), and
   journal exactly which ran. A check you suspect is flaky may be re-run **once**; journal both
   results, never present a re-run pass as a clean pass.
+- **Known-red tests** (the author's answer of 2026-11-22). Tests the author left failing on
+  purpose for their own Track A work are listed on the `Known red:` line of `docs/HANDOFF.md`
+  (files and the expected count). The autopilot never edits those files or the code they test,
+  and their listed failures alone do not block a commit; any other failure, or a different
+  count, does. They are never deselected, skipped or marked expected-to-fail. The step's PR is
+  opened only when the line is empty (`none`) or the full suite is otherwise green and the
+  listed tests pass; until then the handoff says "PR waits for your known-red tests".
+- **The branch is shared with the author.** Before every push, `git fetch origin` and, if the
+  working branch moved, merge it (a merge commit, never a rebase); a conflict in the author's
+  files is a genuine stop.
 - Commit with a clear message and push. Check CI on the next run.
 - **A lesson that cost this tick something** gets one line in `.claude/autopilot/FINDINGS.md`:
   a new `[seen 1]` line, or a sighting added to an existing one; the third sighting makes it

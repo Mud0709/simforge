@@ -490,6 +490,19 @@ Formulas R1-R8 are in `docs/plans/ROADMAP_2_4_PLAN.md`, derived by hand. Tests:
   last-bit differences on other inputs are possible and were not bumped as a version change
   (not tested beyond the golden cases). `energy_envelope` keeps each bin's minimum and maximum,
   checked by brute force.
+- **Sweep driver** (`sweep.py`, roadmap 2.5 slice 1, plan D3; used since slice 2 by both
+  angle sweeps, whose golden digests and tests are unchanged;
+  `backend/tests/numerics/test_sweep.py`). **Tested** on closed-form parabolas with an
+  off-grid maximum x*: `refine_maximum` returns x* within `xatol` (a property of scipy's
+  bounded Brent, whose stopping rule guarantees it for |x| ≤ 1; we rely on scipy for this, it
+  is not proved here), keeps the grid point exactly when a stand-in minimiser does worse, and
+  stays inside the edge interval when the maximum is off the grid. **Proved** (Taylor series
+  of a quadratic stops at f''), **tested in floats** to 1e-12 relative: the centred second
+  difference K = −(f₊ − 2f₀ + f₋)/h² equals |f''| on a parabola. `curvature` is `None` at an
+  edge or when the curve is not bent down; `interior_peaks` counts strict interior maxima only
+  (hand-made sequences); `WorkBudget` raises its own `WorkBudgetExceededError` on the first charge
+  that takes the total above the limit (tested, not before it). K is an estimate of |f''| on
+  other curves (error O(h²)), not a bound.
 
 ---
 
@@ -1108,8 +1121,6 @@ emulation (each drag evaluation × (1 ± 1 or 2 ulp); 892 reruns of 223 sweeps, 
   bounded.
 - **UI:** "Maximum range" has no "(numerical)" tag in the shared sweep panel (on either page);
   the sweep's notes appear twice under Validation. A sweep shows "Sweeping…" with no progress.
-- About 25 lines of grid-and-Brent logic are duplicated from `angle_sweep.py` until roadmap
-  2.5 (generic sweeps).
 
 ---
 
@@ -1428,6 +1439,172 @@ slice-1 `numerics/` (above). Formulas R1-R7: `docs/plans/ROADMAP_2_4_PLAN.md`.
   (a proxy for another machine's last-bit differences, not a proof). The largest change of
   `max_relative_energy_error` was 2.1e-5 of its tolerance (θ = 1.99999983, four starts, both
   methods), so the margins held there.
+
+## `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5; model, API and page)
+
+Code: `backend/src/simforge/physics/oscillator/resonance_sweep.py` (R3-R5 derived in its
+docstring), on `model.run_with_solution` (the 2.3 run, returning its solve; the
+`physics.oscillator` golden digest unchanged) and the 2.5 driver `numerics/sweep.py`.
+Decisions D6-D10 and formulas R1-R5: `docs/plans/ROADMAP_2_5_PLAN.md`. Learning guide: Part 22.
+Endpoint `POST /api/v1/physics/oscillator/resonance-sweep`; page: the "Simulated resonance
+curve" panel on `/physics/oscillator` (`ResonanceSweepPanel.tsx`, slice 5).
+
+**Label key for this section.** *Proved*: derived on paper (R1-R5 and the bounds C1-C4 given
+the measured e_x), with the tests checking that the code obeys the derivation. *Tested*: a test
+against an independent reference. *Observed*: measured on one machine, no proof (C5, u, the
+rounding measurement, the budget and the timings).
+
+**Two deviations from the plan, recorded here.** (1) **r_A (slice 3).** Plan D10 gave the
+rounding allowance as c·M·N_W·ε·A. The built form is r_A = `ROUNDING_FACTOR` (16) ·
+(max(ω₀, ω)·t_end + Q + 20)·ε·max|x_num|: it grows with the phase ω·t_end (the plan's did
+not) and uses max|x_num| rather than A. Its justification is the term-by-term comment at
+`ROUNDING_FACTOR`; its size is checked by the measurement below, not proved. (2) **The frontend
+(slice 5, plan D13).** D13 planned to generalise `SweepPanel`/`SweepAdapter` from angles to any
+swept variable. That was not done: `AngleSweepPanel.tsx` is unchanged in slice 5, and the
+resonance panel is a separate component (`ResonanceSweepPanel.tsx`) with its own form and run
+button. The two angle panels' behaviour is unchanged (only their test file gained assertions).
+
+### What it computes
+At each of `n_frequencies` evenly spaced drive frequencies ω, one 2.3 run from rest, DOP853 or
+RK45 only, underdamped only (ζ < 1). The run waits t_s, the smallest whole number of drive
+periods with 2R e^{−γt_s} ≤ ε_s·A (R5, ε_s = `settle_tolerance`), then N_W = 2 more periods;
+a lock-in on M = 64 samples per period over those two periods (from the solver's dense
+output) gives A_sim and δ_sim (reported in [−π/2, 3π/2); every phase comparison uses the
+difference wrapped into (−π, π]). The best grid point is refined by Brent (xatol = 1e-7·ω₀),
+each evaluation one more run. Every grid point's cycles are checked against 2.3's 500-cycle cap
+before any solve.
+
+### Proved (on paper, in the module docstring; the tests check the code obeys them)
+- **R3**: the lock-in returns A cos δ and A sin δ exactly for a sinusoid sampled over whole
+  periods, for any M ≥ 3 (discrete orthogonality).
+- **R4**: in steady state sin δ = bωA/F₀ (mean drive power = mean damping power), independent
+  of the formula for A.
+- **R5**: a signal error e_j moves A by at most 2 max|e_j|; the transient left after t_s moves
+  it by at most ε_s·A.
+- **Bounds given the measured e_x** = max|x_num − x_exact| over the window:
+  B1 = 2e_x + ε_s·A + r_A; C1 |A_sim − A| ≤ B1; C2 |wrap(δ_sim − δ)| ≤ arcsin(B1/A) (no
+  verdict when B1 ≥ A); C3 |A_ext − A| ≤ ε_s·A + r_A (lock-in of the exact x(t) at the same
+  times); C4 |sin δ_sim − bωA_sim/F₀| ≤ arcsin(B1/A) + bωB1/F₀. e_x is measured against the
+  exact solution, so these are proved *given* that measurement, not a priori.
+- **r_A**, the rounding allowance, = 16 (max(ω₀, ω)·t_end + Q + 20)·ε·max|x_num|: a derived
+  form (phase rounding grows with ωt_end; the plan's c·M·N_W·ε·A did not), justified term by
+  term in the code comment of `ROUNDING_FACTOR`; its size is checked by measurement (below).
+
+### Estimate, not a bound
+- **C5**: u = 2√(B1/K), K the grid's second-difference curvature at the best grid point
+  (2.2's argument); |ω_peak − ω_r| ≤ max(u, xatol) is observed evidence. No verdict without
+  an interior peak (ζ ≥ 1/√2) or with the grid maximum at an edge.
+
+### Tested (`backend/tests/physics/test_resonance_sweep.py`; 118 tests)
+R3 on synthetic sinusoids (M ∈ {3, 4, 64}, eight phases); R5 on a known decaying term and
+reached within a factor 2; the settle count is the smallest satisfying R5; R1 and R2 at the
+default (m = 1 kg, k = 25 N/m, b = 1 kg/s, 0.5-15 rad/s, 21 points) and on corners ζ = 0.9,
+0.5 (0.05-20 ω₀), 0.1 (0.05-10 ω₀), 0.01 (0.05-1.5 ω₀), each grid's cycles computed and
+asserted ≤ 500 first; R4 at every point; R1's low- and high-frequency limits; the wrapped phase
+near π and near 0 (a planted s < 0 passes wrapped, fails raw); two mutants (1/NM factor, sine
+projection sign) fail C1 or C4; Radau, non-underdamped and over-cap inputs refused before any
+solve. All references are independent of the code (closed forms written out in the test,
+detuning in `fractions`).
+
+### Observed (2026-11-22, one machine, x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; DOP853, ε_s = 1e-6)
+| Grid | runs | max \|A_ext − A\|/A | max \|A_sim − A\|/A | worst C1 / C2 / C3 / C4 (value/bound) | C5 (value/bound) |
+|---|---|---|---|---|---|
+| default, tol 1e-10 | 31 | 1.99e-7 | 1.99e-7 | 0.198 / 0.218 / 0.199 / 0.109 | 9.0e-4 |
+| ζ = 0.9, tol 1e-9 | 43 | 8.39e-9 | 8.59e-9 | 0.0085 / 0.037 / 0.0084 / 0.024 | none |
+| ζ = 0.5, tol 1e-9 | 19 | 2.94e-8 | 2.95e-8 | 0.029 / 0.062 / 0.029 / 0.056 | none |
+| ζ = 0.1, tol 1e-9 | 21 | 2.34e-7 | 2.35e-7 | 0.232 / 0.236 / 0.234 / 0.146 | 6.3e-5 |
+| ζ = 0.01, tol 1e-9 | 18 | 4.66e-7 | 4.70e-7 | 0.45 / 0.458 / 0.466 / 0.352 | 3.7e-6 |
+
+- The extraction error (the transient left, ≤ ε_s·A by R5) dominates: A_sim and A_ext agree to
+  a few 1e-9 of A, so the solver adds little at these tolerances.
+- **Rounding** (432 points, ζ 0.005-0.9, ω/ω₀ 0.05-20, ε_s ∈ {1e-12, 1e-6, 1e-2}): the float
+  lock-in of the exact x(t) differs from a long-double one at the same times by at most
+  0.0063·r_A. Not measured by this: the defect of the orthogonality sum from the float t_j not
+  being exactly evenly spaced (the long-double sum shares it); it is covered by the derivation
+  (≤ 2ε ωt_end A, inside r_A's 16 ωt_end ε term).
+- Run times: 0.8-6.8 s per sweep (ζ = 0.01 slowest: 786 261 evaluations).
+
+### Input limits and the work budget (slice 4; `resonance_sweep_schemas.py`, `routes/oscillator.py`)
+`POST /api/v1/physics/oscillator/resonance-sweep`. Every refusal is a 422 saying what to change.
+**Schema** (before any solve): finite SI inputs; b > 0, F₀ > 0; 0 < ω_min < ω_max ≤ 1e4 rad/s;
+ε_s in [1e-12, 1e-2]; 3 ≤ `n_frequencies` ≤ 201; 2.3's ω₀, γ and ω ≤ 100ω₀ rules; **Q ≤ 300**
+(exact, in rationals; D6: above it no sweep fits the 500-cycle limit at any allowed ε_s); no
+initial state, duration, series or budget field. **Model, before any solve:** Radau (naming
+DOP853 and RK45), ζ ≥ 1, and a grid point over 500 cycles (naming the worst ω). **After each
+run:** the budget, naming the evaluations and "fewer frequencies". Tested in
+`tests/api/test_resonance_sweep_limits.py` (each refusal worked by hand, with a fixture failing
+any solve before a pre-solve refusal) and `tests/api/test_resonance_sweep_api.py` (contract,
+R1/R2 written out, saved run replays "identical", stored inputs rebuild the request).
+
+**Budget measurement (observed, 2026-11-22; one machine: Intel Xeon @ 2.10 GHz, 4 cores,
+linux-x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full HTTP requests through the test
+client, scratch scripts not kept).** 36 sweeps at 1e6 (DOP853 and RK45 × tightest, default
+and loosest pairs × ζ = 0.0075 below ω₀, Q = 250 at ε_s = 1e-2, ζ = 0.1 up to 13ω₀, ω₀ = 1e4
+at ε_s = 1e-12, the defaults, 201 points), then 38 more searching for the worst overshoot.
+The budget is charged after each run, so a refusal can overshoot by one run, and one run may
+use up to 2.3's per-run cap of 4e5: the total is bounded by B + 4e5 = 1.4e6 evaluations
+(about 12.6 s at RK45's ~9 µs each, an estimate from the cost below, not a measured run).
+- **Slowest refusal: 12.3 s** (RK45, rtol 6.9e-11, ζ = 0.0075, ω 0.97-0.99 rad/s: 1 298 192
+  evaluations, a constructed near-worst overshoot, below the 1.4e6 bound); before that search, 11.2 s (RK45
+  tightest pair, ζ = 0.1 up to 13 rad/s). Under 15 s, half the 30 s proxy limit, so a machine
+  2x slower still answers. Cost per evaluation in a full request: DOP853 ~8 µs, RK45 ~9 µs.
+- **Slowest admitted: 8.7 s** (DOP853 loosest pair, Q = 250 at ε_s = 1e-2: 982 893).
+- **What 1e6 admits:** the defaults with DOP853 at every pair (92 750 to 717 062) and RK45 at the
+  default and loosest pairs (698 780, 116 324); the sweeps above at the loosest DOP853 pair.
+  Refused: the four heavy configurations with DOP853 at the tightest and default pairs, and
+  with RK45 except ζ = 0.1 and ω₀ = 1e4 at the loosest pair (at RK45's tightest pair three of
+  them by 2.3's per-run cap of 4e5 first).
+- **`n_frequencies` cap 201:** each run costs ~3 ms besides its evaluations (not counted by
+  the budget); 1001 points of the cheapest runs took 9.0 s and 11.6 s, 201 points 2.2-3.0 s.
+  201 keeps that overhead near 0.6 s.
+
+### The page (slice 5; `ResonanceSweepPanel.tsx`, tests `ResonanceSweepPanel.test.tsx`, `OscillatorLab.test.tsx`, `e2e/resonance-sweep.spec.ts`, `e2e/stored-fields.spec.ts`)
+**Tested (component tests with a mocked fetch: 52 passed across `ResonanceSweepPanel.test.tsx`,
+`AngleSweepPanel.test.tsx` and `OscillatorLab.test.tsx`, run 2026-11-22; the page computes no
+physics):** the form carries the contract's defaults and sends what was typed;
+only DOP853 and RK45 are offered; the button reads "Sweeping…" while the server works; a 422 is
+shown with its reason and no result; the chart has the dashed exact curve (formula), the
+simulated points (numerical, naming the solver), the refined peak and, when ω_r exists, the exact
+peak; the peak shows "± u (estimate)" only when u exists and the reason otherwise; ω_r and A_max
+show as absent (never 0) when ζ ≥ 1/√2; the shared ChecksTable, assumptions, CSV download and run
+record appear; a saved sweep reopens (component tests with a mocked fetch).
+No cross-model overlay (decision 17). **Playwright only** (the specs
+`frontend/e2e/resonance-sweep.spec.ts` and `frontend/e2e/stored-fields.spec.ts`, which drive the
+real server): that a saved sweep is found in the run log and that the stored fields appear in the
+stored-fields case. Not run in the 52-test component run above; the only recorded run is the
+build tick's own hand run (Playwright 42 passed; journal
+`docs/journal/2026-11-22-2041-2-5-build.md`), and the full `scripts/check.sh --e2e` has not been
+recorded as passed. **Not shown by these tests:** how the page looks at unusual inputs; there
+is no pixel check.
+
+### Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
+Same machine: bit-identical (tested). Across machines (D12, not tested on a second machine):
+peak ω within max(1e-7ω₀, u); peak A within 4B1 (each machine within its own B1 of the curve's
+maximum, C1; another machine's B1 taken as at most 3B1, a margin); B1 within a factor 3; u
+within the factor √3(1 + 4u²/h²) (first order in the second difference: an estimate); the
+worst C1 ratio within 1 (both lie in [0, 1] where C1 passes).
+
+### Limitations (slice 4)
+- The budget and the cap were measured on one machine; a 2x slower one is the assumed margin.
+- One budget-refusal timing test (`test_resonance_sweep_limits.py::
+  test_the_work_budget_refuses_naming_the_evaluations_in_time`) failed once under full-suite load
+  and passed alone and on one re-run (reported in the autopilot state): treat it as
+  flaky-suspect until reviewed.
+- The cross-machine replay rules are derived, with a stated margin on B1, and not exercised on
+  a second machine.
+- B1 is proved only given the measured e_x, which compares against the exact solution; it is
+  not a bound on the solver's error.
+- **Not proved, only observed:** C5 and u (an estimate from the grid's curvature, 2.2's
+  argument); the size of r_A (a measured margin: 0.0063·r_A over 432 points); every timing and
+  evaluation count; the cap values (Q ≤ 300, 201 frequencies, 1e6 evaluations) as safe margins.
+- **Not covered:** frequencies where the grid step exceeds γ. The default sweep is such a case
+  (Δω/γ = 1.45); C5 was observed at value/limit 9.0e-4 there, but the effect of a coarse grid on
+  C5 was not tested beyond that. The response reports Δω/γ and the page shows the number (row
+  "Grid step ÷ damping rate γ (formula)"). ζ ≥ 1 and Radau (refused); a non-zero start (every
+  run starts from rest).
+- **Deviation from plan D9:** the plan asked for "a note when Δω > γ" (peak under-resolved).
+  That note was **not built**: the response and page carry the number Δω/γ only, with no warning
+  text, even for the default grid where Δω > γ.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 

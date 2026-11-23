@@ -63,6 +63,15 @@ or formula, and quantities that do not exist for a case (no Q without damping, n
 without a drive) are shown as absent, never as 0. Runs the page cannot do accurately or in time
 are refused with the number to change.
 
+**Simulated resonance curve** (the "Simulated resonance curve" panel on `/physics/oscillator`,
+`POST /api/v1/physics/oscillator/resonance-sweep`). Drive a damped spring at each frequency in a
+range, wait out the transient, and read the steady amplitude and phase lag with a lock-in; the
+points sit over the exact formula, the peak is refined and reported with an accuracy *estimate*
+beside the exact resonance frequency, and the checks (proved bounds given the measured error,
+an observed peak check) are listed in a checks table inside the sweep panel itself
+(`ResonanceSweepPanel.tsx`), not in the Workspace Validation section. A work budget and a cycle limit refuse
+sweeps that would run too long, naming what to change.
+
 **Integrator convergence study** (`/physics/projectile/integrators`). Forward Euler, classical
 RK4 and velocity Verlet, written from scratch, solve the same problem over a range of fixed
 time steps. A log-log plot shows the error falling as hᵖ. Orders are fitted only over step

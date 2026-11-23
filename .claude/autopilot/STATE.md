@@ -7,10 +7,10 @@ enabled flag only (skill step 6).
 
 stop: none (the other values, set by a tick: `blocked`, `waiting-review`)
 scheduled task: SimForge autopilot (fresh session), id trig_01LWbTdfvYfXswNkcewkKTUU (a fresh
-  session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; twice a day at 02:59
-  and 12:59 UTC, `59 2,12 * * *`, since 2026-11-03). The old task
+  session per run, repository attached, auto-fix off, model per the `CLAUDE.md` table; three times a day at
+  02:59, 10:59 and 18:59 UTC, `59 2,10,18 * * *`, since 2026-11-22; was twice a day from 2026-11-03). The old task
   trig_01D81BmGR4kh1SUbMrdbJi4F (bound to one session) is disabled and kept; never re-enable it.
-work limit from: bcf6518
+work limit from: be06b6f
 ladder rung: none (the retry ladder by model, skill step 4)
 failures: none
 branch: see the `Working branch:` line of `docs/HANDOFF.md` on `origin/main`.
@@ -19,10 +19,11 @@ Authorised phase: Phase 2 (Physics Lab, mechanics and numerical methods), by the
 (since 2026-11-07; before, the autopilot accepted its own defaults).
 
 ## Budget (the author may edit these numbers)
-- unit of work: a whole roadmap step, as a plan tick then a build tick (the author's rule of
-  2026-11-19). Caps: 4 working subagents per slice and 24 per tick, 5 Haiku helper spawns per
-  slice, 12 commits between work-limit resets (skill steps 0b and 4).
-- working runs per day: 2 (the author's rule of 2026-11-03; was 1). Days run 24 h from 02:00 UTC.
+- unit of work: one phase of a roadmap step for all its slices: a plan tick, a build tick, then
+  a review-and-fix tick (the author's rule of 2026-11-22, replacing plan-then-build of
+  2026-11-19). Caps: 4 working subagents per slice across the step and 24 per tick, 5 Haiku
+  helper spawns per slice per tick, 12 commits between work-limit resets (skill steps 0b and 4).
+- working runs per day: 3 (the author's rule of 2026-11-22; was 2 from 2026-11-03, 1 before). Days run 24 h from 02:00 UTC.
   Counted in git from `Autopilot-run: work` commits, because a fresh session cannot read live
   usage. This replaces the 0.08 daily allowance, which needed live readings. The weekly and
   five-hour usage caps were removed on 2026-11-15: no scheduled run can read usage.
@@ -47,17 +48,9 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 - 2.3 (PR #26): 10 journalled autopilot ticks 2026-11-09 to 2026-11-19 for slices 2-5 plus
   chat sessions for planning, slice 1 and the slice 2 review (not counted); subagents by agent,
   rungs and usage unknown (no usage readings in fresh sessions).
+- 2.4 (PR #27): planned and built in one chat session 2026-11-19 (slices 1-5, risky slices
+  reviewed, whole-step review); usage, subagents by agent and rungs unknown (no usage readings).
 
 ## Current unit
-Roadmap 2.4: planned (self-grilled at the author's request, 3 reviews) and built in one chat
-session on 2026-11-19, slices 1-5, each risky slice reviewed, whole-step review done, full
-check run (Next.js build notice: retry passed). Draft PR opened for the author's review.
-The work limit (12 commits since bcf6518) is reached with the close-out commit; the next
-tick waits for the merge (skill step 2.5), then resets the limit at the merge.
-
-## Remainder of the current unit
-None: 2.4 finished; its PR waits for the author's merge (never merged by Claude).
-
-## Waiting for you
-Open decisions and pending learning-log drafts live only in `docs/HANDOFF.md` ("Open
-decisions"), since 2026-11-02. This file keeps the autopilot's own state.
+Roadmap 2.5 (Generic sweeps): review-and-fix tick done 2026-11-23 (journal docs/journal/2026-11-23-0321-2-5-review-fix.md). All reviews done, must-fix fixed.
+Remaining: the PR. The author parked A2 on 2026-11-23 (revert 60f4b1d; Known red: none) and asked a chat session to open the 2.5 PR and merge it once CI is green. Next tick: if the PR is merged, the learning-log draft, then 2.6 as the skill says; if it is still open, wait for it.
