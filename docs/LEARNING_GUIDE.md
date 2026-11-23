@@ -5032,7 +5032,7 @@ periods with `2R e^(−γnT) ≤ ε_s·A`**. Solving for `n`:
 
 `n* = ln(2R / (ε_s A)) / (γT)`, then round **up**.
 
-<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:169-180 -->
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:170-181 -->
 ```python
 def settle_periods(p: OscillatorInputs, eps_s: float) -> int:
     """The smallest whole n >= 0 with 2 R e^{-gamma n T} <= eps_s A (R5, D7); underdamped,
@@ -5072,7 +5072,7 @@ then `A = √(c² + s²)` and `δ = atan2(s, c)`.
 whole periods. `cos²` averages to `½` and `cos·sin` averages to `0`, so
 `c = 2 · mean(x · cos ωt)` and `s = 2 · mean(x · sin ωt)`.
 
-<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:155-159 -->
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:156-160 -->
 ```python
 def lock_in(t: FloatArray, x: FloatArray, omega: float) -> tuple[float, float]:
     """(c, s) = (2/NM) sum x_j (cos w t_j, sin w t_j): (A cos delta, A sin delta) exactly for
@@ -5106,7 +5106,7 @@ over-driven spring `δ` is close to `π` (at `ω = 15 rad/s` the formula gives `
 can push `s` to a tiny negative value: then `atan2` jumps to `−π + …` while the true `δ` is `π − …`.
 A naive `|δ_sim − δ|` would then read `≈ 2π` for a perfect answer. Two conventions fix it:
 
-<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:190-193 -->
+<!-- src: backend/src/simforge/physics/oscillator/resonance_sweep.py:191-194 -->
 ```python
 def wrap_phase(angle: float) -> float:
     """angle wrapped into (-pi, pi] (rad); exact (IEEE remainder)."""
@@ -5180,7 +5180,9 @@ and `ζ = 0.5` grids.
 
 **Grid step against `γ`.** If neighbouring grid frequencies are further apart than the resonance
 is wide (about `γ`), the grid can flatten or miss the peak. The response reports `Δω/γ`; the page
-shows the number (it prints no warning text).
+shows the number only. Plan D9's "note when `Δω > γ`" was **not built** (a deviation), although the
+default sweep has `Δω/γ = 1.45`; C5 was observed at `9.0 × 10⁻⁴` there, but the effect of a coarse
+grid on C5 was not tested.
 
 ### 22.8 The cost: cycles and the work budget **[SimForge, observed]**
 A sweep is ~21 runs plus ~10 Brent runs, each a full solve. Three limits keep it from running for
@@ -5222,9 +5224,12 @@ objective, units and messages.
 The driver also holds `curvature` (the second-difference `K`), `interior_peaks` (a count of local
 maxima) and `WorkBudget`. The two angle sweeps moved onto it **bit-identically**: their golden
 digests and every existing test are unchanged (**tested**), so no version bump. The rule from the
-repository's standards applies: a shared abstraction only when real models need it, and here three
-do. On the page the resonance sweep has its own panel: the angle sweeps' `SweepPanel` was not
-generalised (a deviation from plan D13).
+repository's standards says: extract a shared abstraction only when real models from at least two
+labs need it. Here all three users (the two angle sweeps and the resonance sweep) are Physics
+models, and `numerics/` sits outside `core/` (ARCHITECTURE decision 19), so the "two labs" rule is
+treated as not applying; this is an open decision, and the author is asked to confirm it
+(`docs/HANDOFF.md`). On the page the resonance sweep has its own panel: the angle sweeps'
+`SweepPanel` was not generalised (a deviation from plan D13).
 
 ### 22.10 Checkpoint **[answer in your own words]**
 1. In one sentence, why does the sweep start every run from rest instead of from the steady state?

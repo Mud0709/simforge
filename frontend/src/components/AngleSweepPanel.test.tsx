@@ -115,9 +115,9 @@ describe("AngleSweepPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("less than or equal to 361");
   });
 
-  // Roadmap 2.5, D13: the shared panel is generalised from angles to any swept variable. These
-  // tests go through the public AngleSweepPanel only (its props and what it shows), so they
-  // pass before and after the generalisation: what the angle sweep draws and says is unchanged.
+  // Roadmap 2.5, D13 planned to generalise the shared panel from angles to any swept variable;
+  // that was not done (the resonance sweep has its own panel). These tests go through the public
+  // AngleSweepPanel only (its props and what it shows), so they would also survive such a change.
   it("draws the analytical range curve and the best angle, over 0 to 90 degrees", async () => {
     mockFetch(200, RESPONSE);
     render(<AngleSweepPanel parameters={PARAMS} />);

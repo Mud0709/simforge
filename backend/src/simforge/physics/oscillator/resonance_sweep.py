@@ -93,13 +93,14 @@ METHODS = ("DOP853", "RK45")
 # within 0.0063 r_A of a long-double one at the same times.
 ROUNDING_FACTOR = 16.0
 # The sweep's work budget (plan D11): right-hand-side evaluations over every run, charged after
-# each run, so a refusal may overshoot by one run (at most 2.3's 400 000 per run; in the worst
-# arrangement, four runs of just under B/3, 4B/3). Set against the 30 s Next.js proxy limit
-# with half of it as margin for a 2x slower machine (2.2's and 2.3's method). Measured in slice 4
-# (SCIENTIFIC_VALIDATION.md, physics.oscillator.resonance_sweep, "Input limits and the work
-# budget"; one machine, Xeon 2.10 GHz x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full
-# HTTP requests): slowest refusal 12.3 s (RK45, rtol 6.9e-11, 1 298 192 evaluations, the
-# constructed worst overshoot), slowest admitted 8.7 s (DOP853, Q = 250, 982 893).
+# each run, so a refusal may overshoot by one run: one run may use up to 2.3's 400 000 per-run
+# cap, so the total is bounded by B + 400 000 (1.4 M; ~12.6 s estimated at RK45's ~9 us per
+# evaluation). Set against the 30 s Next.js proxy limit with half of it as margin for a 2x
+# slower machine (2.2's and 2.3's method). Measured in slice 4 (SCIENTIFIC_VALIDATION.md,
+# physics.oscillator.resonance_sweep, "Input limits and the work budget"; one machine, Xeon
+# 2.10 GHz x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full HTTP requests): slowest
+# refusal 12.3 s (RK45, rtol 6.9e-11, 1 298 192 evaluations, a constructed near-worst
+# overshoot, not the bound), slowest admitted 8.7 s (DOP853, Q = 250, 982 893).
 MAX_RESONANCE_SWEEP_RHS_EVALUATIONS = 1_000_000
 # The largest grid (plan D6). Each run adds ~3 ms besides its evaluations (measured, same
 # record: 1001 points of the cheapest runs took 9.0 s), which the budget does not count; at 201
@@ -260,11 +261,17 @@ def _duration(p: OscillatorInputs, eps_s: float) -> tuple[float, float]:
 
 
 def _refuse_over_cap(inputs: ResonanceSweepInputs, grid: list[float]) -> None:
-    """Before any solve: every grid point's cycles within 2.3's MAX_CYCLES (D7)."""
-    cycles = [
-        (w, analytical.cycles(inputs.at(w), _duration(inputs.at(w), inputs.settle_tolerance)[1]))
-        for w in grid
-    ]
+    """Before any solve: every grid point's duration finite and its cycles within 2.3's
+    MAX_CYCLES (D7)."""
+    durations = [(w, _duration(inputs.at(w), inputs.settle_tolerance)[1]) for w in grid]
+    for w, t_end in durations:
+        if not math.isfinite(t_end):
+            raise ModelDomainError(
+                f"The run at w = {w:.6g} rad/s has no finite duration: its drive period "
+                f"2 pi / w (or the run's whole periods) overflows a 64-bit float. Raise "
+                f"omega_min (got {inputs.omega_min:g} rad/s)."
+            )
+    cycles = [(w, analytical.cycles(inputs.at(w), t_end)) for w, t_end in durations]
     worst_w, worst = max(cycles, key=lambda c: c[1])
     if worst > model.MAX_CYCLES:
         d = analytical.derived(inputs.at(worst_w))
@@ -366,7 +373,9 @@ def _point_checks(pt: SweepPoint, inputs: ResonanceSweepInputs) -> list[Validati
     turn = phase_bound(b1, a)
     drive = inputs.damping_coefficient * w / inputs.drive_amplitude  # b w / F0, 1/m
     vacuous = " No verdict where B1 >= A (the bound says nothing)." if turn is None else ""
-    given = "Proved given the measured e_x (R3, R5)."
+    given = (
+        "Proved given the measured e_x (R3, R5), plus a measured rounding allowance r_A (observed)."
+    )
     return [
         _graded(
             "lock_in_amplitude",
@@ -389,7 +398,8 @@ def _point_checks(pt: SweepPoint, inputs: ResonanceSweepInputs) -> list[Validati
             abs(pt.extraction_amplitude - a),
             inputs.settle_tolerance * a + pt.rounding_allowance,
             "|A_ext - A| in m, the lock-in of the exact x(t) at the same times (extraction and "
-            "transient only), against eps_s A + r_A. Proved (R3, R5).",
+            "transient only), against eps_s A + r_A. Proved (R3, R5) up to r_A, a measured "
+            "rounding allowance (observed).",
         ),
         _graded(
             "power_balance",

@@ -113,6 +113,8 @@ def test_non_finite_settings_are_rejected(client: TestClient, no_solve: None, bo
         {"parameters": {"omega_min": -1.0}},
         {"parameters": {"omega_min": 5.0, "omega_max": 5.0}},  # min = max
         {"parameters": {"omega_min": 6.0, "omega_max": 5.0}},  # min > max
+        # Subnormal w: the period 2 pi / w overflows to inf, so the run has no finite duration.
+        {"parameters": {"omega_min": 5e-324, "omega_max": 1.0}},
         {"parameters": {"omega_max": 1.0001e4}},  # the 2.3 bound on w
         {"parameters": {"settle_tolerance": 1e-13}},
         {"parameters": {"settle_tolerance": 0.011}},
@@ -136,6 +138,16 @@ def test_invalid_requests_are_rejected_before_solving(
     r = client.post(URL, json={"save_experiment": False, **payload})
     assert r.status_code == 422, r.text
     strict(r.text)
+
+
+def test_an_overflowing_period_is_refused_naming_omega_min(
+    client: TestClient, no_solve: None
+) -> None:
+    # 2 pi / 5e-324 overflows float64 (max ~1.8e308): no finite run duration exists.
+    r = post(client, {"omega_min": 5e-324, "omega_max": 1.0})
+    assert r.status_code == 422, r.text
+    assert explained(r)
+    assert "omega_min" in detail_text(r)
 
 
 def test_radau_refusal_names_the_allowed_methods(client: TestClient, no_solve: None) -> None:

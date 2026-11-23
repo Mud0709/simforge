@@ -9,10 +9,11 @@ other branch is warned by the start brief and shown this file from origin/<worki
 # SimForge handoff
 
 ## Next action
-**2.5 (Generic sweeps) is fully built, not yet reviewed** (6 slices, commits on the working branch; brief `docs/briefs/2.5.md`, guide Part 22). Next autopilot tick: review-and-fix (reviewers, fixes, full `scripts/check.sh --e2e`, PR). Done locally and pushed to the working branch; no PR; CI not run (no PR). Full check not yet passed as one run (a timing test failed once under load, passed alone). Your A2 sitting runs alongside; fetch before you push.
+**2.5 (Generic sweeps) is built, reviewed (5 reviewers) and fixed; the PR waits for your known-red tests** (journal `docs/journal/2026-11-23-0321-2-5-review-fix.md`). Pushed to the working branch; no PR; CI not run (no PR). Full check: 3226 passed, only the 6 known-red plus 2 load-timing tests failed; those 2 pass alone (not a clean pass). Next: when `Known red: none`, the next tick re-runs the check and opens the PR.
 Known red: `backend/tests/physics/foundations/test_core_momentum.py`, 6 failures until you write `momentum` (yours; the 2.5 PR opens only once they pass). Set to `Known red: none` when done.
 
 ## Open decisions
+- **2.5 review leftovers (not blocking):** D9 note (Δω > γ) not built, recorded as a deviation (default grid is Δω/γ = 1.45); D13 SweepPanel not generalised (not in the roadmap: schedule or accept); two wall-clock budget tests fail under load (make deterministic?); clamp per-run evaluations to the remaining budget; worth-doing list in the journal.
 - **2.5 plan, your call (not blocking):** D1/D5 treat `numerics/` and `physics/sweep_checks.py` as exempt from CLAUDE.md's "two labs" rule (as 2.4 did); the simulated resonance curve is the second user (a 2.3-plan suggestion). Confirm or redirect before the build tick if you disagree.
 - **A2 confirmed (2026-11-21):** all four answered yes in chat (division of labour; A2 before 2.5, parked by default three weeks after S0, extendable once; SL+HL in one PR; syllabus lines). If you have not yet compared the plan's "Syllabus re-check" lines with your Physics guide copy, do it before sitting 2.
 - **Learning-log drafts for PR #20, #23, #26 and #27:** read it, edit or approve (remove the DRAFT tag). Not blocking.

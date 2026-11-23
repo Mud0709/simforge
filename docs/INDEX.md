@@ -46,7 +46,7 @@ is in `CLAUDE.md`).
 - 554-569: Adding a new model (the intended pattern)
 - 570-573: Deliberately not included (yet)
 
-## `SCIENTIFIC_VALIDATION.md` (2040 lines)
+## `SCIENTIFIC_VALIDATION.md` (2048 lines)
 - 6-29: Principles
 - 30-196: `physics.projectile` v1.1.0: projectile motion with linear drag
   - 35-46: Model
@@ -110,43 +110,43 @@ is in `CLAUDE.md`).
   - 1405-1420: Rounding constants (measured 2026-11-19, x86_64, Python 3.12.3, NumPy 2.5.4)
   - 1421-1430: Caps and timings (same machine)
   - 1431-1442: Limitations
-- 1443-1600: `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5; model, API and page)
+- 1443-1608: `physics.oscillator.resonance_sweep` v1.0.0: simulated resonance curve (roadmap 2.5; model, API and page)
   - 1467-1476: What it computes
   - 1477-1492: Proved (on paper, in the module docstring; the tests check the code obeys them)
   - 1493-1497: Estimate, not a bound
   - 1498-1508: Tested (`backend/tests/physics/test_resonance_sweep.py`; 118 tests)
   - 1509-1526: Observed (2026-11-22, one machine, x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; DOP853, ε_s = 1e-6)
-  - 1527-1559: Input limits and the work budget (slice 4; `resonance_sweep_schemas.py`, `routes/oscillator.py`)
-  - 1560-1574: The page (slice 5; `ResonanceSweepPanel.tsx`, tests `ResonanceSweepPanel.test.tsx`, `OscillatorLab.test.tsx`, `e2e/resonance-sweep.spec.ts`, `e2e/stored-fields.spec.ts`)
-  - 1575-1581: Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
-  - 1582-1600: Limitations (slice 4)
-- 1601-1739: `economy.solow` v1.0.0: Solow growth model in discrete time
-  - 1607-1628: Model
-  - 1629-1664: Mathematical guarantees (proved; the tests check the implementation obeys them)
-  - 1665-1672: Numerical-analysis issue handled: cancellation in λ
-  - 1673-1694: Empirical evidence (held on the grid; not theorems)
-  - 1695-1710: What is tested
-  - 1711-1720: Per-run checks shown in the app
-  - 1721-1725: Observed (2026-10-15, default inputs)
-  - 1726-1739: Limitations
-- 1740-1821: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
-  - 1742-1748: What it computes, and what it does not
-  - 1749-1764: Definitions
-  - 1765-1776: Numerical-analysis issues handled
-  - 1777-1791: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
-  - 1792-1798: Per-run checks shown in the app
-  - 1799-1803: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
-  - 1804-1821: Limitations
-- 1822-1915: Reproducibility and replay (run record v2, roadmap 1.4)
-  - 1851-1895: Declared tolerances (used only when the digests are unavailable or differ)
-  - 1896-1907: Tests
-  - 1908-1915: Known limitations
-- 1916-2040: Comparison and export (roadmap 1.6)
-  - 1925-1959: Recomputed series: the digest says whether they are exact
-  - 1960-1988: CSV: what is written is the number that was computed
-  - 1989-1996: JSON export
-  - 1997-2030: The comparison: differences, not verdicts
-  - 2031-2040: Limitations
+  - 1527-1560: Input limits and the work budget (slice 4; `resonance_sweep_schemas.py`, `routes/oscillator.py`)
+  - 1561-1579: The page (slice 5; `ResonanceSweepPanel.tsx`, tests `ResonanceSweepPanel.test.tsx`, `OscillatorLab.test.tsx`, `e2e/resonance-sweep.spec.ts`, `e2e/stored-fields.spec.ts`)
+  - 1580-1586: Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
+  - 1587-1608: Limitations (slice 4)
+- 1609-1747: `economy.solow` v1.0.0: Solow growth model in discrete time
+  - 1615-1636: Model
+  - 1637-1672: Mathematical guarantees (proved; the tests check the implementation obeys them)
+  - 1673-1680: Numerical-analysis issue handled: cancellation in λ
+  - 1681-1702: Empirical evidence (held on the grid; not theorems)
+  - 1703-1718: What is tested
+  - 1719-1728: Per-run checks shown in the app
+  - 1729-1733: Observed (2026-10-15, default inputs)
+  - 1734-1747: Limitations
+- 1748-1829: `quant.dataset_profile` v1.0.0: CSV import and descriptive profile
+  - 1750-1756: What it computes, and what it does not
+  - 1757-1772: Definitions
+  - 1773-1784: Numerical-analysis issues handled
+  - 1785-1799: What is tested (`backend/tests/quant/`, `tests/api/test_quant_api.py`; 226 tests)
+  - 1800-1806: Per-run checks shown in the app
+  - 1807-1811: Observed (2026-10-16; Python 3.12.3, NumPy 2.5.4)
+  - 1812-1829: Limitations
+- 1830-1923: Reproducibility and replay (run record v2, roadmap 1.4)
+  - 1859-1903: Declared tolerances (used only when the digests are unavailable or differ)
+  - 1904-1915: Tests
+  - 1916-1923: Known limitations
+- 1924-2048: Comparison and export (roadmap 1.6)
+  - 1933-1967: Recomputed series: the digest says whether they are exact
+  - 1968-1996: CSV: what is written is the number that was computed
+  - 1997-2004: JSON export
+  - 2005-2038: The comparison: differences, not verdicts
+  - 2039-2048: Limitations
 
 ## `docs/ECONOMY_LEARNING_GUIDE.md` (700 lines)
 - 16-48: How to use this guide
@@ -301,7 +301,7 @@ is in `CLAUDE.md`).
 - 510-522: Product structure (proposed)
 - 523-536: Sources
 
-## `docs/LEARNING_GUIDE.md` (5471 lines)
+## `docs/LEARNING_GUIDE.md` (5476 lines)
 - 24-114: How to use this guide
   - 26-35: Difficulty labels
   - 36-72: Suggested reading order
@@ -485,20 +485,20 @@ is in `CLAUDE.md`).
   - 4952-4962: 21.8 The workbench driver **[SimForge]**
   - 4963-4970: 21.9 Checkpoint **[answer in your own words]**
   - 4971-4990: 21.10 Exercises (no solutions given)
-- 4991-5260: Part 22 — Measuring a resonance curve: lock-in, settle time, power balance and the sweep driver
+- 4991-5265: Part 22 — Measuring a resonance curve: lock-in, settle time, power balance and the sweep driver
   - 5009-5022: 22.1 Intuition: how a resonance curve is measured **[IB-friendly]**
   - 5023-5065: 22.2 Waiting out the transient: the settle time **[IB-friendly idea, Beyond IB maths]**
   - 5066-5102: 22.3 The lock-in: reading amplitude and phase from samples **[Beyond IB]**
   - 5103-5121: 22.4 The phase trap: `δ` near `π` and the wrap **[Beyond IB]**
   - 5122-5138: 22.5 The power balance: an independent check on the phase **[IB-friendly]**
   - 5139-5162: 22.6 Bounds that depend on a measurement **[Beyond IB]**
-  - 5163-5184: 22.7 The peak, and the estimate `u` **[Beyond IB, observed]**
-  - 5185-5200: 22.8 The cost: cycles and the work budget **[SimForge, observed]**
-  - 5201-5228: 22.9 One driver for three sweeps **[SimForge]**
-  - 5229-5237: 22.10 Checkpoint **[answer in your own words]**
-  - 5238-5260: 22.11 Exercises (no solutions given)
-- 5261-5330: Appendix — Symbol table
-- 5331-5471: Changes from the previous version of this guide
+  - 5163-5186: 22.7 The peak, and the estimate `u` **[Beyond IB, observed]**
+  - 5187-5202: 22.8 The cost: cycles and the work budget **[SimForge, observed]**
+  - 5203-5233: 22.9 One driver for three sweeps **[SimForge]**
+  - 5234-5242: 22.10 Checkpoint **[answer in your own words]**
+  - 5243-5265: 22.11 Exercises (no solutions given)
+- 5266-5335: Appendix — Symbol table
+- 5336-5476: Changes from the previous version of this guide
 
 ## `docs/QUANT_LEARNING_GUIDE.md` (668 lines)
 - 18-42: How to use this guide

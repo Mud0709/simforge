@@ -1541,10 +1541,11 @@ linux-x86_64, Python 3.12.3, NumPy 2.5.4, SciPy 1.18.1; full HTTP requests throu
 client, scratch scripts not kept).** 36 sweeps at 1e6 (DOP853 and RK45 × tightest, default
 and loosest pairs × ζ = 0.0075 below ω₀, Q = 250 at ε_s = 1e-2, ζ = 0.1 up to 13ω₀, ω₀ = 1e4
 at ε_s = 1e-12, the defaults, 201 points), then 38 more searching for the worst overshoot.
-The budget is charged after each run, so a refusal can overshoot by one run; with 2.3's
-per-run cap of 4e5 the worst arrangement is four runs of just under B/3, about 4B/3.
+The budget is charged after each run, so a refusal can overshoot by one run, and one run may
+use up to 2.3's per-run cap of 4e5: the total is bounded by B + 4e5 = 1.4e6 evaluations
+(about 12.6 s at RK45's ~9 µs each, an estimate from the cost below, not a measured run).
 - **Slowest refusal: 12.3 s** (RK45, rtol 6.9e-11, ζ = 0.0075, ω 0.97-0.99 rad/s: 1 298 192
-  evaluations, the constructed near-worst overshoot); before that search, 11.2 s (RK45
+  evaluations, a constructed near-worst overshoot, below the 1.4e6 bound); before that search, 11.2 s (RK45
   tightest pair, ζ = 0.1 up to 13 rad/s). Under 15 s, half the 30 s proxy limit, so a machine
   2x slower still answers. Cost per evaluation in a full request: DOP853 ~8 µs, RK45 ~9 µs.
 - **Slowest admitted: 8.7 s** (DOP853 loosest pair, Q = 250 at ε_s = 1e-2: 982 893).
@@ -1566,10 +1567,14 @@ shown with its reason and no result; the chart has the dashed exact curve (formu
 simulated points (numerical, naming the solver), the refined peak and, when ω_r exists, the exact
 peak; the peak shows "± u (estimate)" only when u exists and the reason otherwise; ω_r and A_max
 show as absent (never 0) when ζ ≥ 1/√2; the shared ChecksTable, assumptions, CSV download and run
-record appear; a saved sweep is found in the log, reopens and appears in the stored-fields case.
-No cross-model overlay (decision 17). The Playwright specs (`resonance-sweep.spec.ts`,
-`stored-fields.spec.ts`) drive the real server; they are run by `scripts/check.sh --e2e`, not in
-the run recorded here. **Not shown by these tests:** how the page looks at unusual inputs; there
+record appear; a saved sweep reopens (component tests with a mocked fetch).
+No cross-model overlay (decision 17). **Playwright only** (the specs
+`frontend/e2e/resonance-sweep.spec.ts` and `frontend/e2e/stored-fields.spec.ts`, which drive the
+real server): that a saved sweep is found in the run log and that the stored fields appear in the
+stored-fields case. Not run in the 52-test component run above; the only recorded run is the
+build tick's own hand run (Playwright 42 passed; journal
+`docs/journal/2026-11-22-2041-2-5-build.md`), and the full `scripts/check.sh --e2e` has not been
+recorded as passed. **Not shown by these tests:** how the page looks at unusual inputs; there
 is no pixel check.
 
 ### Replay rules (summary: refined ω and A, u and B1 at the peak, worst C1 ratio)
@@ -1592,11 +1597,14 @@ worst C1 ratio within 1 (both lie in [0, 1] where C1 passes).
 - **Not proved, only observed:** C5 and u (an estimate from the grid's curvature, 2.2's
   argument); the size of r_A (a measured margin: 0.0063·r_A over 432 points); every timing and
   evaluation count; the cap values (Q ≤ 300, 201 frequencies, 1e6 evaluations) as safe margins.
-- **Not covered:** frequencies where the grid step exceeds γ (the response reports Δω/γ and
-  the peak may be flattened or missed; stated, not tested for its effect on C5); ζ ≥ 1 and
-  Radau (refused); a non-zero start (every run starts from rest).
-- The 2.5 plan's `grid_step_over_gamma` note (a message when Δω > γ) is the page's row
-  "Grid step ÷ damping rate γ (formula)"; the page shows the number and no warning text.
+- **Not covered:** frequencies where the grid step exceeds γ. The default sweep is such a case
+  (Δω/γ = 1.45); C5 was observed at value/limit 9.0e-4 there, but the effect of a coarse grid on
+  C5 was not tested beyond that. The response reports Δω/γ and the page shows the number (row
+  "Grid step ÷ damping rate γ (formula)"). ζ ≥ 1 and Radau (refused); a non-zero start (every
+  run starts from rest).
+- **Deviation from plan D9:** the plan asked for "a note when Δω > γ" (peak under-resolved).
+  That note was **not built**: the response and page carry the number Δω/γ only, with no warning
+  text, even for the default grid where Δω > γ.
 
 ## `economy.solow` v1.0.0: Solow growth model in discrete time
 
