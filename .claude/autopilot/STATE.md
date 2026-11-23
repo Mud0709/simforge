@@ -53,4 +53,4 @@ For scale: on 2026-10-24 a short reply in this session moved the 7-day window by
 
 ## Current unit
 Roadmap 2.5 (Generic sweeps): review-and-fix tick done 2026-11-23 (journal docs/journal/2026-11-23-0321-2-5-review-fix.md). All reviews done, must-fix fixed.
-Remaining: PR (not opened: Known red is not none; author writes `momentum`). Full check: only the 6 known-red plus 2 load-timing tests failed; the 2 timing tests pass alone. Next tick: if Known red is none, re-run the full check, open the PR; otherwise wait.
+Remaining: the PR. The author parked A2 on 2026-11-23 (revert 60f4b1d; Known red: none) and asked a chat session to open the 2.5 PR and merge it once CI is green. Next tick: if the PR is merged, the learning-log draft, then 2.6 as the skill says; if it is still open, wait for it.
